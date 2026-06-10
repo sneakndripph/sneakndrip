@@ -413,7 +413,7 @@ export default function HomePage() {
             ))}
           </div>
           <div className="text-center mt-8">
-            <a href="https://instagram.com/sneakndrip" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.instagram.com/sneakndripph/" target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 text-sm font-semibold px-6 py-3 transition-opacity hover:opacity-70"
               style={{ border: `1.5px solid ${BRAND.black}`, color: BRAND.black, fontFamily: FONTS.body }}>
               Follow on Instagram →

@@ -20,8 +20,8 @@ const FOOTER_LINKS = {
   About: [
     { label: "Our Story", href: "/about" },
     { label: "Contact Us", href: "/contact" },
-    { label: "Instagram", href: "https://instagram.com" },
-    { label: "TikTok", href: "https://tiktok.com" },
+    { label: "Instagram", href: "https://www.instagram.com/sneakndripph/" },
+    { label: "TikTok", href: "https://www.tiktok.com/@sneakyjuls" },
   ],
 };
 
@@ -42,9 +42,9 @@ export default function Footer() {
             </p>
             <div className="flex gap-3">
               {[
-                { name: "Facebook", icon: "f", href: "#" },
-                { name: "Instagram", icon: "ig", href: "#" },
-                { name: "TikTok", icon: "tt", href: "#" },
+                { name: "Facebook", icon: "f", href: "https://www.facebook.com/SneakNDrip/" },
+                { name: "Instagram", icon: "ig", href: "https://www.instagram.com/sneakndripph/" },
+                { name: "TikTok", icon: "tt", href: "https://www.tiktok.com/@sneakyjuls" },
               ].map(s => (
                 <a key={s.name} href={s.href}
                   className="w-9 h-9 rounded-sm flex items-center justify-center text-xs font-black transition-colors hover:opacity-80"
@@ -83,7 +83,7 @@ export default function Footer() {
             We Accept
           </p>
           <div className="flex flex-wrap gap-3">
-            {["GCash", "Maya", "Bank Transfer", "Cash on Delivery"].map(m => (
+            {["GCash", "Bank Transfer", "Cash on Delivery"].map(m => (
               <span key={m} className="text-xs font-semibold px-3 py-1.5 rounded-sm"
                 style={{ background: "rgba(255,255,255,0.05)", color: "#666", border: "1px solid rgba(255,255,255,0.06)" }}>
                 {m}
@@ -114,7 +114,7 @@ export default function Footer() {
 
       {/* Messenger chat button */}
       <a
-        href="https://m.me/sneakndrip"
+        href="https://m.me/SneakNDrip"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-110"

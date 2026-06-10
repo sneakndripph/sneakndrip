@@ -56,9 +56,9 @@ export default function AdminSettingsPage() {
           <Field label="Store Email" defaultValue="hello@sneakndrip.ph" type="email" />
           <Field label="Contact Number" defaultValue="+63 917 123 4567" />
           <Field label="Address" defaultValue="Taguig, Metro Manila, Philippines" />
-          <Field label="Facebook Page URL" defaultValue="https://facebook.com/sneakndrip" />
-          <Field label="Instagram Handle" defaultValue="@sneakndrip" />
-          <Field label="TikTok Handle" defaultValue="@sneakndrip" />
+          <Field label="Facebook Page URL" defaultValue="https://www.facebook.com/SneakNDrip/" />
+          <Field label="Instagram Handle" defaultValue="@sneakndripph" />
+          <Field label="TikTok Handle" defaultValue="@sneakyjuls" />
         </Section>
 
         <Section title="Shipping & Fees">
