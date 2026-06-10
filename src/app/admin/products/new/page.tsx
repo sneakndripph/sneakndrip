@@ -4,8 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { BRAND, FONTS, SNEAKER_SIZES, BRANDS } from "@/lib/constants";
 import { Upload, ArrowLeft, CheckCircle } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-
 function toSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now().toString(36);
 }
@@ -40,49 +38,26 @@ export default function NewProductPage() {
     if (!form.name || !form.brand || !form.full) { setError("Name, brand and full payment price are required."); return; }
     setSaving(true);
     try {
-      const supabase = createClient();
       const slug = toSlug(form.name);
 
-      // Upload images to Supabase Storage
-      const imageUrls: string[] = [];
-      for (const file of images) {
-        const ext = file.name.split(".").pop();
-        const path = `${slug}/${Date.now()}.${ext}`;
-        const { data: upload } = await supabase.storage.from("product-images").upload(path, file, { upsert: true });
-        if (upload) {
-          const { data: { publicUrl } } = supabase.storage.from("product-images").getPublicUrl(upload.path);
-          imageUrls.push(publicUrl);
-        }
-      }
+      // Send everything (including image files) to API route — service role handles uploads + insert
+      const fd = new FormData();
+      fd.append("product", JSON.stringify({
+        name: form.name, slug, brand: form.brand,
+        colorway: form.colorway || null, gender: form.gender,
+        sku: form.sku || null, description: form.description || null,
+        srp_price: Number(form.srp) || Number(form.full),
+        downpayment_price: Number(form.dp) || Math.round(Number(form.full) * 0.5),
+        full_payment_price: Number(form.full), status,
+        eta_start: status === "pre-order" && form.etaStart ? form.etaStart : null,
+        eta_end: status === "pre-order" && form.etaEnd ? form.etaEnd : null,
+        is_published: visibility.published, is_featured: visibility.featured,
+        is_trending: visibility.trending, is_new: true,
+      }));
+      fd.append("sizes", JSON.stringify(sizes));
+      images.forEach(img => fd.append("images", img));
 
-      // Insert via API route (uses service role to bypass RLS)
-      const res = await fetch("/api/admin/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          product: {
-            name: form.name,
-            slug,
-            brand: form.brand,
-            colorway: form.colorway || null,
-            gender: form.gender,
-            sku: form.sku || null,
-            description: form.description || null,
-            srp_price: Number(form.srp) || Number(form.full),
-            downpayment_price: Number(form.dp) || Math.round(Number(form.full) * 0.5),
-            full_payment_price: Number(form.full),
-            status,
-            eta_start: status === "pre-order" && form.etaStart ? form.etaStart : null,
-            eta_end: status === "pre-order" && form.etaEnd ? form.etaEnd : null,
-            is_published: visibility.published,
-            is_featured: visibility.featured,
-            is_trending: visibility.trending,
-            is_new: true,
-            images: imageUrls.length ? imageUrls : null,
-          },
-          sizes,
-        }),
-      });
+      const res = await fetch("/api/admin/products", { method: "POST", body: fd });
 
       const result = await res.json();
       if (!res.ok) { setError(result.error ?? "Failed to save product"); setSaving(false); return; }

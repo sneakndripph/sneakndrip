@@ -20,13 +20,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { product, sizes } = await req.json();
   const admin = createAdminClient();
+  const formData = await req.formData();
 
+  const productRaw = formData.get("product") as string;
+  const sizesRaw = formData.get("sizes") as string;
+  const product = JSON.parse(productRaw);
+  const sizes = JSON.parse(sizesRaw ?? "[]");
+  const slug = product.slug as string;
+
+  // Upload images via service role (bypasses storage RLS)
+  const imageFiles = formData.getAll("images") as File[];
+  const imageUrls: string[] = [];
+  for (const file of imageFiles) {
+    const ext = file.name.split(".").pop();
+    const path = `${slug}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const arrayBuffer = await file.arrayBuffer();
+    const { data: upload } = await admin.storage
+      .from("product-images")
+      .upload(path, arrayBuffer, { contentType: file.type, upsert: true });
+    if (upload) {
+      const { data: { publicUrl } } = admin.storage.from("product-images").getPublicUrl(upload.path);
+      imageUrls.push(publicUrl);
+    }
+  }
+
+  if (imageUrls.length) product.images = imageUrls;
+
+  // Insert product
   const { data, error } = await admin.from("products").insert(product).select("id").single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  if (sizes?.length > 0) {
+  // Insert sizes
+  if (sizes.length > 0) {
     await admin.from("product_sizes").insert(
       sizes.map((s: { size: string; stock: number }) => ({ product_id: data.id, size: s.size, stock: s.stock }))
     );
