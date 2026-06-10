@@ -46,7 +46,6 @@ export const ORDER_STATUSES = [
 
 export const PAYMENT_METHODS = [
   { id: "gcash", label: "GCash", icon: "💙" },
-  { id: "maya", label: "Maya", icon: "💚" },
   { id: "bank_transfer", label: "Bank Transfer", icon: "🏦" },
   { id: "cod", label: "Cash on Delivery", icon: "💵" },
 ] as const;
