@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS, PAYMENT_METHODS, SHIPPING_FEE } from "@/lib/constants";
 import { Upload, CheckCircle, AlertCircle, ChevronRight } from "lucide-react";
@@ -9,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 type Step = "details" | "payment" | "confirm";
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const { items, subtotal, clearCart } = useCartStore();
   const sub = subtotal();
   const shipping = sub >= SHIPPING_FEE.free_threshold ? 0 : SHIPPING_FEE.metro_manila;
@@ -18,32 +20,33 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<string>("gcash");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [form, setForm] = useState({ name: "", email: "", mobile: "", street: "", barangay: "", city: "", province: "", postal: "" });
-  const [orderPlaced, setOrderPlaced] = useState(false);
   const [placing, setPlacing] = useState(false);
-  const [orderNumber, setOrderNumber] = useState(`SND-${Date.now().toString().slice(-8)}`);
+  const [orderError, setOrderError] = useState("");
 
   const isCOD = paymentMethod === "cod";
 
   async function handlePlaceOrder() {
     setPlacing(true);
+    setOrderError("");
     try {
       const supabase = createClient();
       const num = `SND-${Date.now().toString().slice(-8)}`;
-      setOrderNumber(num);
 
-      // Upload proof of payment if provided
+      // Upload proof via service role API (bypasses storage RLS)
       let proofUrl: string | null = null;
       if (proofFile && !isCOD) {
-        const ext = proofFile.name.split(".").pop();
-        const path = `${num}.${ext}`;
-        const { data: uploadData } = await supabase.storage
-          .from("payment-proofs")
-          .upload(path, proofFile, { upsert: true });
-        if (uploadData) proofUrl = uploadData.path;
+        const uploadFd = new FormData();
+        uploadFd.append("file", proofFile);
+        uploadFd.append("orderNumber", num);
+        const uploadRes = await fetch("/api/orders/upload-proof", { method: "POST", body: uploadFd });
+        if (uploadRes.ok) {
+          const { path } = await uploadRes.json();
+          proofUrl = path;
+        }
       }
 
       // Insert order
-      const { data: order, error: orderError } = await supabase
+      const { data: order, error: insertError } = await supabase
         .from("orders")
         .insert({
           order_number: num,
@@ -67,94 +70,52 @@ export default function CheckoutPage() {
         .select("id")
         .single();
 
-      if (!orderError && order) {
-        // Insert order items
-        await supabase.from("order_items").insert(
-          items.map(item => ({
-            order_id: order.id,
-            product_id: item.product.id,
-            product_name: item.product.name,
-            brand: item.product.brand,
-            size: item.size,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            payment_type: item.payment_type === "downpayment" ? "downpayment" : "full",
-          }))
-        );
+      if (insertError) throw insertError;
 
-        // Send confirmation emails (fire and forget — don't block success screen)
-        fetch("/api/orders/notify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            orderNumber: num,
-            customer: { name: form.name, email: form.email, mobile: form.mobile },
-            items: items.map(i => ({
-              name: i.product.name,
-              size: i.size,
-              quantity: i.quantity,
-              price: i.unit_price * i.quantity,
-              payment_type: i.payment_type,
-            })),
-            subtotal: sub,
-            shipping,
-            total,
-            paymentMethod,
-            paymentType: items[0]?.payment_type ?? "full_payment",
-            shippingAddress: {
-              street: form.street,
-              barangay: form.barangay,
-              city: form.city,
-              province: form.province,
-              postal: form.postal,
-            },
-            isCOD,
-          }),
-        }).catch(() => {});
-      }
-    } catch {
-      // Order still clears locally even if Supabase fails
-    } finally {
+      // Insert order items
+      await supabase.from("order_items").insert(
+        items.map(item => ({
+          order_id: order.id,
+          product_id: item.product.id,
+          product_name: item.product.name,
+          brand: item.product.brand,
+          size: item.size,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          payment_type: item.payment_type === "downpayment" ? "downpayment" : "full",
+        }))
+      );
+
+      // Send confirmation emails (fire and forget)
+      fetch("/api/orders/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderNumber: num,
+          customer: { name: form.name, email: form.email, mobile: form.mobile },
+          items: items.map(i => ({
+            name: i.product.name, size: i.size, quantity: i.quantity,
+            price: i.unit_price * i.quantity, payment_type: i.payment_type,
+          })),
+          subtotal: sub, shipping, total, paymentMethod,
+          paymentType: items[0]?.payment_type ?? "full_payment",
+          shippingAddress: { street: form.street, barangay: form.barangay, city: form.city, province: form.province, postal: form.postal },
+          isCOD,
+        }),
+      }).catch(() => {});
+
+      // Save order data for confirmation page
+      sessionStorage.setItem("lastOrder", JSON.stringify({
+        orderNumber: num, total, isCOD, paymentMethod, name: form.name,
+        items: items.map(i => ({ name: i.product.name, size: i.size, quantity: i.quantity, price: i.unit_price * i.quantity })),
+      }));
+
       clearCart();
-      setOrderPlaced(true);
+      router.push("/order-confirmation");
+    } catch {
+      setOrderError("Something went wrong placing your order. Please try again.");
       setPlacing(false);
     }
-  }
-
-  if (orderPlaced) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-20"
-        style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
-        <div className="max-w-md w-full text-center">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ background: `${BRAND.teal}18` }}>
-            <CheckCircle className="w-10 h-10" style={{ color: BRAND.teal }} />
-          </div>
-          <h1 className="mb-3" style={{ fontFamily: FONTS.display, fontSize: "3rem", color: BRAND.black, letterSpacing: "0.04em" }}>
-            ORDER PLACED!
-          </h1>
-          <p className="text-sm mb-2" style={{ color: BRAND.muted }}>Order Number:</p>
-          <p className="font-black text-xl mb-5" style={{ color: BRAND.teal, fontFamily: FONTS.display, fontSize: "1.5rem" }}>
-            {orderNumber}
-          </p>
-          <p className="text-sm mb-8 leading-relaxed" style={{ color: BRAND.muted }}>
-            {isCOD
-              ? "Your order is confirmed! We'll contact you on your mobile number before delivery."
-              : "We've received your proof of payment. We'll verify and confirm your order via email shortly."}
-          </p>
-          <div className="space-y-3">
-            <a href="/" className="block w-full py-4 font-bold text-sm uppercase tracking-widest text-center"
-              style={{ background: BRAND.black, color: BRAND.bg }}>
-              Back to Home
-            </a>
-            <a href="/account" className="block w-full py-4 font-bold text-sm uppercase tracking-widest text-center"
-              style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black }}>
-              Track My Order
-            </a>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -353,6 +314,12 @@ export default function CheckoutPage() {
                   )}
                   {isCOD && <p className="text-sm" style={{ color: BRAND.muted }}>Pay upon delivery</p>}
                 </div>
+                {orderError && (
+                  <div className="px-4 py-3 text-sm font-medium rounded"
+                    style={{ background: `${BRAND.red}12`, color: BRAND.red, border: `1px solid ${BRAND.red}30` }}>
+                    {orderError}
+                  </div>
+                )}
                 <button onClick={handlePlaceOrder} disabled={placing}
                   className="w-full py-5 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-60"
                   style={{ background: BRAND.teal, color: "#fff" }}>

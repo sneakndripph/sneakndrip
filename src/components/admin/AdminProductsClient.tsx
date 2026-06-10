@@ -20,10 +20,8 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this product?")) return;
-    const { createClient } = await import("@/lib/supabase/client");
-    const supabase = createClient();
-    await supabase.from("products").delete().eq("id", id);
-    setProducts(prev => prev.filter(p => p.id !== id));
+    const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+    if (res.ok) setProducts(prev => prev.filter(p => p.id !== id));
   }
 
   return (
