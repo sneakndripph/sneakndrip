@@ -37,10 +37,9 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
-    // Optional: check admin role from user metadata
-    // if (user.user_metadata?.role !== "admin") {
-    //   return NextResponse.redirect(new URL("/", request.url));
-    // }
+    if (user.user_metadata?.role !== "admin") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
   }
 
   // Redirect authenticated users away from auth pages
