@@ -170,24 +170,31 @@ export default function CheckoutPage() {
                     <div className="p-4 rounded-lg mb-4" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
                       {paymentMethod === "gcash" && (
                         <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
-                          <p className="font-bold">GCash Number: 09XX XXX XXXX</p>
-                          <p>Account Name: Sneak N&apos; Drip</p>
+                          <p className="font-bold">GCash Number: 0961 177 4119</p>
+                          <p>Account Name: Lorenzo Agalo P. Julio</p>
                           <p>Amount: ₱{total.toLocaleString()}</p>
                         </div>
                       )}
                       {paymentMethod === "maya" && (
                         <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
-                          <p className="font-bold">Maya Number: 09XX XXX XXXX</p>
-                          <p>Account Name: Sneak N&apos; Drip</p>
+                          <p className="font-bold">GCash Number: 0961 177 4119</p>
+                          <p>Account Name: Lorenzo Agalo P. Julio</p>
                           <p>Amount: ₱{total.toLocaleString()}</p>
                         </div>
                       )}
                       {paymentMethod === "bank_transfer" && (
-                        <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
-                          <p className="font-bold">BPI / BDO</p>
-                          <p>Account Number: XXXX XXXX XXXX</p>
-                          <p>Account Name: Sneak N&apos; Drip</p>
-                          <p>Amount: ₱{total.toLocaleString()}</p>
+                        <div className="text-sm space-y-4" style={{ color: BRAND.black }}>
+                          <div className="space-y-1">
+                            <p className="font-bold">Maribank</p>
+                            <p>Account Number: 14156569205</p>
+                            <p>Account Name: Lorenzo Agalo P. Julio</p>
+                          </div>
+                          <div className="space-y-1" style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>
+                            <p className="font-bold">BPI</p>
+                            <p>Account Number: 0596199188</p>
+                            <p>Account Name: Lorenzo Agalo P. Julio</p>
+                          </div>
+                          <p className="font-bold" style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>Amount: ₱{total.toLocaleString()}</p>
                         </div>
                       )}
                     </div>
