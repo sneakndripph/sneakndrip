@@ -1,8 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
 import { Save } from "lucide-react";
+
+type SettingsData = Record<string, string>;
+
+const DEFAULTS: SettingsData = {
+  store_name: "Sneak N' Drip",
+  store_email: "hello@sneakndrip.ph",
+  contact_number: "+63 961 177 4119",
+  address: "Taguig, Metro Manila, Philippines",
+  facebook_url: "https://www.facebook.com/SneakNDrip/",
+  instagram_handle: "@sneakndripph",
+  tiktok_handle: "@sneakyjuls",
+  metro_shipping_fee: "150",
+  provincial_shipping_fee: "250",
+  free_shipping_threshold: "3000",
+  cod_areas: "Metro Manila, Cebu City, Davao City",
+  gcash_number: "0961 177 4119",
+  gcash_name: "Lorenzo Agalo P. Julio",
+  maya_number: "0961 177 4119",
+  maya_name: "Lorenzo Agalo P. Julio",
+  bank1_name: "Maribank",
+  bank1_account_number: "14156569205",
+  bank1_account_name: "Lorenzo Agalo P. Julio",
+  bank2_name: "BPI",
+  bank2_account_number: "0596199188",
+  bank2_account_name: "Lorenzo Agalo P. Julio",
+  preorder_message: "Your order will be reserved upon payment of downpayment. Balance is due before release.",
+  messenger_page_id: "",
+  meta_title: "Sneak N' Drip | Authentic Sneakers Philippines",
+  meta_description: "Shop authentic sneakers in the Philippines. On Hand & Pre-Order. Best prices, 100% legit.",
+  google_analytics_id: "",
+  facebook_pixel_id: "",
+};
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -15,25 +47,80 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Field({ label, defaultValue, type = "text", hint }: { label: string; defaultValue?: string; type?: string; hint?: string }) {
+function Field({ label, settingsKey, settings, onChange, type = "text", hint, multiline }: {
+  label: string; settingsKey: string; settings: SettingsData; onChange: (key: string, val: string) => void;
+  type?: string; hint?: string; multiline?: boolean;
+}) {
+  const value = settings[settingsKey] ?? DEFAULTS[settingsKey] ?? "";
   return (
     <div>
       <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>{label}</label>
-      <input type={type} defaultValue={defaultValue}
-        className="w-full px-4 py-3 text-sm focus:outline-none"
-        style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+      {multiline ? (
+        <textarea rows={3} value={value} onChange={e => onChange(settingsKey, e.target.value)}
+          className="w-full px-4 py-3 text-sm focus:outline-none resize-none"
+          style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+      ) : (
+        <input type={type} value={value} onChange={e => onChange(settingsKey, e.target.value)}
+          className="w-full px-4 py-3 text-sm focus:outline-none"
+          style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+      )}
       {hint && <p className="text-xs mt-1" style={{ color: BRAND.muted }}>{hint}</p>}
     </div>
   );
 }
 
 export default function AdminSettingsPage() {
+  const [settings, setSettings] = useState<SettingsData>(DEFAULTS);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const hasFetched = useRef(false);
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+    fetch("/api/admin/settings")
+      .then(r => r.json())
+      .then((data: SettingsData) => {
+        if (data && Object.keys(data).length > 0) {
+          setSettings(prev => ({ ...DEFAULTS, ...prev, ...data }));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  function update(key: string, val: string) {
+    setSettings(prev => ({ ...prev, [key]: val }));
   }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div style={{ fontFamily: FONTS.body }}>
+        <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>SETTINGS</h1>
+        <p className="mt-4 text-sm" style={{ color: BRAND.muted }}>Loading settings…</p>
+      </div>
+    );
+  }
+
+  const fp = (key: string) => ({ label: "", settingsKey: key, settings, onChange: update });
 
   return (
     <div style={{ fontFamily: FONTS.body }}>
@@ -42,88 +129,61 @@ export default function AdminSettingsPage() {
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Configuration</p>
           <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>SETTINGS</h1>
         </div>
-        <button onClick={handleSave}
-          className="flex items-center gap-2 px-5 py-3 font-bold text-sm uppercase tracking-wide transition-opacity hover:opacity-80"
+        <button onClick={handleSave} disabled={saving}
+          className="flex items-center gap-2 px-5 py-3 font-bold text-sm uppercase tracking-wide transition-opacity hover:opacity-80 disabled:opacity-60"
           style={{ background: saved ? "#10B981" : BRAND.black, color: BRAND.bg }}>
           <Save className="w-4 h-4" />
-          {saved ? "Saved!" : "Save Changes"}
+          {saving ? "Saving…" : saved ? "Saved!" : "Save Changes"}
         </button>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
         <Section title="Store Information">
-          <Field label="Store Name" defaultValue="Sneak N' Drip" />
-          <Field label="Store Email" defaultValue="hello@sneakndrip.ph" type="email" />
-          <Field label="Contact Number" defaultValue="+63 917 123 4567" />
-          <Field label="Address" defaultValue="Taguig, Metro Manila, Philippines" />
-          <Field label="Facebook Page URL" defaultValue="https://www.facebook.com/SneakNDrip/" />
-          <Field label="Instagram Handle" defaultValue="@sneakndripph" />
-          <Field label="TikTok Handle" defaultValue="@sneakyjuls" />
+          <Field label="Store Name"          settingsKey="store_name"     settings={settings} onChange={update} />
+          <Field label="Store Email"         settingsKey="store_email"    settings={settings} onChange={update} type="email" />
+          <Field label="Contact Number"      settingsKey="contact_number" settings={settings} onChange={update} />
+          <Field label="Address"             settingsKey="address"        settings={settings} onChange={update} />
+          <Field label="Facebook Page URL"   settingsKey="facebook_url"   settings={settings} onChange={update} />
+          <Field label="Instagram Handle"    settingsKey="instagram_handle" settings={settings} onChange={update} />
+          <Field label="TikTok Handle"       settingsKey="tiktok_handle"  settings={settings} onChange={update} />
         </Section>
 
         <Section title="Shipping & Fees">
-          <Field label="Metro Manila Shipping Fee (₱)" defaultValue="150" type="number" />
-          <Field label="Provincial Shipping Fee (₱)" defaultValue="250" type="number" />
-          <Field label="Free Shipping Threshold (₱)" defaultValue="3000" type="number"
+          <Field label="Metro Manila Shipping Fee (&#8369;)" settingsKey="metro_shipping_fee"     settings={settings} onChange={update} type="number" />
+          <Field label="Provincial Shipping Fee (&#8369;)"   settingsKey="provincial_shipping_fee" settings={settings} onChange={update} type="number" />
+          <Field label="Free Shipping Threshold (&#8369;)"   settingsKey="free_shipping_threshold" settings={settings} onChange={update} type="number"
             hint="Orders above this amount get free shipping" />
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-              COD Areas
-            </label>
-            <textarea rows={3} defaultValue="Metro Manila, Cebu City, Davao City"
-              className="w-full px-4 py-3 text-sm focus:outline-none resize-none"
-              style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
-            <p className="text-xs mt-1" style={{ color: BRAND.muted }}>Comma-separated cities/regions where COD is available</p>
-          </div>
+          <Field label="COD Areas" settingsKey="cod_areas" settings={settings} onChange={update} multiline
+            hint="Comma-separated cities/regions where COD is available" />
         </Section>
 
-        <Section title="Payment Methods">
-          {[
-            { label: "GCash Number", defaultValue: "0917 123 4567" },
-            { label: "GCash Account Name", defaultValue: "Sneak N Drip" },
-            { label: "Maya Number", defaultValue: "0917 123 4567" },
-            { label: "Maya Account Name", defaultValue: "Sneak N Drip" },
-            { label: "Bank Name", defaultValue: "BDO Unibank" },
-            { label: "Bank Account Name", defaultValue: "Sneak N Drip Enterprises" },
-            { label: "Bank Account Number", defaultValue: "0094-1234-5678" },
-          ].map(f => <Field key={f.label} {...f} />)}
+        <Section title="Payment — GCash &amp; Maya">
+          <Field label="GCash Number"       settingsKey="gcash_number"  settings={settings} onChange={update} />
+          <Field label="GCash Account Name" settingsKey="gcash_name"    settings={settings} onChange={update} />
+          <Field label="Maya Number"        settingsKey="maya_number"   settings={settings} onChange={update} />
+          <Field label="Maya Account Name"  settingsKey="maya_name"     settings={settings} onChange={update} />
         </Section>
 
-        <Section title="Pre-Order Settings">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Default Pre-Order Message</label>
-            <textarea rows={3}
-              defaultValue="Your order will be reserved upon payment of downpayment. Balance is due before release."
-              className="w-full px-4 py-3 text-sm focus:outline-none resize-none"
-              style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
-          </div>
-          <Field label="Messenger Chat Plugin Page ID" defaultValue="123456789012345"
+        <Section title="Payment — Bank Transfer">
+          <Field label="Bank 1 Name"           settingsKey="bank1_name"           settings={settings} onChange={update} />
+          <Field label="Bank 1 Account Number" settingsKey="bank1_account_number" settings={settings} onChange={update} />
+          <Field label="Bank 1 Account Name"   settingsKey="bank1_account_name"   settings={settings} onChange={update} />
+          <Field label="Bank 2 Name"           settingsKey="bank2_name"           settings={settings} onChange={update} />
+          <Field label="Bank 2 Account Number" settingsKey="bank2_account_number" settings={settings} onChange={update} />
+          <Field label="Bank 2 Account Name"   settingsKey="bank2_account_name"   settings={settings} onChange={update} />
+        </Section>
+
+        <Section title="Pre-Order &amp; Misc">
+          <Field label="Default Pre-Order Message" settingsKey="preorder_message" settings={settings} onChange={update} multiline />
+          <Field label="Messenger Chat Plugin Page ID" settingsKey="messenger_page_id" settings={settings} onChange={update}
             hint="Get this from Facebook Page Settings > Messaging" />
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide mb-3" style={{ color: BRAND.black }}>Active Payment Methods</label>
-            <div className="space-y-2">
-              {["GCash", "Maya", "Bank Transfer", "Cash on Delivery"].map(p => (
-                <label key={p} className="flex items-center justify-between cursor-pointer py-2 px-3 rounded-lg"
-                  style={{ background: BRAND.bg }}>
-                  <span className="text-sm font-medium" style={{ color: BRAND.black }}>{p}</span>
-                  <input type="checkbox" defaultChecked className="w-4 h-4" style={{ accentColor: BRAND.teal }} />
-                </label>
-              ))}
-            </div>
-          </div>
         </Section>
 
-        <Section title="SEO & Meta">
-          <Field label="Meta Title" defaultValue="Sneak N' Drip | Authentic Sneakers Philippines" />
-          <Field label="Meta Description" defaultValue="Shop authentic sneakers in the Philippines. On Hand & Pre-Order. Best prices, 100% legit." />
-          <Field label="Google Analytics ID" defaultValue="" hint="e.g. G-XXXXXXXXXX" />
-          <Field label="Facebook Pixel ID" defaultValue="" />
-        </Section>
-
-        <Section title="Admin Access">
-          <Field label="Admin Email" defaultValue="admin@sneakndrip.ph" type="email" />
-          <Field label="New Password" type="password" hint="Leave blank to keep current password" />
-          <Field label="Confirm New Password" type="password" />
+        <Section title="SEO &amp; Meta">
+          <Field label="Meta Title"         settingsKey="meta_title"         settings={settings} onChange={update} />
+          <Field label="Meta Description"   settingsKey="meta_description"   settings={settings} onChange={update} multiline />
+          <Field label="Google Analytics ID" settingsKey="google_analytics_id" settings={settings} onChange={update} hint="e.g. G-XXXXXXXXXX" />
+          <Field label="Facebook Pixel ID"  settingsKey="facebook_pixel_id"  settings={settings} onChange={update} />
         </Section>
       </div>
     </div>

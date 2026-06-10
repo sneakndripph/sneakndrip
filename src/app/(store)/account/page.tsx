@@ -17,7 +17,7 @@ const STATUS_CONFIG = {
 } as const;
 
 type OrderItem = { product_name: string; size: string; quantity: number; unit_price: number };
-type Order = { id: string; order_number: string; created_at: string; status: string; total: number; order_items: OrderItem[] };
+type Order = { id: string; order_number: string; created_at: string; status: string; total: number; tracking_number?: string; order_items: OrderItem[] };
 type Tab = "orders" | "addresses" | "profile";
 
 export default function AccountPage() {
@@ -34,7 +34,7 @@ export default function AccountPage() {
       setUser(user);
       supabase
         .from("orders")
-        .select("id, order_number, created_at, status, total, order_items(product_name, size, quantity, unit_price)")
+        .select("id, order_number, created_at, status, total, tracking_number, order_items(product_name, size, quantity, unit_price)")
         .eq("customer_email", user.email)
         .order("created_at", { ascending: false })
         .then(({ data }) => {
@@ -122,6 +122,14 @@ export default function AccountPage() {
                   const cfg = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
                   const Icon = cfg.icon;
                   const date = new Date(order.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+                  const STEPS = [
+                    { key: "pending",    label: "Placed" },
+                    { key: "paid",       label: "Confirmed" },
+                    { key: "processing", label: "Processing" },
+                    { key: "shipped",    label: "Shipped" },
+                    { key: "delivered",  label: "Delivered" },
+                  ];
+                  const activeIdx = STEPS.findIndex(s => s.key === order.status);
                   return (
                     <div key={order.id} className="p-5 rounded-xl"
                       style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
@@ -136,6 +144,38 @@ export default function AccountPage() {
                           {cfg.label}
                         </span>
                       </div>
+
+                      {/* Status timeline */}
+                      {order.status !== "cancelled" && (
+                        <div className="flex items-center mb-5 overflow-x-auto pb-1 gap-0">
+                          {STEPS.map((step, i) => {
+                            const done = activeIdx >= i;
+                            const active = activeIdx === i;
+                            return (
+                              <div key={step.key} className="flex items-center flex-1 min-w-0">
+                                <div className="flex flex-col items-center flex-1">
+                                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black mb-1 shrink-0"
+                                    style={{
+                                      background: active ? BRAND.teal : done ? `${BRAND.teal}60` : BRAND.border,
+                                      color: done ? "#fff" : BRAND.mutedLight,
+                                    }}>
+                                    {done && !active ? "✓" : i + 1}
+                                  </div>
+                                  <p className="text-[9px] font-bold text-center whitespace-nowrap"
+                                    style={{ color: done ? BRAND.teal : BRAND.mutedLight }}>
+                                    {step.label}
+                                  </p>
+                                </div>
+                                {i < STEPS.length - 1 && (
+                                  <div className="h-0.5 flex-1 mx-0.5 mb-4 shrink-0"
+                                    style={{ background: activeIdx > i ? BRAND.teal : BRAND.border }} />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
                       {order.order_items?.map((item, i) => (
                         <div key={i} className="flex items-center justify-between py-3"
                           style={{ borderTop: `1px solid ${BRAND.border}` }}>
@@ -143,18 +183,17 @@ export default function AccountPage() {
                             <p className="text-sm font-semibold" style={{ color: BRAND.black }}>{item.product_name}</p>
                             <p className="text-xs" style={{ color: BRAND.muted }}>Size: {item.size} · Qty: {item.quantity}</p>
                           </div>
-                          <p className="font-bold text-sm" style={{ color: BRAND.black }}>₱{(item.unit_price * item.quantity).toLocaleString()}</p>
+                          <p className="font-bold text-sm" style={{ color: BRAND.black }}>&#8369;{(item.unit_price * item.quantity).toLocaleString()}</p>
                         </div>
                       ))}
-                      <div className="flex items-center justify-between pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                        <p className="text-sm font-bold" style={{ color: BRAND.black }}>
-                          Total: ₱{order.total.toLocaleString()}
+                      <div className="pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                        <p className="text-sm font-bold mb-1" style={{ color: BRAND.black }}>
+                          Total: &#8369;{order.total.toLocaleString()}
                         </p>
-                        {order.status === "shipped" && (
-                          <button className="text-xs font-bold px-4 py-2 uppercase tracking-wide"
-                            style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>
-                            Track Package
-                          </button>
+                        {order.tracking_number && (
+                          <p className="text-xs font-semibold mt-1" style={{ color: BRAND.teal }}>
+                            Tracking #: {order.tracking_number}
+                          </p>
                         )}
                       </div>
                     </div>

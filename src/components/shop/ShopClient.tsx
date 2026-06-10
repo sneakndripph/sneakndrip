@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { BRAND, FONTS, BRANDS, SNEAKER_SIZES } from "@/lib/constants";
 import ProductCard from "@/components/product/ProductCard";
 import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
@@ -13,9 +14,10 @@ const SORT_OPTIONS = [
   { value: "newest", label: "Newest First" },
 ];
 
-export default function ShopClient({ products }: { products: Product[] }) {
+export default function ShopClient({ products, initialSearch = "" }: { products: Product[]; initialSearch?: string }) {
+  const router = useRouter();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [sort, setSort] = useState("featured");
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -51,12 +53,21 @@ export default function ShopClient({ products }: { products: Product[] }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-3 mb-8 flex-wrap">
           <div className="flex-1 min-w-[200px] relative">
-            <input value={search} onChange={e => setSearch(e.target.value)}
+            <input value={search} onChange={e => {
+              const v = e.target.value;
+              setSearch(v);
+              const params = new URLSearchParams();
+              if (v) params.set("q", v);
+              router.replace(`/shop${v ? `?${params.toString()}` : ""}`, { scroll: false });
+            }}
               placeholder="Search sneakers, brands…"
               className="w-full px-4 py-3 pr-10 text-sm focus:outline-none"
               style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
             {search && (
-              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
+              <button onClick={() => {
+                setSearch("");
+                router.replace("/shop", { scroll: false });
+              }} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
                 <X className="w-4 h-4" />
               </button>
             )}

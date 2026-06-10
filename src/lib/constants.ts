@@ -241,10 +241,10 @@ export const MOCK_PRODUCTS = [
 ];
 
 export const MOCK_REVIEWS = [
-  { id: "1", name: "Marco R.", location: "Taguig, Metro Manila", rating: 5, text: "Super legit ang pair! GCash payment went through agad. Delivered in 2 days, well-packaged. Will definitely order again!", item: "Jordan 4 Black Cat", date: "June 2, 2025" },
-  { id: "2", name: "Issa T.", location: "Cebu City", rating: 5, text: "Pre-order experience was smooth. ETA was accurate and they kept me updated throughout. 100% recommend Sneak N' Drip!", item: "Nike Dunk Low Panda", date: "May 28, 2025" },
-  { id: "3", name: "Paulo C.", location: "BGC, Taguig", rating: 5, text: "Third time ordering na! Every pair is authentic, legit check confirmed. Fast response sa DMs din. 🔥", item: "Air Force 1 White", date: "May 20, 2025" },
-  { id: "4", name: "Karla M.", location: "Makati City", rating: 5, text: "Sulit na sulit! Below SRP yung price nila kaya mas madali mapadala sa partner ko. Legit shop!", item: "NB 550 White Green", date: "May 15, 2025" },
-  { id: "5", name: "Dio V.", location: "Antipolo", rating: 5, text: "Yung downpayment system is so convenient for pre-orders. Reserved my pair agad no hassle!", item: "Yeezy Slide Onyx", date: "May 10, 2025" },
-  { id: "6", name: "Trisha L.", location: "QC", rating: 5, text: "Fast replies, authentic kicks, no issues. What more could you ask for? This is my go-to shop na!", item: "Jordan 1 Chicago", date: "May 5, 2025" },
+  { id: "1", author_name: "Marco R.", rating: 5, title: "Super fast delivery!", body: "Super legit ang pair! GCash payment went through agad. Delivered in 2 days, well-packaged. Will definitely order again!", is_verified: true, created_at: "2025-06-02" },
+  { id: "2", author_name: "Issa T.", rating: 5, title: "Smooth pre-order experience", body: "Pre-order experience was smooth. ETA was accurate and they kept me updated throughout. 100% recommend Sneak N' Drip!", is_verified: true, created_at: "2025-05-28" },
+  { id: "3", author_name: "Paulo C.", rating: 5, title: "3rd time ordering na!", body: "Third time ordering na! Every pair is authentic, legit check confirmed. Fast response sa DMs din.", is_verified: true, created_at: "2025-05-20" },
+  { id: "4", author_name: "Karla M.", rating: 5, title: "Below SRP talaga!", body: "Sulit na sulit! Below SRP yung price nila kaya mas madali mapadala sa partner ko. Legit shop!", is_verified: true, created_at: "2025-05-15" },
+  { id: "5", author_name: "Dio V.", rating: 5, title: "Downpayment system is so convenient", body: "Yung downpayment system is so convenient for pre-orders. Reserved my pair agad no hassle!", is_verified: false, created_at: "2025-05-10" },
+  { id: "6", author_name: "Trisha L.", rating: 5, title: "My go-to shop na!", body: "Fast replies, authentic kicks, no issues. What more could you ask for? This is my go-to shop na!", is_verified: true, created_at: "2025-05-05" },
 ];

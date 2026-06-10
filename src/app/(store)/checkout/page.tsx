@@ -230,7 +230,14 @@ export default function CheckoutPage() {
                           <p>Amount: ₱{total.toLocaleString()}</p>
                         </div>
                       )}
-{paymentMethod === "bank_transfer" && (
+                      {paymentMethod === "maya" && (
+                        <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
+                          <p className="font-bold">Maya Number: 0961 177 4119</p>
+                          <p>Account Name: Lorenzo Agalo P. Julio</p>
+                          <p>Amount: ₱{total.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {paymentMethod === "bank_transfer" && (
                         <div className="text-sm space-y-4" style={{ color: BRAND.black }}>
                           <div className="space-y-1">
                             <p className="font-bold">Maribank</p>

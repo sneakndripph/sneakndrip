@@ -371,17 +371,19 @@ export default async function HomePage() {
                 ))}
               </div>
               <p className="text-sm leading-relaxed mb-5 italic" style={{ color: BRAND.black, fontFamily: FONTS.body }}>
-                &ldquo;{r.text}&rdquo;
+                &ldquo;{r.body}&rdquo;
               </p>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-bold text-sm" style={{ color: BRAND.black, fontFamily: FONTS.body }}>{r.name}</p>
-                  <p className="text-xs" style={{ color: BRAND.muted, fontFamily: FONTS.body }}>{r.location}</p>
+                  <p className="font-bold text-sm" style={{ color: BRAND.black, fontFamily: FONTS.body }}>{r.author_name}</p>
+                  {r.title && <p className="text-xs" style={{ color: BRAND.muted, fontFamily: FONTS.body }}>{r.title}</p>}
                 </div>
-                <span className="text-[10px] font-semibold px-2.5 py-1"
-                  style={{ background: `${BRAND.teal}15`, color: BRAND.teal, fontFamily: FONTS.body }}>
-                  {r.item}
-                </span>
+                {r.is_verified && (
+                  <span className="text-[10px] font-semibold px-2.5 py-1"
+                    style={{ background: `${BRAND.teal}15`, color: BRAND.teal, fontFamily: FONTS.body }}>
+                    Verified
+                  </span>
+                )}
               </div>
             </div>
           ))}

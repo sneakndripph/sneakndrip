@@ -5,9 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { BRAND, FONTS } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
-import { ShoppingBag, Zap, Shield, Truck, Clock } from "lucide-react";
+import { ShoppingBag, Zap, Shield, Truck, Clock, Star } from "lucide-react";
 import toast from "react-hot-toast";
-import type { Product } from "@/lib/types";
+import type { Product, Review } from "@/lib/types";
 
 function formatETA(start: string, end?: string) {
   const s = new Date(start);
@@ -19,12 +19,38 @@ function formatETA(start: string, end?: string) {
   return `${months[s.getMonth()]} ${s.getDate()} – ${months[e.getMonth()]} ${e.getDate()}`;
 }
 
-export default function ProductDetail({ product }: { product: Product }) {
+export default function ProductDetail({ product, reviews = [] }: { product: Product; reviews?: Review[] }) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [paymentType, setPaymentType] = useState<"full_payment" | "downpayment">("full_payment");
-  const [activeTab, setActiveTab] = useState<"details" | "shipping" | "auth">("details");
+  const [activeTab, setActiveTab] = useState<"details" | "shipping" | "auth" | "reviews">("details");
   const [imageIdx, setImageIdx] = useState(0);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewName, setReviewName] = useState("");
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewBody, setReviewBody] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
   const addItem = useCartStore(s => s.addItem);
+
+  async function handleSubmitReview(e: React.FormEvent) {
+    e.preventDefault();
+    if (!reviewName.trim() || !reviewBody.trim()) return;
+    setSubmittingReview(true);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_id: product.id, author_name: reviewName.trim(), rating: reviewRating, title: reviewTitle.trim(), body: reviewBody.trim() }),
+      });
+      if (res.ok) {
+        toast.success("Review submitted! It will appear after approval.");
+        setReviewName(""); setReviewTitle(""); setReviewBody(""); setReviewRating(5);
+      } else {
+        toast.error("Couldn't submit review. Try again.");
+      }
+    } finally {
+      setSubmittingReview(false);
+    }
+  }
 
   const isPreOrder = product.status === "pre-order";
   const price = paymentType === "full_payment" ? product.full_payment_price : product.downpayment_price;
@@ -211,15 +237,15 @@ export default function ProductDetail({ product }: { product: Product }) {
 
             {/* Tabs */}
             <div style={{ borderTop: `1px solid ${BRAND.border}` }}>
-              <div className="flex gap-0 -mb-px">
-                {(["details", "shipping", "auth"] as const).map(tab => (
+              <div className="flex gap-0 -mb-px overflow-x-auto">
+                {(["details", "shipping", "auth", "reviews"] as const).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}
-                    className="px-5 py-3 text-sm font-bold uppercase tracking-wide capitalize transition-colors"
+                    className="px-4 py-3 text-sm font-bold uppercase tracking-wide whitespace-nowrap transition-colors"
                     style={{
                       borderBottom: `2px solid ${activeTab === tab ? BRAND.teal : "transparent"}`,
                       color: activeTab === tab ? BRAND.teal : BRAND.muted,
                     }}>
-                    {tab === "auth" ? "Authenticity" : tab}
+                    {tab === "auth" ? "Authenticity" : tab === "reviews" ? `Reviews (${reviews.length})` : tab}
                   </button>
                 ))}
               </div>
@@ -227,9 +253,9 @@ export default function ProductDetail({ product }: { product: Product }) {
                 {activeTab === "details" && <p>{product.description || "Premium authentic sneakers from verified suppliers."}</p>}
                 {activeTab === "shipping" && (
                   <ul className="space-y-2">
-                    <li>• Metro Manila: 1–3 business days (₱150)</li>
-                    <li>• Provincial: 3–7 business days (₱250)</li>
-                    <li>• Free shipping on orders ₱3,000+</li>
+                    <li>• Metro Manila: 1–3 business days (&#8369;150)</li>
+                    <li>• Provincial: 3–7 business days (&#8369;250)</li>
+                    <li>• Free shipping on orders &#8369;3,000+</li>
                     <li>• All orders come with tracking number</li>
                   </ul>
                 )}
@@ -240,6 +266,70 @@ export default function ProductDetail({ product }: { product: Product }) {
                     <li>• Legit check available upon request</li>
                     <li>• Full refund if authenticity is ever in question</li>
                   </ul>
+                )}
+                {activeTab === "reviews" && (
+                  <div className="space-y-5">
+                    {reviews.length === 0 ? (
+                      <p style={{ color: BRAND.mutedLight }}>No reviews yet. Be the first!</p>
+                    ) : (
+                      reviews.map(r => (
+                        <div key={r.id} className="pb-5" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="font-bold text-sm" style={{ color: BRAND.black }}>
+                              {r.author_name}
+                              {r.is_verified && (
+                                <span className="ml-2 text-[10px] font-bold px-2 py-0.5"
+                                  style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>Verified</span>
+                              )}
+                            </p>
+                            <div className="flex gap-0.5">
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <Star key={i} className="w-3 h-3"
+                                  style={{ color: i < r.rating ? "#F59E0B" : BRAND.border, fill: i < r.rating ? "#F59E0B" : "none" }} />
+                              ))}
+                            </div>
+                          </div>
+                          {r.title && <p className="font-semibold text-sm mb-1" style={{ color: BRAND.black }}>{r.title}</p>}
+                          <p style={{ color: BRAND.muted }}>{r.body}</p>
+                          {r.created_at && (
+                            <p className="text-xs mt-1" style={{ color: BRAND.mutedLight }}>
+                              {new Date(r.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" })}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    )}
+
+                    {/* Review form */}
+                    <form onSubmit={handleSubmitReview} className="pt-4 space-y-3">
+                      <p className="font-black text-sm uppercase tracking-wide" style={{ color: BRAND.black }}>Write a Review</p>
+                      <div className="flex gap-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <button key={i} type="button" onClick={() => setReviewRating(i + 1)}>
+                            <Star className="w-5 h-5 transition-colors"
+                              style={{ color: i < reviewRating ? "#F59E0B" : BRAND.border, fill: i < reviewRating ? "#F59E0B" : "none" }} />
+                          </button>
+                        ))}
+                      </div>
+                      <input value={reviewName} onChange={e => setReviewName(e.target.value)} required
+                        placeholder="Your name"
+                        className="w-full px-3 py-2.5 text-sm focus:outline-none"
+                        style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+                      <input value={reviewTitle} onChange={e => setReviewTitle(e.target.value)}
+                        placeholder="Review title (optional)"
+                        className="w-full px-3 py-2.5 text-sm focus:outline-none"
+                        style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+                      <textarea value={reviewBody} onChange={e => setReviewBody(e.target.value)} required rows={3}
+                        placeholder="Share your experience…"
+                        className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none"
+                        style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+                      <button type="submit" disabled={submittingReview}
+                        className="px-6 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80 disabled:opacity-50"
+                        style={{ background: BRAND.black, color: BRAND.bg }}>
+                        {submittingReview ? "Submitting…" : "Submit Review"}
+                      </button>
+                    </form>
+                  </div>
                 )}
               </div>
             </div>

@@ -92,12 +92,12 @@ export interface Review {
   id: string;
   product_id?: string;
   customer_id?: string;
-  name: string;
-  location: string;
+  author_name: string;
   rating: number;
-  text: string;
-  item: string;
-  date: string;
+  title?: string;
+  body: string;
+  is_verified?: boolean;
+  created_at?: string;
 }
 
 export interface AdminMetrics {
