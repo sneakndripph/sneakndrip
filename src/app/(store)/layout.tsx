@@ -2,6 +2,7 @@ import AnnouncementBar from "@/components/layout/AnnouncementBar";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import MessengerChat from "@/components/layout/MessengerChat";
+import ChatWidget from "@/components/layout/ChatWidget";
 import { BRAND } from "@/lib/constants";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 
@@ -24,6 +25,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <main>{children}</main>
       <Footer />
       <MessengerChat pageId={messengerPageId} />
+      <ChatWidget />
     </div>
   );
 }

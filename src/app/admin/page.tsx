@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { BRAND, FONTS } from "@/lib/constants";
 import { TrendingUp, ShoppingBag, Package, Users, Clock, CheckCircle, Truck } from "lucide-react";
+import DashboardCharts from "@/components/admin/DashboardCharts";
 
 const STATUS_CFG = {
   pending:    { icon: Clock,       color: "#D97706", bg: "rgba(217,119,6,0.1)",   label: "Pending" },
@@ -14,12 +15,16 @@ const STATUS_CFG = {
 export default async function AdminDashboard() {
   const admin = createAdminClient();
 
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
   const [
     { data: allOrders },
     { count: productsCount },
     { count: customersCount },
     { data: recentOrders },
     { data: lowStockRows },
+    { data: weekOrders },
+    { data: topItemsRaw },
   ] = await Promise.all([
     admin.from("orders").select("total, status"),
     admin.from("products").select("*", { count: "exact", head: true }),
@@ -33,7 +38,55 @@ export default async function AdminDashboard() {
       .lte("stock", 2)
       .gt("stock", 0)
       .limit(6),
+    admin.from("orders")
+      .select("total, status, created_at")
+      .gte("created_at", sevenDaysAgo)
+      .order("created_at", { ascending: true }),
+    admin.from("order_items")
+      .select("product_name, quantity, unit_price"),
   ]);
+
+  // Revenue by day (last 7 days)
+  const dayMap = new Map<string, { revenue: number; orders: number }>();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 86400000);
+    const key = d.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
+    dayMap.set(key, { revenue: 0, orders: 0 });
+  }
+  for (const o of weekOrders ?? []) {
+    const key = new Date(o.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" });
+    const slot = dayMap.get(key);
+    if (slot) { slot.revenue += Number(o.total); slot.orders++; }
+  }
+  const revenueByDay = Array.from(dayMap.entries()).map(([date, v]) => ({ date, ...v }));
+
+  // Orders by status
+  const statusCount = new Map<string, number>();
+  for (const o of allOrders ?? []) {
+    statusCount.set(o.status, (statusCount.get(o.status) ?? 0) + 1);
+  }
+  const STATUS_COLORS: Record<string, string> = {
+    pending: "#D97706", paid: BRAND.teal, processing: "#6366F1",
+    shipped: "#3B82F6", delivered: "#10B981", cancelled: BRAND.red,
+  };
+  const ordersByStatus = Array.from(statusCount.entries()).map(([name, value]) => ({
+    name: name.charAt(0).toUpperCase() + name.slice(1), value,
+    color: STATUS_COLORS[name] ?? "#999",
+  }));
+
+  // Top 5 products by revenue
+  const productRevMap = new Map<string, number>();
+  for (const item of topItemsRaw ?? []) {
+    const rev = Number(item.unit_price) * Number(item.quantity);
+    productRevMap.set(item.product_name, (productRevMap.get(item.product_name) ?? 0) + rev);
+  }
+  const topProducts = Array.from(productRevMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, revenue]) => ({
+      name: name.length > 22 ? name.slice(0, 22) + "…" : name,
+      revenue,
+    }));
 
   const totalRevenue = allOrders?.reduce((sum, o) => sum + Number(o.total), 0) ?? 0;
   const ordersCount = allOrders?.length ?? 0;
@@ -198,6 +251,13 @@ export default async function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Charts */}
+      <DashboardCharts
+        revenueByDay={revenueByDay}
+        ordersByStatus={ordersByStatus}
+        topProducts={topProducts}
+      />
     </div>
   );
 }
