@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const [products, reviews] = await Promise.all([getProducts(), getReviews()]);
   const newArrivals = products.filter(p => p.is_new).slice(0, 6);
+  const onHand = products.filter(p => p.status === "on-hand").slice(0, 6);
   const trending = products.filter(p => p.is_trending).slice(0, 4);
   const featured = products.find(p => p.is_featured && p.status === "on-hand") ?? products[0];
   return (
@@ -205,6 +206,34 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* ── On Hand ────────────────────────────────────────────────────── */}
+      {onHand.length > 0 && (
+        <section className="py-20" style={{ background: BRAND.card, borderTop: `1px solid ${BRAND.border}` }}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal, fontFamily: FONTS.body }}>
+                  Ready to Ship
+                </p>
+                <h2 style={{ fontFamily: FONTS.display, fontSize: "3rem", letterSpacing: "0.04em", color: BRAND.black }}>
+                  ON HAND
+                </h2>
+              </div>
+              <Link href="/shop?filter=on-hand"
+                className="text-sm font-semibold flex items-center gap-1 transition-opacity hover:opacity-60"
+                style={{ color: BRAND.black, fontFamily: FONTS.body }}>
+                View All →
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
+              {onHand.map(p => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Pre-Order Banner ───────────────────────────────────────────── */}
       <section className="py-20" style={{ background: BRAND.black }}>

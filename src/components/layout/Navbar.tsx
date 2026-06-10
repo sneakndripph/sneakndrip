@@ -10,8 +10,9 @@ import { ShoppingBag, Search, User, Menu, X } from "lucide-react";
 const NAV_LINKS = [
   { label: "Shop", href: "/shop" },
   { label: "New Arrivals", href: "/shop?filter=new" },
+  { label: "On Hand", href: "/shop?filter=on-hand" },
   { label: "Pre-Orders", href: "/shop?filter=pre-order" },
-  { label: "Brands", href: "/shop?filter=brands" },
+  { label: "Brands", href: "/brands" },
   { label: "About", href: "/about" },
 ];
 

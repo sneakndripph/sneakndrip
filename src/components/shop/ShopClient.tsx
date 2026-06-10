@@ -14,14 +14,30 @@ const SORT_OPTIONS = [
   { value: "newest", label: "Newest First" },
 ];
 
-export default function ShopClient({ products, initialSearch = "" }: { products: Product[]; initialSearch?: string }) {
+function mapFilter(filter: string): string {
+  if (filter === "pre-order" || filter === "on-hand") return filter;
+  return "all";
+}
+
+export default function ShopClient({
+  products,
+  initialSearch = "",
+  initialFilter = "all",
+  initialBrand = "",
+}: {
+  products: Product[];
+  initialSearch?: string;
+  initialFilter?: string;
+  initialBrand?: string;
+}) {
   const router = useRouter();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState(initialSearch);
   const [sort, setSort] = useState("featured");
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>(initialBrand ? [initialBrand] : []);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
-  const [availability, setAvailability] = useState<string>("all");
+  const [availability, setAvailability] = useState<string>(mapFilter(initialFilter));
+  const [showNewOnly, setShowNewOnly] = useState(initialFilter === "new");
   const [maxPrice, setMaxPrice] = useState(20000);
 
   const toggleArr = <T,>(arr: T[], item: T): T[] =>
@@ -33,14 +49,15 @@ export default function ShopClient({ products, initialSearch = "" }: { products:
     if (selectedBrands.length) list = list.filter(p => selectedBrands.includes(p.brand));
     if (selectedSizes.length) list = list.filter(p => p.sizes.some(s => selectedSizes.includes(s.size) && s.stock > 0));
     if (availability !== "all") list = list.filter(p => p.status === availability);
+    if (showNewOnly) list = list.filter(p => p.is_new);
     list = list.filter(p => p.full_payment_price <= maxPrice);
     if (sort === "price-asc") list.sort((a, b) => a.full_payment_price - b.full_payment_price);
     if (sort === "price-desc") list.sort((a, b) => b.full_payment_price - a.full_payment_price);
     if (sort === "newest") list.sort((a, b) => (b.is_new ? 1 : 0) - (a.is_new ? 1 : 0));
     return list;
-  }, [products, search, selectedBrands, selectedSizes, availability, maxPrice, sort]);
+  }, [products, search, selectedBrands, selectedSizes, availability, showNewOnly, maxPrice, sort]);
 
-  const activeFilters = selectedBrands.length + selectedSizes.length + (availability !== "all" ? 1 : 0);
+  const activeFilters = selectedBrands.length + selectedSizes.length + (availability !== "all" ? 1 : 0) + (showNewOnly ? 1 : 0);
 
   return (
     <div style={{ background: BRAND.bg, minHeight: "100vh", fontFamily: FONTS.body }}>
@@ -152,7 +169,7 @@ export default function ShopClient({ products, initialSearch = "" }: { products:
             </div>
             {activeFilters > 0 && (
               <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                <button onClick={() => { setSelectedBrands([]); setSelectedSizes([]); setAvailability("all"); setMaxPrice(20000); }}
+                <button onClick={() => { setSelectedBrands([]); setSelectedSizes([]); setAvailability("all"); setShowNewOnly(false); setMaxPrice(20000); }}
                   className="text-xs font-bold uppercase tracking-wider flex items-center gap-1"
                   style={{ color: BRAND.red }}>
                   <X className="w-3 h-3" /> Clear all filters
