@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Product } from "@/lib/types";
 import { BRAND, FONTS } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
@@ -42,21 +43,17 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
           transition: "border-color 0.25s",
         }}
       >
-        {/* Product placeholder — tinted brand letter */}
-        <div className="w-full h-full flex items-center justify-center">
-          <span
-            className="font-black select-none"
-            style={{
-              fontFamily: FONTS.display,
-              fontSize: "clamp(3rem,8vw,6rem)",
-              color: BRAND.black,
-              opacity: 0.05,
-              letterSpacing: "0.04em",
-            }}
-          >
-            {product.brand.toUpperCase()}
-          </span>
-        </div>
+        {/* Product image or placeholder */}
+        {product.images?.[0] ? (
+          <Image src={product.images[0]} alt={product.name} fill className="object-cover object-center" sizes="(max-width: 768px) 50vw, 25vw" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="font-black select-none"
+              style={{ fontFamily: FONTS.display, fontSize: "clamp(3rem,8vw,6rem)", color: BRAND.black, opacity: 0.05, letterSpacing: "0.04em" }}>
+              {product.brand.toUpperCase()}
+            </span>
+          </div>
+        )}
 
         {/* Status badge */}
         <div className="absolute top-3 left-3">

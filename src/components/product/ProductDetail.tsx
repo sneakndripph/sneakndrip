@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { BRAND, FONTS } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
 import { ShoppingBag, Zap, Shield, Truck, Clock } from "lucide-react";
@@ -27,7 +28,7 @@ export default function ProductDetail({ product }: { product: Product }) {
 
   const isPreOrder = product.status === "pre-order";
   const price = paymentType === "full_payment" ? product.full_payment_price : product.downpayment_price;
-  const images = Array(4).fill(product.bg || BRAND.bg);
+  const images = product.images?.length ? product.images : Array(4).fill(null);
 
   function handleAddToCart() {
     if (!selectedSize) { toast.error("Please select a size"); return; }
@@ -50,10 +51,14 @@ export default function ProductDetail({ product }: { product: Product }) {
           {/* Gallery */}
           <div>
             <div className="relative aspect-square mb-3 rounded-xl overflow-hidden flex items-center justify-center"
-              style={{ background: images[imageIdx], border: `1px solid ${BRAND.cardBorder}` }}>
-              <span style={{ fontFamily: FONTS.display, fontSize: "8rem", color: BRAND.black, opacity: 0.05 }}>
-                {product.brand.charAt(0)}
-              </span>
+              style={{ background: product.bg || BRAND.bg, border: `1px solid ${BRAND.cardBorder}` }}>
+              {images[imageIdx] ? (
+                <Image src={images[imageIdx]!} alt={product.name} fill className="object-cover object-center" sizes="(max-width: 768px) 100vw, 50vw" />
+              ) : (
+                <span style={{ fontFamily: FONTS.display, fontSize: "8rem", color: BRAND.black, opacity: 0.05 }}>
+                  {product.brand.charAt(0)}
+                </span>
+              )}
               <div className="absolute top-4 left-4">
                 {isPreOrder ? (
                   <span className="text-xs font-black uppercase px-3 py-1.5 text-white" style={{ background: BRAND.red }}>Pre-Order</span>
@@ -69,13 +74,17 @@ export default function ProductDetail({ product }: { product: Product }) {
               )}
             </div>
             <div className="grid grid-cols-4 gap-2">
-              {images.map((bg, i) => (
+              {images.map((img, i) => (
                 <button key={i} onClick={() => setImageIdx(i)}
-                  className="aspect-square rounded-lg flex items-center justify-center transition-all"
-                  style={{ background: bg, border: `2px solid ${imageIdx === i ? BRAND.teal : BRAND.border}` }}>
-                  <span style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.black, opacity: 0.07 }}>
-                    {product.brand.charAt(0)}
-                  </span>
+                  className="aspect-square rounded-lg flex items-center justify-center transition-all overflow-hidden relative"
+                  style={{ background: product.bg || BRAND.bg, border: `2px solid ${imageIdx === i ? BRAND.teal : BRAND.border}` }}>
+                  {img ? (
+                    <Image src={img} alt="" fill className="object-cover object-center" sizes="80px" />
+                  ) : (
+                    <span style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.black, opacity: 0.07 }}>
+                      {product.brand.charAt(0)}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
