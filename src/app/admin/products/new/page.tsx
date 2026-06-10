@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { BRAND, FONTS, SNEAKER_SIZES, BRANDS } from "@/lib/constants";
-import { Upload, ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
+import ImageUploader from "@/components/admin/ImageUploader";
 function toSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now().toString(36);
 }
@@ -252,26 +253,7 @@ export default function NewProductPage() {
           <div className="space-y-5">
             <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
               <h2 className="font-black mb-4" style={{ color: BRAND.black }}>Product Images</h2>
-              <label className="block border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors"
-                style={{ borderColor: images.length ? BRAND.teal : BRAND.border }}>
-                <input type="file" multiple accept="image/*" className="hidden"
-                  onChange={e => setImages(Array.from(e.target.files || []))} />
-                <Upload className="w-8 h-8 mx-auto mb-2" style={{ color: BRAND.mutedLight }} />
-                <p className="text-sm font-semibold" style={{ color: BRAND.black }}>
-                  {images.length > 0 ? `${images.length} image(s) selected` : "Upload product photos"}
-                </p>
-                <p className="text-xs mt-1" style={{ color: BRAND.muted }}>JPG, PNG — up to 10MB each</p>
-              </label>
-              {images.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                  {images.slice(0, 6).map((img, i) => (
-                    <div key={i} className="aspect-square rounded-lg flex items-center justify-center text-xs font-bold"
-                      style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
-                      {img.name.slice(0, 8)}…
-                    </div>
-                  ))}
-                </div>
-              )}
+              <ImageUploader onChange={setImages} />
             </div>
 
             <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
