@@ -286,7 +286,7 @@ export default function CheckoutPage() {
                     style={{ background: `${BRAND.red}08`, border: `1px solid ${BRAND.red}20` }}>
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: BRAND.red }} />
                     <p className="text-sm leading-relaxed" style={{ color: BRAND.black }}>
-                      Cash on Delivery is available for Metro Manila only. Our team will contact you before dispatch to confirm delivery details.
+                      Cash on Delivery is available nationwide. Our team will contact you before dispatch to confirm delivery details.
                     </p>
                   </div>
                 )}

@@ -53,12 +53,21 @@ export default function ProductDetail({ product, reviews = [] }: { product: Prod
   }
 
   const isPreOrder = product.status === "pre-order";
-  const price = paymentType === "full_payment" ? product.full_payment_price : product.downpayment_price;
+  const effectivePaymentType = isPreOrder ? paymentType : "full_payment";
+  const price = effectivePaymentType === "full_payment" ? product.full_payment_price : product.downpayment_price;
   const images = product.images?.length ? product.images : Array(4).fill(null);
 
   function handleAddToCart() {
     if (!selectedSize) { toast.error("Please select a size"); return; }
-    addItem(product, selectedSize, paymentType);
+    const sizeData = product.sizes.find(s => s.size === selectedSize);
+    const stock = sizeData?.stock ?? 0;
+    const inCart = useCartStore.getState().items
+      .find(i => i.product.id === product.id && i.size === selectedSize)?.quantity ?? 0;
+    if (inCart >= stock) {
+      toast.error(`Only ${stock} pair${stock === 1 ? "" : "s"} available for ${selectedSize}`);
+      return;
+    }
+    addItem(product, selectedSize, effectivePaymentType);
     toast.success(`${product.name} (${selectedSize}) added to cart!`);
   }
 
@@ -147,27 +156,33 @@ export default function ProductDetail({ product, reviews = [] }: { product: Prod
                   </p>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-2 mb-1">
-                {([
-                  { value: "full_payment" as const, label: "Full Payment", price: product.full_payment_price },
-                  { value: "downpayment" as const, label: "Downpayment", price: product.downpayment_price },
-                ]).map(opt => (
-                  <button key={opt.value} onClick={() => setPaymentType(opt.value)}
-                    className="py-3 px-3 text-center transition-all rounded-sm"
-                    style={{
-                      background: paymentType === opt.value ? BRAND.teal : "transparent",
-                      color: paymentType === opt.value ? "#fff" : BRAND.muted,
-                      border: `1.5px solid ${paymentType === opt.value ? BRAND.teal : BRAND.border}`,
-                    }}>
-                    <p className="text-xs font-bold uppercase tracking-wide">{opt.label}</p>
-                    <p style={{ fontFamily: FONTS.display, fontSize: "1.1rem" }}>₱{opt.price.toLocaleString()}</p>
-                  </button>
-                ))}
-              </div>
-              {paymentType === "downpayment" && (
-                <p className="text-xs mt-2 text-center" style={{ color: BRAND.muted }}>
-                  Balance of ₱{(product.full_payment_price - product.downpayment_price).toLocaleString()} due upon arrival
-                </p>
+              {isPreOrder ? (
+                <>
+                  <div className="grid grid-cols-2 gap-2 mb-1">
+                    {([
+                      { value: "full_payment" as const, label: "Full Payment", price: product.full_payment_price },
+                      { value: "downpayment" as const, label: "Downpayment", price: product.downpayment_price },
+                    ]).map(opt => (
+                      <button key={opt.value} onClick={() => setPaymentType(opt.value)}
+                        className="py-3 px-3 text-center transition-all rounded-sm"
+                        style={{
+                          background: paymentType === opt.value ? BRAND.teal : "transparent",
+                          color: paymentType === opt.value ? "#fff" : BRAND.muted,
+                          border: `1.5px solid ${paymentType === opt.value ? BRAND.teal : BRAND.border}`,
+                        }}>
+                        <p className="text-xs font-bold uppercase tracking-wide">{opt.label}</p>
+                        <p style={{ fontFamily: FONTS.display, fontSize: "1.1rem" }}>&#8369;{opt.price.toLocaleString()}</p>
+                      </button>
+                    ))}
+                  </div>
+                  {paymentType === "downpayment" && (
+                    <p className="text-xs mt-2 text-center" style={{ color: BRAND.muted }}>
+                      Balance of &#8369;{(product.full_payment_price - product.downpayment_price).toLocaleString()} due upon arrival
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs mt-1" style={{ color: BRAND.muted }}>Full payment · Ships immediately</p>
               )}
             </div>
 
@@ -202,7 +217,18 @@ export default function ProductDetail({ product, reviews = [] }: { product: Prod
                   );
                 })}
               </div>
-              <p className="text-xs mt-2" style={{ color: BRAND.muted }}>Numbers in red = limited stock.</p>
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs" style={{ color: BRAND.muted }}>Numbers in red = limited stock.</p>
+                {selectedSize && (() => {
+                  const s = product.sizes.find(sz => sz.size === selectedSize);
+                  if (!s || s.stock > 5) return null;
+                  return (
+                    <p className="text-xs font-bold" style={{ color: BRAND.red }}>
+                      Max {s.stock} per order
+                    </p>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* CTAs */}
