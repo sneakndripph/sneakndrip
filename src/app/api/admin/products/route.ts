@@ -3,6 +3,8 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+export const maxDuration = 30;
+
 async function getRequestingUser() {
   const cookieStore = await cookies();
   const supabase = createServerClient(
@@ -32,16 +34,21 @@ export async function POST(req: NextRequest) {
   // Upload images via service role (bypasses storage RLS)
   const imageFiles = formData.getAll("images") as File[];
   const imageUrls: string[] = [];
+  const uploadErrors: string[] = [];
+
   for (const file of imageFiles) {
+    if (!file.name || file.size === 0) continue;
     const ext = file.name.split(".").pop();
     const path = `${slug}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const arrayBuffer = await file.arrayBuffer();
-    const { data: upload } = await admin.storage
+    const { data: upload, error: uploadError } = await admin.storage
       .from("product-images")
       .upload(path, arrayBuffer, { contentType: file.type, upsert: true });
     if (upload) {
       const { data: { publicUrl } } = admin.storage.from("product-images").getPublicUrl(upload.path);
       imageUrls.push(publicUrl);
+    } else {
+      uploadErrors.push(uploadError?.message ?? "unknown upload error");
     }
   }
 
@@ -58,5 +65,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return NextResponse.json({ id: data.id });
+  return NextResponse.json({
+    id: data.id,
+    imagesUploaded: imageUrls.length,
+    imageFiles: imageFiles.length,
+    uploadErrors,
+  });
 }
