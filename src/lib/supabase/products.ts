@@ -1,4 +1,5 @@
 import { createClient } from "./server";
+import { createAdminClient } from "./admin-server";
 import { MOCK_PRODUCTS, MOCK_REVIEWS } from "@/lib/constants";
 import type { Product, Review } from "@/lib/types";
 
@@ -59,6 +60,17 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     return mapRow(data as Record<string, unknown>);
   } catch {
     return (MOCK_PRODUCTS as unknown as Product[]).find(p => p.slug === slug) ?? null;
+  }
+}
+
+export async function getSettings(): Promise<Record<string, string>> {
+  try {
+    const supabase = createAdminClient();
+    const { data } = await supabase.from("store_settings").select("key, value");
+    if (!data?.length) return {};
+    return Object.fromEntries(data.map((r: { key: string; value: string }) => [r.key, r.value]));
+  } catch {
+    return {};
   }
 }
 

@@ -20,8 +20,8 @@ export const BRAND = {
 } as const;
 
 export const FONTS = {
-  display: "var(--font-bebas), sans-serif",
-  body: "var(--font-space-grotesk), sans-serif",
+  display: "var(--font-barlow), sans-serif",
+  body: "var(--font-inter), sans-serif",
 } as const;
 
 export const SNEAKER_SIZES = [
@@ -46,6 +46,7 @@ export const ORDER_STATUSES = [
 
 export const PAYMENT_METHODS = [
   { id: "gcash", label: "GCash", icon: "💙" },
+  { id: "maya", label: "Maya", icon: "💜" },
   { id: "bank_transfer", label: "Bank Transfer", icon: "🏦" },
   { id: "cod", label: "Cash on Delivery", icon: "💵" },
 ] as const;
@@ -53,7 +54,7 @@ export const PAYMENT_METHODS = [
 export const SHIPPING_FEE = {
   metro_manila: 150,
   provincial: 250,
-  free_threshold: 3000,
+  free_threshold: 5000,
 } as const;
 
 export const MOCK_PRODUCTS = [

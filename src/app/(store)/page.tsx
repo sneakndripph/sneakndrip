@@ -67,7 +67,7 @@ export default async function HomePage() {
                 100% Authentic Sneakers &nbsp;·&nbsp; On Hand &amp; Pre-Order
                 <br />
                 <span className="text-sm" style={{ color: BRAND.mutedLight }}>
-                  Ships Philippines-wide. GCash, Maya &amp; COD accepted.
+                  Ships Philippines-wide. GCash, Maya, Bank Transfer &amp; COD accepted.
                 </span>
               </p>
 

@@ -1,30 +1,123 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS, SHIPPING_FEE } from "@/lib/constants";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import type { Product } from "@/lib/types";
+
+function TopProducts({ products }: { products: Product[] }) {
+  if (!products.length) return null;
+  return (
+    <section className="mt-16 pt-12" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+      <div className="flex items-end justify-between mb-8">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>You Might Also Like</p>
+          <h2 style={{ fontFamily: FONTS.display, fontSize: "2rem", letterSpacing: "0.04em", color: BRAND.black }}>TOP PICKS</h2>
+        </div>
+        <Link href="/shop" className="text-sm font-semibold transition-opacity hover:opacity-60" style={{ color: BRAND.black }}>
+          View All →
+        </Link>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {products.map(p => (
+          <Link key={p.id} href={`/shop/${p.slug}`} className="group block">
+            <div className="aspect-square rounded-xl overflow-hidden mb-3 relative flex items-center justify-center transition-transform group-hover:scale-[1.02]"
+              style={{ background: p.bg || BRAND.bg, border: `1px solid ${BRAND.cardBorder}` }}>
+              {p.images?.[0] ? (
+                <Image src={p.images[0]} alt={p.name} fill className="object-cover object-center" sizes="300px" />
+              ) : (
+                <span style={{ fontFamily: FONTS.display, fontSize: "3rem", color: BRAND.black, opacity: 0.06 }}>
+                  {p.brand.charAt(0)}
+                </span>
+              )}
+              <div className="absolute top-2 left-2">
+                <span className="text-[9px] font-black uppercase px-2 py-0.5 text-white"
+                  style={{ background: p.status === "pre-order" ? BRAND.red : BRAND.teal }}>
+                  {p.status === "pre-order" ? "Pre-Order" : "On Hand"}
+                </span>
+              </div>
+            </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: BRAND.muted }}>{p.brand}</p>
+            <p className="text-sm font-semibold leading-snug mb-1" style={{ color: BRAND.black }}>{p.name}</p>
+            <p className="font-black" style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: BRAND.black }}>
+              ₱{p.full_payment_price.toLocaleString()}
+            </p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, subtotal } = useCartStore();
+  const [topProducts, setTopProducts] = useState<Product[]>([]);
   const sub = subtotal();
   const shipping = sub >= SHIPPING_FEE.free_threshold ? 0 : SHIPPING_FEE.metro_manila;
   const total = sub + shipping;
 
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("products")
+      .select("*, product_sizes(size, stock)")
+      .eq("is_published", true)
+      .eq("is_trending", true)
+      .limit(4)
+      .then(({ data }) => {
+        if (data?.length) {
+          const cartIds = new Set(items.map(i => i.product.id));
+          const filtered = data
+            .filter((p: Record<string, unknown>) => !cartIds.has(p.id as string))
+            .slice(0, 4)
+            .map((p: Record<string, unknown>) => ({
+              id: p.id as string,
+              name: p.name as string,
+              slug: p.slug as string,
+              brand: p.brand as string,
+              colorway: (p.colorway as string) ?? "",
+              gender: (p.gender as string) ?? "Unisex",
+              description: (p.description as string) ?? "",
+              status: p.status as Product["status"],
+              srp_price: p.srp_price as number,
+              downpayment_price: p.downpayment_price as number,
+              full_payment_price: p.full_payment_price as number,
+              is_featured: Boolean(p.is_featured),
+              is_trending: Boolean(p.is_trending),
+              is_new: Boolean(p.is_new),
+              bg: (p.bg as string) ?? undefined,
+              eta_start: (p.eta_start as string) ?? undefined,
+              eta_end: (p.eta_end as string) ?? undefined,
+              sizes: ((p.product_sizes as Record<string, unknown>[]) ?? []).map(s => ({ size: s.size as string, stock: s.stock as number })),
+              images: undefined,
+            }));
+          setTopProducts(filtered);
+        }
+      });
+  }, [items]);
+
   if (items.length === 0) {
     return (
-      <div className="min-h-[80vh] flex flex-col items-center justify-center px-4"
-        style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
-        <ShoppingBag className="w-16 h-16 mb-5" style={{ color: BRAND.mutedLight }} />
-        <h2 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", color: BRAND.black, letterSpacing: "0.04em" }}>
-          YOUR CART IS EMPTY
-        </h2>
-        <p className="text-sm mt-2 mb-8" style={{ color: BRAND.muted }}>Looks like you haven't added anything yet.</p>
-        <Link href="/shop"
-          className="px-8 py-4 font-bold text-sm uppercase tracking-widest transition-opacity hover:opacity-80"
-          style={{ background: BRAND.black, color: BRAND.bg }}>
-          Start Shopping
-        </Link>
+      <div style={{ background: BRAND.bg, fontFamily: FONTS.body, minHeight: "80vh" }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="flex flex-col items-center justify-center mb-16">
+            <ShoppingBag className="w-16 h-16 mb-5" style={{ color: BRAND.mutedLight }} />
+            <h2 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", color: BRAND.black, letterSpacing: "0.04em" }}>
+              YOUR CART IS EMPTY
+            </h2>
+            <p className="text-sm mt-2 mb-8" style={{ color: BRAND.muted }}>Looks like you haven't added anything yet.</p>
+            <Link href="/shop"
+              className="px-8 py-4 font-bold text-sm uppercase tracking-widest transition-opacity hover:opacity-80"
+              style={{ background: BRAND.black, color: BRAND.bg }}>
+              Start Shopping
+            </Link>
+          </div>
+          <TopProducts products={topProducts} />
+        </div>
       </div>
     );
   }
@@ -44,11 +137,15 @@ export default function CartPage() {
                 className="p-5 rounded-xl flex gap-5"
                 style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
                 {/* Image */}
-                <div className="w-20 h-20 shrink-0 rounded-lg flex items-center justify-center"
+                <div className="w-20 h-20 shrink-0 rounded-lg flex items-center justify-center relative overflow-hidden"
                   style={{ background: item.product.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}>
-                  <span style={{ fontFamily: FONTS.display, color: BRAND.black, opacity: 0.06, fontSize: "1.5rem" }}>
-                    {item.product.brand.charAt(0)}
-                  </span>
+                  {item.product.images?.[0] ? (
+                    <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover object-center" sizes="80px" />
+                  ) : (
+                    <span style={{ fontFamily: FONTS.display, color: BRAND.black, opacity: 0.06, fontSize: "1.5rem" }}>
+                      {item.product.brand.charAt(0)}
+                    </span>
+                  )}
                 </div>
 
                 {/* Info */}
@@ -142,6 +239,8 @@ export default function CartPage() {
             </div>
           </div>
         </div>
+
+        <TopProducts products={topProducts} />
       </div>
     </div>
   );

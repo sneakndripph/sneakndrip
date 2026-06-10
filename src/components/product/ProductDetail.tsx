@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { BRAND, FONTS } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
-import { ShoppingBag, Zap, Shield, Truck, Clock, Star } from "lucide-react";
+import { ShoppingBag, Zap, Shield, Truck, Clock, Star, Minus, Plus } from "lucide-react";
 import toast from "react-hot-toast";
 import type { Product, Review } from "@/lib/types";
 
@@ -19,8 +20,18 @@ function formatETA(start: string, end?: string) {
   return `${months[s.getMonth()]} ${s.getDate()} – ${months[e.getMonth()]} ${e.getDate()}`;
 }
 
-export default function ProductDetail({ product, reviews = [] }: { product: Product; reviews?: Review[] }) {
+export default function ProductDetail({
+  product,
+  reviews = [],
+  settings = {},
+}: {
+  product: Product;
+  reviews?: Review[];
+  settings?: Record<string, string>;
+}) {
+  const router = useRouter();
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
   const [paymentType, setPaymentType] = useState<"full_payment" | "downpayment">("full_payment");
   const [activeTab, setActiveTab] = useState<"details" | "shipping" | "auth" | "reviews">("details");
   const [imageIdx, setImageIdx] = useState(0);
@@ -30,6 +41,10 @@ export default function ProductDetail({ product, reviews = [] }: { product: Prod
   const [reviewBody, setReviewBody] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const addItem = useCartStore(s => s.addItem);
+
+  const metroFee = settings.metro_shipping_fee || "150";
+  const provFee = settings.provincial_shipping_fee || "250";
+  const freeThreshold = settings.free_shipping_threshold || "5000";
 
   async function handleSubmitReview(e: React.FormEvent) {
     e.preventDefault();
@@ -57,18 +72,45 @@ export default function ProductDetail({ product, reviews = [] }: { product: Prod
   const price = effectivePaymentType === "full_payment" ? product.full_payment_price : product.downpayment_price;
   const images = product.images?.length ? product.images : Array(4).fill(null);
 
+  function getStock() {
+    return product.sizes.find(s => s.size === selectedSize)?.stock ?? 0;
+  }
+
+  function getInCart() {
+    return useCartStore.getState().items
+      .find(i => i.product.id === product.id && i.size === selectedSize)?.quantity ?? 0;
+  }
+
   function handleAddToCart() {
     if (!selectedSize) { toast.error("Please select a size"); return; }
-    const sizeData = product.sizes.find(s => s.size === selectedSize);
-    const stock = sizeData?.stock ?? 0;
-    const inCart = useCartStore.getState().items
-      .find(i => i.product.id === product.id && i.size === selectedSize)?.quantity ?? 0;
-    if (inCart >= stock) {
-      toast.error(`Only ${stock} pair${stock === 1 ? "" : "s"} available for ${selectedSize}`);
+    const stock = getStock();
+    const inCart = getInCart();
+    if (inCart + quantity > stock) {
+      const remaining = stock - inCart;
+      toast.error(remaining <= 0
+        ? `Only ${stock} pair${stock === 1 ? "" : "s"} available for ${selectedSize}`
+        : `Only ${remaining} more pair${remaining === 1 ? "" : "s"} can be added`
+      );
       return;
     }
-    addItem(product, selectedSize, effectivePaymentType);
+    addItem(product, selectedSize, effectivePaymentType, quantity);
     toast.success(`${product.name} (${selectedSize}) added to cart!`);
+  }
+
+  function handleBuyNow() {
+    if (!selectedSize) { toast.error("Please select a size"); return; }
+    const stock = getStock();
+    const inCart = getInCart();
+    if (inCart + quantity > stock) {
+      const remaining = stock - inCart;
+      toast.error(remaining <= 0
+        ? `Only ${stock} pair${stock === 1 ? "" : "s"} available for ${selectedSize}`
+        : `Only ${remaining} more pair${remaining === 1 ? "" : "s"} can be added`
+      );
+      return;
+    }
+    addItem(product, selectedSize, effectivePaymentType, quantity);
+    router.push("/cart");
   }
 
   return (
@@ -197,7 +239,7 @@ export default function ProductDetail({ product, reviews = [] }: { product: Prod
                   const outOfStock = s.stock === 0;
                   const isSelected = selectedSize === s.size;
                   return (
-                    <button key={s.size} onClick={() => !outOfStock && setSelectedSize(s.size)}
+                    <button key={s.size} onClick={() => { if (!outOfStock) { setSelectedSize(s.size); setQuantity(1); } }}
                       disabled={outOfStock}
                       className="py-2.5 text-sm font-semibold transition-all relative"
                       style={{
@@ -231,6 +273,36 @@ export default function ProductDetail({ product, reviews = [] }: { product: Prod
               </div>
             </div>
 
+            {/* Quantity selector */}
+            <div className="mb-6">
+              <p className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: BRAND.black }}>Quantity</p>
+              <div className="flex items-center gap-0 w-fit" style={{ border: `1.5px solid ${BRAND.border}` }}>
+                <button
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  className="w-10 h-10 flex items-center justify-center transition-colors hover:opacity-60"
+                  style={{ color: BRAND.black }}>
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="w-12 text-center text-sm font-bold" style={{ color: BRAND.black, borderLeft: `1px solid ${BRAND.border}`, borderRight: `1px solid ${BRAND.border}`, lineHeight: "2.5rem" }}>
+                  {quantity}
+                </span>
+                <button
+                  onClick={() => {
+                    if (selectedSize) {
+                      const stock = getStock();
+                      const inCart = getInCart();
+                      if (quantity + inCart < stock) setQuantity(q => q + 1);
+                    } else {
+                      setQuantity(q => q + 1);
+                    }
+                  }}
+                  className="w-10 h-10 flex items-center justify-center transition-colors hover:opacity-60"
+                  style={{ color: BRAND.black }}>
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
             {/* CTAs */}
             <div className="flex flex-col gap-3 mb-8">
               <button onClick={handleAddToCart}
@@ -239,7 +311,7 @@ export default function ProductDetail({ product, reviews = [] }: { product: Prod
                 <ShoppingBag className="w-4 h-4" />
                 {isPreOrder ? "Reserve Now" : "Add to Cart"}
               </button>
-              <button onClick={handleAddToCart}
+              <button onClick={handleBuyNow}
                 className="w-full py-4 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
                 style={{ background: BRAND.teal, color: "#fff" }}>
                 <Zap className="w-4 h-4" />
@@ -279,9 +351,9 @@ export default function ProductDetail({ product, reviews = [] }: { product: Prod
                 {activeTab === "details" && <p>{product.description || "Premium authentic sneakers from verified suppliers."}</p>}
                 {activeTab === "shipping" && (
                   <ul className="space-y-2">
-                    <li>• Metro Manila: 1–3 business days (&#8369;150)</li>
-                    <li>• Provincial: 3–7 business days (&#8369;250)</li>
-                    <li>• Free shipping on orders &#8369;3,000+</li>
+                    <li>• Metro Manila: 1–3 business days (&#8369;{Number(metroFee).toLocaleString()})</li>
+                    <li>• Provincial: 3–7 business days (&#8369;{Number(provFee).toLocaleString()})</li>
+                    <li>• Free shipping on orders &#8369;{Number(freeThreshold).toLocaleString()}+</li>
                     <li>• All orders come with tracking number</li>
                   </ul>
                 )}

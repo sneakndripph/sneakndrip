@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk, Bebas_Neue } from "next/font/google";
+import { Inter, Barlow_Condensed } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
@@ -9,16 +9,10 @@ const inter = Inter({
   display: "swap",
 });
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const barlowCondensed = Barlow_Condensed({
+  variable: "--font-barlow",
   subsets: ["latin"],
-  display: "swap",
-});
-
-const bebasNeue = Bebas_Neue({
-  variable: "--font-bebas",
-  subsets: ["latin"],
-  weight: "400",
+  weight: ["600", "700", "800", "900"],
   display: "swap",
 });
 
@@ -36,7 +30,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${spaceGrotesk.variable} ${bebasNeue.variable} h-full antialiased`}
+      className={`${inter.variable} ${barlowCondensed.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         {children}
@@ -44,7 +38,7 @@ export default function RootLayout({
           position="bottom-center"
           toastOptions={{
             duration: 3000,
-            style: { fontFamily: "var(--font-space-grotesk), sans-serif", fontSize: "0.875rem" },
+            style: { fontFamily: "var(--font-inter), sans-serif", fontSize: "0.875rem" },
             success: { iconTheme: { primary: "#5BB8B4", secondary: "#fff" } },
           }}
         />

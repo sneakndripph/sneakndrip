@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getProductBySlug, getReviews } from "@/lib/supabase/products";
+import { getProductBySlug, getReviews, getSettings } from "@/lib/supabase/products";
 import ProductDetail from "@/components/product/ProductDetail";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -25,11 +25,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [product, reviews] = await Promise.all([
+  const [product, reviews, settings] = await Promise.all([
     getProductBySlug(slug),
     getReviews(undefined),
+    getSettings(),
   ]);
   if (!product) notFound();
   const productReviews = reviews.filter(r => !r.product_id || r.product_id === product.id);
-  return <ProductDetail product={product} reviews={productReviews} />;
+  return <ProductDetail product={product} reviews={productReviews} settings={settings} />;
 }

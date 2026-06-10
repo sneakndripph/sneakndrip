@@ -6,7 +6,7 @@ import { CartItem, Product, PaymentType } from "@/lib/types";
 
 interface CartState {
   items: CartItem[];
-  addItem: (product: Product, size: string, paymentType: PaymentType) => void;
+  addItem: (product: Product, size: string, paymentType: PaymentType, qty?: number) => void;
   removeItem: (productId: string, size: string) => void;
   updateQuantity: (productId: string, size: string, quantity: number) => void;
   clearCart: () => void;
@@ -19,7 +19,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
 
-      addItem: (product, size, paymentType) => {
+      addItem: (product, size, paymentType, qty = 1) => {
         const price = paymentType === "full_payment"
           ? product.full_payment_price
           : product.downpayment_price;
@@ -32,13 +32,13 @@ export const useCartStore = create<CartState>()(
             return {
               items: state.items.map(i =>
                 i.product.id === product.id && i.size === size
-                  ? { ...i, quantity: i.quantity + 1 }
+                  ? { ...i, quantity: i.quantity + qty }
                   : i
               ),
             };
           }
           return {
-            items: [...state.items, { product, size, quantity: 1, payment_type: paymentType, unit_price: price }],
+            items: [...state.items, { product, size, quantity: qty, payment_type: paymentType, unit_price: price }],
           };
         });
       },

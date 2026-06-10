@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS, PAYMENT_METHODS, SHIPPING_FEE } from "@/lib/constants";
 import { Upload, CheckCircle, AlertCircle, ChevronRight } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
 type Step = "details" | "payment" | "confirm";
 
@@ -29,7 +28,6 @@ export default function CheckoutPage() {
     setPlacing(true);
     setOrderError("");
     try {
-      const supabase = createClient();
       const num = `SND-${Date.now().toString().slice(-8)}`;
 
       // Upload proof via service role API (bypasses storage RLS)
@@ -45,46 +43,46 @@ export default function CheckoutPage() {
         }
       }
 
-      // Insert order
-      const { data: order, error: insertError } = await supabase
-        .from("orders")
-        .insert({
-          order_number: num,
-          customer_name: form.name,
-          customer_email: form.email,
-          customer_mobile: form.mobile,
-          shipping_street: form.street,
-          shipping_barangay: form.barangay,
-          shipping_city: form.city,
-          shipping_province: form.province,
-          shipping_postal: form.postal,
-          subtotal: sub,
-          shipping_fee: shipping,
-          total,
-          payment_method: paymentMethod,
-          payment_type: items[0]?.payment_type === "downpayment" ? "downpayment" : "full",
-          payment_status: "pending",
-          proof_of_payment: proofUrl,
-          status: "pending",
-        })
-        .select("id")
-        .single();
+      // Insert order via service role API (bypasses RLS)
+      const createRes = await fetch("/api/orders/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          order: {
+            order_number: num,
+            customer_name: form.name,
+            customer_email: form.email,
+            customer_mobile: form.mobile,
+            shipping_street: form.street,
+            shipping_barangay: form.barangay || "N/A",
+            shipping_city: form.city,
+            shipping_province: form.province || "N/A",
+            shipping_postal: form.postal || "0000",
+            subtotal: sub,
+            shipping_fee: shipping,
+            total,
+            payment_method: paymentMethod,
+            payment_type: items[0]?.payment_type === "downpayment" ? "downpayment" : "full",
+            payment_status: "pending",
+            proof_of_payment: proofUrl,
+            status: "pending",
+          },
+          items: items.map(item => ({
+            product_id: item.product.id,
+            product_name: item.product.name,
+            brand: item.product.brand,
+            size: item.size,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            payment_type: item.payment_type === "downpayment" ? "downpayment" : "full",
+          })),
+        }),
+      });
 
-      if (insertError) throw insertError;
-
-      // Insert order items
-      await supabase.from("order_items").insert(
-        items.map(item => ({
-          order_id: order.id,
-          product_id: item.product.id,
-          product_name: item.product.name,
-          brand: item.product.brand,
-          size: item.size,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          payment_type: item.payment_type === "downpayment" ? "downpayment" : "full",
-        }))
-      );
+      if (!createRes.ok) {
+        const err = await createRes.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to create order");
+      }
 
       // Send confirmation emails (fire and forget)
       fetch("/api/orders/notify", {
@@ -184,7 +182,7 @@ export default function CheckoutPage() {
                 </div>
                 <button
                   onClick={() => setStep("payment")}
-                  disabled={!form.name || !form.email || !form.mobile || !form.street || !form.city}
+                  disabled={!form.name || !form.email || !form.mobile || !form.street || !form.barangay || !form.city}
                   className="mt-6 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-40"
                   style={{ background: BRAND.black, color: BRAND.bg }}>
                   Continue to Payment →
