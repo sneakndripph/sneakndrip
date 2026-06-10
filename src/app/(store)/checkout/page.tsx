@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS, PAYMENT_METHODS, SHIPPING_FEE } from "@/lib/constants";
@@ -15,12 +15,17 @@ export default function CheckoutPage() {
   const shipping = sub >= SHIPPING_FEE.free_threshold ? 0 : SHIPPING_FEE.metro_manila;
   const total = sub + shipping;
 
+  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>("details");
   const [paymentMethod, setPaymentMethod] = useState<string>("gcash");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [form, setForm] = useState({ name: "", email: "", mobile: "", street: "", barangay: "", city: "", province: "", postal: "" });
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return <div style={{ minHeight: "100vh", background: BRAND.bg }} />;
 
   const isCOD = paymentMethod === "cod";
 
