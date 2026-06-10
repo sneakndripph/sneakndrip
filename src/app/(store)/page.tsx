@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BRAND, FONTS, MOCK_PRODUCTS, MOCK_REVIEWS, BRANDS } from "@/lib/constants";
+import { BRAND, FONTS, BRANDS } from "@/lib/constants";
 import ProductCard from "@/components/product/ProductCard";
 import HomeClient from "@/components/home/HomeClient";
+import { getProducts, getReviews } from "@/lib/supabase/products";
 
 export const metadata: Metadata = {
   title: "Sneak N' Drip — Authentic Sneakers Philippines",
@@ -14,11 +15,11 @@ export const metadata: Metadata = {
   },
 };
 
-const newArrivals = MOCK_PRODUCTS.filter(p => p.is_new).slice(0, 6);
-const trending = MOCK_PRODUCTS.filter(p => p.is_trending).slice(0, 4);
-const featured = MOCK_PRODUCTS.find(p => p.is_featured && p.status === "on-hand")!;
-
-export default function HomePage() {
+export default async function HomePage() {
+  const [products, reviews] = await Promise.all([getProducts(), getReviews()]);
+  const newArrivals = products.filter(p => p.is_new).slice(0, 6);
+  const trending = products.filter(p => p.is_trending).slice(0, 4);
+  const featured = products.find(p => p.is_featured && p.status === "on-hand") ?? products[0];
   return (
     <>
       {/* ── Hero ─────────────────────────────────────────────────────── */}
@@ -360,7 +361,7 @@ export default function HomePage() {
         </div>
 
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
-          {MOCK_REVIEWS.slice(0, 6).map(r => (
+          {reviews.slice(0, 6).map(r => (
             <div key={r.id}
               className="p-6 rounded-xl"
               style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>

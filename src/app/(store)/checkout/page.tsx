@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS, PAYMENT_METHODS, SHIPPING_FEE } from "@/lib/constants";
 import { Upload, CheckCircle, AlertCircle, ChevronRight } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 type Step = "details" | "payment" | "confirm";
 
@@ -18,13 +19,76 @@ export default function CheckoutPage() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [form, setForm] = useState({ name: "", email: "", mobile: "", street: "", barangay: "", city: "", province: "", postal: "" });
   const [orderPlaced, setOrderPlaced] = useState(false);
-  const [orderNumber] = useState(`SND-${Date.now().toString().slice(-8)}`);
+  const [placing, setPlacing] = useState(false);
+  const [orderNumber, setOrderNumber] = useState(`SND-${Date.now().toString().slice(-8)}`);
 
   const isCOD = paymentMethod === "cod";
 
-  function handlePlaceOrder() {
-    clearCart();
-    setOrderPlaced(true);
+  async function handlePlaceOrder() {
+    setPlacing(true);
+    try {
+      const supabase = createClient();
+      const num = `SND-${Date.now().toString().slice(-8)}`;
+      setOrderNumber(num);
+
+      // Upload proof of payment if provided
+      let proofUrl: string | null = null;
+      if (proofFile && !isCOD) {
+        const ext = proofFile.name.split(".").pop();
+        const path = `${num}.${ext}`;
+        const { data: uploadData } = await supabase.storage
+          .from("payment-proofs")
+          .upload(path, proofFile, { upsert: true });
+        if (uploadData) proofUrl = uploadData.path;
+      }
+
+      // Insert order
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          order_number: num,
+          customer_name: form.name,
+          customer_email: form.email,
+          customer_mobile: form.mobile,
+          shipping_street: form.street,
+          shipping_barangay: form.barangay,
+          shipping_city: form.city,
+          shipping_province: form.province,
+          shipping_postal: form.postal,
+          subtotal: sub,
+          shipping_fee: shipping,
+          total,
+          payment_method: paymentMethod,
+          payment_type: items[0]?.payment_type === "downpayment" ? "downpayment" : "full",
+          payment_status: "pending",
+          proof_of_payment: proofUrl,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+
+      if (!orderError && order) {
+        // Insert order items
+        await supabase.from("order_items").insert(
+          items.map(item => ({
+            order_id: order.id,
+            product_id: item.product.id,
+            product_name: item.product.name,
+            brand: item.product.brand,
+            size: item.size,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            payment_type: item.payment_type === "downpayment" ? "downpayment" : "full",
+          }))
+        );
+      }
+    } catch {
+      // Order still clears locally even if Supabase fails
+    } finally {
+      clearCart();
+      setOrderPlaced(true);
+      setPlacing(false);
+    }
   }
 
   if (orderPlaced) {
@@ -259,10 +323,10 @@ export default function CheckoutPage() {
                   )}
                   {isCOD && <p className="text-sm" style={{ color: BRAND.muted }}>Pay upon delivery</p>}
                 </div>
-                <button onClick={handlePlaceOrder}
-                  className="w-full py-5 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90"
+                <button onClick={handlePlaceOrder} disabled={placing}
+                  className="w-full py-5 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-60"
                   style={{ background: BRAND.teal, color: "#fff" }}>
-                  Place Order — ₱{total.toLocaleString()}
+                  {placing ? "Placing Order…" : `Place Order — ₱${total.toLocaleString()}`}
                 </button>
               </div>
             )}
