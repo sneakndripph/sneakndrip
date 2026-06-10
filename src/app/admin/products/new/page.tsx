@@ -55,36 +55,37 @@ export default function NewProductPage() {
         }
       }
 
-      // Insert product
-      const { data: product, error: insertError } = await supabase.from("products").insert({
-        name: form.name,
-        slug,
-        brand: form.brand,
-        colorway: form.colorway || null,
-        gender: form.gender,
-        sku: form.sku || null,
-        description: form.description || null,
-        srp_price: Number(form.srp) || Number(form.full),
-        downpayment_price: Number(form.dp) || Math.round(Number(form.full) * 0.5),
-        full_payment_price: Number(form.full),
-        status,
-        eta_start: status === "pre-order" && form.etaStart ? form.etaStart : null,
-        eta_end: status === "pre-order" && form.etaEnd ? form.etaEnd : null,
-        is_published: visibility.published,
-        is_featured: visibility.featured,
-        is_trending: visibility.trending,
-        is_new: true,
-        images: imageUrls.length ? imageUrls : null,
-      }).select("id").single();
+      // Insert via API route (uses service role to bypass RLS)
+      const res = await fetch("/api/admin/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product: {
+            name: form.name,
+            slug,
+            brand: form.brand,
+            colorway: form.colorway || null,
+            gender: form.gender,
+            sku: form.sku || null,
+            description: form.description || null,
+            srp_price: Number(form.srp) || Number(form.full),
+            downpayment_price: Number(form.dp) || Math.round(Number(form.full) * 0.5),
+            full_payment_price: Number(form.full),
+            status,
+            eta_start: status === "pre-order" && form.etaStart ? form.etaStart : null,
+            eta_end: status === "pre-order" && form.etaEnd ? form.etaEnd : null,
+            is_published: visibility.published,
+            is_featured: visibility.featured,
+            is_trending: visibility.trending,
+            is_new: true,
+            images: imageUrls.length ? imageUrls : null,
+          },
+          sizes,
+        }),
+      });
 
-      if (insertError) { setError(insertError.message); setSaving(false); return; }
-
-      // Insert sizes
-      if (sizes.length > 0 && product) {
-        await supabase.from("product_sizes").insert(
-          sizes.map(s => ({ product_id: product.id, size: s.size, stock: s.stock }))
-        );
-      }
+      const result = await res.json();
+      if (!res.ok) { setError(result.error ?? "Failed to save product"); setSaving(false); return; }
 
       setSaved(true);
     } catch (err) {
