@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
 
   const paymentLabel: Record<string, string> = {
     gcash: "GCash",
+    maya: "Maya",
     bank_transfer: "Bank Transfer",
     cod: "Cash on Delivery",
   };

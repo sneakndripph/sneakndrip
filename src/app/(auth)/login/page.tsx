@@ -114,7 +114,7 @@ export default function LoginPage() {
             </div>
 
             <div className="flex justify-end">
-              <a href="#" className="text-xs font-semibold transition-opacity hover:opacity-60"
+              <a href="/forgot-password" className="text-xs font-semibold transition-opacity hover:opacity-60"
                 style={{ color: BRAND.muted }}>Forgot password?</a>
             </div>
 
