@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BRAND, FONTS, BRANDS } from "@/lib/constants";
 import { getProducts } from "@/lib/supabase/products";
+import BrandLogo from "@/components/brands/BrandLogo";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -8,19 +9,19 @@ export const metadata: Metadata = {
   description: "Browse authentic sneakers by brand. Nike, Jordan, Adidas, New Balance and more.",
 };
 
-const BRAND_ICONS: Record<string, string> = {
-  Nike: "✔",
-  Jordan: "✈",
-  Adidas: "◈",
-  "New Balance": "NB",
-  Puma: "🐾",
-  ASICS: "AS",
-  Converse: "☆",
-  Vans: "V",
-  Reebok: "R",
-  Salomon: "S",
-  "On Running": "ON",
-  Hoka: "H",
+const BRAND_COLORS: Record<string, string> = {
+  Nike: "#111111",
+  Jordan: "#C8102E",
+  Adidas: "#000000",
+  "New Balance": "#CF4520",
+  Puma: "#1A1A1A",
+  ASICS: "#1A6DB5",
+  Converse: "#D93025",
+  Vans: "#E03030",
+  Reebok: "#CC0000",
+  Salomon: "#FF7000",
+  "On Running": "#1A1A1A",
+  Hoka: "#1C3968",
 };
 
 export default async function BrandsPage() {
@@ -55,22 +56,31 @@ export default async function BrandsPage() {
           {sortedBrands.map(b => {
             const count = brandCounts[b];
             const isEmpty = count === 0;
+            const brandColor = BRAND_COLORS[b] ?? BRAND.black;
             return (
               <Link
                 key={b}
                 href={`/shop?brand=${encodeURIComponent(b)}`}
-                className={`group flex flex-col items-center justify-center p-8 rounded-xl text-center transition-all ${isEmpty ? "pointer-events-none opacity-40" : "hover:shadow-md"}`}
+                className={`group flex flex-col items-center justify-center p-8 rounded-xl text-center transition-all ${isEmpty ? "pointer-events-none opacity-40" : "hover:shadow-lg"}`}
                 style={{
                   background: BRAND.card,
                   border: `1.5px solid ${BRAND.cardBorder}`,
                 }}
               >
+                {/* Logo area */}
                 <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center mb-4 text-xl font-black transition-transform group-hover:scale-110"
-                  style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}
+                  className="flex items-center justify-center mb-5 transition-transform group-hover:scale-105"
+                  style={{
+                    width: 80,
+                    height: 60,
+                    borderRadius: 12,
+                    background: isEmpty ? `${BRAND.border}` : `${brandColor}10`,
+                    color: isEmpty ? BRAND.muted : brandColor,
+                  }}
                 >
-                  {BRAND_ICONS[b] ?? b.charAt(0)}
+                  <BrandLogo brand={b} color={brandColor} size={28} />
                 </div>
+
                 <p className="font-black text-sm uppercase tracking-wide mb-1" style={{ color: BRAND.black }}>
                   {b}
                 </p>

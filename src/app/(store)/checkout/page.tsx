@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS, PAYMENT_METHODS, SHIPPING_FEE } from "@/lib/constants";
 import { Upload, CheckCircle, AlertCircle, ChevronRight } from "lucide-react";
+import PhAddressSelect from "@/components/ui/PhAddressSelect";
 
 type Step = "details" | "payment" | "confirm";
 
@@ -22,8 +23,18 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ name: "", email: "", mobile: "", street: "", barangay: "", city: "", province: "", postal: "" });
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
+  const [showErrors, setShowErrors] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  function handleContinueToPayment() {
+    if (!form.name || !form.email || !form.mobile || !form.street || !form.province || !form.city || !form.barangay) {
+      setShowErrors(true);
+      return;
+    }
+    setShowErrors(false);
+    setStep("payment");
+  }
 
   if (!mounted) return <div style={{ minHeight: "100vh", background: BRAND.bg }} />;
 
@@ -153,21 +164,22 @@ export default function CheckoutPage() {
             {/* Step 1: Details */}
             {step === "details" && (
               <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
-                <h2 className="mb-6 font-black text-lg" style={{ color: BRAND.black }}>Delivery Information</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="font-black text-lg" style={{ color: BRAND.black }}>Delivery Information</h2>
+                  <span className="text-xs" style={{ color: BRAND.muted }}>
+                    <span style={{ color: BRAND.red }}>*</span> Required
+                  </span>
+                </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   {[
-                    { key: "name", label: "Full Name", placeholder: "Juan Dela Cruz", col: "sm:col-span-2" },
-                    { key: "email", label: "Email Address", placeholder: "juan@email.com" },
-                    { key: "mobile", label: "Mobile Number", placeholder: "09XX XXX XXXX" },
-                    { key: "street", label: "Street Address", placeholder: "123 Rizal St.", col: "sm:col-span-2" },
-                    { key: "barangay", label: "Barangay", placeholder: "Brgy. San Antonio" },
-                    { key: "city", label: "City / Municipality", placeholder: "Taguig" },
-                    { key: "province", label: "Province", placeholder: "Metro Manila" },
-                    { key: "postal", label: "Postal Code", placeholder: "1630" },
+                    { key: "name", label: "Full Name", placeholder: "Juan Dela Cruz", col: "sm:col-span-2", req: true },
+                    { key: "email", label: "Email Address", placeholder: "juan@email.com", req: true },
+                    { key: "mobile", label: "Mobile Number", placeholder: "09XX XXX XXXX", req: true },
+                    { key: "street", label: "Street Address", placeholder: "123 Rizal St.", col: "sm:col-span-2", req: true },
                   ].map(field => (
                     <div key={field.key} className={field.col || ""}>
                       <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                        {field.label}
+                        {field.label}{field.req && <span style={{ color: BRAND.red }}> *</span>}
                       </label>
                       <input
                         value={form[field.key as keyof typeof form]}
@@ -176,19 +188,49 @@ export default function CheckoutPage() {
                         className="w-full px-4 py-3 text-sm focus:outline-none transition-colors"
                         style={{
                           background: BRAND.inputBg || "#F8F7F6",
-                          border: `1px solid ${BRAND.border}`,
+                          border: `1px solid ${showErrors && !form[field.key as keyof typeof form] ? BRAND.red : BRAND.border}`,
                           color: BRAND.black,
                         }}
                         onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                        onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)}
+                        onBlur={e => (e.currentTarget.style.borderColor = showErrors && !form[field.key as keyof typeof form] ? BRAND.red : BRAND.border)}
                       />
+                      {showErrors && !form[field.key as keyof typeof form] && (
+                        <p className="mt-1 text-[11px] font-semibold" style={{ color: BRAND.red }}>This field is required</p>
+                      )}
                     </div>
                   ))}
+
+                  {/* PH Address Dropdowns */}
+                  <PhAddressSelect
+                    province={form.province}
+                    city={form.city}
+                    barangay={form.barangay}
+                    onProvinceChange={v => setForm(f => ({ ...f, province: v }))}
+                    onCityChange={v => setForm(f => ({ ...f, city: v }))}
+                    onBarangayChange={v => setForm(f => ({ ...f, barangay: v }))}
+                    showErrors={showErrors}
+                  />
+
+                  {/* Postal Code */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                      Postal Code
+                    </label>
+                    <input
+                      value={form.postal}
+                      onChange={e => setForm(f => ({ ...f, postal: e.target.value }))}
+                      placeholder="1630"
+                      className="w-full px-4 py-3 text-sm focus:outline-none transition-colors"
+                      style={{ background: BRAND.inputBg || "#F8F7F6", border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                      onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+                      onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)}
+                    />
+                  </div>
                 </div>
+
                 <button
-                  onClick={() => setStep("payment")}
-                  disabled={!form.name || !form.email || !form.mobile || !form.street || !form.barangay || !form.city}
-                  className="mt-6 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-40"
+                  onClick={handleContinueToPayment}
+                  className="mt-6 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90"
                   style={{ background: BRAND.black, color: BRAND.bg }}>
                   Continue to Payment →
                 </button>
