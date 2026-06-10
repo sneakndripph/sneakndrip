@@ -3,13 +3,33 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { BRAND, FONTS } from "@/lib/constants";
 import { Eye, EyeOff } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    const supabase = createClient();
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    if (authError) {
+      setError(authError.message);
+      setLoading(false);
+      return;
+    }
+    router.push("/account");
+    router.refresh();
+  }
 
   return (
     <div className="min-h-screen flex" style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
@@ -55,13 +75,20 @@ export default function LoginPage() {
               style={{ color: BRAND.teal }}>Create account →</Link>
           </p>
 
-          <form className="space-y-4" onSubmit={e => e.preventDefault()}>
+          {error && (
+            <div className="mb-4 px-4 py-3 rounded text-sm font-medium"
+              style={{ background: `${BRAND.red}12`, color: BRAND.red, border: `1px solid ${BRAND.red}30` }}>
+              {error}
+            </div>
+          )}
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
                 Email Address
               </label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="juan@email.com"
+                placeholder="juan@email.com" required
                 className="w-full px-4 py-3.5 text-sm focus:outline-none transition-colors"
                 style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
                 onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
@@ -74,7 +101,7 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <input type={showPw ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="••••••••" required
                   className="w-full px-4 py-3.5 pr-12 text-sm focus:outline-none transition-colors"
                   style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
                   onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
@@ -91,10 +118,10 @@ export default function LoginPage() {
                 style={{ color: BRAND.muted }}>Forgot password?</a>
             </div>
 
-            <button type="submit"
-              className="w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90"
+            <button type="submit" disabled={loading}
+              className="w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{ background: BRAND.black, color: BRAND.bg }}>
-              Sign In
+              {loading ? "Signing In…" : "Sign In"}
             </button>
           </form>
 

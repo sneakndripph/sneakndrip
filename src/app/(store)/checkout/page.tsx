@@ -81,6 +81,36 @@ export default function CheckoutPage() {
             payment_type: item.payment_type === "downpayment" ? "downpayment" : "full",
           }))
         );
+
+        // Send confirmation emails (fire and forget — don't block success screen)
+        fetch("/api/orders/notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderNumber: num,
+            customer: { name: form.name, email: form.email, mobile: form.mobile },
+            items: items.map(i => ({
+              name: i.product.name,
+              size: i.size,
+              quantity: i.quantity,
+              price: i.unit_price * i.quantity,
+              payment_type: i.payment_type,
+            })),
+            subtotal: sub,
+            shipping,
+            total,
+            paymentMethod,
+            paymentType: items[0]?.payment_type ?? "full_payment",
+            shippingAddress: {
+              street: form.street,
+              barangay: form.barangay,
+              city: form.city,
+              province: form.province,
+              postal: form.postal,
+            },
+            isCOD,
+          }),
+        }).catch(() => {});
       }
     } catch {
       // Order still clears locally even if Supabase fails
