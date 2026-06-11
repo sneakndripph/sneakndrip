@@ -1,8 +1,6 @@
 import { getProducts } from "@/lib/supabase/products";
 import ShopClient from "@/components/shop/ShopClient";
 
-export const revalidate = 60;
-
 export default async function ShopPage({
   searchParams,
 }: {
