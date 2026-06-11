@@ -12,7 +12,7 @@ function toSlug(name: string) {
 export default function NewProductPage() {
   const [status, setStatus] = useState<"on-hand" | "pre-order">("on-hand");
   const [sizes, setSizes] = useState<{ size: string; stock: number }[]>([]);
-  const [images, setImages] = useState<File[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -54,9 +54,9 @@ export default function NewProductPage() {
         eta_end: status === "pre-order" && form.etaEnd ? form.etaEnd : null,
         is_published: visibility.published, is_featured: visibility.featured,
         is_trending: visibility.trending, is_new: true,
+        images: imageUrls,
       }));
       fd.append("sizes", JSON.stringify(sizes));
-      images.forEach(img => fd.append("images", img));
 
       const res = await fetch("/api/admin/products", { method: "POST", body: fd });
 
@@ -84,7 +84,7 @@ export default function NewProductPage() {
           <button onClick={() => {
             setSaved(false);
             setForm({ name: "", brand: "", colorway: "", gender: "Unisex", sku: "", description: "", srp: "", dp: "", full: "", etaStart: "", etaEnd: "" });
-            setSizes([]); setImages([]);
+            setSizes([]); setImageUrls([]);
           }} className="px-6 py-3 font-bold text-sm uppercase tracking-wider"
             style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black }}>Add Another</button>
         </div>
@@ -253,7 +253,7 @@ export default function NewProductPage() {
           <div className="space-y-5">
             <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
               <h2 className="font-black mb-4" style={{ color: BRAND.black }}>Product Images</h2>
-              <ImageUploader onChange={setImages} />
+              <ImageUploader onChange={setImageUrls} />
             </div>
 
             <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
