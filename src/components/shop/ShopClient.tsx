@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BRAND, FONTS, BRANDS, SNEAKER_SIZES } from "@/lib/constants";
 import ProductCard from "@/components/product/ProductCard";
@@ -39,6 +39,12 @@ export default function ShopClient({
   const [availability, setAvailability] = useState<string>(mapFilter(initialFilter));
   const [showNewOnly, setShowNewOnly] = useState(initialFilter === "new");
   const [maxPrice, setMaxPrice] = useState(20000);
+
+  // Sync filter state when URL param changes (e.g. navigating between On Hand / Pre-Orders)
+  useEffect(() => {
+    setAvailability(mapFilter(initialFilter));
+    setShowNewOnly(initialFilter === "new");
+  }, [initialFilter]);
 
   const toggleArr = <T,>(arr: T[], item: T): T[] =>
     arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item];
