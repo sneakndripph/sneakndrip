@@ -10,13 +10,17 @@ import PhAddressSelect from "@/components/ui/PhAddressSelect";
 
 type Step = "details" | "payment" | "confirm";
 
-function calcShipping(isCOD: boolean, regionGroup: string, sub: number): number {
+function calcShipping(isCOD: boolean, regionGroup: string, sub: number, itemCount: number): number {
+  const lg = itemCount > 2;
   if (isCOD) {
-    if (regionGroup === "Visayas" || regionGroup === "Mindanao") return SHIPPING_FEE.cod_visayas_mindanao;
-    return SHIPPING_FEE.cod_luzon; // Metro Manila, North/South Luzon
+    if (regionGroup === "Visayas" || regionGroup === "Mindanao")
+      return lg ? SHIPPING_FEE.cod_vm_lg  : SHIPPING_FEE.cod_vm_sm;
+    return lg ? SHIPPING_FEE.cod_luzon_lg : SHIPPING_FEE.cod_luzon_sm;
   }
   if (sub >= SHIPPING_FEE.free_threshold) return 0;
-  return regionGroup === "Metro Manila" ? SHIPPING_FEE.metro_manila : SHIPPING_FEE.provincial;
+  if (regionGroup === "Metro Manila")
+    return lg ? SHIPPING_FEE.metro_lg : SHIPPING_FEE.metro_sm;
+  return lg ? SHIPPING_FEE.provincial_lg : SHIPPING_FEE.provincial_sm;
 }
 
 export default function CheckoutPage() {
@@ -35,10 +39,18 @@ export default function CheckoutPage() {
   const [showErrors, setShowErrors] = useState(false);
 
   const isCOD = paymentMethod === "cod";
-  const shipping = calcShipping(isCOD, regionGroup, sub);
+  const itemCount = items.reduce((s, i) => s + i.quantity, 0);
+  const shipping = calcShipping(isCOD, regionGroup, sub, itemCount);
   const total = sub + shipping;
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      createClient().auth.getUser().then(({ data: { user } }) => {
+        if (!user) router.replace("/login?redirect=/checkout");
+      });
+    });
+  }, [router]);
 
   function handleContinueToPayment() {
     if (!form.name || !form.email || !form.mobile || !form.street || !form.province || !form.city || !form.barangay) {
@@ -108,6 +120,11 @@ export default function CheckoutPage() {
 
       if (!createRes.ok) {
         const err = await createRes.json().catch(() => ({}));
+        if (createRes.status === 409 && err.outOfStock) {
+          setOrderError(err.error);
+          setPlacing(false);
+          return;
+        }
         throw new Error(err.error || "Failed to create order");
       }
 

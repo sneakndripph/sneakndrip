@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS, SHIPPING_FEE } from "@/lib/constants";
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, LogIn } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Product } from "@/lib/types";
 
@@ -54,14 +55,17 @@ function TopProducts({ products }: { products: Product[] }) {
 }
 
 export default function CartPage() {
+  const router = useRouter();
   const { items, removeItem, updateQuantity, subtotal } = useCartStore();
   const [topProducts, setTopProducts] = useState<Product[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const sub = subtotal();
-  const shipping = sub >= SHIPPING_FEE.free_threshold ? 0 : SHIPPING_FEE.metro_manila;
-  const total = sub + shipping;
 
   useEffect(() => {
     const supabase = createClient();
+    // Check auth
+    supabase.auth.getUser().then(({ data: { user } }) => setIsLoggedIn(!!user));
+    // Fetch top picks
     supabase
       .from("products")
       .select("*, product_sizes(size, stock)")
@@ -93,7 +97,7 @@ export default function CartPage() {
               eta_start: (p.eta_start as string) ?? undefined,
               eta_end: (p.eta_end as string) ?? undefined,
               sizes: ((p.product_sizes as Record<string, unknown>[]) ?? []).map(s => ({ size: s.size as string, stock: s.stock as number })),
-              images: undefined,
+              images: (p.images as string[]) ?? [],
             }));
           setTopProducts(filtered);
         }
@@ -211,26 +215,33 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span style={{ color: BRAND.muted }}>Shipping</span>
-                  <span style={{ color: shipping === 0 ? BRAND.teal : BRAND.black }}>
-                    {shipping === 0 ? "FREE" : `₱${shipping}`}
-                  </span>
+                  <span style={{ color: BRAND.muted }}>Calculated at checkout</span>
                 </div>
-                {sub < SHIPPING_FEE.free_threshold && (
-                  <p className="text-xs" style={{ color: BRAND.muted }}>
-                    Add ₱{(SHIPPING_FEE.free_threshold - sub).toLocaleString()} more for free shipping
+                {sub >= SHIPPING_FEE.free_threshold && (
+                  <p className="text-xs" style={{ color: BRAND.teal }}>
+                    You may qualify for free shipping (GCash / Maya / Bank)
                   </p>
                 )}
               </div>
               <div className="flex justify-between font-black py-4 mb-5"
                 style={{ borderTop: `1px solid ${BRAND.border}`, borderBottom: `1px solid ${BRAND.border}` }}>
-                <span style={{ color: BRAND.black }}>Total</span>
-                <span style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.black }}>₱{total.toLocaleString()}</span>
+                <span style={{ color: BRAND.black }}>Subtotal</span>
+                <span style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.black }}>₱{sub.toLocaleString()}</span>
               </div>
-              <Link href="/checkout"
-                className="flex items-center justify-center gap-2 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90"
-                style={{ background: BRAND.black, color: BRAND.bg }}>
-                Proceed to Checkout <ArrowRight className="w-4 h-4" />
-              </Link>
+              {isLoggedIn === false ? (
+                <button
+                  onClick={() => router.push("/login?redirect=/checkout")}
+                  className="flex items-center justify-center gap-2 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90"
+                  style={{ background: BRAND.teal, color: "#fff" }}>
+                  <LogIn className="w-4 h-4" /> Sign In to Checkout
+                </button>
+              ) : (
+                <Link href="/checkout"
+                  className="flex items-center justify-center gap-2 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90"
+                  style={{ background: BRAND.black, color: BRAND.bg }}>
+                  Proceed to Checkout <ArrowRight className="w-4 h-4" />
+                </Link>
+              )}
               <Link href="/shop"
                 className="flex items-center justify-center mt-3 py-3 text-sm font-semibold transition-opacity hover:opacity-60"
                 style={{ color: BRAND.muted }}>

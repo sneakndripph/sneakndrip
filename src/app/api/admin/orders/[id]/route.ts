@@ -155,38 +155,11 @@ export async function PATCH(
   const { error } = await admin.from("orders").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // ── Inventory deduction ───────────────────────────────────────────────────
-  // Deduct stock when: non-COD → paid, or COD → delivered (once each)
-  const prevStatus = currentOrder?.status;
-  const newStatus = body.status;
-  const shouldDeduct =
-    (newStatus === "paid"      && prevStatus !== "paid"      && !isCODOrder) ||
-    (newStatus === "delivered" && prevStatus !== "delivered" && isCODOrder);
-
-  if (shouldDeduct && currentOrder?.order_items?.length) {
-    for (const item of currentOrder.order_items as { product_id: string | null; size: string; quantity: number }[]) {
-      if (!item.product_id) continue;
-      const { data: sizeRow } = await admin
-        .from("product_sizes")
-        .select("stock")
-        .eq("product_id", item.product_id)
-        .eq("size", item.size)
-        .single();
-      if (sizeRow) {
-        await admin
-          .from("product_sizes")
-          .update({ stock: Math.max(0, sizeRow.stock - item.quantity) })
-          .eq("product_id", item.product_id)
-          .eq("size", item.size);
-      }
-    }
-  }
-
   // ── Status change notification email ────────────────────────────────────
-  if (newStatus && currentOrder?.customer_email && resend) {
+  if (body.status && currentOrder?.customer_email && resend) {
     const trackingNum = body.tracking_number ?? currentOrder.tracking_number ?? null;
     const emailContent = statusEmailContent(
-      newStatus,
+      body.status,
       currentOrder.order_number,
       currentOrder.customer_name,
       trackingNum,

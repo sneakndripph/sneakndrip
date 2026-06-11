@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 
+type StockItem = { product_id: string; size: string; quantity: number };
+
+async function refundStock(supabase: ReturnType<typeof createAdminClient>, items: StockItem[]) {
+  for (const item of items) {
+    const { data: row } = await supabase
+      .from("product_sizes")
+      .select("stock")
+      .eq("product_id", item.product_id)
+      .eq("size", item.size)
+      .single();
+    if (row) {
+      await supabase
+        .from("product_sizes")
+        .update({ stock: row.stock + item.quantity })
+        .eq("product_id", item.product_id)
+        .eq("size", item.size);
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -12,6 +32,34 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminClient();
 
+    // Atomically check + deduct stock for all items in one DB transaction.
+    const stockItems: StockItem[] = items
+      .filter((i: Record<string, unknown>) => i.product_id)
+      .map((i: Record<string, unknown>) => ({
+        product_id: i.product_id as string,
+        size: i.size as string,
+        quantity: i.quantity as number,
+      }));
+
+    if (stockItems.length > 0) {
+      const { data: stockResult, error: stockError } = await supabase.rpc(
+        "decrement_stock_for_order",
+        { p_items: stockItems }
+      );
+      if (stockError) {
+        console.error("Stock deduction error:", stockError);
+        return NextResponse.json({ error: "Failed to reserve stock" }, { status: 500 });
+      }
+      if (stockResult !== "ok") {
+        const size = String(stockResult).split(":")[1] ?? "this size";
+        return NextResponse.json(
+          { error: `Sorry, size ${size} just sold out. Please remove it from your cart.`, outOfStock: true },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Insert order
     const { data, error } = await supabase
       .from("orders")
       .insert(order)
@@ -20,6 +68,7 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error("Order insert error:", error);
+      if (stockItems.length > 0) await refundStock(supabase, stockItems);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -29,8 +78,8 @@ export async function POST(req: NextRequest) {
 
     if (itemsError) {
       console.error("Order items insert error:", itemsError);
-      // Rollback order
       await supabase.from("orders").delete().eq("id", data.id);
+      if (stockItems.length > 0) await refundStock(supabase, stockItems);
       return NextResponse.json({ error: itemsError.message }, { status: 500 });
     }
 
