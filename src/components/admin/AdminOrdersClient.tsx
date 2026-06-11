@@ -53,15 +53,29 @@ type Order = {
   order_items: OrderItem[];
 };
 
-// Next action to suggest based on current status
-const NEXT_ACTION: Record<string, { label: string; next: string; color: string } | null> = {
-  pending:    { label: "Accept / Process Order", next: "paid",       color: BRAND.teal },
-  paid:       { label: "Mark as Processing",     next: "processing", color: "#6366F1" },
-  processing: { label: "Mark as Shipped",        next: "shipped",    color: "#3B82F6" },
-  shipped:    { label: "Mark as Delivered",      next: "delivered",  color: "#10B981" },
-  delivered:  null,
-  cancelled:  null,
-};
+// Next action — differs for COD (no Paid step, delivered = cash collected)
+function getNextAction(status: string, isCOD: boolean): { label: string; next: string; color: string } | null {
+  if (isCOD) {
+    const COD_ACTIONS: Record<string, { label: string; next: string; color: string } | null> = {
+      pending:    { label: "Mark as Processing",           next: "processing", color: "#6366F1" },
+      processing: { label: "Mark as Shipped",              next: "shipped",    color: "#3B82F6" },
+      shipped:    { label: "Delivered / Cash Collected",   next: "delivered",  color: "#10B981" },
+      delivered:  null,
+      cancelled:  null,
+      paid:       null,
+    };
+    return COD_ACTIONS[status] ?? null;
+  }
+  const ACTIONS: Record<string, { label: string; next: string; color: string } | null> = {
+    pending:    { label: "Accept / Process Order", next: "paid",       color: BRAND.teal },
+    paid:       { label: "Mark as Processing",     next: "processing", color: "#6366F1" },
+    processing: { label: "Mark as Shipped",        next: "shipped",    color: "#3B82F6" },
+    shipped:    { label: "Mark as Delivered",      next: "delivered",  color: "#10B981" },
+    delivered:  null,
+    cancelled:  null,
+  };
+  return ACTIONS[status] ?? null;
+}
 
 export default function AdminOrdersClient({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
@@ -132,8 +146,11 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
   }
 
   const liveSelected = selected ? (orders.find(o => o.id === selected.id) ?? selected) : null;
-  const nextAction = liveSelected ? NEXT_ACTION[liveSelected.status] ?? null : null;
+  const isCODSelected = liveSelected?.payment_method === "cod";
+  const nextAction = liveSelected ? getNextAction(liveSelected.status, isCODSelected) : null;
   const selCfg = liveSelected ? (STATUS_CFG[liveSelected.status as keyof typeof STATUS_CFG] ?? STATUS_CFG.pending) : null;
+  // Status options available in dropdown — hide "Paid" for COD orders
+  const statusOptions = Object.entries(STATUS_CFG).filter(([k]) => !(isCODSelected && k === "paid"));
 
   return (
     <div style={{ fontFamily: FONTS.body }}>
@@ -471,8 +488,8 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                     onChange={e => updateStatus(liveSelected.id, e.target.value)}
                     className="w-full text-xs px-3 py-2.5 focus:outline-none appearance-none cursor-pointer"
                     style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}>
-                    {Object.entries(STATUS_CFG).map(([k, v]) => (
-                      <option key={k} value={k}>{v.label}</option>
+                    {statusOptions.map(([k, v]) => (
+                      <option key={k} value={k}>{k === "delivered" && isCODSelected ? "Delivered / Cash Collected" : v.label}</option>
                     ))}
                   </select>
                 </div>

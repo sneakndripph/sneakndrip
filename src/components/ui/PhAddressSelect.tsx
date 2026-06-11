@@ -13,6 +13,7 @@ interface Props {
   onProvinceChange: (v: string) => void;
   onCityChange: (v: string) => void;
   onBarangayChange: (v: string) => void;
+  onRegionGroupChange?: (groupName: string) => void;
   showErrors?: boolean;
 }
 
@@ -38,6 +39,7 @@ async function phFetch(type: string, code: string): Promise<Loc[]> {
 export default function PhAddressSelect({
   province, city, barangay,
   onProvinceChange, onCityChange, onBarangayChange,
+  onRegionGroupChange,
   showErrors = false,
 }: Props) {
   const [step, setStep]           = useState<Step>("region");
@@ -56,6 +58,7 @@ export default function PhAddressSelect({
     setProvCode(""); setCityCode("");
     setProvinces([]); setCities([]); setBarangays([]);
     onProvinceChange(""); onCityChange(""); onBarangayChange("");
+    onRegionGroupChange?.(g.name);
     setLoading(true);
 
     if (g.skipProvince) {

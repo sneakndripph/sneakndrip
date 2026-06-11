@@ -10,21 +10,33 @@ import PhAddressSelect from "@/components/ui/PhAddressSelect";
 
 type Step = "details" | "payment" | "confirm";
 
+function calcShipping(isCOD: boolean, regionGroup: string, sub: number): number {
+  if (isCOD) {
+    if (regionGroup === "Visayas" || regionGroup === "Mindanao") return SHIPPING_FEE.cod_visayas_mindanao;
+    return SHIPPING_FEE.cod_luzon; // Metro Manila, North/South Luzon
+  }
+  if (sub >= SHIPPING_FEE.free_threshold) return 0;
+  return regionGroup === "Metro Manila" ? SHIPPING_FEE.metro_manila : SHIPPING_FEE.provincial;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, clearCart } = useCartStore();
   const sub = subtotal();
-  const shipping = sub >= SHIPPING_FEE.free_threshold ? 0 : SHIPPING_FEE.metro_manila;
-  const total = sub + shipping;
 
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>("details");
   const [paymentMethod, setPaymentMethod] = useState<string>("gcash");
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [regionGroup, setRegionGroup] = useState("");
   const [form, setForm] = useState({ name: "", email: "", mobile: "", street: "", barangay: "", city: "", province: "", postal: "" });
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [showErrors, setShowErrors] = useState(false);
+
+  const isCOD = paymentMethod === "cod";
+  const shipping = calcShipping(isCOD, regionGroup, sub);
+  const total = sub + shipping;
 
   useEffect(() => setMounted(true), []);
 
@@ -38,8 +50,6 @@ export default function CheckoutPage() {
   }
 
   if (!mounted) return <div style={{ minHeight: "100vh", background: BRAND.bg }} />;
-
-  const isCOD = paymentMethod === "cod";
 
   async function handlePlaceOrder() {
     setPlacing(true);
@@ -217,6 +227,7 @@ export default function CheckoutPage() {
                     onProvinceChange={v => setForm(f => ({ ...f, province: v }))}
                     onCityChange={v => setForm(f => ({ ...f, city: v }))}
                     onBarangayChange={v => setForm(f => ({ ...f, barangay: v }))}
+                    onRegionGroupChange={setRegionGroup}
                     showErrors={showErrors}
                   />
 
@@ -339,9 +350,12 @@ export default function CheckoutPage() {
                   <div className="flex items-start gap-3 p-4 rounded-xl"
                     style={{ background: `${BRAND.red}08`, border: `1px solid ${BRAND.red}20` }}>
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: BRAND.red }} />
-                    <p className="text-sm leading-relaxed" style={{ color: BRAND.black }}>
-                      Cash on Delivery is available nationwide. Our team will contact you before dispatch to confirm delivery details.
-                    </p>
+                    <div className="text-sm leading-relaxed" style={{ color: BRAND.black }}>
+                      <p>Cash on Delivery available nationwide. Our team will contact you before dispatch.</p>
+                      <p className="mt-1.5 font-semibold" style={{ color: BRAND.muted }}>
+                        COD shipping: Luzon ₱250 · Visayas &amp; Mindanao ₱350 (no free shipping for COD)
+                      </p>
+                    </div>
                   </div>
                 )}
 

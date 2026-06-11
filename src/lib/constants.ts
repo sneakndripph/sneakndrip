@@ -55,6 +55,9 @@ export const SHIPPING_FEE = {
   metro_manila: 150,
   provincial: 250,
   free_threshold: 5000,
+  // COD has no free threshold
+  cod_luzon: 250,
+  cod_visayas_mindanao: 350,
 } as const;
 
 export const MOCK_PRODUCTS = [
