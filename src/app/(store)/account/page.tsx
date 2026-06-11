@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save } from "lucide-react";
+import Image from "next/image";
+import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -16,16 +17,42 @@ const STATUS_CONFIG = {
   cancelled:  { icon: Clock,       color: "#D94F3D", label: "Cancelled",  bg: "rgba(217,79,61,0.12)" },
 } as const;
 
-type OrderItem = { product_name: string; size: string; quantity: number; unit_price: number };
-type Order = { id: string; order_number: string; created_at: string; status: string; total: number; tracking_number?: string; order_items: OrderItem[] };
+type OrderItem = {
+  product_name: string;
+  size: string;
+  quantity: number;
+  unit_price: number;
+  products: { images: string[] | null; bg: string | null } | null;
+};
+type Order = {
+  id: string;
+  order_number: string;
+  created_at: string;
+  status: string;
+  total: number;
+  payment_method: string;
+  tracking_number?: string;
+  shipping_street?: string;
+  shipping_barangay?: string;
+  shipping_city?: string;
+  shipping_province?: string;
+  order_items: OrderItem[];
+};
 type Tab = "orders" | "account" | "password";
 
-const STEPS = [
+// COD skips the "Confirmed/Paid" step
+const STEPS_DEFAULT = [
   { key: "pending",    label: "Placed" },
   { key: "paid",       label: "Confirmed" },
   { key: "processing", label: "Processing" },
   { key: "shipped",    label: "Shipped" },
   { key: "delivered",  label: "Delivered" },
+];
+const STEPS_COD = [
+  { key: "pending",    label: "Placed" },
+  { key: "processing", label: "Processing" },
+  { key: "shipped",    label: "Shipped" },
+  { key: "delivered",  label: "Collected" },
 ];
 
 export default function AccountPage() {
@@ -62,11 +89,11 @@ export default function AccountPage() {
       });
       supabase
         .from("orders")
-        .select("id, order_number, created_at, status, total, tracking_number, order_items(product_name, size, quantity, unit_price)")
+        .select("id, order_number, created_at, status, total, payment_method, tracking_number, shipping_street, shipping_barangay, shipping_city, shipping_province, order_items(product_name, size, quantity, unit_price, products(images, bg))")
         .eq("customer_email", user.email)
         .order("created_at", { ascending: false })
         .then(({ data }) => {
-          setOrders((data as Order[]) ?? []);
+          setOrders((data as unknown as Order[]) ?? []);
           setLoadingOrders(false);
         });
     });
@@ -196,69 +223,127 @@ export default function AccountPage() {
                       style={{ background: BRAND.black, color: BRAND.bg }}>Shop Now</a>
                   </div>
                 ) : orders.map(order => {
+                  const isCOD = order.payment_method === "cod";
+                  const STEPS = isCOD ? STEPS_COD : STEPS_DEFAULT;
                   const cfg = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
                   const Icon = cfg.icon;
                   const date = new Date(order.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+                  // For COD, "paid" status never happens — map it to processing index for progress
                   const activeIdx = STEPS.findIndex(s => s.key === order.status);
+                  const address = [order.shipping_street, order.shipping_barangay, order.shipping_city, order.shipping_province].filter(Boolean).join(", ");
                   return (
-                    <div key={order.id} className="p-5 rounded-xl"
+                    <div key={order.id} className="rounded-xl overflow-hidden"
                       style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <p className="font-bold text-sm" style={{ color: BRAND.black }}>{order.order_number}</p>
-                          <p className="text-xs" style={{ color: BRAND.muted }}>{date}</p>
+
+                      {/* Order header */}
+                      <div className="px-5 pt-5 pb-4" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-black text-sm" style={{ color: BRAND.black }}>{order.order_number}</p>
+                            <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{date}</p>
+                          </div>
+                          <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full shrink-0"
+                            style={{ background: cfg.bg, color: cfg.color }}>
+                            <Icon className="w-3 h-3" />
+                            {order.status === "delivered" && isCOD ? "Delivered / Collected" : cfg.label}
+                          </span>
                         </div>
-                        <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
-                          style={{ background: cfg.bg, color: cfg.color }}>
-                          <Icon className="w-3 h-3" />
-                          {cfg.label}
-                        </span>
                       </div>
+
+                      {/* Progress tracker */}
                       {order.status !== "cancelled" && (
-                        <div className="flex items-center mb-5 overflow-x-auto pb-1">
-                          {STEPS.map((step, i) => {
-                            const done = activeIdx >= i;
-                            const active = activeIdx === i;
-                            return (
-                              <div key={step.key} className="flex items-center flex-1 min-w-0">
-                                <div className="flex flex-col items-center flex-1">
-                                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black mb-1 shrink-0"
-                                    style={{ background: active ? BRAND.teal : done ? `${BRAND.teal}60` : BRAND.border, color: done ? "#fff" : BRAND.mutedLight }}>
-                                    {done && !active ? "✓" : i + 1}
+                        <div className="px-5 py-5" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                          <div className="flex items-center">
+                            {STEPS.map((step, i) => {
+                              const done = activeIdx >= i;
+                              const active = activeIdx === i;
+                              return (
+                                <div key={step.key} className="flex items-center flex-1 min-w-0">
+                                  <div className="flex flex-col items-center flex-1">
+                                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black mb-1.5 shrink-0 transition-all"
+                                      style={{
+                                        background: active ? BRAND.teal : done ? `${BRAND.teal}55` : BRAND.border,
+                                        color: done ? "#fff" : BRAND.mutedLight,
+                                        boxShadow: active ? `0 0 0 3px ${BRAND.teal}25` : "none",
+                                      }}>
+                                      {done && !active ? "✓" : i + 1}
+                                    </div>
+                                    <p className="text-[9px] font-bold text-center whitespace-nowrap px-0.5"
+                                      style={{ color: active ? BRAND.teal : done ? `${BRAND.teal}90` : BRAND.mutedLight }}>
+                                      {step.label}
+                                    </p>
                                   </div>
-                                  <p className="text-[9px] font-bold text-center whitespace-nowrap"
-                                    style={{ color: done ? BRAND.teal : BRAND.mutedLight }}>{step.label}</p>
+                                  {i < STEPS.length - 1 && (
+                                    <div className="h-0.5 flex-1 mx-0.5 mb-5 shrink-0 transition-all"
+                                      style={{ background: activeIdx > i ? BRAND.teal : BRAND.border }} />
+                                  )}
                                 </div>
-                                {i < STEPS.length - 1 && (
-                                  <div className="h-0.5 flex-1 mx-0.5 mb-4 shrink-0"
-                                    style={{ background: activeIdx > i ? BRAND.teal : BRAND.border }} />
-                                )}
-                              </div>
-                            );
-                          })}
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
-                      {order.order_items?.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between py-3"
-                          style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                          <div>
-                            <p className="text-sm font-semibold" style={{ color: BRAND.black }}>{item.product_name}</p>
-                            <p className="text-xs" style={{ color: BRAND.muted }}>Size: {item.size} · Qty: {item.quantity}</p>
+
+                      {/* Tracking card — shown when shipped */}
+                      {order.tracking_number && order.status === "shipped" && (
+                        <div className="mx-5 my-4 p-4 rounded-lg flex items-center gap-3"
+                          style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}30` }}>
+                          <Truck className="w-5 h-5 shrink-0" style={{ color: BRAND.teal }} />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.teal }}>Your order is on its way</p>
+                            <p className="text-sm font-black" style={{ color: BRAND.black }}>{order.tracking_number}</p>
+                            <p className="text-[11px] mt-0.5" style={{ color: BRAND.muted }}>Use this number on your courier&apos;s website to track delivery.</p>
                           </div>
-                          <p className="font-bold text-sm" style={{ color: BRAND.black }}>
-                            &#8369;{(item.unit_price * item.quantity).toLocaleString()}
-                          </p>
                         </div>
-                      ))}
-                      <div className="pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                        <p className="text-sm font-bold" style={{ color: BRAND.black }}>
-                          Total: &#8369;{order.total.toLocaleString()}
+                      )}
+
+                      {/* Shipping address */}
+                      {address && (
+                        <div className="px-5 pb-4 flex items-start gap-2">
+                          <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: BRAND.mutedLight }} />
+                          <p className="text-xs" style={{ color: BRAND.muted }}>{address}</p>
+                        </div>
+                      )}
+
+                      {/* Items */}
+                      <div style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                        {order.order_items?.map((item, i) => {
+                          const img = item.products?.images?.[0] ?? null;
+                          const bg = item.products?.bg ?? "#EDE9E3";
+                          return (
+                            <div key={i} className="flex items-center gap-3 px-5 py-3"
+                              style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                              <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative"
+                                style={{ background: bg, border: `1px solid ${BRAND.border}` }}>
+                                {img ? (
+                                  <Image src={img} alt={item.product_name} fill className="object-cover" sizes="44px" />
+                                ) : (
+                                  <span className="absolute inset-0 flex items-center justify-center text-xs font-black"
+                                    style={{ color: BRAND.black, opacity: 0.12, fontFamily: FONTS.display }}>
+                                    S
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold truncate" style={{ color: BRAND.black }}>{item.product_name}</p>
+                                <p className="text-xs" style={{ color: BRAND.muted }}>Size {item.size} · Qty {item.quantity}</p>
+                              </div>
+                              <p className="font-bold text-sm shrink-0" style={{ color: BRAND.black }}>
+                                ₱{(item.unit_price * item.quantity).toLocaleString()}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Total */}
+                      <div className="px-5 py-4 flex items-center justify-between">
+                        <p className="text-xs" style={{ color: BRAND.muted }}>
+                          {isCOD ? "Cash on Delivery" : order.payment_method?.replace("_", " ")}
                         </p>
-                        {order.tracking_number && (
-                          <p className="text-xs font-semibold mt-1" style={{ color: BRAND.teal }}>
-                            Tracking #: {order.tracking_number}
-                          </p>
-                        )}
+                        <p className="font-black text-sm" style={{ color: BRAND.black }}>
+                          Total ₱{Number(order.total).toLocaleString()}
+                        </p>
                       </div>
                     </div>
                   );
