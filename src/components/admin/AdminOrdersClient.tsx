@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Search, Clock, CheckCircle, Truck, Package, XCircle, ChevronDown } from "lucide-react";
+import {
+  Search, Clock, CheckCircle, Truck, Package, XCircle,
+  X, ExternalLink, MapPin, User, CreditCard, ChevronRight,
+} from "lucide-react";
 
 const STATUSES = ["all", "pending", "paid", "processing", "shipped", "delivered", "cancelled"] as const;
 type Status = (typeof STATUSES)[number];
@@ -36,16 +39,28 @@ type Order = {
   payment_type: string;
   status: string;
   tracking_number: string | null;
+  proof_of_payment: string | null;
   created_at: string;
   order_items: OrderItem[];
+};
+
+// Next action to suggest based on current status
+const NEXT_ACTION: Record<string, { label: string; next: string; color: string } | null> = {
+  pending:    { label: "Accept / Process Order", next: "paid",       color: BRAND.teal },
+  paid:       { label: "Mark as Processing",     next: "processing", color: "#6366F1" },
+  processing: { label: "Mark as Shipped",        next: "shipped",    color: "#3B82F6" },
+  shipped:    { label: "Mark as Delivered",      next: "delivered",  color: "#10B981" },
+  delivered:  null,
+  cancelled:  null,
 };
 
 export default function AdminOrdersClient({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<Status>("all");
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [trackingEdits, setTrackingEdits] = useState<Record<string, string>>({});
+  const [selected, setSelected] = useState<Order | null>(null);
+  const [trackingInput, setTrackingInput] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const filtered = orders.filter(o => {
     const matchSearch = !search ||
@@ -63,27 +78,41 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
 
   const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
 
+  function openOrder(o: Order) {
+    setSelected(o);
+    setTrackingInput(o.tracking_number ?? "");
+  }
+
+  function closeModal() {
+    setSelected(null);
+  }
+
   async function updateStatus(id: string, status: string) {
+    setSaving(true);
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+    if (selected?.id === id) setSelected(prev => prev ? { ...prev, status } : prev);
     await fetch(`/api/admin/orders/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
+    setSaving(false);
   }
 
   async function saveTracking(id: string) {
-    const tracking_number = trackingEdits[id] ?? "";
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, tracking_number } : o));
+    setSaving(true);
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, tracking_number: trackingInput } : o));
+    if (selected?.id === id) setSelected(prev => prev ? { ...prev, tracking_number: trackingInput } : prev);
     await fetch(`/api/admin/orders/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tracking_number }),
+      body: JSON.stringify({ tracking_number: trackingInput }),
     });
+    setSaving(false);
   }
 
   function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+    return new Date(iso).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
   }
 
   function itemsSummary(items: OrderItem[]) {
@@ -93,8 +122,13 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
     return `${first.product_name} (${first.size})${rest}`;
   }
 
+  const liveSelected = selected ? (orders.find(o => o.id === selected.id) ?? selected) : null;
+  const nextAction = liveSelected ? NEXT_ACTION[liveSelected.status] ?? null : null;
+  const selCfg = liveSelected ? (STATUS_CFG[liveSelected.status as keyof typeof STATUS_CFG] ?? STATUS_CFG.pending) : null;
+
   return (
     <div style={{ fontFamily: FONTS.body }}>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Order Management</p>
@@ -137,15 +171,17 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
           style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
       </div>
 
+      {/* Table */}
       <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-        {/* Desktop table */}
+        {/* Desktop */}
         <table className="w-full hidden md:table">
           <thead>
             <tr style={{ background: "rgba(13,13,13,0.02)", borderBottom: `1px solid ${BRAND.border}` }}>
-              {["Order", "Customer", "Items", "Payment", "Total", "Status", "Date", "Update"].map(h => (
+              {["Order", "Customer", "Items", "Payment", "Total", "Status", "Date"].map(h => (
                 <th key={h} className="px-4 py-3.5 text-left text-[10px] font-black uppercase tracking-widest"
                   style={{ color: BRAND.muted }}>{h}</th>
               ))}
+              <th className="px-4 py-3.5 text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }} />
             </tr>
           </thead>
           <tbody>
@@ -153,11 +189,11 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
               const cfg = STATUS_CFG[o.status as keyof typeof STATUS_CFG] ?? STATUS_CFG.pending;
               const Icon = cfg.icon;
               return (
-                <tr key={o.id} className="transition-colors hover:bg-black/[0.01]"
-                  style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                  <td className="px-4 py-4 text-xs font-bold" style={{ color: BRAND.black }}>
-                    {o.order_number}
-                  </td>
+                <tr key={o.id}
+                  className="transition-colors hover:bg-black/[0.025] cursor-pointer"
+                  style={{ borderBottom: `1px solid ${BRAND.border}` }}
+                  onClick={() => openOrder(o)}>
+                  <td className="px-4 py-4 text-xs font-bold" style={{ color: BRAND.black }}>{o.order_number}</td>
                   <td className="px-4 py-4">
                     <p className="text-xs font-semibold" style={{ color: BRAND.black }}>{o.customer_name}</p>
                     <p className="text-[10px]" style={{ color: BRAND.muted }}>{o.customer_email}</p>
@@ -181,16 +217,10 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                     </span>
                   </td>
                   <td className="px-4 py-4 text-xs" style={{ color: BRAND.muted }}>
-                    {formatDate(o.created_at)}
+                    {new Date(o.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
                   </td>
-                  <td className="px-4 py-4">
-                    <select value={o.status} onChange={e => updateStatus(o.id, e.target.value)}
-                      className="text-xs px-2 py-1.5 focus:outline-none appearance-none cursor-pointer"
-                      style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}>
-                      {Object.entries(STATUS_CFG).map(([k, v]) => (
-                        <option key={k} value={k}>{v.label}</option>
-                      ))}
-                    </select>
+                  <td className="px-4 py-4 text-right">
+                    <ChevronRight className="w-4 h-4 ml-auto" style={{ color: BRAND.muted }} />
                   </td>
                 </tr>
               );
@@ -198,72 +228,28 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
           </tbody>
         </table>
 
-        {/* Mobile accordion */}
+        {/* Mobile cards */}
         <div className="md:hidden divide-y" style={{ borderColor: BRAND.border }}>
           {filtered.map(o => {
             const cfg = STATUS_CFG[o.status as keyof typeof STATUS_CFG] ?? STATUS_CFG.pending;
             const Icon = cfg.icon;
-            const open = expanded === o.id;
             return (
-              <div key={o.id}>
-                <button className="w-full px-4 py-4 flex items-center justify-between text-left"
-                  onClick={() => setExpanded(open ? null : o.id)}>
-                  <div>
-                    <p className="text-xs font-bold" style={{ color: BRAND.black }}>{o.order_number}</p>
-                    <p className="text-xs" style={{ color: BRAND.muted }}>
-                      {o.customer_name} · ₱{Number(o.total).toLocaleString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full"
-                      style={{ background: cfg.bg, color: cfg.color }}>
-                      <Icon className="w-3 h-3" />{cfg.label}
-                    </span>
-                    <ChevronDown className="w-4 h-4 transition-transform" style={{ color: BRAND.muted, transform: open ? "rotate(180deg)" : "" }} />
-                  </div>
-                </button>
-                {open && (
-                  <div className="px-4 pb-4 space-y-3 text-xs" style={{ color: BRAND.muted }}>
-                    <div>
-                      <p className="font-bold mb-1" style={{ color: BRAND.black }}>Items</p>
-                      {o.order_items.map((item, i) => (
-                        <p key={i}>{item.product_name} — {item.size} x{item.quantity} · ₱{Number(item.unit_price).toLocaleString()}</p>
-                      ))}
-                    </div>
-                    <div>
-                      <p className="font-bold mb-0.5" style={{ color: BRAND.black }}>Shipping</p>
-                      <p>{o.shipping_street}, {o.shipping_barangay}, {o.shipping_city}, {o.shipping_province}</p>
-                    </div>
-                    <div>
-                      <p className="font-bold mb-0.5" style={{ color: BRAND.black }}>Payment</p>
-                      <p>{PAYMENT_LABELS[o.payment_method] ?? o.payment_method} · {o.payment_type}</p>
-                    </div>
-                    <div>
-                      <p className="font-bold mb-1" style={{ color: BRAND.black }}>Tracking Number</p>
-                      <div className="flex gap-2">
-                        <input
-                          defaultValue={o.tracking_number ?? ""}
-                          onChange={e => setTrackingEdits(t => ({ ...t, [o.id]: e.target.value }))}
-                          placeholder="Enter tracking number"
-                          className="flex-1 px-3 py-2 text-xs focus:outline-none"
-                          style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
-                        <button onClick={() => saveTracking(o.id)}
-                          className="px-3 py-2 text-xs font-bold"
-                          style={{ background: BRAND.teal, color: "#fff" }}>
-                          Save
-                        </button>
-                      </div>
-                    </div>
-                    <select value={o.status} onChange={e => updateStatus(o.id, e.target.value)}
-                      className="w-full text-xs px-3 py-2 focus:outline-none appearance-none"
-                      style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}>
-                      {Object.entries(STATUS_CFG).map(([k, v]) => (
-                        <option key={k} value={k}>{v.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
+              <button key={o.id} className="w-full px-4 py-4 flex items-center justify-between text-left"
+                onClick={() => openOrder(o)}>
+                <div>
+                  <p className="text-xs font-bold" style={{ color: BRAND.black }}>{o.order_number}</p>
+                  <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>
+                    {o.customer_name} · ₱{Number(o.total).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full"
+                    style={{ background: cfg.bg, color: cfg.color }}>
+                    <Icon className="w-3 h-3" />{cfg.label}
+                  </span>
+                  <ChevronRight className="w-4 h-4" style={{ color: BRAND.muted }} />
+                </div>
+              </button>
             );
           })}
         </div>
@@ -277,6 +263,191 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
           </div>
         )}
       </div>
+
+      {/* Order Detail Modal */}
+      {liveSelected && selCfg && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          style={{ background: "rgba(0,0,0,0.55)" }}
+          onClick={e => { if (e.target === e.currentTarget) closeModal(); }}>
+          <div className="w-full sm:max-w-lg max-h-[92dvh] flex flex-col rounded-t-2xl sm:rounded-2xl overflow-hidden"
+            style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-5 py-4 shrink-0"
+              style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
+              <div>
+                <p className="font-black text-sm" style={{ color: BRAND.black }}>{liveSelected.order_number}</p>
+                <p className="text-[10px] mt-0.5" style={{ color: BRAND.muted }}>{formatDate(liveSelected.created_at)}</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
+                  style={{ background: selCfg.bg, color: selCfg.color }}>
+                  <selCfg.icon className="w-3 h-3" />{selCfg.label}
+                </span>
+                <button onClick={closeModal} className="p-1.5 rounded-lg transition-colors hover:bg-black/10">
+                  <X className="w-4 h-4" style={{ color: BRAND.muted }} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal body — scrollable */}
+            <div className="overflow-y-auto flex-1 divide-y" style={{ borderColor: BRAND.border }}>
+
+              {/* Customer */}
+              <div className="px-5 py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Customer</p>
+                </div>
+                <p className="text-sm font-bold" style={{ color: BRAND.black }}>{liveSelected.customer_name}</p>
+                <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{liveSelected.customer_email}</p>
+                {liveSelected.customer_mobile && (
+                  <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{liveSelected.customer_mobile}</p>
+                )}
+              </div>
+
+              {/* Shipping */}
+              <div className="px-5 py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <MapPin className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Shipping Address</p>
+                </div>
+                <p className="text-sm" style={{ color: BRAND.black }}>
+                  {[liveSelected.shipping_street, liveSelected.shipping_barangay, liveSelected.shipping_city, liveSelected.shipping_province]
+                    .filter(Boolean).join(", ")}
+                </p>
+              </div>
+
+              {/* Items */}
+              <div className="px-5 py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Package className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Items</p>
+                </div>
+                <div className="space-y-2.5">
+                  {liveSelected.order_items.map((item, i) => (
+                    <div key={i} className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold" style={{ color: BRAND.black }}>{item.product_name}</p>
+                        <p className="text-[11px]" style={{ color: BRAND.muted }}>
+                          {item.brand} · {item.size} · x{item.quantity}
+                          {item.payment_type === "downpayment" && (
+                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold"
+                              style={{ background: `${BRAND.teal}18`, color: BRAND.teal }}>DP</span>
+                          )}
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold shrink-0" style={{ color: BRAND.black }}>
+                        ₱{(Number(item.unit_price) * item.quantity).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between mt-3 pt-3 font-black text-sm"
+                  style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                  <span style={{ color: BRAND.black }}>Total</span>
+                  <span style={{ fontFamily: FONTS.display, color: BRAND.black }}>₱{Number(liveSelected.total).toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Payment */}
+              <div className="px-5 py-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <CreditCard className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Payment</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: BRAND.black }}>
+                      {PAYMENT_LABELS[liveSelected.payment_method] ?? liveSelected.payment_method}
+                    </p>
+                    <p className="text-xs capitalize" style={{ color: BRAND.muted }}>
+                      {liveSelected.payment_type === "downpayment" ? "Downpayment" : "Full Payment"}
+                    </p>
+                  </div>
+                  {liveSelected.proof_of_payment && liveSelected.payment_method !== "cod" && (
+                    <a href={`/api/admin/proof?path=${encodeURIComponent(liveSelected.proof_of_payment)}`}
+                      target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold"
+                      style={{ background: `${BRAND.teal}15`, color: BRAND.teal, border: `1px solid ${BRAND.teal}40` }}
+                      onClick={e => e.stopPropagation()}>
+                      <ExternalLink className="w-3 h-3" /> View Proof
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              {/* Tracking number (show when processing or shipped) */}
+              {(liveSelected.status === "processing" || liveSelected.status === "shipped") && (
+                <div className="px-5 py-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Truck className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Tracking Number</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      value={trackingInput}
+                      onChange={e => setTrackingInput(e.target.value)}
+                      placeholder="Enter courier tracking number"
+                      className="flex-1 px-3 py-2.5 text-sm focus:outline-none"
+                      style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+                    <button onClick={() => saveTracking(liveSelected.id)} disabled={saving}
+                      className="px-4 py-2.5 text-xs font-bold transition-opacity disabled:opacity-50"
+                      style={{ background: BRAND.teal, color: "#fff" }}>
+                      Save
+                    </button>
+                  </div>
+                  {liveSelected.tracking_number && (
+                    <p className="text-xs mt-1.5" style={{ color: BRAND.muted }}>
+                      Current: <span style={{ color: BRAND.black, fontWeight: 600 }}>{liveSelected.tracking_number}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal footer — actions */}
+            <div className="px-5 py-4 shrink-0 space-y-2.5"
+              style={{ borderTop: `1px solid ${BRAND.border}`, background: BRAND.card }}>
+
+              {/* Primary action button */}
+              {nextAction && (
+                <button
+                  onClick={() => updateStatus(liveSelected.id, nextAction.next)}
+                  disabled={saving}
+                  className="w-full py-3.5 font-black text-sm uppercase tracking-widest transition-opacity disabled:opacity-50"
+                  style={{ background: nextAction.color, color: "#fff" }}>
+                  {saving ? "Saving…" : nextAction.label}
+                </button>
+              )}
+
+              {/* Status override + cancel row */}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <select value={liveSelected.status}
+                    onChange={e => updateStatus(liveSelected.id, e.target.value)}
+                    className="w-full text-xs px-3 py-2.5 focus:outline-none appearance-none cursor-pointer"
+                    style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}>
+                    {Object.entries(STATUS_CFG).map(([k, v]) => (
+                      <option key={k} value={k}>{v.label}</option>
+                    ))}
+                  </select>
+                </div>
+                {liveSelected.status !== "cancelled" && liveSelected.status !== "delivered" && (
+                  <button
+                    onClick={() => updateStatus(liveSelected.id, "cancelled")}
+                    disabled={saving}
+                    className="px-4 py-2.5 text-xs font-bold transition-opacity disabled:opacity-50"
+                    style={{ border: `1px solid #EF4444`, color: "#EF4444", background: "transparent" }}>
+                    Cancel Order
+                  </button>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
