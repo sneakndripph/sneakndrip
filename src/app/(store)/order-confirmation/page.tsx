@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { CheckCircle, Package, MessageCircle } from "lucide-react";
 import { BRAND, FONTS } from "@/lib/constants";
 
+type OrderItem = { name: string; size: string; quantity: number; price: number; image?: string | null; bg?: string | null; brand?: string };
 type OrderData = {
   orderNumber: string;
   total: number;
   isCOD: boolean;
   paymentMethod: string;
   name: string;
-  items: { name: string; size: string; quantity: number; price: number }[];
+  items: OrderItem[];
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -57,11 +59,25 @@ export default function OrderConfirmationPage() {
             {/* Items */}
             <div className="p-5" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
               <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.muted }}>Your Order</p>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {order.items.map((item, i) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span style={{ color: BRAND.black }}>{item.name} <span style={{ color: BRAND.muted }}>· {item.size} x{item.quantity}</span></span>
-                    <span className="font-semibold" style={{ color: BRAND.black }}>₱{item.price.toLocaleString()}</span>
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden relative"
+                      style={{ background: item.bg || "#EDE9E3", border: `1px solid ${BRAND.border}` }}>
+                      {item.image ? (
+                        <Image src={item.image} alt={item.name} fill className="object-cover" sizes="48px" />
+                      ) : (
+                        <span className="absolute inset-0 flex items-center justify-center text-xs font-black"
+                          style={{ color: BRAND.black, opacity: 0.1, fontFamily: FONTS.display }}>
+                          {item.brand?.charAt(0) ?? "S"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: BRAND.black }}>{item.name}</p>
+                      <p className="text-xs" style={{ color: BRAND.muted }}>{item.size} · x{item.quantity}</p>
+                    </div>
+                    <span className="font-semibold text-sm shrink-0" style={{ color: BRAND.black }}>₱{item.price.toLocaleString()}</span>
                   </div>
                 ))}
               </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS, PAYMENT_METHODS, SHIPPING_FEE } from "@/lib/constants";
+import Image from "next/image";
 import { Upload, CheckCircle, AlertCircle, ChevronRight } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
 
@@ -121,7 +122,15 @@ export default function CheckoutPage() {
       // Save order data for confirmation page
       sessionStorage.setItem("lastOrder", JSON.stringify({
         orderNumber: num, total, isCOD, paymentMethod, name: form.name,
-        items: items.map(i => ({ name: i.product.name, size: i.size, quantity: i.quantity, price: i.unit_price * i.quantity })),
+        items: items.map(i => ({
+          name: i.product.name,
+          size: i.size,
+          quantity: i.quantity,
+          price: i.unit_price * i.quantity,
+          image: i.product.images?.[0] ?? null,
+          bg: i.product.bg ?? null,
+          brand: i.product.brand,
+        })),
       }));
 
       clearCart();
@@ -391,11 +400,16 @@ export default function CheckoutPage() {
               <div className="space-y-3 mb-4">
                 {items.map(item => (
                   <div key={`${item.product.id}-${item.size}`} className="flex gap-3">
-                    <div className="w-12 h-12 shrink-0 rounded-lg flex items-center justify-center"
+                    <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden relative"
                       style={{ background: item.product.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}>
-                      <span style={{ fontFamily: FONTS.display, color: BRAND.black, opacity: 0.08, fontSize: "0.8rem" }}>
-                        {item.product.brand.charAt(0)}
-                      </span>
+                      {item.product.images?.[0] ? (
+                        <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" sizes="48px" />
+                      ) : (
+                        <span className="absolute inset-0 flex items-center justify-center"
+                          style={{ fontFamily: FONTS.display, color: BRAND.black, opacity: 0.08, fontSize: "0.8rem" }}>
+                          {item.product.brand.charAt(0)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold leading-snug truncate" style={{ color: BRAND.black }}>{item.product.name}</p>
