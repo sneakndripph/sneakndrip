@@ -1,7 +1,9 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import AdminChatClient from "@/components/admin/AdminChatClient";
 
 export default async function AdminChatPage() {
+  noStore();
   const admin = createAdminClient();
   const { data: convs } = await admin
     .from("conversations")
