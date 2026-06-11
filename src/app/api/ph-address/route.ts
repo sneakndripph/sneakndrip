@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BASE = "https://psgc.cloud/api";
+const BASE = "https://psgc.gitlab.io/api";
 
 const URLS: Record<string, (code: string) => string> = {
   provinces:       (code) => `${BASE}/regions/${code}/provinces.json`,
