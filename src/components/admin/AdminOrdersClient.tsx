@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { BRAND, FONTS } from "@/lib/constants";
 import {
   Search, Clock, CheckCircle, Truck, Package, XCircle,
@@ -23,7 +24,15 @@ const PAYMENT_LABELS: Record<string, string> = {
   gcash: "GCash", maya: "Maya", bank_transfer: "Bank Transfer", cod: "COD",
 };
 
-type OrderItem = { product_name: string; brand: string; size: string; quantity: number; unit_price: number; payment_type: string };
+type OrderItem = {
+  product_name: string;
+  brand: string;
+  size: string;
+  quantity: number;
+  unit_price: number;
+  payment_type: string;
+  products: { images: string[] | null; bg: string | null } | null;
+};
 type Order = {
   id: string;
   order_number: string;
@@ -324,24 +333,40 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                   <Package className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
                   <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Items</p>
                 </div>
-                <div className="space-y-2.5">
-                  {liveSelected.order_items.map((item, i) => (
-                    <div key={i} className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold" style={{ color: BRAND.black }}>{item.product_name}</p>
-                        <p className="text-[11px]" style={{ color: BRAND.muted }}>
-                          {item.brand} · {item.size} · x{item.quantity}
-                          {item.payment_type === "downpayment" && (
-                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold"
-                              style={{ background: `${BRAND.teal}18`, color: BRAND.teal }}>DP</span>
+                <div className="space-y-3">
+                  {liveSelected.order_items.map((item, i) => {
+                    const img = item.products?.images?.[0] ?? null;
+                    const bg = item.products?.bg ?? "#EDE9E3";
+                    return (
+                      <div key={i} className="flex items-center gap-3">
+                        {/* Product thumbnail */}
+                        <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden relative"
+                          style={{ background: bg, border: `1px solid ${BRAND.border}` }}>
+                          {img ? (
+                            <Image src={img} alt={item.product_name} fill className="object-cover" sizes="48px" />
+                          ) : (
+                            <span className="absolute inset-0 flex items-center justify-center text-xs font-black"
+                              style={{ color: BRAND.black, opacity: 0.15, fontFamily: FONTS.display }}>
+                              {item.brand.charAt(0)}
+                            </span>
                           )}
-                        </p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold" style={{ color: BRAND.black }}>{item.product_name}</p>
+                          <p className="text-[11px]" style={{ color: BRAND.muted }}>
+                            {item.brand} · {item.size} · x{item.quantity}
+                            {item.payment_type === "downpayment" && (
+                              <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold"
+                                style={{ background: `${BRAND.teal}18`, color: BRAND.teal }}>DP</span>
+                            )}
+                          </p>
+                        </div>
+                        <span className="text-xs font-bold shrink-0" style={{ color: BRAND.black }}>
+                          ₱{(Number(item.unit_price) * item.quantity).toLocaleString()}
+                        </span>
                       </div>
-                      <span className="text-xs font-bold shrink-0" style={{ color: BRAND.black }}>
-                        ₱{(Number(item.unit_price) * item.quantity).toLocaleString()}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="flex justify-between mt-3 pt-3 font-black text-sm"
                   style={{ borderTop: `1px solid ${BRAND.border}` }}>
@@ -356,7 +381,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                   <CreditCard className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
                   <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Payment</p>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-sm font-semibold" style={{ color: BRAND.black }}>
                       {PAYMENT_LABELS[liveSelected.payment_method] ?? liveSelected.payment_method}
@@ -371,10 +396,28 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                       className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold"
                       style={{ background: `${BRAND.teal}15`, color: BRAND.teal, border: `1px solid ${BRAND.teal}40` }}
                       onClick={e => e.stopPropagation()}>
-                      <ExternalLink className="w-3 h-3" /> View Proof
+                      <ExternalLink className="w-3 h-3" /> Open Full
                     </a>
                   )}
                 </div>
+                {/* Inline proof image */}
+                {liveSelected.proof_of_payment && liveSelected.payment_method !== "cod" && (
+                  <div className="rounded-lg overflow-hidden"
+                    style={{ border: `1px solid ${BRAND.border}`, background: "#F8F7F6" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/api/admin/proof?path=${encodeURIComponent(liveSelected.proof_of_payment)}`}
+                      alt="Proof of payment"
+                      className="w-full object-contain max-h-72"
+                    />
+                  </div>
+                )}
+                {liveSelected.payment_method === "cod" && (
+                  <p className="text-xs px-3 py-2 rounded"
+                    style={{ background: `${BRAND.teal}10`, color: BRAND.muted }}>
+                    Cash on Delivery — no proof required
+                  </p>
+                )}
               </div>
 
               {/* Tracking number (show when processing or shipped) */}
