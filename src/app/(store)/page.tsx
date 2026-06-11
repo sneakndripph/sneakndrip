@@ -5,6 +5,8 @@ import ProductCard from "@/components/product/ProductCard";
 import HomeClient from "@/components/home/HomeClient";
 import { getProducts, getReviews } from "@/lib/supabase/products";
 
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   title: "Sneak N' Drip — Authentic Sneakers Philippines",
   description: "100% Authentic Sneakers. On Hand & Pre-Order. Shop the latest Nike, Jordan, Adidas, and more at below-SRP prices. Ships nationwide.",

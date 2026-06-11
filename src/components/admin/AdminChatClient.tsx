@@ -26,9 +26,16 @@ export default function AdminChatClient({ initialConvs }: { initialConvs: Conver
     setConvs(prev => prev.map(c => c.id === activeId ? { ...c, unread_admin: 0 } : c));
   }, [activeId]);
 
-  // Real-time: new messages in active conv
+  // Real-time + polling fallback for active conversation messages
   useEffect(() => {
     if (!activeId) return;
+
+    const poll = setInterval(() => {
+      fetch(`/api/chat/conversations/${activeId}/messages`)
+        .then(r => r.json())
+        .then((data: Message[]) => { if (Array.isArray(data)) setMessages(data); });
+    }, 4000);
+
     const supabase = createClient();
     const channel = supabase
       .channel(`admin-conv-${activeId}`)
@@ -39,7 +46,11 @@ export default function AdminChatClient({ initialConvs }: { initialConvs: Conver
         }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    return () => {
+      clearInterval(poll);
+      supabase.removeChannel(channel);
+    };
   }, [activeId]);
 
   // Real-time: new conversations

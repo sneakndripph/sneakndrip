@@ -46,9 +46,17 @@ export default function ChatWidget() {
     });
   }, []);
 
-  // Real-time subscription
+  // Real-time subscription + polling fallback
   useEffect(() => {
     if (!convId) return;
+
+    // Poll every 4s as reliable fallback
+    const poll = setInterval(() => {
+      fetch(`/api/chat/conversations/${convId}/messages`)
+        .then(r => r.json())
+        .then((data: Message[]) => { if (Array.isArray(data)) setMessages(data); });
+    }, 4000);
+
     const supabase = createClient();
     const channel = supabase
       .channel(`conv-${convId}`)
@@ -59,7 +67,11 @@ export default function ChatWidget() {
         }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    return () => {
+      clearInterval(poll);
+      supabase.removeChannel(channel);
+    };
   }, [convId]);
 
   // Scroll to bottom on new message
