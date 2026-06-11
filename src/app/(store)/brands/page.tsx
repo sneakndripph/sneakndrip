@@ -4,6 +4,8 @@ import { getProducts } from "@/lib/supabase/products";
 import BrandLogo from "@/components/brands/BrandLogo";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Shop by Brand — Sneak N' Drip",
   description: "Browse authentic sneakers by brand. Nike, Jordan, Adidas, New Balance and more.",
