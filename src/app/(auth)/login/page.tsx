@@ -23,13 +23,17 @@ function LoginForm() {
     setError("");
     setLoading(true);
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
     if (authError) {
       setError(authError.message);
       setLoading(false);
       return;
     }
-    router.push(redirectTo);
+    if (data.user?.user_metadata?.role === "admin") {
+      router.push("/admin");
+    } else {
+      router.push(redirectTo);
+    }
     router.refresh();
   }
 

@@ -28,6 +28,7 @@ const DEFAULTS: SettingsData = {
   bank2_name: "BPI",
   bank2_account_number: "0596199188",
   bank2_account_name: "Lorenzo Agalo P. Julio",
+  announcement_text: "",
   preorder_message: "Your order will be reserved upon payment of downpayment. Balance is due before release.",
   messenger_page_id: "",
   meta_title: "Sneak N' Drip | Authentic Sneakers Philippines",
@@ -135,6 +136,13 @@ export default function AdminSettingsPage() {
           <Save className="w-4 h-4" />
           {saving ? "Saving…" : saved ? "Saved!" : "Save Changes"}
         </button>
+      </div>
+
+      <div className="mb-5">
+        <Section title="Announcement Bar">
+          <Field label="Announcement Text" settingsKey="announcement_text" settings={settings} onChange={update}
+            hint="Leave blank to use the auto-generated text (free shipping threshold, accepted payments)" />
+        </Section>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
