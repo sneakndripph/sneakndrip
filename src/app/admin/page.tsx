@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { BRAND, FONTS } from "@/lib/constants";
@@ -13,6 +14,7 @@ const STATUS_CFG = {
 } as const;
 
 export default async function AdminDashboard() {
+  noStore();
   const admin = createAdminClient();
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();

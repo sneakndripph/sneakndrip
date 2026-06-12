@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BRAND, FONTS, SNEAKER_SIZES, BRANDS } from "@/lib/constants";
-import { ArrowLeft, CheckCircle, X, GripVertical } from "lucide-react";
+import { ArrowLeft, CheckCircle } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 
 type Product = Record<string, unknown> & {
@@ -23,15 +23,10 @@ export default function EditProductForm({ product }: { product: Product }) {
     (product.status as "on-hand" | "pre-order") ?? "on-hand"
   );
   const [sizes, setSizes] = useState<{ size: string; stock: number }[]>(initialSizes);
-  const [newImages, setNewImages] = useState<File[]>([]);
-  const [keptUrls, setKeptUrls] = useState<string[]>(initialImages);
+  const [imageUrls, setImageUrls] = useState<string[]>(initialImages);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
-
-  // Drag state for existing images
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     name: String(product.name ?? ""),
@@ -62,21 +57,6 @@ export default function EditProductForm({ product }: { product: Product }) {
     setSizes(prev => prev.map(x => x.size === s ? { ...x, stock } : x));
   }
 
-  function removeUrl(idx: number) {
-    setKeptUrls(prev => prev.filter((_, i) => i !== idx));
-  }
-  function onUrlDragStart(idx: number) { setDragIdx(idx); }
-  function onUrlDragOver(e: React.DragEvent, idx: number) { e.preventDefault(); setDragOverIdx(idx); }
-  function onUrlDrop(idx: number) {
-    if (dragIdx === null || dragIdx === idx) { setDragIdx(null); setDragOverIdx(null); return; }
-    const updated = [...keptUrls];
-    const [moved] = updated.splice(dragIdx, 1);
-    updated.splice(idx, 0, moved);
-    setKeptUrls(updated);
-    setDragIdx(null);
-    setDragOverIdx(null);
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -99,10 +79,9 @@ export default function EditProductForm({ product }: { product: Product }) {
         eta_end: status === "pre-order" && form.etaEnd ? form.etaEnd : null,
         is_published: visibility.published, is_featured: visibility.featured,
         is_trending: visibility.trending,
+        images: imageUrls,
       }));
       fd.append("sizes", JSON.stringify(sizes));
-      fd.append("keepUrls", JSON.stringify(keptUrls));
-      newImages.forEach(img => fd.append("images", img));
 
       const res = await fetch(`/api/admin/products/${product.id}`, { method: "PATCH", body: fd });
       const result = await res.json();
@@ -297,51 +276,9 @@ export default function EditProductForm({ product }: { product: Product }) {
 
           {/* Right sidebar */}
           <div className="space-y-5">
-            {/* Existing images */}
             <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
               <h2 className="font-black mb-4" style={{ color: BRAND.black }}>Product Images</h2>
-
-              {keptUrls.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-[11px] mb-2" style={{ color: BRAND.muted }}>
-                    Drag to reorder · First photo is the cover
-                  </p>
-                  <div className="grid grid-cols-3 gap-2 mb-3">
-                    {keptUrls.map((url, i) => (
-                      <div key={url} draggable
-                        onDragStart={() => onUrlDragStart(i)}
-                        onDragOver={e => onUrlDragOver(e, i)}
-                        onDrop={() => onUrlDrop(i)}
-                        onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
-                        className="relative aspect-square rounded-lg overflow-hidden cursor-grab active:cursor-grabbing"
-                        style={{
-                          border: `2px solid ${dragOverIdx === i ? BRAND.teal : i === 0 ? BRAND.black : BRAND.border}`,
-                          opacity: dragIdx === i ? 0.4 : 1,
-                          transition: "opacity 0.15s",
-                        }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt="" className="w-full h-full object-cover" />
-                        {i === 0 && (
-                          <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white rounded-sm"
-                            style={{ background: BRAND.black }}>Cover</div>
-                        )}
-                        <div className="absolute top-1.5 right-1.5 flex gap-1">
-                          <div className="w-5 h-5 flex items-center justify-center" style={{ color: "#fff", opacity: 0.7 }}>
-                            <GripVertical className="w-3 h-3" />
-                          </div>
-                          <button type="button" onClick={() => removeUrl(i)}
-                            className="w-6 h-6 rounded-sm flex items-center justify-center shadow"
-                            style={{ background: BRAND.red }}>
-                            <X className="w-3 h-3 text-white" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <ImageUploader onChange={setNewImages} />
+              <ImageUploader initialUrls={initialImages} onChange={setImageUrls} />
             </div>
 
             <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>

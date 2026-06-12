@@ -39,7 +39,8 @@ export async function getProducts(): Promise<Product[]> {
       .select("*, product_sizes(size, stock)")
       .eq("is_published", true)
       .order("created_at", { ascending: false });
-    if (error || !data?.length) return MOCK_PRODUCTS as unknown as Product[];
+    if (error) return MOCK_PRODUCTS as unknown as Product[];
+    if (!data?.length) return [];
     return data.map(mapRow);
   } catch {
     return MOCK_PRODUCTS as unknown as Product[];

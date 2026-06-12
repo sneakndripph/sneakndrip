@@ -52,9 +52,19 @@ export const PAYMENT_METHODS = [
 ] as const;
 
 export const SHIPPING_FEE = {
-  metro_manila: 150,
-  provincial: 250,
   free_threshold: 5000,
+  // Non-COD, 1–2 items
+  metro_sm:       220,
+  provincial_sm:  250,
+  // Non-COD, 3+ items
+  metro_lg:       450,
+  provincial_lg:  550,
+  // COD Luzon (no free shipping)
+  cod_luzon_sm:   250,
+  cod_luzon_lg:   450,
+  // COD Visayas & Mindanao (no free shipping)
+  cod_vm_sm:      350,
+  cod_vm_lg:      550,
 } as const;
 
 export const MOCK_PRODUCTS = [

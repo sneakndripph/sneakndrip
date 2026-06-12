@@ -1,28 +1,98 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS, PAYMENT_METHODS, SHIPPING_FEE } from "@/lib/constants";
+import Image from "next/image";
 import { Upload, CheckCircle, AlertCircle, ChevronRight } from "lucide-react";
+import PhAddressSelect from "@/components/ui/PhAddressSelect";
 
 type Step = "details" | "payment" | "confirm";
+
+function calcShipping(isCOD: boolean, regionGroup: string, sub: number, itemCount: number): number {
+  const lg = itemCount > 2;
+  if (isCOD) {
+    if (regionGroup === "Visayas" || regionGroup === "Mindanao")
+      return lg ? SHIPPING_FEE.cod_vm_lg  : SHIPPING_FEE.cod_vm_sm;
+    return lg ? SHIPPING_FEE.cod_luzon_lg : SHIPPING_FEE.cod_luzon_sm;
+  }
+  if (sub >= SHIPPING_FEE.free_threshold) return 0;
+  if (regionGroup === "Metro Manila")
+    return lg ? SHIPPING_FEE.metro_lg : SHIPPING_FEE.metro_sm;
+  return lg ? SHIPPING_FEE.provincial_lg : SHIPPING_FEE.provincial_sm;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, clearCart } = useCartStore();
   const sub = subtotal();
-  const shipping = sub >= SHIPPING_FEE.free_threshold ? 0 : SHIPPING_FEE.metro_manila;
-  const total = sub + shipping;
 
+  const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>("details");
   const [paymentMethod, setPaymentMethod] = useState<string>("gcash");
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [regionGroup, setRegionGroup] = useState("");
   const [form, setForm] = useState({ name: "", email: "", mobile: "", street: "", barangay: "", city: "", province: "", postal: "" });
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
+  const [showErrors, setShowErrors] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponData, setCouponData] = useState<{ id: string; code: string; type: string; value: number; discount: number } | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   const isCOD = paymentMethod === "cod";
+  const itemCount = items.reduce((s, i) => s + i.quantity, 0);
+  const shipping = calcShipping(isCOD, regionGroup, sub, itemCount);
+  const discount = couponData?.discount ?? 0;
+  const total = sub + shipping - discount;
+
+  useEffect(() => {
+    setMounted(true);
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      createClient().auth.getUser().then(({ data: { user } }) => {
+        if (!user) router.replace("/login?redirect=/checkout");
+      });
+    });
+  }, [router]);
+
+  useEffect(() => {
+    if (!proofFile || !proofFile.type.startsWith("image/")) { setProofPreview(null); return; }
+    const url = URL.createObjectURL(proofFile);
+    setProofPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [proofFile]);
+
+  function handleContinueToPayment() {
+    if (!form.name || !form.email || !form.mobile || !form.street || !form.province || !form.city || !form.barangay) {
+      setShowErrors(true);
+      return;
+    }
+    setShowErrors(false);
+    setStep("payment");
+  }
+
+  async function handleApplyCoupon() {
+    if (!couponCode.trim()) return;
+    setApplyingCoupon(true);
+    setCouponError("");
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode.trim(), orderTotal: sub }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setCouponError(data.error || "Invalid coupon"); }
+      else { setCouponData(data); setCouponCode(""); }
+    } finally {
+      setApplyingCoupon(false);
+    }
+  }
+
+  if (!mounted) return <div style={{ minHeight: "100vh", background: BRAND.bg }} />;
 
   async function handlePlaceOrder() {
     setPlacing(true);
@@ -60,6 +130,8 @@ export default function CheckoutPage() {
             shipping_postal: form.postal || "0000",
             subtotal: sub,
             shipping_fee: shipping,
+            discount,
+            coupon_code: couponData?.code ?? null,
             total,
             payment_method: paymentMethod,
             payment_type: items[0]?.payment_type === "downpayment" ? "downpayment" : "full",
@@ -81,6 +153,11 @@ export default function CheckoutPage() {
 
       if (!createRes.ok) {
         const err = await createRes.json().catch(() => ({}));
+        if (createRes.status === 409 && err.outOfStock) {
+          setOrderError(err.error);
+          setPlacing(false);
+          return;
+        }
         throw new Error(err.error || "Failed to create order");
       }
 
@@ -105,7 +182,15 @@ export default function CheckoutPage() {
       // Save order data for confirmation page
       sessionStorage.setItem("lastOrder", JSON.stringify({
         orderNumber: num, total, isCOD, paymentMethod, name: form.name,
-        items: items.map(i => ({ name: i.product.name, size: i.size, quantity: i.quantity, price: i.unit_price * i.quantity })),
+        items: items.map(i => ({
+          name: i.product.name,
+          size: i.size,
+          quantity: i.quantity,
+          price: i.unit_price * i.quantity,
+          image: i.product.images?.[0] ?? null,
+          bg: i.product.bg ?? null,
+          brand: i.product.brand,
+        })),
       }));
 
       clearCart();
@@ -148,21 +233,22 @@ export default function CheckoutPage() {
             {/* Step 1: Details */}
             {step === "details" && (
               <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
-                <h2 className="mb-6 font-black text-lg" style={{ color: BRAND.black }}>Delivery Information</h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="font-black text-lg" style={{ color: BRAND.black }}>Delivery Information</h2>
+                  <span className="text-xs" style={{ color: BRAND.muted }}>
+                    <span style={{ color: BRAND.red }}>*</span> Required
+                  </span>
+                </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   {[
-                    { key: "name", label: "Full Name", placeholder: "Juan Dela Cruz", col: "sm:col-span-2" },
-                    { key: "email", label: "Email Address", placeholder: "juan@email.com" },
-                    { key: "mobile", label: "Mobile Number", placeholder: "09XX XXX XXXX" },
-                    { key: "street", label: "Street Address", placeholder: "123 Rizal St.", col: "sm:col-span-2" },
-                    { key: "barangay", label: "Barangay", placeholder: "Brgy. San Antonio" },
-                    { key: "city", label: "City / Municipality", placeholder: "Taguig" },
-                    { key: "province", label: "Province", placeholder: "Metro Manila" },
-                    { key: "postal", label: "Postal Code", placeholder: "1630" },
+                    { key: "name", label: "Full Name", placeholder: "Juan Dela Cruz", col: "sm:col-span-2", req: true },
+                    { key: "email", label: "Email Address", placeholder: "juan@email.com", req: true },
+                    { key: "mobile", label: "Mobile Number", placeholder: "09XX XXX XXXX", req: true },
+                    { key: "street", label: "Street Address", placeholder: "123 Rizal St.", col: "sm:col-span-2", req: true },
                   ].map(field => (
                     <div key={field.key} className={field.col || ""}>
                       <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                        {field.label}
+                        {field.label}{field.req && <span style={{ color: BRAND.red }}> *</span>}
                       </label>
                       <input
                         value={form[field.key as keyof typeof form]}
@@ -171,19 +257,50 @@ export default function CheckoutPage() {
                         className="w-full px-4 py-3 text-sm focus:outline-none transition-colors"
                         style={{
                           background: BRAND.inputBg || "#F8F7F6",
-                          border: `1px solid ${BRAND.border}`,
+                          border: `1px solid ${showErrors && !form[field.key as keyof typeof form] ? BRAND.red : BRAND.border}`,
                           color: BRAND.black,
                         }}
                         onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                        onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)}
+                        onBlur={e => (e.currentTarget.style.borderColor = showErrors && !form[field.key as keyof typeof form] ? BRAND.red : BRAND.border)}
                       />
+                      {showErrors && !form[field.key as keyof typeof form] && (
+                        <p className="mt-1 text-[11px] font-semibold" style={{ color: BRAND.red }}>This field is required</p>
+                      )}
                     </div>
                   ))}
+
+                  {/* PH Address Dropdowns */}
+                  <PhAddressSelect
+                    province={form.province}
+                    city={form.city}
+                    barangay={form.barangay}
+                    onProvinceChange={v => setForm(f => ({ ...f, province: v }))}
+                    onCityChange={v => setForm(f => ({ ...f, city: v }))}
+                    onBarangayChange={v => setForm(f => ({ ...f, barangay: v }))}
+                    onRegionGroupChange={setRegionGroup}
+                    showErrors={showErrors}
+                  />
+
+                  {/* Postal Code */}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                      Postal Code
+                    </label>
+                    <input
+                      value={form.postal}
+                      onChange={e => setForm(f => ({ ...f, postal: e.target.value }))}
+                      placeholder="1630"
+                      className="w-full px-4 py-3 text-sm focus:outline-none transition-colors"
+                      style={{ background: BRAND.inputBg || "#F8F7F6", border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                      onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+                      onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)}
+                    />
+                  </div>
                 </div>
+
                 <button
-                  onClick={() => setStep("payment")}
-                  disabled={!form.name || !form.email || !form.mobile || !form.street || !form.barangay || !form.city}
-                  className="mt-6 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-40"
+                  onClick={handleContinueToPayment}
+                  className="mt-6 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90"
                   style={{ background: BRAND.black, color: BRAND.bg }}>
                   Continue to Payment →
                 </button>
@@ -261,8 +378,13 @@ export default function CheckoutPage() {
                           onChange={e => setProofFile(e.target.files?.[0] || null)} />
                         <label htmlFor="proof" className="cursor-pointer">
                           {proofFile ? (
-                            <div>
-                              <CheckCircle className="w-8 h-8 mx-auto mb-2" style={{ color: BRAND.teal }} />
+                            <div className="flex flex-col items-center">
+                              {proofPreview ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={proofPreview} alt="Proof preview" className="max-h-40 rounded-lg mb-3 object-contain" style={{ border: `1px solid ${BRAND.border}` }} />
+                              ) : (
+                                <CheckCircle className="w-8 h-8 mb-2" style={{ color: BRAND.teal }} />
+                              )}
                               <p className="text-sm font-semibold" style={{ color: BRAND.teal }}>{proofFile.name}</p>
                               <p className="text-xs mt-1" style={{ color: BRAND.muted }}>Click to change</p>
                             </div>
@@ -283,9 +405,12 @@ export default function CheckoutPage() {
                   <div className="flex items-start gap-3 p-4 rounded-xl"
                     style={{ background: `${BRAND.red}08`, border: `1px solid ${BRAND.red}20` }}>
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: BRAND.red }} />
-                    <p className="text-sm leading-relaxed" style={{ color: BRAND.black }}>
-                      Cash on Delivery is available nationwide. Our team will contact you before dispatch to confirm delivery details.
-                    </p>
+                    <div className="text-sm leading-relaxed" style={{ color: BRAND.black }}>
+                      <p>Cash on Delivery available nationwide. Our team will contact you before dispatch.</p>
+                      <p className="mt-1.5 font-semibold" style={{ color: BRAND.muted }}>
+                        COD shipping: Luzon ₱250 · Visayas &amp; Mindanao ₱350 (no free shipping for COD)
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -315,7 +440,14 @@ export default function CheckoutPage() {
                     Payment: {PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label}
                   </h2>
                   {proofFile && (
-                    <p className="text-sm" style={{ color: BRAND.teal }}>✓ Proof uploaded: {proofFile.name}</p>
+                    <div className="mt-2">
+                      {proofPreview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={proofPreview} alt="Proof of payment" className="rounded-lg max-h-48 object-contain" style={{ border: `1px solid ${BRAND.border}` }} />
+                      ) : (
+                        <p className="text-sm" style={{ color: BRAND.teal }}>✓ {proofFile.name}</p>
+                      )}
+                    </div>
                   )}
                   {isCOD && <p className="text-sm" style={{ color: BRAND.muted }}>Pay upon delivery</p>}
                 </div>
@@ -344,11 +476,16 @@ export default function CheckoutPage() {
               <div className="space-y-3 mb-4">
                 {items.map(item => (
                   <div key={`${item.product.id}-${item.size}`} className="flex gap-3">
-                    <div className="w-12 h-12 shrink-0 rounded-lg flex items-center justify-center"
+                    <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden relative"
                       style={{ background: item.product.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}>
-                      <span style={{ fontFamily: FONTS.display, color: BRAND.black, opacity: 0.08, fontSize: "0.8rem" }}>
-                        {item.product.brand.charAt(0)}
-                      </span>
+                      {item.product.images?.[0] ? (
+                        <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" sizes="48px" />
+                      ) : (
+                        <span className="absolute inset-0 flex items-center justify-center"
+                          style={{ fontFamily: FONTS.display, color: BRAND.black, opacity: 0.08, fontSize: "0.8rem" }}>
+                          {item.product.brand.charAt(0)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold leading-snug truncate" style={{ color: BRAND.black }}>{item.product.name}</p>
@@ -367,11 +504,50 @@ export default function CheckoutPage() {
                   <span style={{ color: BRAND.muted }}>Shipping</span>
                   <span style={{ color: shipping === 0 ? BRAND.teal : BRAND.black }}>{shipping === 0 ? "FREE" : `₱${shipping}`}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: BRAND.teal }}>Coupon ({couponData?.code})</span>
+                    <span style={{ color: BRAND.teal }}>−₱{discount.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-black pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
                   <span style={{ color: BRAND.black }}>Total</span>
                   <span style={{ fontFamily: FONTS.display, fontSize: "1.3rem", color: BRAND.black }}>₱{total.toLocaleString()}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Coupon code input */}
+            <div className="p-5" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+              {couponData ? (
+                <div className="flex items-center justify-between px-3 py-2.5 rounded"
+                  style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}30` }}>
+                  <span className="text-sm font-bold" style={{ color: BRAND.teal }}>
+                    {couponData.code} — −₱{discount.toLocaleString()} off
+                  </span>
+                  <button onClick={() => setCouponData(null)} className="text-xs underline" style={{ color: BRAND.muted }}>
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(""); }}
+                    placeholder="Promo code"
+                    className="flex-1 px-3 py-2.5 text-sm focus:outline-none"
+                    style={{ background: BRAND.bg, border: `1px solid ${couponError ? BRAND.red : BRAND.border}`, color: BRAND.black }}
+                    onKeyDown={e => e.key === "Enter" && handleApplyCoupon()}
+                  />
+                  <button onClick={handleApplyCoupon} disabled={applyingCoupon || !couponCode.trim()}
+                    className="px-4 py-2.5 text-xs font-black uppercase tracking-wide disabled:opacity-50"
+                    style={{ background: BRAND.black, color: BRAND.bg }}>
+                    {applyingCoupon ? "…" : "Apply"}
+                  </button>
+                </div>
+              )}
+              {couponError && <p className="text-xs mt-1.5 font-semibold" style={{ color: BRAND.red }}>{couponError}</p>}
             </div>
           </div>
         </div>

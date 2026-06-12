@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { BRAND, FONTS } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
-import { ShoppingBag, Zap, Shield, Truck, Clock, Star, Minus, Plus } from "lucide-react";
+import { ShoppingBag, Zap, Shield, Truck, Clock, Star, Minus, Plus, Share2, Bell } from "lucide-react";
 import toast from "react-hot-toast";
+import { useRecentlyViewed, useRecentlyViewedStore } from "@/hooks/useRecentlyViewed";
 import type { Product, Review } from "@/lib/types";
 
 function formatETA(start: string, end?: string) {
@@ -41,6 +42,47 @@ export default function ProductDetail({
   const [reviewBody, setReviewBody] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const addItem = useCartStore(s => s.addItem);
+  const { trackItem } = useRecentlyViewed();
+  const recentItems = useRecentlyViewedStore(s => s.items);
+  const [notifySize, setNotifySize] = useState<string | null>(null);
+  const [notifyEmail, setNotifyEmail] = useState("");
+  const [notifySubmitted, setNotifySubmitted] = useState<string | null>(null);
+
+  useEffect(() => {
+    trackItem({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      brand: product.brand,
+      price: product.full_payment_price,
+      images: product.images ?? [],
+      bg: product.bg ?? "",
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [product.id]);
+
+  async function handleShare() {
+    const url = window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title: product.name, text: `${product.brand} · ₱${product.full_payment_price.toLocaleString()}`, url }); }
+      catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied!");
+    }
+  }
+
+  async function handleNotify(e: React.FormEvent) {
+    e.preventDefault();
+    if (!notifyEmail.trim() || !notifySize) return;
+    await fetch("/api/restock-notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: product.id, size: notifySize, email: notifyEmail }),
+    });
+    setNotifySubmitted(notifySize);
+    setNotifyEmail("");
+  }
 
   const metroFee = settings.metro_shipping_fee || "150";
   const provFee = settings.provincial_shipping_fee || "250";
@@ -171,7 +213,25 @@ export default function ProductDetail({
           <div>
             <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.muted }}>{product.brand}</p>
             <h1 className="text-2xl font-bold mb-1 leading-snug" style={{ color: BRAND.black }}>{product.name}</h1>
-            {product.colorway && <p className="text-sm mb-4" style={{ color: BRAND.muted }}>{product.colorway}</p>}
+            {product.colorway && <p className="text-sm mb-2" style={{ color: BRAND.muted }}>{product.colorway}</p>}
+
+            {/* Rating summary */}
+            {reviews.length > 0 && (() => {
+              const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+              return (
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex">
+                    {[1,2,3,4,5].map(n => (
+                      <Star key={n} className="w-4 h-4" fill={n <= Math.round(avg) ? "#F59E0B" : "none"} stroke={n <= Math.round(avg) ? "#F59E0B" : BRAND.mutedLight} />
+                    ))}
+                  </div>
+                  <span className="text-sm font-bold" style={{ color: BRAND.black }}>{avg.toFixed(1)}</span>
+                  <button onClick={() => setActiveTab("reviews")} className="text-xs underline" style={{ color: BRAND.muted }}>
+                    ({reviews.length} review{reviews.length !== 1 ? "s" : ""})
+                  </button>
+                </div>
+              );
+            })()}
 
             {isPreOrder && product.eta_start && (
               <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-sm mb-5"
@@ -238,17 +298,20 @@ export default function ProductDetail({
                 {product.sizes.map(s => {
                   const outOfStock = s.stock === 0;
                   const isSelected = selectedSize === s.size;
+                  const isNotify = notifySize === s.size;
                   return (
-                    <button key={s.size} onClick={() => { if (!outOfStock) { setSelectedSize(s.size); setQuantity(1); } }}
-                      disabled={outOfStock}
+                    <button key={s.size}
+                      onClick={() => {
+                        if (outOfStock) { setNotifySize(s.size); setNotifySubmitted(null); }
+                        else { setSelectedSize(s.size); setQuantity(1); setNotifySize(null); }
+                      }}
                       className="py-2.5 text-sm font-semibold transition-all relative"
                       style={{
-                        background: isSelected ? BRAND.black : "transparent",
+                        background: isSelected ? BRAND.black : isNotify ? `${BRAND.teal}15` : "transparent",
                         color: isSelected ? BRAND.bg : outOfStock ? BRAND.mutedLight : BRAND.black,
-                        border: `1.5px solid ${isSelected ? BRAND.black : BRAND.border}`,
-                        opacity: outOfStock ? 0.4 : 1,
+                        border: `1.5px solid ${isSelected ? BRAND.black : isNotify ? BRAND.teal : BRAND.border}`,
+                        opacity: outOfStock ? 0.55 : 1,
                         textDecoration: outOfStock ? "line-through" : "none",
-                        cursor: outOfStock ? "not-allowed" : "pointer",
                       }}>
                       {s.size.replace("US ", "")}
                       {s.stock > 0 && s.stock <= 2 && (
@@ -259,6 +322,34 @@ export default function ProductDetail({
                   );
                 })}
               </div>
+              {/* Notify-me form for OOS size */}
+              {notifySize && product.sizes.find(s => s.size === notifySize)?.stock === 0 && (
+                <div className="mt-3 p-4 rounded-xl" style={{ background: `${BRAND.teal}08`, border: `1px solid ${BRAND.teal}25` }}>
+                  {notifySubmitted === notifySize ? (
+                    <p className="text-sm font-semibold flex items-center gap-2" style={{ color: BRAND.teal }}>
+                      <Bell className="w-4 h-4" /> We&apos;ll notify you when {notifySize} is back in stock!
+                    </p>
+                  ) : (
+                    <form onSubmit={handleNotify} className="flex gap-2">
+                      <input
+                        type="email"
+                        value={notifyEmail}
+                        onChange={e => setNotifyEmail(e.target.value)}
+                        placeholder="Your email for restock alerts"
+                        required
+                        className="flex-1 px-3 py-2 text-sm focus:outline-none"
+                        style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                      />
+                      <button type="submit"
+                        className="px-4 py-2 text-xs font-black uppercase tracking-wide whitespace-nowrap"
+                        style={{ background: BRAND.teal, color: "#fff" }}>
+                        Notify Me
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center justify-between mt-2">
                 <p className="text-xs" style={{ color: BRAND.muted }}>Numbers in red = limited stock.</p>
                 {selectedSize && (() => {
@@ -331,6 +422,11 @@ export default function ProductDetail({
                   {b.icon}{b.text}
                 </span>
               ))}
+              <button onClick={handleShare}
+                className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 transition-opacity hover:opacity-70"
+                style={{ background: `${BRAND.black}08`, color: BRAND.black, border: `1px solid ${BRAND.border}` }}>
+                <Share2 className="w-3 h-3" /> Share
+              </button>
             </div>
 
             {/* Tabs */}
@@ -433,6 +529,33 @@ export default function ProductDetail({
             </div>
           </div>
         </div>
+
+        {/* Recently Viewed */}
+        {recentItems.filter(i => i.id !== product.id).length > 0 && (
+          <div className="mt-12 pt-10" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+            <p className="text-xs font-bold uppercase tracking-widest mb-5" style={{ color: BRAND.muted }}>Recently Viewed</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {recentItems.filter(i => i.id !== product.id).slice(0, 4).map(item => (
+                <Link key={item.id} href={`/shop/${item.slug}`} className="group block">
+                  <div className="relative aspect-square mb-2 overflow-hidden rounded-lg"
+                    style={{ background: item.bg || BRAND.bg, border: `1px solid ${BRAND.cardBorder}` }}>
+                    {item.images[0] ? (
+                      <Image src={item.images[0]} alt={item.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 50vw, 25vw" />
+                    ) : (
+                      <span className="absolute inset-0 flex items-center justify-center font-black"
+                        style={{ fontFamily: FONTS.display, color: BRAND.black, opacity: 0.05, fontSize: "2rem" }}>
+                        {item.brand.charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: BRAND.muted }}>{item.brand}</p>
+                  <p className="text-xs font-semibold leading-snug truncate" style={{ color: BRAND.black }}>{item.name}</p>
+                  <p className="text-xs font-black mt-0.5" style={{ color: BRAND.black }}>₱{item.price.toLocaleString()}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

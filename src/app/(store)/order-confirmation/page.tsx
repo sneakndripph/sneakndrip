@@ -2,32 +2,118 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle, Package, MessageCircle } from "lucide-react";
+import Image from "next/image";
+import { CheckCircle, Package, MessageCircle, Clock, Truck } from "lucide-react";
 import { BRAND, FONTS } from "@/lib/constants";
 
+type OrderItem = { name: string; size: string; quantity: number; price: number; image?: string | null; bg?: string | null; brand?: string };
 type OrderData = {
   orderNumber: string;
   total: number;
   isCOD: boolean;
   paymentMethod: string;
   name: string;
-  items: { name: string; size: string; quantity: number; price: number }[];
+  items: OrderItem[];
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
   gcash: "GCash", maya: "Maya", bank_transfer: "Bank Transfer", cod: "Cash on Delivery",
 };
 
+type OrderStatus = "pending" | "paid" | "processing" | "shipped" | "delivered" | "cancelled";
+
+const STATUS_CONFIG: Record<OrderStatus, { icon: React.ElementType; color: string; label: string; desc: string }> = {
+  pending:    { icon: Clock,        color: "#8A8580", label: "Pending",    desc: "Order received, awaiting payment verification." },
+  paid:       { icon: CheckCircle,  color: BRAND.teal, label: "Confirmed", desc: "Payment verified! Your order is being prepared." },
+  processing: { icon: Clock,        color: "#D97706", label: "Processing", desc: "We're packing your order for shipment." },
+  shipped:    { icon: Truck,        color: "#3B82F6", label: "Shipped",    desc: "Your order is on the way!" },
+  delivered:  { icon: CheckCircle,  color: "#10B981", label: "Delivered",  desc: "Delivered. Enjoy your kicks!" },
+  cancelled:  { icon: Clock,        color: BRAND.red,  label: "Cancelled", desc: "This order has been cancelled." },
+};
+
+const STEPS_DEFAULT: OrderStatus[] = ["pending", "paid", "processing", "shipped", "delivered"];
+const STEPS_COD:     OrderStatus[] = ["pending", "processing", "shipped", "delivered"];
+
+const STEP_LABELS: Record<OrderStatus, string> = {
+  pending:    "Placed",
+  paid:       "Confirmed",
+  processing: "Processing",
+  shipped:    "Shipped",
+  delivered:  "Delivered",
+  cancelled:  "Cancelled",
+};
+
+function StatusTracker({ status, isCOD }: { status: OrderStatus; isCOD: boolean }) {
+  const steps = isCOD ? STEPS_COD : STEPS_DEFAULT;
+  const currentIdx = steps.indexOf(status);
+  const cfg = STATUS_CONFIG[status];
+  const Icon = cfg.icon;
+
+  return (
+    <div className="p-5 rounded-xl mb-5" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+      <p className="text-xs font-black uppercase tracking-widest mb-4" style={{ color: BRAND.muted }}>Order Status</p>
+
+      {/* Current status badge */}
+      <div className="flex items-center gap-3 mb-5 p-3 rounded-lg" style={{ background: `${cfg.color}12`, border: `1px solid ${cfg.color}25` }}>
+        <Icon className="w-5 h-5 shrink-0" style={{ color: cfg.color }} />
+        <div>
+          <p className="text-sm font-bold" style={{ color: cfg.color }}>{cfg.label}</p>
+          <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{cfg.desc}</p>
+        </div>
+      </div>
+
+      {/* Step tracker */}
+      <div className="flex items-center gap-1">
+        {steps.map((s, i) => {
+          const done = currentIdx >= i;
+          const active = i === currentIdx;
+          return (
+            <div key={s} className="flex items-center flex-1">
+              <div className="flex flex-col items-center flex-1">
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black mb-1"
+                  style={{
+                    background: done ? (active ? STATUS_CONFIG[s].color : BRAND.teal) : BRAND.border,
+                    color: done ? "#fff" : BRAND.mutedLight,
+                  }}>
+                  {done && !active ? "✓" : i + 1}
+                </div>
+                <span className="text-[9px] font-semibold text-center leading-tight"
+                  style={{ color: done ? BRAND.black : BRAND.mutedLight }}>
+                  {STEP_LABELS[s]}
+                </span>
+              </div>
+              {i < steps.length - 1 && (
+                <div className="flex-1 h-0.5 mb-4 -mx-1"
+                  style={{ background: currentIdx > i ? BRAND.teal : BRAND.border }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<OrderData | null>(null);
+  const [liveStatus, setLiveStatus] = useState<OrderStatus | null>(null);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("lastOrder");
     if (stored) {
-      setOrder(JSON.parse(stored));
+      const parsed: OrderData = JSON.parse(stored);
+      setOrder(parsed);
       sessionStorage.removeItem("lastOrder");
+
+      // Fetch live status from DB
+      fetch(`/api/orders/status?orderNumber=${encodeURIComponent(parsed.orderNumber)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.status) setLiveStatus(data.status as OrderStatus); })
+        .catch(() => {});
     }
   }, []);
+
+  const displayStatus: OrderStatus = liveStatus ?? "pending";
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-20"
@@ -50,6 +136,9 @@ export default function OrderConfirmationPage() {
           )}
         </div>
 
+        {/* Live status tracker */}
+        {order && <StatusTracker status={displayStatus} isCOD={order.isCOD} />}
+
         {/* Order details */}
         {order && (
           <div className="rounded-xl overflow-hidden mb-5"
@@ -57,11 +146,25 @@ export default function OrderConfirmationPage() {
             {/* Items */}
             <div className="p-5" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
               <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.muted }}>Your Order</p>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {order.items.map((item, i) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span style={{ color: BRAND.black }}>{item.name} <span style={{ color: BRAND.muted }}>· {item.size} x{item.quantity}</span></span>
-                    <span className="font-semibold" style={{ color: BRAND.black }}>₱{item.price.toLocaleString()}</span>
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden relative"
+                      style={{ background: item.bg || "#EDE9E3", border: `1px solid ${BRAND.border}` }}>
+                      {item.image ? (
+                        <Image src={item.image} alt={item.name} fill className="object-cover" sizes="48px" />
+                      ) : (
+                        <span className="absolute inset-0 flex items-center justify-center text-xs font-black"
+                          style={{ color: BRAND.black, opacity: 0.1, fontFamily: FONTS.display }}>
+                          {item.brand?.charAt(0) ?? "S"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: BRAND.black }}>{item.name}</p>
+                      <p className="text-xs" style={{ color: BRAND.muted }}>{item.size} · x{item.quantity}</p>
+                    </div>
+                    <span className="font-semibold text-sm shrink-0" style={{ color: BRAND.black }}>₱{item.price.toLocaleString()}</span>
                   </div>
                 ))}
               </div>
@@ -79,7 +182,6 @@ export default function OrderConfirmationPage() {
               <p className="text-sm font-semibold mb-3" style={{ color: BRAND.black }}>
                 {PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}
               </p>
-
               {order.isCOD ? (
                 <div className="p-3 rounded-lg text-sm leading-relaxed" style={{ background: `${BRAND.teal}10`, color: BRAND.black }}>
                   Your order is confirmed! Our team will contact you before delivery to confirm details. Prepare the exact amount upon arrival.

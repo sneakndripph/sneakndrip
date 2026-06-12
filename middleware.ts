@@ -32,14 +32,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Protect admin routes
-  if (pathname.startsWith("/admin")) {
+  // Protect admin routes (skip the admin login page itself)
+  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
     if (!user) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      return NextResponse.redirect(new URL("/admin/login", request.url));
     }
     if (user.user_metadata?.role !== "admin") {
       return NextResponse.redirect(new URL("/", request.url));
     }
+  }
+
+  // Redirect authenticated admins away from admin login
+  if (pathname === "/admin/login" && user?.user_metadata?.role === "admin") {
+    return NextResponse.redirect(new URL("/admin", request.url));
   }
 
   // Redirect authenticated users away from auth pages
@@ -51,5 +56,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/account/:path*", "/admin/:path*", "/login", "/register"],
+  matcher: ["/account/:path*", "/admin/:path*", "/login", "/register", "/admin/login"],
 };

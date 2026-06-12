@@ -12,6 +12,8 @@ export default function ChatWidget() {
   const [step, setStep] = useState<Step>("closed");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [authedName, setAuthedName] = useState("");
+  const [authedEmail, setAuthedEmail] = useState("");
   const [convId, setConvId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -19,7 +21,15 @@ export default function ChatWidget() {
   const [starting, setStarting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Restore session from localStorage
+  // External trigger — allows other components to open the chat
+  useEffect(() => {
+    function handleOpenChat() { open(); }
+    window.addEventListener("open-chat", handleOpenChat);
+    return () => window.removeEventListener("open-chat", handleOpenChat);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convId]);
+
+  // Restore session from localStorage + pre-fill from auth
   useEffect(() => {
     const saved = localStorage.getItem("snd_conv");
     if (saved) {
@@ -30,11 +40,31 @@ export default function ChatWidget() {
         .then(r => r.json())
         .then((data: Message[]) => { if (Array.isArray(data)) setMessages(data); });
     }
+    // Pre-fill from Supabase session
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        const n = data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "";
+        const e = data.user.email || "";
+        setAuthedName(n);
+        setAuthedEmail(e);
+        setName(prev => prev || n);
+        setEmail(prev => prev || e);
+      }
+    });
   }, []);
 
-  // Real-time subscription
+  // Real-time subscription + polling fallback
   useEffect(() => {
     if (!convId) return;
+
+    // Poll every 4s as reliable fallback
+    const poll = setInterval(() => {
+      fetch(`/api/chat/conversations/${convId}/messages`)
+        .then(r => r.json())
+        .then((data: Message[]) => { if (Array.isArray(data)) setMessages(data); });
+    }, 4000);
+
     const supabase = createClient();
     const channel = supabase
       .channel(`conv-${convId}`)
@@ -45,7 +75,11 @@ export default function ChatWidget() {
         }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+
+    return () => {
+      clearInterval(poll);
+      supabase.removeChannel(channel);
+    };
   }, [convId]);
 
   // Scroll to bottom on new message
@@ -94,7 +128,7 @@ export default function ChatWidget() {
   const unread = step !== "chat" && messages.some(m => m.sender_type === "admin");
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3" style={{ fontFamily: FONTS.body }}>
+    <div className="fixed bottom-6 right-5 z-[60] flex flex-col items-end gap-3" style={{ fontFamily: FONTS.body }}>
       {/* Chat window */}
       {step !== "closed" && (
         <div className="rounded-2xl overflow-hidden shadow-2xl flex flex-col"
@@ -113,23 +147,48 @@ export default function ChatWidget() {
 
           {/* Form step */}
           {step === "form" && (
-            <form onSubmit={handleStart} className="flex flex-col flex-1 p-4 gap-3">
+            <form onSubmit={handleStart} className="flex flex-col flex-1 p-4 gap-3 overflow-y-auto">
               <div className="p-3 rounded-xl text-sm leading-relaxed"
                 style={{ background: `${BRAND.teal}12`, color: BRAND.black }}>
                 Hi! 👋 We&apos;re here to help. Send us a message and we&apos;ll reply ASAP!
               </div>
-              <input value={name} onChange={e => setName(e.target.value)} required
-                placeholder="Your name"
-                className="px-3 py-2.5 text-sm focus:outline-none"
-                style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
-              <input value={email} onChange={e => setEmail(e.target.value)}
-                type="email" placeholder="Email (optional)"
-                className="px-3 py-2.5 text-sm focus:outline-none"
-                style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
-              <textarea value={input} onChange={e => setInput(e.target.value)} required rows={3}
-                placeholder="How can we help you?"
-                className="px-3 py-2.5 text-sm focus:outline-none resize-none flex-1"
-                style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.muted }}>
+                  Name <span style={{ color: BRAND.red }}>*</span>
+                </label>
+                <input value={name} onChange={e => setName(e.target.value)} required
+                  placeholder="Your name"
+                  readOnly={!!authedName}
+                  className="w-full px-3 py-2.5 text-sm focus:outline-none"
+                  style={{
+                    background: authedName ? `${BRAND.teal}08` : BRAND.bg,
+                    border: `1px solid ${authedName ? BRAND.teal + "40" : BRAND.border}`,
+                    color: BRAND.black,
+                  }} />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.muted }}>
+                  Email
+                </label>
+                <input value={email} onChange={e => setEmail(e.target.value)}
+                  type="email" placeholder="Email (optional)"
+                  readOnly={!!authedEmail}
+                  className="w-full px-3 py-2.5 text-sm focus:outline-none"
+                  style={{
+                    background: authedEmail ? `${BRAND.teal}08` : BRAND.bg,
+                    border: `1px solid ${authedEmail ? BRAND.teal + "40" : BRAND.border}`,
+                    color: BRAND.black,
+                  }} />
+              </div>
+              <div className="flex-1 flex flex-col">
+                <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.muted }}>
+                  Message <span style={{ color: BRAND.red }}>*</span>
+                </label>
+                <textarea value={input} onChange={e => setInput(e.target.value)} required rows={3}
+                  placeholder="How can we help you?"
+                  className="px-3 py-2.5 text-sm focus:outline-none resize-none flex-1"
+                  style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+              </div>
               <button type="submit" disabled={starting}
                 className="flex items-center justify-center gap-2 py-3 font-bold text-sm uppercase tracking-wide disabled:opacity-50"
                 style={{ background: BRAND.teal, color: "#fff" }}>

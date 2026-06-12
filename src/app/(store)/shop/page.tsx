@@ -1,6 +1,8 @@
 import { getProducts } from "@/lib/supabase/products";
 import ShopClient from "@/components/shop/ShopClient";
 
+export const dynamic = "force-dynamic";
+
 export default async function ShopPage({
   searchParams,
 }: {

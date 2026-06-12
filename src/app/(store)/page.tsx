@@ -3,6 +3,8 @@ import Link from "next/link";
 import { BRAND, FONTS, BRANDS } from "@/lib/constants";
 import ProductCard from "@/components/product/ProductCard";
 import HomeClient from "@/components/home/HomeClient";
+
+export const dynamic = "force-dynamic";
 import { getProducts, getReviews } from "@/lib/supabase/products";
 
 export const metadata: Metadata = {

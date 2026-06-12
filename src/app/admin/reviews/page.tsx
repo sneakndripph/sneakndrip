@@ -1,7 +1,9 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import AdminReviewsClient from "@/components/admin/AdminReviewsClient";
 
 export default async function AdminReviewsPage() {
+  noStore();
   const admin = createAdminClient();
   const { data: reviews } = await admin
     .from("reviews")

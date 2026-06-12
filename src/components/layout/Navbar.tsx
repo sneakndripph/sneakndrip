@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS } from "@/lib/constants";
-import { ShoppingBag, Search, User, Menu, X } from "lucide-react";
+import { ShoppingBag, Search, User, Menu, X, Heart } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Shop", href: "/shop" },
@@ -19,9 +19,11 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const itemCount = useCartStore(s => s.itemCount());
 
   useEffect(() => {
+    setMounted(true);
     const handler = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
@@ -41,7 +43,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="shrink-0">
+          <Link href="/" prefetch={false} className="shrink-0">
             <Image
               src="/sneakndrip-logo.gif"
               alt="Sneak N' Drip"
@@ -76,9 +78,12 @@ export default function Navbar() {
             <Link href="/account" className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: BRAND.muted }}>
               <User className="w-4 h-4" />
             </Link>
+            <Link href="/wishlist" className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: BRAND.muted }}>
+              <Heart className="w-4 h-4" />
+            </Link>
             <Link href="/cart" className="relative p-2 rounded-sm transition-opacity hover:opacity-80" style={{ color: BRAND.black }}>
               <ShoppingBag className="w-5 h-5" />
-              {itemCount > 0 && (
+              {mounted && itemCount > 0 && (
                 <span
                   className="absolute -top-0.5 -right-0.5 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-black"
                   style={{ background: BRAND.teal }}
@@ -124,7 +129,7 @@ export default function Navbar() {
             <Link href="/cart" onClick={() => setMenuOpen(false)}
               className="flex-1 py-3 text-center text-sm font-bold uppercase tracking-wider rounded-sm text-white"
               style={{ background: BRAND.teal }}>
-              Cart {itemCount > 0 && `(${itemCount})`}
+              Cart {mounted && itemCount > 0 && `(${itemCount})`}
             </Link>
           </div>
         </div>
