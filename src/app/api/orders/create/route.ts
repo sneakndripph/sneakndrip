@@ -83,6 +83,44 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: itemsError.message }, { status: 500 });
     }
 
+    // Fire-and-forget: log stock changes to inventory_log
+    if (stockItems.length > 0) {
+      Promise.all(
+        stockItems.map(async (item) => {
+          const { data: sizeRow } = await supabase
+            .from("product_sizes")
+            .select("stock")
+            .eq("product_id", item.product_id)
+            .eq("size", item.size)
+            .single();
+          const matchedItem = (items as Record<string, unknown>[]).find(
+            i => i.product_id === item.product_id && i.size === item.size
+          );
+          const newStock = sizeRow?.stock ?? 0;
+          return {
+            product_id: item.product_id,
+            product_name: String(matchedItem?.product_name ?? ""),
+            size: item.size,
+            old_stock: newStock + item.quantity,
+            new_stock: newStock,
+            reason: "order_placed",
+            changed_by: String((order as Record<string, unknown>).customer_email ?? ""),
+            order_number: String((order as Record<string, unknown>).order_number ?? ""),
+          };
+        })
+      ).then(entries => supabase.from("inventory_log").insert(entries)).catch(() => {});
+    }
+
+    // Fire-and-forget: increment coupon uses
+    const couponCode = (order as Record<string, unknown>).coupon_code as string | undefined;
+    if (couponCode) {
+      void Promise.resolve(
+        supabase.from("coupons").select("id, uses").eq("code", couponCode).single()
+      ).then(({ data: c }) => {
+        if (c) supabase.from("coupons").update({ uses: c.uses + 1 }).eq("id", c.id);
+      }).catch(() => {});
+    }
+
     return NextResponse.json({ id: data.id }, { status: 201 });
   } catch (err) {
     console.error("Order creation error:", err);

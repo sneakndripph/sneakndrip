@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS } from "@/lib/constants";
-import { ShoppingBag, Search, User, Menu, X } from "lucide-react";
+import { ShoppingBag, Search, User, Menu, X, Heart } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Shop", href: "/shop" },
@@ -77,6 +77,9 @@ export default function Navbar() {
             </Link>
             <Link href="/account" className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: BRAND.muted }}>
               <User className="w-4 h-4" />
+            </Link>
+            <Link href="/wishlist" className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: BRAND.muted }}>
+              <Heart className="w-4 h-4" />
             </Link>
             <Link href="/cart" className="relative p-2 rounded-sm transition-opacity hover:opacity-80" style={{ color: BRAND.black }}>
               <ShoppingBag className="w-5 h-5" />

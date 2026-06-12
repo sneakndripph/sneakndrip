@@ -5,7 +5,7 @@ import Image from "next/image";
 import { BRAND, FONTS } from "@/lib/constants";
 import {
   Search, Clock, CheckCircle, Truck, Package, XCircle,
-  X, ExternalLink, MapPin, User, CreditCard, ChevronRight, MessageCircle,
+  X, ExternalLink, MapPin, User, CreditCard, ChevronRight, MessageCircle, FileText,
 } from "lucide-react";
 
 const STATUSES = ["all", "pending", "paid", "processing", "shipped", "delivered", "cancelled"] as const;
@@ -49,20 +49,18 @@ type Order = {
   status: string;
   tracking_number: string | null;
   proof_of_payment: string | null;
+  admin_notes: string | null;
   created_at: string;
   order_items: OrderItem[];
 };
 
-// Next action — differs for COD (no Paid step, delivered = cash collected)
 function getNextAction(status: string, isCOD: boolean): { label: string; next: string; color: string } | null {
   if (isCOD) {
     const COD_ACTIONS: Record<string, { label: string; next: string; color: string } | null> = {
       pending:    { label: "Mark as Processing",           next: "processing", color: "#6366F1" },
       processing: { label: "Mark as Shipped",              next: "shipped",    color: "#3B82F6" },
       shipped:    { label: "Delivered / Cash Collected",   next: "delivered",  color: "#10B981" },
-      delivered:  null,
-      cancelled:  null,
-      paid:       null,
+      delivered:  null, cancelled: null, paid: null,
     };
     return COD_ACTIONS[status] ?? null;
   }
@@ -71,8 +69,7 @@ function getNextAction(status: string, isCOD: boolean): { label: string; next: s
     paid:       { label: "Mark as Processing",     next: "processing", color: "#6366F1" },
     processing: { label: "Mark as Shipped",        next: "shipped",    color: "#3B82F6" },
     shipped:    { label: "Mark as Delivered",      next: "delivered",  color: "#10B981" },
-    delivered:  null,
-    cancelled:  null,
+    delivered:  null, cancelled: null,
   };
   return ACTIONS[status] ?? null;
 }
@@ -83,7 +80,9 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
   const [statusFilter, setStatusFilter] = useState<Status>("all");
   const [selected, setSelected] = useState<Order | null>(null);
   const [trackingInput, setTrackingInput] = useState("");
+  const [notesInput, setNotesInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const filtered = orders.filter(o => {
     const matchSearch = !search ||
@@ -104,10 +103,29 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
   function openOrder(o: Order) {
     setSelected(o);
     setTrackingInput(o.tracking_number ?? "");
+    setNotesInput(o.admin_notes ?? "");
   }
 
-  function closeModal() {
-    setSelected(null);
+  function closeModal() { setSelected(null); }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkUpdate(status: string) {
+    if (!status || !selectedIds.size) return;
+    const ids = Array.from(selectedIds);
+    setOrders(prev => prev.map(o => ids.includes(o.id) ? { ...o, status } : o));
+    setSelectedIds(new Set());
+    await fetch("/api/admin/orders/bulk", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids, status }),
+    });
   }
 
   async function updateStatus(id: string, status: string) {
@@ -134,6 +152,18 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
     setSaving(false);
   }
 
+  async function saveNotes(id: string) {
+    setSaving(true);
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, admin_notes: notesInput } : o));
+    if (selected?.id === id) setSelected(prev => prev ? { ...prev, admin_notes: notesInput } : prev);
+    await fetch(`/api/admin/orders/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ admin_notes: notesInput }),
+    });
+    setSaving(false);
+  }
+
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" });
   }
@@ -149,7 +179,6 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
   const isCODSelected = liveSelected?.payment_method === "cod";
   const nextAction = liveSelected ? getNextAction(liveSelected.status, isCODSelected) : null;
   const selCfg = liveSelected ? (STATUS_CFG[liveSelected.status as keyof typeof STATUS_CFG] ?? STATUS_CFG.pending) : null;
-  // Status options available in dropdown — hide "Paid" for COD orders
   const statusOptions = Object.entries(STATUS_CFG).filter(([k]) => !(isCODSelected && k === "paid"));
 
   return (
@@ -188,6 +217,33 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
         })}
       </div>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center gap-3 mb-4 px-4 py-3 rounded-lg"
+          style={{ background: `${BRAND.teal}15`, border: `1px solid ${BRAND.teal}40` }}>
+          <span className="text-sm font-bold" style={{ color: BRAND.teal }}>
+            {selectedIds.size} order{selectedIds.size !== 1 ? "s" : ""} selected
+          </span>
+          <div className="flex items-center gap-2 ml-auto">
+            <select
+              defaultValue=""
+              onChange={e => { if (e.target.value) { bulkUpdate(e.target.value); e.currentTarget.value = ""; } }}
+              className="text-xs px-3 py-2 focus:outline-none cursor-pointer"
+              style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}>
+              <option value="">Set status…</option>
+              {Object.entries(STATUS_CFG).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+            <button onClick={() => setSelectedIds(new Set())}
+              className="text-xs font-bold px-3 py-2 transition-opacity hover:opacity-70"
+              style={{ color: BRAND.muted }}>
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Search */}
       <div className="relative mb-5">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: BRAND.muted }} />
@@ -203,11 +259,18 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
         <table className="w-full hidden md:table">
           <thead>
             <tr style={{ background: "rgba(13,13,13,0.02)", borderBottom: `1px solid ${BRAND.border}` }}>
+              <th className="px-3 py-3.5">
+                <input type="checkbox"
+                  checked={selectedIds.size === filtered.length && filtered.length > 0}
+                  onChange={e => setSelectedIds(e.target.checked ? new Set(filtered.map(o => o.id)) : new Set())}
+                  className="w-3.5 h-3.5 cursor-pointer"
+                  style={{ accentColor: BRAND.teal }} />
+              </th>
               {["Order", "Customer", "Items", "Payment", "Total", "Status", "Date"].map(h => (
                 <th key={h} className="px-4 py-3.5 text-left text-[10px] font-black uppercase tracking-widest"
                   style={{ color: BRAND.muted }}>{h}</th>
               ))}
-              <th className="px-4 py-3.5 text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }} />
+              <th className="px-4 py-3.5" />
             </tr>
           </thead>
           <tbody>
@@ -219,6 +282,13 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                   className="transition-colors hover:bg-black/[0.025] cursor-pointer"
                   style={{ borderBottom: `1px solid ${BRAND.border}` }}
                   onClick={() => openOrder(o)}>
+                  <td className="px-3 py-4" onClick={e => e.stopPropagation()}>
+                    <input type="checkbox"
+                      checked={selectedIds.has(o.id)}
+                      onChange={() => toggleSelect(o.id)}
+                      className="w-3.5 h-3.5 cursor-pointer"
+                      style={{ accentColor: BRAND.teal }} />
+                  </td>
                   <td className="px-4 py-4 text-xs font-bold" style={{ color: BRAND.black }}>{o.order_number}</td>
                   <td className="px-4 py-4">
                     <p className="text-xs font-semibold" style={{ color: BRAND.black }}>{o.customer_name}</p>
@@ -260,22 +330,31 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
             const cfg = STATUS_CFG[o.status as keyof typeof STATUS_CFG] ?? STATUS_CFG.pending;
             const Icon = cfg.icon;
             return (
-              <button key={o.id} className="w-full px-4 py-4 flex items-center justify-between text-left"
-                onClick={() => openOrder(o)}>
-                <div>
-                  <p className="text-xs font-bold" style={{ color: BRAND.black }}>{o.order_number}</p>
-                  <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>
-                    {o.customer_name} · ₱{Number(o.total).toLocaleString()}
-                  </p>
+              <div key={o.id} className="flex items-center px-4 py-4 gap-3">
+                <div onClick={e => e.stopPropagation()}>
+                  <input type="checkbox"
+                    checked={selectedIds.has(o.id)}
+                    onChange={() => toggleSelect(o.id)}
+                    className="w-3.5 h-3.5 cursor-pointer"
+                    style={{ accentColor: BRAND.teal }} />
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full"
-                    style={{ background: cfg.bg, color: cfg.color }}>
-                    <Icon className="w-3 h-3" />{cfg.label}
-                  </span>
-                  <ChevronRight className="w-4 h-4" style={{ color: BRAND.muted }} />
-                </div>
-              </button>
+                <button className="flex-1 flex items-center justify-between text-left"
+                  onClick={() => openOrder(o)}>
+                  <div>
+                    <p className="text-xs font-bold" style={{ color: BRAND.black }}>{o.order_number}</p>
+                    <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>
+                      {o.customer_name} · ₱{Number(o.total).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full"
+                      style={{ background: cfg.bg, color: cfg.color }}>
+                      <Icon className="w-3 h-3" />{cfg.label}
+                    </span>
+                    <ChevronRight className="w-4 h-4" style={{ color: BRAND.muted }} />
+                  </div>
+                </button>
+              </div>
             );
           })}
         </div>
@@ -361,7 +440,6 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                     const bg = item.products?.bg ?? "#EDE9E3";
                     return (
                       <div key={i} className="flex items-center gap-3">
-                        {/* Product thumbnail */}
                         <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden relative"
                           style={{ background: bg, border: `1px solid ${BRAND.border}` }}>
                           {img ? (
@@ -422,7 +500,6 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                     </a>
                   )}
                 </div>
-                {/* Inline proof image */}
                 {liveSelected.proof_of_payment && liveSelected.payment_method !== "cod" && (
                   <div className="rounded-lg overflow-hidden"
                     style={{ border: `1px solid ${BRAND.border}`, background: "#F8F7F6" }}>
@@ -442,7 +519,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                 )}
               </div>
 
-              {/* Tracking number (show when processing or shipped) */}
+              {/* Tracking number */}
               {(liveSelected.status === "processing" || liveSelected.status === "shipped") && (
                 <div className="px-5 py-4">
                   <div className="flex items-center gap-2 mb-3">
@@ -469,13 +546,34 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                   )}
                 </div>
               )}
+
+              {/* Admin Notes */}
+              <div className="px-5 py-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Admin Notes</p>
+                </div>
+                <textarea
+                  value={notesInput}
+                  onChange={e => setNotesInput(e.target.value)}
+                  rows={2}
+                  placeholder="Internal notes (not visible to customers)…"
+                  className="w-full px-3 py-2 text-xs focus:outline-none resize-none"
+                  style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+                <button
+                  onClick={() => saveNotes(liveSelected.id)}
+                  disabled={saving || notesInput === (liveSelected.admin_notes ?? "")}
+                  className="mt-2 px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-80 disabled:opacity-40"
+                  style={{ background: BRAND.teal, color: "#fff" }}>
+                  Save Note
+                </button>
+              </div>
             </div>
 
             {/* Modal footer — actions */}
             <div className="px-5 py-4 shrink-0 space-y-2.5"
               style={{ borderTop: `1px solid ${BRAND.border}`, background: BRAND.card }}>
 
-              {/* Primary action button */}
               {nextAction && (
                 <button
                   onClick={() => updateStatus(liveSelected.id, nextAction.next)}
@@ -486,7 +584,6 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                 </button>
               )}
 
-              {/* Status override + cancel row */}
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <select value={liveSelected.status}

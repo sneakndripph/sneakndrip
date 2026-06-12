@@ -38,11 +38,16 @@ export default function CheckoutPage() {
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [showErrors, setShowErrors] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const [couponData, setCouponData] = useState<{ id: string; code: string; type: string; value: number; discount: number } | null>(null);
+  const [couponError, setCouponError] = useState("");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   const isCOD = paymentMethod === "cod";
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
   const shipping = calcShipping(isCOD, regionGroup, sub, itemCount);
-  const total = sub + shipping;
+  const discount = couponData?.discount ?? 0;
+  const total = sub + shipping - discount;
 
   useEffect(() => {
     setMounted(true);
@@ -67,6 +72,24 @@ export default function CheckoutPage() {
     }
     setShowErrors(false);
     setStep("payment");
+  }
+
+  async function handleApplyCoupon() {
+    if (!couponCode.trim()) return;
+    setApplyingCoupon(true);
+    setCouponError("");
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponCode.trim(), orderTotal: sub }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setCouponError(data.error || "Invalid coupon"); }
+      else { setCouponData(data); setCouponCode(""); }
+    } finally {
+      setApplyingCoupon(false);
+    }
   }
 
   if (!mounted) return <div style={{ minHeight: "100vh", background: BRAND.bg }} />;
@@ -107,6 +130,8 @@ export default function CheckoutPage() {
             shipping_postal: form.postal || "0000",
             subtotal: sub,
             shipping_fee: shipping,
+            discount,
+            coupon_code: couponData?.code ?? null,
             total,
             payment_method: paymentMethod,
             payment_type: items[0]?.payment_type === "downpayment" ? "downpayment" : "full",
@@ -479,11 +504,50 @@ export default function CheckoutPage() {
                   <span style={{ color: BRAND.muted }}>Shipping</span>
                   <span style={{ color: shipping === 0 ? BRAND.teal : BRAND.black }}>{shipping === 0 ? "FREE" : `₱${shipping}`}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: BRAND.teal }}>Coupon ({couponData?.code})</span>
+                    <span style={{ color: BRAND.teal }}>−₱{discount.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-black pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
                   <span style={{ color: BRAND.black }}>Total</span>
                   <span style={{ fontFamily: FONTS.display, fontSize: "1.3rem", color: BRAND.black }}>₱{total.toLocaleString()}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Coupon code input */}
+            <div className="p-5" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+              {couponData ? (
+                <div className="flex items-center justify-between px-3 py-2.5 rounded"
+                  style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}30` }}>
+                  <span className="text-sm font-bold" style={{ color: BRAND.teal }}>
+                    {couponData.code} — −₱{discount.toLocaleString()} off
+                  </span>
+                  <button onClick={() => setCouponData(null)} className="text-xs underline" style={{ color: BRAND.muted }}>
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(""); }}
+                    placeholder="Promo code"
+                    className="flex-1 px-3 py-2.5 text-sm focus:outline-none"
+                    style={{ background: BRAND.bg, border: `1px solid ${couponError ? BRAND.red : BRAND.border}`, color: BRAND.black }}
+                    onKeyDown={e => e.key === "Enter" && handleApplyCoupon()}
+                  />
+                  <button onClick={handleApplyCoupon} disabled={applyingCoupon || !couponCode.trim()}
+                    className="px-4 py-2.5 text-xs font-black uppercase tracking-wide disabled:opacity-50"
+                    style={{ background: BRAND.black, color: BRAND.bg }}>
+                    {applyingCoupon ? "…" : "Apply"}
+                  </button>
+                </div>
+              )}
+              {couponError && <p className="text-xs mt-1.5 font-semibold" style={{ color: BRAND.red }}>{couponError}</p>}
             </div>
           </div>
         </div>

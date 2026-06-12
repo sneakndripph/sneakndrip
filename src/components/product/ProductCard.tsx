@@ -6,6 +6,8 @@ import { Product } from "@/lib/types";
 import { BRAND, FONTS } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
 import { useState } from "react";
+import { Heart } from "lucide-react";
+import { useWishlist } from "@/hooks/useWishlist";
 
 interface ProductCardProps {
   product: Product;
@@ -20,6 +22,7 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
   const availableSizes = product.sizes.filter(s => s.stock > 0);
   const [selectedSize, setSelectedSize] = useState(availableSizes[0]?.size ?? product.sizes[0]?.size ?? "");
   const isPreOrder = product.status === "pre-order";
+  const { toggle, isWishlisted } = useWishlist();
 
   function handleQuickAdd(e: React.MouseEvent) {
     e.preventDefault();
@@ -79,6 +82,15 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
               style={{ background: BRAND.red }}>Below SRP</span>
           </div>
         )}
+
+        {/* Wishlist button */}
+        <button
+          type="button"
+          onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(product.id); }}
+          className="absolute bottom-3 right-3 z-30 w-8 h-8 flex items-center justify-center rounded-full transition-all"
+          style={{ background: isWishlisted(product.id) ? BRAND.teal : "rgba(255,255,255,0.85)", border: `1px solid ${isWishlisted(product.id) ? BRAND.teal : BRAND.border}` }}>
+          <Heart className="w-3.5 h-3.5" fill={isWishlisted(product.id) ? "#fff" : "none"} stroke={isWishlisted(product.id) ? "#fff" : BRAND.muted} />
+        </button>
 
         {/* Hover overlay — sizes + quick add */}
         {showQuickAdd && (

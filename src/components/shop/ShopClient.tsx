@@ -121,7 +121,7 @@ export default function ShopClient({
               <div>
                 <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Brand</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {BRANDS.slice(0, 8).map(b => (
+                  {BRANDS.map(b => (
                     <button key={b} onClick={() => setSelectedBrands(arr => toggleArr(arr, b))}
                       className="text-xs font-semibold px-3 py-1.5 transition-all"
                       style={{
@@ -135,7 +135,7 @@ export default function ShopClient({
               <div>
                 <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Size</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {SNEAKER_SIZES.slice(4, 14).map(s => (
+                  {SNEAKER_SIZES.map(s => (
                     <button key={s} onClick={() => setSelectedSizes(arr => toggleArr(arr, s))}
                       className="text-xs font-semibold px-2.5 py-1.5 transition-all"
                       style={{

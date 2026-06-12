@@ -76,6 +76,7 @@ export default function AccountPage() {
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
+  const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
   const [pwTouched, setPwTouched] = useState(false);
 
   useEffect(() => {
@@ -148,6 +149,19 @@ export default function AccountPage() {
       setTimeout(() => setPwSuccess(false), 4000);
     }
     setSavingPw(false);
+  }
+
+  async function handleCancelOrder(orderNumber: string) {
+    setCancellingOrder(orderNumber);
+    const res = await fetch("/api/orders/cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderNumber }),
+    });
+    if (res.ok) {
+      setOrders(prev => prev.map(o => o.order_number === orderNumber ? { ...o, status: "cancelled" } : o));
+    }
+    setCancellingOrder(null);
   }
 
   if (!user) return null;
@@ -349,9 +363,20 @@ export default function AccountPage() {
                             <MessageCircle className="w-3.5 h-3.5" /> Need help?
                           </button>
                         </div>
-                        <p className="font-black text-sm shrink-0" style={{ color: BRAND.black }}>
-                          Total ₱{Number(order.total).toLocaleString()}
-                        </p>
+                        <div className="flex items-center gap-3">
+                          {order.status === "pending" && (
+                            <button
+                              onClick={() => handleCancelOrder(order.order_number)}
+                              disabled={cancellingOrder === order.order_number}
+                              className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity disabled:opacity-50"
+                              style={{ border: `1px solid ${BRAND.red}`, color: BRAND.red }}>
+                              {cancellingOrder === order.order_number ? "Cancelling…" : "Cancel Order"}
+                            </button>
+                          )}
+                          <p className="font-black text-sm shrink-0" style={{ color: BRAND.black }}>
+                            Total ₱{Number(order.total).toLocaleString()}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   );
