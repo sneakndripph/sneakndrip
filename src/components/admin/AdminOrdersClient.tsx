@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { BRAND, FONTS } from "@/lib/constants";
 import {
   Search, Clock, CheckCircle, Truck, Package, XCircle,
   X, ExternalLink, MapPin, User, CreditCard, ChevronRight, MessageCircle, FileText,
+  ChevronDown, Check,
 } from "lucide-react";
 
 const STATUSES = ["all", "pending", "paid", "processing", "shipped", "delivered", "cancelled"] as const;
@@ -83,6 +84,19 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
   const [notesInput, setNotesInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const bulkRef = useRef<HTMLDivElement>(null);
+  const statusDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (bulkRef.current && !bulkRef.current.contains(e.target as Node)) setBulkOpen(false);
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(e.target as Node)) setStatusDropdownOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
 
   const filtered = orders.filter(o => {
     const matchSearch = !search ||
@@ -225,16 +239,28 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
             {selectedIds.size} order{selectedIds.size !== 1 ? "s" : ""} selected
           </span>
           <div className="flex items-center gap-2 ml-auto">
-            <select
-              defaultValue=""
-              onChange={e => { if (e.target.value) { bulkUpdate(e.target.value); e.currentTarget.value = ""; } }}
-              className="text-xs px-3 py-2 focus:outline-none cursor-pointer"
-              style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}>
-              <option value="">Set status…</option>
-              {Object.entries(STATUS_CFG).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
-              ))}
-            </select>
+            <div className="relative" ref={bulkRef}>
+              <button type="button" onClick={() => setBulkOpen(o => !o)}
+                className="flex items-center gap-2 text-xs px-3 py-2 font-semibold focus:outline-none"
+                style={{ background: BRAND.card, border: `1px solid ${bulkOpen ? BRAND.teal : BRAND.border}`, color: BRAND.black }}>
+                <span>Set status…</span>
+                <ChevronDown className="w-3.5 h-3.5 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: bulkOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+              </button>
+              {bulkOpen && (
+                <div className="absolute right-0 top-full mt-1 z-50 overflow-hidden shadow-lg min-w-[140px]"
+                  style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                  {Object.entries(STATUS_CFG).map(([k, v]) => (
+                    <button key={k} type="button"
+                      onClick={() => { bulkUpdate(k); setBulkOpen(false); }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-left transition-colors hover:opacity-80"
+                      style={{ borderBottom: `1px solid ${BRAND.border}`, color: BRAND.black }}>
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: v.color }} />
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button onClick={() => setSelectedIds(new Set())}
               className="text-xs font-bold px-3 py-2 transition-opacity hover:opacity-70"
               style={{ color: BRAND.muted }}>
@@ -595,15 +621,30 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
               )}
 
               <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <select value={liveSelected.status}
-                    onChange={e => updateStatus(liveSelected.id, e.target.value)}
-                    className="w-full text-xs px-3 py-2.5 focus:outline-none appearance-none cursor-pointer"
-                    style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}>
-                    {statusOptions.map(([k, v]) => (
-                      <option key={k} value={k}>{k === "delivered" && isCODSelected ? "Delivered / Cash Collected" : v.label}</option>
-                    ))}
-                  </select>
+                <div className="relative flex-1" ref={statusDropdownRef}>
+                  <button type="button" onClick={() => setStatusDropdownOpen(o => !o)}
+                    className="w-full flex items-center justify-between text-xs px-3 py-2.5 focus:outline-none font-semibold"
+                    style={{ background: BRAND.bg, border: `1px solid ${statusDropdownOpen ? BRAND.teal : BRAND.border}`, color: BRAND.black }}>
+                    <span>{liveSelected.status === "delivered" && isCODSelected ? "Delivered / Cash Collected" : STATUS_CFG[liveSelected.status as keyof typeof STATUS_CFG]?.label ?? liveSelected.status}</span>
+                    <ChevronDown className="w-3.5 h-3.5 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: statusDropdownOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                  </button>
+                  {statusDropdownOpen && (
+                    <div className="absolute left-0 right-0 bottom-full mb-1 z-50 overflow-hidden shadow-lg"
+                      style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                      {statusOptions.map(([k, v]) => (
+                        <button key={k} type="button"
+                          onClick={() => { updateStatus(liveSelected.id, k); setStatusDropdownOpen(false); }}
+                          className="w-full flex items-center justify-between px-3 py-2.5 text-xs text-left transition-colors hover:opacity-80"
+                          style={{ background: liveSelected.status === k ? `${BRAND.teal}10` : "transparent", color: liveSelected.status === k ? BRAND.teal : BRAND.black, borderBottom: `1px solid ${BRAND.border}`, fontWeight: liveSelected.status === k ? 700 : 500 }}>
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: (v as { color: string }).color }} />
+                            {k === "delivered" && isCODSelected ? "Delivered / Cash Collected" : (v as { label: string }).label}
+                          </div>
+                          {liveSelected.status === k && <Check className="w-3 h-3 shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {liveSelected.status !== "cancelled" && liveSelected.status !== "delivered" && (
                   <button

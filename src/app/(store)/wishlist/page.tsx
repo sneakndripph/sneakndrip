@@ -27,7 +27,7 @@ export default function WishlistPage() {
         .from("products")
         .select("*, sizes:product_sizes(size, stock)")
         .in("id", wishlist)
-        .eq("is_active", true);
+        .eq("is_published", true);
 
       setProducts((data as unknown as Product[]) ?? []);
       setLoading(false);

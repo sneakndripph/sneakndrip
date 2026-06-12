@@ -31,6 +31,7 @@ type Order = {
   status: string;
   total: number;
   payment_method: string;
+  proof_of_payment?: string | null;
   tracking_number?: string;
   shipping_street?: string;
   shipping_barangay?: string;
@@ -88,13 +89,10 @@ export default function AccountPage() {
         name: user.user_metadata?.full_name || "",
         mobile: user.user_metadata?.mobile || "",
       });
-      supabase
-        .from("orders")
-        .select("id, order_number, created_at, status, total, payment_method, tracking_number, shipping_street, shipping_barangay, shipping_city, shipping_province, order_items(product_name, size, quantity, unit_price, products(images, bg))")
-        .eq("customer_email", user.email)
-        .order("created_at", { ascending: false })
-        .then(({ data }) => {
-          setOrders((data as unknown as Order[]) ?? []);
+      fetch("/api/orders")
+        .then(r => r.json())
+        .then(({ orders }) => {
+          setOrders((orders as Order[]) ?? []);
           setLoadingOrders(false);
         });
     });
@@ -352,10 +350,19 @@ export default function AccountPage() {
 
                       {/* Total + Help */}
                       <div className="px-5 py-4 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <p className="text-xs" style={{ color: BRAND.muted }}>
                             {isCOD ? "Cash on Delivery" : order.payment_method?.replace("_", " ")}
                           </p>
+                          {!isCOD && (order.proof_of_payment || order.status !== "pending") && (
+                            <a
+                              href={`/api/proof?orderNumber=${encodeURIComponent(order.order_number)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70"
+                              style={{ color: BRAND.teal }}>
+                              View Proof
+                            </a>
+                          )}
                           <button
                             onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
                             className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70"
@@ -453,8 +460,10 @@ export default function AccountPage() {
                         </label>
                         <input
                           value={profileForm.mobile}
-                          onChange={e => setProfileForm(f => ({ ...f, mobile: e.target.value }))}
+                          onChange={e => setProfileForm(f => ({ ...f, mobile: e.target.value.replace(/\D/g, "").slice(0, 11) }))}
                           placeholder="09XX XXX XXXX"
+                          inputMode="numeric"
+                          maxLength={11}
                           className={inputCls}
                           style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
                           onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}

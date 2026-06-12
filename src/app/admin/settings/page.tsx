@@ -29,8 +29,14 @@ const DEFAULTS: SettingsData = {
   bank2_account_number: "0596199188",
   bank2_account_name: "Lorenzo Agalo P. Julio",
   announcement_text: "",
+  hero_badge: "New Drops Every Week",
+  hero_line1: "STEP INTO",
+  hero_line2: "YOUR NEXT",
+  hero_line3: "PAIR",
+  hero_subtitle: "100% Authentic Sneakers · On Hand & Pre-Order\nShips Philippines-wide. GCash, Maya, Bank Transfer & COD accepted.",
+  hero_cta_primary: "Shop Now",
+  hero_cta_secondary: "Pre-Orders",
   preorder_message: "Your order will be reserved upon payment of downpayment. Balance is due before release.",
-  messenger_page_id: "",
   meta_title: "Sneak N' Drip | Authentic Sneakers Philippines",
   meta_description: "Shop authentic sneakers in the Philippines. On Hand & Pre-Order. Best prices, 100% legit.",
   google_analytics_id: "",
@@ -138,10 +144,26 @@ export default function AdminSettingsPage() {
         </button>
       </div>
 
-      <div className="mb-5">
+      <div className="space-y-5 mb-5">
         <Section title="Announcement Bar">
           <Field label="Announcement Text" settingsKey="announcement_text" settings={settings} onChange={update}
             hint="Leave blank to use the auto-generated text (free shipping threshold, accepted payments)" />
+        </Section>
+
+        <Section title="Homepage Hero">
+          <Field label="Badge Text" settingsKey="hero_badge" settings={settings} onChange={update}
+            hint="Small pill above the headline (e.g. 'New Drops Every Week')" />
+          <div className="grid sm:grid-cols-3 gap-4">
+            <Field label="Headline Line 1" settingsKey="hero_line1" settings={settings} onChange={update} />
+            <Field label="Headline Line 2 (teal)" settingsKey="hero_line2" settings={settings} onChange={update} />
+            <Field label="Headline Line 3" settingsKey="hero_line3" settings={settings} onChange={update} />
+          </div>
+          <Field label="Subtitle" settingsKey="hero_subtitle" settings={settings} onChange={update} multiline
+            hint="Shown below the headline. Use \\n for line breaks." />
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field label="Primary CTA Button" settingsKey="hero_cta_primary" settings={settings} onChange={update} />
+            <Field label="Secondary CTA Button" settingsKey="hero_cta_secondary" settings={settings} onChange={update} />
+          </div>
         </Section>
       </div>
 
@@ -183,8 +205,6 @@ export default function AdminSettingsPage() {
 
         <Section title="Pre-Order &amp; Misc">
           <Field label="Default Pre-Order Message" settingsKey="preorder_message" settings={settings} onChange={update} multiline />
-          <Field label="Messenger Chat Plugin Page ID" settingsKey="messenger_page_id" settings={settings} onChange={update}
-            hint="Get this from Facebook Page Settings > Messaging" />
         </Section>
 
         <Section title="SEO &amp; Meta">

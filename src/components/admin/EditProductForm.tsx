@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BRAND, FONTS, SNEAKER_SIZES, BRANDS } from "@/lib/constants";
-import { ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, ChevronDown, Check } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 
 type Product = Record<string, unknown> & {
@@ -46,6 +46,19 @@ export default function EditProductForm({ product }: { product: Product }) {
     featured: Boolean(product.is_featured ?? false),
     trending: Boolean(product.is_trending ?? false),
   });
+  const [brandOpen, setBrandOpen] = useState(false);
+  const [genderOpen, setGenderOpen] = useState(false);
+  const brandRef = useRef<HTMLDivElement>(null);
+  const genderRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (brandRef.current && !brandRef.current.contains(e.target as Node)) setBrandOpen(false);
+      if (genderRef.current && !genderRef.current.contains(e.target as Node)) setGenderOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
 
   function set(key: string, val: string) { setForm(f => ({ ...f, [key]: val })); }
   function toggleSize(s: string) {
@@ -157,11 +170,26 @@ export default function EditProductForm({ product }: { product: Product }) {
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Brand *</label>
-                  <select required value={form.brand} onChange={e => set("brand", e.target.value)}
-                    className="w-full px-4 py-3 text-sm focus:outline-none appearance-none" style={inputStyle}>
-                    <option value="">Select brand…</option>
-                    {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-                  </select>
+                  <div className="relative" ref={brandRef}>
+                    <button type="button" onClick={() => setBrandOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold focus:outline-none"
+                      style={{ ...inputStyle, border: `1px solid ${brandOpen ? BRAND.teal : BRAND.border}` }}>
+                      <span style={{ color: form.brand ? BRAND.black : BRAND.mutedLight }}>{form.brand || "Select brand…"}</span>
+                      <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: brandOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                    </button>
+                    {brandOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden shadow-lg max-h-52 overflow-y-auto"
+                        style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                        {BRANDS.map(b => (
+                          <button key={b} type="button" onClick={() => { set("brand", b); setBrandOpen(false); }}
+                            className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors hover:opacity-80"
+                            style={{ background: form.brand === b ? `${BRAND.teal}10` : "transparent", color: form.brand === b ? BRAND.teal : BRAND.black, borderBottom: `1px solid ${BRAND.border}`, fontWeight: form.brand === b ? 700 : 500 }}>
+                            {b} {form.brand === b && <Check className="w-3.5 h-3.5 shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Colorway</label>
@@ -170,10 +198,26 @@ export default function EditProductForm({ product }: { product: Product }) {
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Gender</label>
-                  <select value={form.gender} onChange={e => set("gender", e.target.value)}
-                    className="w-full px-4 py-3 text-sm focus:outline-none appearance-none" style={inputStyle}>
-                    {["Unisex", "Men", "Women", "Kids"].map(g => <option key={g}>{g}</option>)}
-                  </select>
+                  <div className="relative" ref={genderRef}>
+                    <button type="button" onClick={() => setGenderOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold focus:outline-none"
+                      style={{ ...inputStyle, border: `1px solid ${genderOpen ? BRAND.teal : BRAND.border}` }}>
+                      <span style={{ color: BRAND.black }}>{form.gender}</span>
+                      <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: genderOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                    </button>
+                    {genderOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden shadow-lg"
+                        style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                        {["Unisex", "Men", "Women", "Kids"].map(g => (
+                          <button key={g} type="button" onClick={() => { set("gender", g); setGenderOpen(false); }}
+                            className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors hover:opacity-80"
+                            style={{ background: form.gender === g ? `${BRAND.teal}10` : "transparent", color: form.gender === g ? BRAND.teal : BRAND.black, borderBottom: `1px solid ${BRAND.border}`, fontWeight: form.gender === g ? 700 : 500 }}>
+                            {g} {form.gender === g && <Check className="w-3.5 h-3.5 shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>SKU</label>

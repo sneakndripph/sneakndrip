@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
 import { PageContent } from "@/components/ui/PageContent";
 import {
   FileText, Save, Check, ExternalLink, Eye, Edit3, List,
   Underline, Strikethrough, AlignCenter, AlignRight, AlignLeft,
+  ChevronDown,
 } from "lucide-react";
 
 type PageDef = { slug: string; title: string; content: string };
@@ -94,6 +95,16 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [mode, setMode] = useState<"edit" | "preview">("edit");
+  const [styleOpen, setStyleOpen] = useState(false);
+  const styleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (styleRef.current && !styleRef.current.contains(e.target as Node)) setStyleOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   const activePage = pages.find(p => p.slug === active);
@@ -166,16 +177,27 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
 
                 <div className="flex flex-wrap items-center gap-0.5">
                   {/* Paragraph style */}
-                  <select
-                    onChange={e => setLineStyle(taRef, e.target.value, setContent)}
-                    value=""
-                    className="text-xs px-2 py-1.5 rounded mr-1 focus:outline-none transition-colors hover:bg-black/[0.07]"
-                    style={{ background: "transparent", border: `1px solid ${BRAND.border}`, color: BRAND.muted, cursor: "pointer" }}>
-                    <option value="" disabled>Style</option>
-                    {STYLE_OPTIONS.map(o => (
-                      <option key={o.label} value={o.prefix}>{o.label}</option>
-                    ))}
-                  </select>
+                  <div className="relative mr-1" ref={styleRef}>
+                    <button type="button" onClick={() => setStyleOpen(o => !o)}
+                      className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded focus:outline-none transition-colors hover:bg-black/[0.07]"
+                      style={{ background: "transparent", border: `1px solid ${styleOpen ? BRAND.teal : BRAND.border}`, color: BRAND.muted }}>
+                      Style
+                      <ChevronDown className="w-3 h-3 shrink-0 transition-transform" style={{ transform: styleOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                    </button>
+                    {styleOpen && (
+                      <div className="absolute left-0 top-full mt-1 z-50 overflow-hidden shadow-lg min-w-[130px]"
+                        style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                        {STYLE_OPTIONS.map(o => (
+                          <button key={o.label} type="button"
+                            onClick={() => { setLineStyle(taRef, o.prefix, setContent); setStyleOpen(false); }}
+                            className="w-full px-3 py-2 text-xs text-left transition-colors hover:opacity-80"
+                            style={{ borderBottom: `1px solid ${BRAND.border}`, color: BRAND.black }}>
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
                   <div className="w-px h-4 mx-0.5" style={{ background: BRAND.border }} />
 

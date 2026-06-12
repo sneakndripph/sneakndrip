@@ -77,6 +77,11 @@ export default function CheckoutPage() {
       setShowErrors(true);
       return;
     }
+    const mobile = form.mobile.replace(/\s/g, "");
+    if (!/^(09|(\+63)9)\d{9}$/.test(mobile)) {
+      setShowErrors(true);
+      return;
+    }
     setShowErrors(false);
     setStep("payment");
   }
@@ -252,29 +257,39 @@ export default function CheckoutPage() {
                     { key: "email", label: "Email Address", placeholder: "juan@email.com", req: true },
                     { key: "mobile", label: "Mobile Number", placeholder: "09XX XXX XXXX", req: true },
                     { key: "street", label: "Street Address", placeholder: "123 Rizal St.", col: "sm:col-span-2", req: true },
-                  ].map(field => (
-                    <div key={field.key} className={field.col || ""}>
-                      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                        {field.label}{field.req && <span style={{ color: BRAND.red }}> *</span>}
-                      </label>
-                      <input
-                        value={form[field.key as keyof typeof form]}
-                        onChange={e => setForm(f => ({ ...f, [field.key]: e.target.value }))}
-                        placeholder={field.placeholder}
-                        className="w-full px-4 py-3 text-sm focus:outline-none transition-colors"
-                        style={{
-                          background: BRAND.inputBg || "#F8F7F6",
-                          border: `1px solid ${showErrors && !form[field.key as keyof typeof form] ? BRAND.red : BRAND.border}`,
-                          color: BRAND.black,
-                        }}
-                        onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                        onBlur={e => (e.currentTarget.style.borderColor = showErrors && !form[field.key as keyof typeof form] ? BRAND.red : BRAND.border)}
-                      />
-                      {showErrors && !form[field.key as keyof typeof form] && (
-                        <p className="mt-1 text-[11px] font-semibold" style={{ color: BRAND.red }}>This field is required</p>
-                      )}
-                    </div>
-                  ))}
+                  ].map(field => {
+                    const isMobile = field.key === "mobile";
+                    const val = form[field.key as keyof typeof form];
+                    const mobileInvalid = isMobile && showErrors && !!val && !/^(09|(\+63)9)\d{9}$/.test(val.replace(/\s/g, ""));
+                    const isEmpty = showErrors && !val;
+                    const hasError = isEmpty || mobileInvalid;
+                    return (
+                      <div key={field.key} className={field.col || ""}>
+                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                          {field.label}{field.req && <span style={{ color: BRAND.red }}> *</span>}
+                        </label>
+                        <input
+                          value={val}
+                          onChange={e => setForm(f => ({
+                            ...f,
+                            [field.key]: isMobile ? e.target.value.replace(/[^\d+]/g, "").slice(0, 13) : e.target.value,
+                          }))}
+                          placeholder={field.placeholder}
+                          inputMode={isMobile ? "numeric" : undefined}
+                          className="w-full px-4 py-3 text-sm focus:outline-none transition-colors"
+                          style={{
+                            background: BRAND.inputBg || "#F8F7F6",
+                            border: `1px solid ${hasError ? BRAND.red : BRAND.border}`,
+                            color: BRAND.black,
+                          }}
+                          onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+                          onBlur={e => (e.currentTarget.style.borderColor = hasError ? BRAND.red : BRAND.border)}
+                        />
+                        {isEmpty && <p className="mt-1 text-[11px] font-semibold" style={{ color: BRAND.red }}>This field is required</p>}
+                        {mobileInvalid && <p className="mt-1 text-[11px] font-semibold" style={{ color: BRAND.red }}>Enter a valid PH number (09XXXXXXXXX)</p>}
+                      </div>
+                    );
+                  })}
 
                   {/* PH Address Dropdowns */}
                   <PhAddressSelect

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS } from "@/lib/constants";
 import { ShoppingBag, Search, User, Menu, X, Heart } from "lucide-react";
@@ -17,10 +18,14 @@ const NAV_LINKS = [
 ];
 
 export default function Navbar() {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const itemCount = useCartStore(s => s.itemCount());
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -28,6 +33,18 @@ export default function Navbar() {
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
   }, []);
+
+  useEffect(() => {
+    if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50);
+  }, [searchOpen]);
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
+    setSearchOpen(false);
+    setSearchQuery("");
+  }
 
   return (
     <nav
@@ -72,9 +89,9 @@ export default function Navbar() {
 
           {/* Icons */}
           <div className="flex items-center gap-3">
-            <Link href="/shop" className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: BRAND.muted }}>
-              <Search className="w-4 h-4" />
-            </Link>
+            <button onClick={() => setSearchOpen(o => !o)} className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: searchOpen ? BRAND.teal : BRAND.muted }}>
+              {searchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+            </button>
             <Link href="/account" className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: BRAND.muted }}>
               <User className="w-4 h-4" />
             </Link>
@@ -102,6 +119,30 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Search overlay */}
+      {searchOpen && (
+        <div className="border-t" style={{ background: BRAND.card, borderColor: BRAND.border }}>
+          <form onSubmit={handleSearch} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: BRAND.muted }} />
+              <input
+                ref={searchInputRef}
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search sneakers, brands…"
+                className="w-full pl-11 pr-4 py-3 text-sm focus:outline-none"
+                style={{ background: BRAND.bg, border: `1px solid ${BRAND.teal}`, color: BRAND.black }}
+              />
+            </div>
+            <button type="submit"
+              className="px-6 py-3 text-sm font-black uppercase tracking-widest"
+              style={{ background: BRAND.black, color: BRAND.bg }}>
+              Search
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Mobile Menu */}
       {menuOpen && (
