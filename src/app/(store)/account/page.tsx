@@ -354,7 +354,7 @@ export default function AccountPage() {
                           <p className="text-xs" style={{ color: BRAND.muted }}>
                             {isCOD ? "Cash on Delivery" : order.payment_method?.replace("_", " ")}
                           </p>
-                          {!isCOD && (order.proof_of_payment || order.status !== "pending") && (
+                          {!isCOD && order.proof_of_payment && (
                             <a
                               href={`/api/proof?orderNumber=${encodeURIComponent(order.order_number)}`}
                               target="_blank" rel="noopener noreferrer"

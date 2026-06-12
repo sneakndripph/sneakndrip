@@ -155,6 +155,18 @@ export async function PATCH(
   const { error } = await admin.from("orders").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Log the activity
+  if (body.status && currentOrder) {
+    void admin.from("activity_log").insert({
+      action: "status_updated",
+      entity_type: "order",
+      entity_id: id,
+      entity_name: currentOrder.order_number,
+      actor_email: user.email ?? null,
+      details: { from: currentOrder.status, to: body.status, ...(body.tracking_number ? { tracking: body.tracking_number } : {}) },
+    });
+  }
+
   // ── Status change notification email ────────────────────────────────────
   if (body.status && currentOrder?.customer_email && resend) {
     const trackingNum = body.tracking_number ?? currentOrder.tracking_number ?? null;

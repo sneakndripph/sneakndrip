@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Search, BarChart2 } from "lucide-react";
+import { Search, BarChart2, X } from "lucide-react";
 
 type LogEntry = {
   id: string;
@@ -23,10 +23,83 @@ const REASON_LABELS: Record<string, string> = {
   cancellation: "Order Cancelled",
 };
 
+function DetailModal({ entry, onClose }: { entry: LogEntry; onClose: () => void }) {
+  const delta = entry.new_stock - entry.old_stock;
+  const deltaColor = delta > 0 ? "#10B981" : delta < 0 ? BRAND.red : BRAND.muted;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.5)" }}
+      onClick={onClose}>
+      <div className="rounded-xl overflow-hidden w-full max-w-md shadow-2xl"
+        style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}
+        onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.black }}>
+          <h2 style={{ fontFamily: FONTS.display, fontSize: "1.2rem", letterSpacing: "0.04em", color: "#fff" }}>
+            LOG DETAIL
+          </h2>
+          <button onClick={onClose} className="text-white opacity-60 hover:opacity-100 transition-opacity">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-4">
+          {/* Stock change hero */}
+          <div className="flex items-center justify-center gap-6 p-4 rounded-xl"
+            style={{ background: BRAND.bg }}>
+            <div className="text-center">
+              <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: BRAND.muted }}>Before</p>
+              <p style={{ fontFamily: FONTS.display, fontSize: "2.5rem", color: BRAND.black }}>{entry.old_stock}</p>
+            </div>
+            <div className="text-center">
+              <p style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.mutedLight }}>→</p>
+              <p className="text-sm font-black" style={{ color: deltaColor }}>
+                {delta > 0 ? `+${delta}` : delta}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: BRAND.muted }}>After</p>
+              <p style={{ fontFamily: FONTS.display, fontSize: "2.5rem", color: BRAND.black }}>{entry.new_stock}</p>
+            </div>
+          </div>
+
+          {/* Details grid */}
+          <div className="space-y-3">
+            {[
+              { label: "Product", value: entry.product_name },
+              { label: "Size", value: entry.size },
+              { label: "Reason", value: REASON_LABELS[entry.reason] ?? entry.reason },
+              { label: "Order", value: entry.order_number ?? "—" },
+              { label: "Changed By", value: entry.changed_by || "—" },
+              {
+                label: "Timestamp",
+                value: new Date(entry.created_at).toLocaleString("en-PH", {
+                  year: "numeric", month: "short", day: "numeric",
+                  hour: "2-digit", minute: "2-digit",
+                }),
+              },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex items-start justify-between gap-4">
+                <span className="text-[10px] font-black uppercase tracking-widest shrink-0"
+                  style={{ color: BRAND.muted, paddingTop: 2 }}>{label}</span>
+                <span className="text-sm font-semibold text-right" style={{ color: BRAND.black }}>{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminInventoryPage() {
   const [log, setLog] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<LogEntry | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/inventory-log").then(r => r.json()).then(setLog).finally(() => setLoading(false));
@@ -50,6 +123,8 @@ export default function AdminInventoryPage() {
 
   return (
     <div style={{ fontFamily: FONTS.body }}>
+      {selected && <DetailModal entry={selected} onClose={() => setSelected(null)} />}
+
       <div className="flex items-center justify-between mb-6">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Stock Management</p>
@@ -97,7 +172,10 @@ export default function AdminInventoryPage() {
                 {filtered.map(e => {
                   const { d, color } = delta(e);
                   return (
-                    <tr key={e.id} style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                    <tr key={e.id}
+                      onClick={() => setSelected(e)}
+                      className="cursor-pointer transition-colors hover:bg-black/[0.02]"
+                      style={{ borderBottom: `1px solid ${BRAND.border}` }}>
                       <td className="px-4 py-3.5 text-xs whitespace-nowrap" style={{ color: BRAND.muted }}>
                         {new Date(e.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
                         {" "}

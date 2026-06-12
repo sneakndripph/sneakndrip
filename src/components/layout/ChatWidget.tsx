@@ -134,7 +134,7 @@ export default function ChatWidget() {
   const unread = step !== "chat" && messages.some(m => m.sender_type === "admin");
 
   return (
-    <div className="fixed bottom-6 right-5 z-[60] flex flex-col items-end gap-3" style={{ fontFamily: FONTS.body }}>
+    <div className="fixed bottom-6 left-5 z-[60] flex flex-col items-start gap-3" style={{ fontFamily: FONTS.body }}>
       {/* Chat window */}
       {step !== "closed" && (
         <div className="rounded-2xl overflow-hidden shadow-2xl flex flex-col"

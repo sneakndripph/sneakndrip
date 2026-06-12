@@ -10,17 +10,25 @@ import PhAddressSelect from "@/components/ui/PhAddressSelect";
 
 type Step = "details" | "payment" | "confirm";
 
-function calcShipping(isCOD: boolean, regionGroup: string, sub: number, itemCount: number): number {
+function calcShipping(
+  isCOD: boolean,
+  regionGroup: string,
+  sub: number,
+  itemCount: number,
+  freeThreshold: number = SHIPPING_FEE.free_threshold,
+  metroFee: number = SHIPPING_FEE.metro_sm,
+  provFee: number = SHIPPING_FEE.provincial_sm,
+): number {
   const lg = itemCount > 2;
   if (isCOD) {
     if (regionGroup === "Visayas" || regionGroup === "Mindanao")
       return lg ? SHIPPING_FEE.cod_vm_lg  : SHIPPING_FEE.cod_vm_sm;
     return lg ? SHIPPING_FEE.cod_luzon_lg : SHIPPING_FEE.cod_luzon_sm;
   }
-  if (sub >= SHIPPING_FEE.free_threshold) return 0;
+  if (sub >= freeThreshold) return 0;
   if (regionGroup === "Metro Manila")
-    return lg ? SHIPPING_FEE.metro_lg : SHIPPING_FEE.metro_sm;
-  return lg ? SHIPPING_FEE.provincial_lg : SHIPPING_FEE.provincial_sm;
+    return lg ? metroFee * 2 : metroFee;
+  return lg ? provFee * 2 : provFee;
 }
 
 export default function CheckoutPage() {
@@ -43,14 +51,27 @@ export default function CheckoutPage() {
   const [couponError, setCouponError] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
 
+  const [shipCfg, setShipCfg] = useState<{ freeThreshold: number; metro: number; prov: number }>({ freeThreshold: SHIPPING_FEE.free_threshold, metro: SHIPPING_FEE.metro_sm, prov: SHIPPING_FEE.provincial_sm });
+
   const isCOD = paymentMethod === "cod";
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
-  const shipping = calcShipping(isCOD, regionGroup, sub, itemCount);
+  const shipping = calcShipping(isCOD, regionGroup, sub, itemCount, shipCfg.freeThreshold, shipCfg.metro, shipCfg.prov);
   const discount = couponData?.discount ?? 0;
   const total = sub + shipping - discount;
 
   useEffect(() => {
     setMounted(true);
+    // Fetch dynamic shipping config from admin settings
+    fetch("/api/admin/settings")
+      .then(r => r.json())
+      .then((data: Record<string, string>) => {
+        setShipCfg({
+          freeThreshold: Number(data.free_shipping_threshold) || SHIPPING_FEE.free_threshold,
+          metro: Number(data.metro_shipping_fee) || SHIPPING_FEE.metro_sm,
+          prov: Number(data.provincial_shipping_fee) || SHIPPING_FEE.provincial_sm,
+        });
+      })
+      .catch(() => {});
     import("@/lib/supabase/client").then(({ createClient }) => {
       createClient().auth.getUser().then(({ data: { user } }) => {
         if (!user) { router.replace("/login?redirect=/checkout"); return; }
