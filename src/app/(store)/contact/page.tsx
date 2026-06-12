@@ -1,5 +1,6 @@
 import { BRAND, FONTS } from "@/lib/constants";
 import { getPageContent } from "@/lib/page-content";
+import { PageContent } from "@/components/ui/PageContent";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -29,42 +30,6 @@ Closed on major public holidays.
 ## For Order Inquiries
 Have your order number ready when messaging us. This helps us assist you faster. You can also track your order from your account page.`;
 
-function ContentBlock({ text }: { text: string }) {
-  const paragraphs = text.split("\n\n").filter(Boolean);
-  return (
-    <div>
-      {paragraphs.map((p, i) => {
-        if (p.startsWith("## ")) {
-          return (
-            <h3 key={i} className="font-black text-base mt-8 mb-3 first:mt-0"
-              style={{ fontFamily: FONTS.display, letterSpacing: "0.03em", color: BRAND.black }}>
-              {p.slice(3)}
-            </h3>
-          );
-        }
-        const lines = p.split("\n").filter(Boolean);
-        if (lines.length > 1) {
-          return (
-            <ul key={i} className="space-y-1.5 mb-4">
-              {lines.map((l, j) => (
-                <li key={j} className="flex gap-2 text-sm leading-relaxed" style={{ color: BRAND.muted }}>
-                  <span style={{ color: BRAND.teal, flexShrink: 0 }}>—</span>
-                  <span>{l}</span>
-                </li>
-              ))}
-            </ul>
-          );
-        }
-        return (
-          <p key={i} className="text-sm leading-relaxed mb-4" style={{ color: BRAND.muted }}>
-            {p}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
 export default async function ContactPage() {
   const content = await getPageContent("contact", FALLBACK);
 
@@ -86,12 +51,11 @@ export default async function ContactPage() {
           </p>
         </div>
       </section>
-
       <section className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
-        <div className="grid sm:grid-cols-2 gap-6 mb-8">
+        <div className="grid sm:grid-cols-2 gap-4 mb-10">
           {[
             { icon: "💬", label: "Messenger", val: "m.me/SneakNDrip", href: "https://m.me/SneakNDrip" },
-            { icon: "📱", label: "Facebook", val: "SneakNDrip", href: "https://www.facebook.com/SneakNDrip/" },
+            { icon: "📘", label: "Facebook", val: "SneakNDrip", href: "https://www.facebook.com/SneakNDrip/" },
             { icon: "📸", label: "Instagram", val: "@sneakndripph", href: "https://www.instagram.com/sneakndripph/" },
             { icon: "📞", label: "Mobile", val: "0961 177 4119", href: "tel:+639611774119" },
           ].map(c => (
@@ -101,19 +65,18 @@ export default async function ContactPage() {
               style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
               <span className="text-2xl shrink-0">{c.icon}</span>
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: BRAND.muted }}>{c.label}</p>
-                <p className="font-semibold text-sm" style={{ color: BRAND.black }}>{c.val}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5"
+                  style={{ color: BRAND.mutedLight }}>{c.label}</p>
+                <p className="text-sm" style={{ color: BRAND.black, fontWeight: 400 }}>{c.val}</p>
               </div>
             </a>
           ))}
         </div>
-
         <div className="p-8 rounded-2xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-          <ContentBlock text={content} />
+          <PageContent text={content} />
         </div>
-
-        <div className="mt-8 p-5 rounded-xl text-center" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}30` }}>
-          <p className="text-sm font-semibold" style={{ color: BRAND.black }}>
+        <div className="mt-8 p-4 rounded-xl text-center" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
+          <p className="text-sm" style={{ color: BRAND.muted, fontWeight: 400 }}>
             You can also use the chat widget in the bottom-right corner of our site to message us directly.
           </p>
         </div>

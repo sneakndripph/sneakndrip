@@ -6,18 +6,21 @@ import { CartItem, Product, PaymentType } from "@/lib/types";
 
 interface CartState {
   items: CartItem[];
+  cartUserId: string | null;
   addItem: (product: Product, size: string, paymentType: PaymentType, qty?: number) => void;
   removeItem: (productId: string, size: string) => void;
   updateQuantity: (productId: string, size: string, quantity: number) => void;
   clearCart: () => void;
   itemCount: () => number;
   subtotal: () => number;
+  initForUser: (userId: string | null) => void;
 }
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      cartUserId: null,
 
       addItem: (product, size, paymentType, qty = 1) => {
         const price = paymentType === "full_payment"
@@ -60,12 +63,23 @@ export const useCartStore = create<CartState>()(
         }));
       },
 
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set({ items: [], cartUserId: null }),
 
       itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
 
       subtotal: () =>
         get().items.reduce((sum, i) => sum + i.unit_price * i.quantity, 0),
+
+      // Call on auth state change. Clears cart if a different user is detected.
+      initForUser: (userId) =>
+        set(state => {
+          const stored = state.cartUserId;
+          // Different known user logged in → wipe the previous user's cart
+          if (stored !== null && stored !== userId) {
+            return { items: [], cartUserId: userId };
+          }
+          return { cartUserId: userId };
+        }),
     }),
     { name: "snd-cart" }
   )

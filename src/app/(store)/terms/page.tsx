@@ -1,5 +1,6 @@
 import { BRAND, FONTS } from "@/lib/constants";
 import { getPageContent } from "@/lib/page-content";
+import { PageContent } from "@/components/ui/PageContent";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -25,7 +26,7 @@ We make every effort to deliver within stated timelines, but delays due to couri
 Orders may be cancelled before dispatch. Once dispatched, cancellations are not accepted. To request a cancellation, message us immediately via Messenger.
 
 ## Product Condition
-All products are brand new, authentic, and in original packaging unless explicitly stated otherwise. Any listing described as "preloved" will be clearly marked.
+All products are brand new, authentic, and in original packaging unless explicitly stated otherwise.
 
 ## Limitation of Liability
 Our liability is limited to the value of the product purchased. We are not liable for indirect damages, loss of use, or consequential losses arising from the purchase.
@@ -37,29 +38,6 @@ In the event of a dispute, we encourage you to contact us first. We will make ev
 These terms are governed by the laws of the Republic of the Philippines.
 
 Last updated: June 2025`;
-
-function ContentBlock({ text }: { text: string }) {
-  const paragraphs = text.split("\n\n").filter(Boolean);
-  return (
-    <div>
-      {paragraphs.map((p, i) => {
-        if (p.startsWith("## ")) {
-          return (
-            <h3 key={i} className="font-black text-base mt-8 mb-3 first:mt-0"
-              style={{ fontFamily: FONTS.display, letterSpacing: "0.03em", color: BRAND.black }}>
-              {p.slice(3)}
-            </h3>
-          );
-        }
-        return (
-          <p key={i} className="text-sm leading-relaxed mb-4" style={{ color: BRAND.muted }}>
-            {p}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
 
 export default async function TermsPage() {
   const content = await getPageContent("terms", FALLBACK);
@@ -84,7 +62,7 @@ export default async function TermsPage() {
       </section>
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
         <div className="p-8 rounded-2xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-          <ContentBlock text={content} />
+          <PageContent text={content} />
         </div>
       </section>
     </div>

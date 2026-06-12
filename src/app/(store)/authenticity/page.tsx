@@ -1,5 +1,6 @@
 import { BRAND, FONTS } from "@/lib/constants";
 import { getPageContent } from "@/lib/page-content";
+import { PageContent } from "@/components/ui/PageContent";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -24,29 +25,6 @@ In the extremely unlikely event that an item is proven non-authentic, we will is
 ## Pricing
 Most of our pairs are priced at or below SRP. Being authentic does not mean being overpriced — we believe everyone deserves access to real sneakers at fair prices.`;
 
-function ContentBlock({ text }: { text: string }) {
-  const paragraphs = text.split("\n\n").filter(Boolean);
-  return (
-    <div>
-      {paragraphs.map((p, i) => {
-        if (p.startsWith("## ")) {
-          return (
-            <h3 key={i} className="font-black text-base mt-8 mb-3 first:mt-0"
-              style={{ fontFamily: FONTS.display, letterSpacing: "0.03em", color: BRAND.black }}>
-              {p.slice(3)}
-            </h3>
-          );
-        }
-        return (
-          <p key={i} className="text-sm leading-relaxed mb-4" style={{ color: BRAND.muted }}>
-            {p}
-          </p>
-        );
-      })}
-    </div>
-  );
-}
-
 export default async function AuthenticityPage() {
   const content = await getPageContent("authenticity", FALLBACK);
 
@@ -68,8 +46,6 @@ export default async function AuthenticityPage() {
           </p>
         </div>
       </section>
-
-      {/* Feature cards */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid sm:grid-cols-3 gap-4 mb-12">
           {[
@@ -80,12 +56,12 @@ export default async function AuthenticityPage() {
             <div key={f.label} className="flex flex-col items-center gap-2 p-6 rounded-xl text-center"
               style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
               <span className="text-3xl">{f.icon}</span>
-              <span className="font-black text-sm" style={{ color: BRAND.black }}>{f.label}</span>
+              <span className="text-sm" style={{ color: BRAND.black, fontWeight: 500 }}>{f.label}</span>
             </div>
           ))}
         </div>
         <div className="p-8 rounded-2xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-          <ContentBlock text={content} />
+          <PageContent text={content} />
         </div>
       </section>
     </div>
