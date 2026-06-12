@@ -19,22 +19,27 @@ function mapFilter(filter: string): string {
   return "all";
 }
 
+const GENDERS = ["Men", "Women", "Unisex", "Kids"];
+
 export default function ShopClient({
   products,
   initialSearch = "",
   initialFilter = "all",
   initialBrand = "",
+  initialGender = "",
 }: {
   products: Product[];
   initialSearch?: string;
   initialFilter?: string;
   initialBrand?: string;
+  initialGender?: string;
 }) {
   const router = useRouter();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState(initialSearch);
   const [sort, setSort] = useState("featured");
   const [selectedBrands, setSelectedBrands] = useState<string[]>(initialBrand ? [initialBrand] : []);
+  const [selectedGenders, setSelectedGenders] = useState<string[]>(initialGender ? [initialGender] : []);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [availability, setAvailability] = useState<string>(mapFilter(initialFilter));
   const [showNewOnly, setShowNewOnly] = useState(initialFilter === "new");
@@ -66,6 +71,7 @@ export default function ShopClient({
     let list = [...products];
     if (search) list = list.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.brand.toLowerCase().includes(search.toLowerCase()));
     if (selectedBrands.length) list = list.filter(p => selectedBrands.includes(p.brand));
+    if (selectedGenders.length) list = list.filter(p => selectedGenders.map(g => g.toLowerCase()).includes((p.gender ?? "").toLowerCase()));
     if (selectedSizes.length) list = list.filter(p => p.sizes.some(s => selectedSizes.includes(s.size) && s.stock > 0));
     if (availability !== "all") list = list.filter(p => p.status === availability);
     if (showNewOnly) list = list.filter(p => p.is_new);
@@ -76,7 +82,7 @@ export default function ShopClient({
     return list;
   }, [products, search, selectedBrands, selectedSizes, availability, showNewOnly, maxPrice, sort]);
 
-  const activeFilters = selectedBrands.length + selectedSizes.length + (availability !== "all" ? 1 : 0) + (showNewOnly ? 1 : 0);
+  const activeFilters = selectedBrands.length + selectedSizes.length + selectedGenders.length + (availability !== "all" ? 1 : 0) + (showNewOnly ? 1 : 0);
 
   return (
     <div style={{ background: BRAND.bg, minHeight: "100vh", fontFamily: FONTS.body }}>
@@ -150,7 +156,7 @@ export default function ShopClient({
 
         {filtersOpen && (
           <div className="p-6 mb-8 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-            <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
               <div>
                 <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Brand</p>
                 <div className="flex flex-wrap gap-1.5">
@@ -162,6 +168,20 @@ export default function ShopClient({
                         color: selectedBrands.includes(b) ? "#fff" : BRAND.muted,
                         border: `1px solid ${selectedBrands.includes(b) ? BRAND.teal : BRAND.border}`,
                       }}>{b}</button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Gender</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {GENDERS.map(g => (
+                    <button key={g} onClick={() => setSelectedGenders(arr => toggleArr(arr, g))}
+                      className="text-xs font-semibold px-3 py-1.5 transition-all"
+                      style={{
+                        background: selectedGenders.includes(g) ? BRAND.teal : "transparent",
+                        color: selectedGenders.includes(g) ? "#fff" : BRAND.muted,
+                        border: `1px solid ${selectedGenders.includes(g) ? BRAND.teal : BRAND.border}`,
+                      }}>{g}</button>
                   ))}
                 </div>
               </div>
@@ -208,7 +228,7 @@ export default function ShopClient({
             </div>
             {activeFilters > 0 && (
               <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                <button onClick={() => { setSelectedBrands([]); setSelectedSizes([]); setAvailability("all"); setShowNewOnly(false); setMaxPrice(20000); }}
+                <button onClick={() => { setSelectedBrands([]); setSelectedSizes([]); setSelectedGenders([]); setAvailability("all"); setShowNewOnly(false); setMaxPrice(20000); }}
                   className="text-xs font-bold uppercase tracking-wider flex items-center gap-1"
                   style={{ color: BRAND.red }}>
                   <X className="w-3 h-3" /> Clear all filters

@@ -135,7 +135,7 @@ export async function PATCH(
   // Fetch current order before updating (needed for notifications + inventory)
   const { data: currentOrder } = await admin
     .from("orders")
-    .select("status, payment_method, order_number, customer_name, customer_email, tracking_number, order_items(product_id, size, quantity)")
+    .select("status, payment_method, order_number, customer_name, customer_email, tracking_number, order_items(product_id, size, quantity, products(name))")
     .eq("id", id)
     .single();
 
@@ -154,6 +154,29 @@ export async function PATCH(
 
   const { error } = await admin.from("orders").update(update).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Restore stock + log inventory when admin cancels an active order
+  const RESTOCKABLE = ["pending", "paid", "processing"];
+  if (body.status === "cancelled" && currentOrder && RESTOCKABLE.includes(currentOrder.status)) {
+    for (const item of (currentOrder.order_items as { product_id: string; size: string; quantity: number; products: { name: string }[] | null }[])) {
+      if (!item.product_id) continue;
+      const { data: row } = await admin.from("product_sizes").select("stock").eq("product_id", item.product_id).eq("size", item.size).single();
+      if (row) {
+        const newStock = row.stock + item.quantity;
+        await admin.from("product_sizes").update({ stock: newStock }).eq("product_id", item.product_id).eq("size", item.size);
+        void admin.from("inventory_log").insert({
+          product_id: item.product_id,
+          product_name: item.products?.[0]?.name ?? "Unknown",
+          size: item.size,
+          old_stock: row.stock,
+          new_stock: newStock,
+          reason: "order_cancelled",
+          changed_by: user.email ?? "admin",
+          order_number: currentOrder.order_number,
+        });
+      }
+    }
+  }
 
   // Log the activity
   if (body.status && currentOrder) {

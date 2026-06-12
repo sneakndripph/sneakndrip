@@ -50,6 +50,7 @@ export default function CheckoutPage() {
   const [couponData, setCouponData] = useState<{ id: string; code: string; type: string; value: number; discount: number } | null>(null);
   const [couponError, setCouponError] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [activeCoupons, setActiveCoupons] = useState<{ code: string; type: string; value: number; min_order: number; expires_at: string | null }[]>([]);
 
   const [shipCfg, setShipCfg] = useState<{ freeThreshold: number; metro: number; prov: number }>({ freeThreshold: SHIPPING_FEE.free_threshold, metro: SHIPPING_FEE.metro_sm, prov: SHIPPING_FEE.provincial_sm });
 
@@ -61,6 +62,8 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     setMounted(true);
+    // Fetch active promo codes for display
+    fetch("/api/coupons/active").then(r => r.json()).then(data => { if (Array.isArray(data)) setActiveCoupons(data); }).catch(() => {});
     // Fetch dynamic shipping config from admin settings
     fetch("/api/admin/settings")
       .then(r => r.json())
@@ -590,6 +593,22 @@ export default function CheckoutPage() {
                 </div>
               )}
               {couponError && <p className="text-xs mt-1.5 font-semibold" style={{ color: BRAND.red }}>{couponError}</p>}
+              {!couponData && activeCoupons.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: BRAND.muted }}>Available Promos</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeCoupons.map(c => (
+                      <button key={c.code}
+                        onClick={() => { setCouponCode(c.code); setCouponError(""); }}
+                        className="text-xs font-bold px-2.5 py-1 transition-opacity hover:opacity-70"
+                        style={{ border: `1px dashed ${BRAND.teal}`, color: BRAND.teal, background: `${BRAND.teal}08` }}>
+                        {c.code} · {c.type === "percent" ? `${c.value}% off` : `₱${Number(c.value).toLocaleString()} off`}
+                        {c.min_order > 0 && <span style={{ color: BRAND.muted, fontWeight: 400 }}> (min ₱{Number(c.min_order).toLocaleString()})</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

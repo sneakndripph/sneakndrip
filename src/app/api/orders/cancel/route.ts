@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   // Fetch the order — must belong to the logged-in user and be pending
   const { data: order } = await admin
     .from("orders")
-    .select("id, status, customer_email, order_items(product_id, size, quantity)")
+    .select("id, status, customer_email, order_number, order_items(product_id, size, quantity, products(name))")
     .eq("order_number", orderNumber)
     .maybeSingle();
 
@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
   if (order.status !== "pending")
     return NextResponse.json({ error: "Only pending orders can be cancelled" }, { status: 400 });
 
-  // Restore stock
-  for (const item of (order.order_items as { product_id: string; size: string; quantity: number }[])) {
+  // Restore stock + log inventory
+  for (const item of (order.order_items as { product_id: string; size: string; quantity: number; products: { name: string }[] | null }[])) {
     if (!item.product_id) continue;
     const { data: row } = await admin
       .from("product_sizes")
@@ -35,10 +35,21 @@ export async function POST(req: NextRequest) {
       .eq("size", item.size)
       .single();
     if (row) {
+      const newStock = row.stock + item.quantity;
       await admin.from("product_sizes")
-        .update({ stock: row.stock + item.quantity })
+        .update({ stock: newStock })
         .eq("product_id", item.product_id)
         .eq("size", item.size);
+      void admin.from("inventory_log").insert({
+        product_id: item.product_id,
+        product_name: item.products?.[0]?.name ?? "Unknown",
+        size: item.size,
+        old_stock: row.stock,
+        new_stock: newStock,
+        reason: "order_cancelled",
+        changed_by: user.email ?? "customer",
+        order_number: order.order_number,
+      });
     }
   }
 
