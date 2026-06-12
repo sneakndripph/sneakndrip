@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { UserPlus, Shield, User, Trash2, X, Eye, EyeOff } from "lucide-react";
+import { UserPlus, Shield, User, Trash2, X, Eye, EyeOff, ChevronDown, Check } from "lucide-react";
 
 type UserRow = {
   id: string;
@@ -24,6 +24,16 @@ export default function AdminUsersPage() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [editingRole, setEditingRole] = useState<{ id: string; role: string } | null>(null);
+  const [roleOpen, setRoleOpen] = useState(false);
+  const roleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (roleRef.current && !roleRef.current.contains(e.target as Node)) setRoleOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
 
   async function loadUsers() {
     setLoading(true);
@@ -121,16 +131,25 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-5 py-4">
                     {editingRole?.id === u.id ? (
-                      <select
-                        value={editingRole.role}
-                        onChange={e => setEditingRole({ id: u.id, role: e.target.value })}
-                        onBlur={() => handleRoleChange(u.id, editingRole.role, u.full_name)}
-                        className="text-xs px-2 py-1 focus:outline-none"
-                        style={{ border: `1px solid ${BRAND.teal}`, background: BRAND.card, color: BRAND.black }}
-                        autoFocus
-                      >
-                        {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                      </select>
+                      <div className="relative inline-block">
+                        <div className="shadow-lg overflow-hidden z-50"
+                          style={{ background: BRAND.card, border: `1px solid ${BRAND.teal}`, minWidth: 110 }}>
+                          {ROLES.map(r => (
+                            <button key={r} type="button"
+                              onClick={() => { setEditingRole({ id: u.id, role: r }); handleRoleChange(u.id, r, u.full_name); }}
+                              className="w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:opacity-80"
+                              style={{
+                                background: editingRole.role === r ? `${BRAND.teal}12` : "transparent",
+                                color: editingRole.role === r ? BRAND.teal : BRAND.black,
+                                fontWeight: editingRole.role === r ? 700 : 500,
+                              }}>
+                              {r === "admin" ? <Shield className="w-3 h-3 mr-1.5 shrink-0" /> : <User className="w-3 h-3 mr-1.5 shrink-0" />}
+                              {r}
+                              {editingRole.role === r && <Check className="w-3 h-3 ml-auto shrink-0" />}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     ) : (
                       <button
                         onClick={() => setEditingRole({ id: u.id, role: u.role })}
@@ -221,14 +240,38 @@ export default function AdminUsersPage() {
               </div>
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Role</label>
-                <div className="relative">
-                  <select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
-                    className={inputCls} style={{ ...inputStyle, appearance: "none", paddingRight: 36, cursor: "pointer" }}
-                    onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                    onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)}>
-                    {ROLES.map(r => <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>)}
-                  </select>
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs" style={{ color: BRAND.muted }}>▼</span>
+                <div className="relative" ref={roleRef}>
+                  <button type="button" onClick={() => setRoleOpen(o => !o)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold focus:outline-none transition-colors"
+                    style={{ ...inputStyle, border: `1px solid ${roleOpen ? BRAND.teal : BRAND.border}` }}>
+                    <div className="flex items-center gap-2">
+                      {form.role === "admin" ? <Shield className="w-4 h-4" style={{ color: BRAND.teal }} /> : <User className="w-4 h-4" style={{ color: BRAND.muted }} />}
+                      <span style={{ color: BRAND.black }}>{form.role.charAt(0).toUpperCase() + form.role.slice(1)}</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: roleOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                  </button>
+                  {roleOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden shadow-lg"
+                      style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                      {ROLES.map(r => (
+                        <button key={r} type="button"
+                          onClick={() => { setForm(f => ({ ...f, role: r })); setRoleOpen(false); }}
+                          className="w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors hover:opacity-80"
+                          style={{
+                            background: form.role === r ? `${BRAND.teal}10` : "transparent",
+                            color: form.role === r ? BRAND.teal : BRAND.black,
+                            borderBottom: `1px solid ${BRAND.border}`,
+                            fontWeight: form.role === r ? 700 : 500,
+                          }}>
+                          <div className="flex items-center gap-2">
+                            {r === "admin" ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                            {r.charAt(0).toUpperCase() + r.slice(1)}
+                          </div>
+                          {form.role === r && <Check className="w-3.5 h-3.5 shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
