@@ -5,7 +5,7 @@ import ProductCard from "@/components/product/ProductCard";
 import HomeClient from "@/components/home/HomeClient";
 
 export const dynamic = "force-dynamic";
-import { getProducts, getReviews } from "@/lib/supabase/products";
+import { getProducts, getReviews, getSettings } from "@/lib/supabase/products";
 
 export const metadata: Metadata = {
   title: "Sneak N' Drip — Authentic Sneakers Philippines",
@@ -17,12 +17,33 @@ export const metadata: Metadata = {
   },
 };
 
+const HERO_DEFAULTS = {
+  hero_badge: "New Drops Every Week",
+  hero_line1: "STEP INTO",
+  hero_line2: "YOUR NEXT",
+  hero_line3: "PAIR",
+  hero_subtitle: "100% Authentic Sneakers · On Hand & Pre-Order\nShips Philippines-wide. GCash, Maya, Bank Transfer & COD accepted.",
+  hero_cta_primary: "Shop Now",
+  hero_cta_secondary: "Pre-Orders",
+};
+
 export default async function HomePage() {
-  const [products, reviews] = await Promise.all([getProducts(), getReviews()]);
+  const [products, reviews, settings] = await Promise.all([getProducts(), getReviews(), getSettings()]);
   const newArrivals = products.filter(p => p.is_new).slice(0, 6);
   const onHand = products.filter(p => p.status === "on-hand").slice(0, 6);
   const trending = products.filter(p => p.is_trending).slice(0, 4);
   const featured = products.find(p => p.is_featured && p.status === "on-hand") ?? products[0];
+
+  const hero = {
+    badge: settings.hero_badge || HERO_DEFAULTS.hero_badge,
+    line1: settings.hero_line1 || HERO_DEFAULTS.hero_line1,
+    line2: settings.hero_line2 || HERO_DEFAULTS.hero_line2,
+    line3: settings.hero_line3 || HERO_DEFAULTS.hero_line3,
+    subtitle: (settings.hero_subtitle || HERO_DEFAULTS.hero_subtitle).split("\\n"),
+    ctaPrimary: settings.hero_cta_primary || HERO_DEFAULTS.hero_cta_primary,
+    ctaSecondary: settings.hero_cta_secondary || HERO_DEFAULTS.hero_cta_secondary,
+  };
+
   return (
     <>
       {/* ── Hero ─────────────────────────────────────────────────────── */}
@@ -49,7 +70,7 @@ export default async function HomePage() {
                 style={{ background: `${BRAND.teal}18`, color: BRAND.teal, border: `1px solid ${BRAND.teal}30` }}
               >
                 <span className="w-1.5 h-1.5 rounded-full animate-pulse inline-block" style={{ background: BRAND.teal }} />
-                New Drops Every Week
+                {hero.badge}
               </div>
 
               <h1
@@ -61,17 +82,14 @@ export default async function HomePage() {
                   color: BRAND.black,
                 }}
               >
-                STEP INTO
-                <span className="block" style={{ color: BRAND.teal }}>YOUR NEXT</span>
-                <span className="block">PAIR</span>
+                {hero.line1}
+                <span className="block" style={{ color: BRAND.teal }}>{hero.line2}</span>
+                <span className="block">{hero.line3}</span>
               </h1>
 
               <p className="mt-7 text-lg leading-relaxed max-w-lg" style={{ color: BRAND.muted, fontFamily: FONTS.body }}>
-                100% Authentic Sneakers &nbsp;·&nbsp; On Hand &amp; Pre-Order
-                <br />
-                <span className="text-sm" style={{ color: BRAND.mutedLight }}>
-                  Ships Philippines-wide. GCash, Maya, Bank Transfer &amp; COD accepted.
-                </span>
+                {hero.subtitle[0]}
+                {hero.subtitle[1] && <><br /><span className="text-sm" style={{ color: BRAND.mutedLight }}>{hero.subtitle[1]}</span></>}
               </p>
 
               <div className="flex flex-wrap gap-3 mt-10">
@@ -80,14 +98,14 @@ export default async function HomePage() {
                   className="font-bold text-sm px-9 py-4 transition-all hover:opacity-90 active:scale-95 uppercase tracking-widest"
                   style={{ background: BRAND.black, color: BRAND.bg, fontFamily: FONTS.body }}
                 >
-                  Shop Now
+                  {hero.ctaPrimary}
                 </Link>
                 <Link
-                  href="/shop?filter=new"
+                  href="/shop?filter=pre-order"
                   className="font-bold text-sm px-9 py-4 transition-all hover:opacity-70 uppercase tracking-widest"
                   style={{ border: `1.5px solid ${BRAND.black}`, color: BRAND.black, background: "transparent", fontFamily: FONTS.body }}
                 >
-                  New Arrivals
+                  {hero.ctaSecondary}
                 </Link>
               </div>
 
