@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Plus, Trash2, ToggleLeft, ToggleRight, Tag } from "lucide-react";
+import { Plus, Trash2, ToggleLeft, ToggleRight, Tag, ChevronDown, Check } from "lucide-react";
 
 type Coupon = {
   id: string;
@@ -25,6 +25,16 @@ export default function AdminCouponsPage() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [typeOpen, setTypeOpen] = useState(false);
+  const typeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (typeRef.current && !typeRef.current.contains(e.target as Node)) setTypeOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
 
   useEffect(() => {
     fetch("/api/admin/coupons").then(r => r.json()).then(setCoupons).finally(() => setLoading(false));
@@ -91,11 +101,33 @@ export default function AdminCouponsPage() {
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Type</label>
-              <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-                className={inputCls} style={inputStyle}>
-                <option value="percent">Percent (%)</option>
-                <option value="fixed">Fixed Amount (₱)</option>
-              </select>
+              <div className="relative" ref={typeRef}>
+                <button type="button" onClick={() => setTypeOpen(o => !o)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold focus:outline-none"
+                  style={{ ...inputStyle, border: `1px solid ${typeOpen ? BRAND.teal : BRAND.border}` }}>
+                  <span style={{ color: BRAND.black }}>{form.type === "percent" ? "Percent (%)" : "Fixed Amount (₱)"}</span>
+                  <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: typeOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                </button>
+                {typeOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden shadow-lg"
+                    style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                    {[{ value: "percent", label: "Percent (%)" }, { value: "fixed", label: "Fixed Amount (₱)" }].map(o => (
+                      <button key={o.value} type="button"
+                        onClick={() => { setForm(f => ({ ...f, type: o.value })); setTypeOpen(false); }}
+                        className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-left transition-colors hover:opacity-80"
+                        style={{
+                          background: form.type === o.value ? `${BRAND.teal}10` : "transparent",
+                          color: form.type === o.value ? BRAND.teal : BRAND.black,
+                          borderBottom: `1px solid ${BRAND.border}`,
+                          fontWeight: form.type === o.value ? 700 : 500,
+                        }}>
+                        {o.label}
+                        {form.type === o.value && <Check className="w-3.5 h-3.5 shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
