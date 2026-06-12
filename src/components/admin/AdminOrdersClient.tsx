@@ -5,7 +5,7 @@ import Image from "next/image";
 import { BRAND, FONTS } from "@/lib/constants";
 import {
   Search, Clock, CheckCircle, Truck, Package, XCircle,
-  X, ExternalLink, MapPin, User, CreditCard, ChevronRight,
+  X, ExternalLink, MapPin, User, CreditCard, ChevronRight, MessageCircle,
 } from "lucide-react";
 
 const STATUSES = ["all", "pending", "paid", "processing", "shipped", "delivered", "cancelled"] as const;
@@ -330,6 +330,11 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                 {liveSelected.customer_mobile && (
                   <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{liveSelected.customer_mobile}</p>
                 )}
+                <a href="/admin/chat"
+                  className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold transition-opacity hover:opacity-70"
+                  style={{ color: BRAND.teal }}>
+                  <MessageCircle className="w-3.5 h-3.5" /> Chat with Customer
+                </a>
               </div>
 
               {/* Shipping */}

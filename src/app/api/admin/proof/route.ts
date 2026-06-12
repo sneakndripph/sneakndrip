@@ -11,5 +11,19 @@ export async function GET(req: NextRequest) {
     .createSignedUrl(path, 300);
 
   if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.redirect(data.signedUrl);
+
+  // Proxy bytes directly — avoids redirect/CORS issues with <img> tags
+  try {
+    const imgRes = await fetch(data.signedUrl);
+    if (!imgRes.ok) return NextResponse.redirect(data.signedUrl);
+    const buffer = await imgRes.arrayBuffer();
+    return new NextResponse(buffer, {
+      headers: {
+        "Content-Type": imgRes.headers.get("content-type") ?? "image/jpeg",
+        "Cache-Control": "private, max-age=300, no-transform",
+      },
+    });
+  } catch {
+    return NextResponse.redirect(data.signedUrl);
+  }
 }

@@ -13,12 +13,12 @@ const FOOTER_LINKS = {
   ],
   Help: [
     { label: "Track My Order", href: "/account" },
-    { label: "Shipping Info", href: "/shipping" },
+    { label: "Shipping Info",  href: "/shipping" },
     { label: "Returns Policy", href: "/returns" },
-    { label: "Authenticity", href: "/authenticity" },
+    { label: "Authenticity",   href: "/authenticity" },
   ],
   About: [
-    { label: "Our Story", href: "/about" },
+    { label: "Our Story",  href: "/about" },
     { label: "Contact Us", href: "/contact" },
     { label: "Instagram", href: "https://www.instagram.com/sneakndripph/" },
     { label: "TikTok", href: "https://www.tiktok.com/@sneakyjuls" },
@@ -101,11 +101,14 @@ export default function Footer() {
             100% Authentic Sneakers &nbsp;·&nbsp; Philippines
           </p>
           <div className="flex gap-4">
-            {["Privacy Policy", "Terms of Service"].map(l => (
-              <Link key={l} href="#" className="text-xs transition-colors" style={{ color: "#3A3836" }}
+            {[
+              { label: "Privacy Policy",  href: "/privacy" },
+              { label: "Terms of Service", href: "/terms" },
+            ].map(l => (
+              <Link key={l.label} href={l.href} className="text-xs transition-colors" style={{ color: "#3A3836" }}
                 onMouseEnter={e => (e.currentTarget.style.color = BRAND.teal)}
                 onMouseLeave={e => (e.currentTarget.style.color = "#3A3836")}>
-                {l}
+                {l.label}
               </Link>
             ))}
           </div>

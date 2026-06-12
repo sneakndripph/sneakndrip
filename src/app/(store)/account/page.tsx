@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BRAND, FONTS } from "@/lib/constants";
 import Image from "next/image";
-import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin } from "lucide-react";
+import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -336,12 +336,20 @@ export default function AccountPage() {
                         })}
                       </div>
 
-                      {/* Total */}
-                      <div className="px-5 py-4 flex items-center justify-between">
-                        <p className="text-xs" style={{ color: BRAND.muted }}>
-                          {isCOD ? "Cash on Delivery" : order.payment_method?.replace("_", " ")}
-                        </p>
-                        <p className="font-black text-sm" style={{ color: BRAND.black }}>
+                      {/* Total + Help */}
+                      <div className="px-5 py-4 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <p className="text-xs" style={{ color: BRAND.muted }}>
+                            {isCOD ? "Cash on Delivery" : order.payment_method?.replace("_", " ")}
+                          </p>
+                          <button
+                            onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
+                            className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70"
+                            style={{ color: BRAND.teal }}>
+                            <MessageCircle className="w-3.5 h-3.5" /> Need help?
+                          </button>
+                        </div>
+                        <p className="font-black text-sm shrink-0" style={{ color: BRAND.black }}>
                           Total ₱{Number(order.total).toLocaleString()}
                         </p>
                       </div>

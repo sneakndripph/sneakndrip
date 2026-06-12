@@ -21,6 +21,14 @@ export default function ChatWidget() {
   const [starting, setStarting] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // External trigger — allows other components to open the chat
+  useEffect(() => {
+    function handleOpenChat() { open(); }
+    window.addEventListener("open-chat", handleOpenChat);
+    return () => window.removeEventListener("open-chat", handleOpenChat);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convId]);
+
   // Restore session from localStorage + pre-fill from auth
   useEffect(() => {
     const saved = localStorage.getItem("snd_conv");
