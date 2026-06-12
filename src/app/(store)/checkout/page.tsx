@@ -32,6 +32,7 @@ export default function CheckoutPage() {
   const [step, setStep] = useState<Step>("details");
   const [paymentMethod, setPaymentMethod] = useState<string>("gcash");
   const [proofFile, setProofFile] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [regionGroup, setRegionGroup] = useState("");
   const [form, setForm] = useState({ name: "", email: "", mobile: "", street: "", barangay: "", city: "", province: "", postal: "" });
   const [placing, setPlacing] = useState(false);
@@ -51,6 +52,13 @@ export default function CheckoutPage() {
       });
     });
   }, [router]);
+
+  useEffect(() => {
+    if (!proofFile || !proofFile.type.startsWith("image/")) { setProofPreview(null); return; }
+    const url = URL.createObjectURL(proofFile);
+    setProofPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [proofFile]);
 
   function handleContinueToPayment() {
     if (!form.name || !form.email || !form.mobile || !form.street || !form.province || !form.city || !form.barangay) {
@@ -345,8 +353,13 @@ export default function CheckoutPage() {
                           onChange={e => setProofFile(e.target.files?.[0] || null)} />
                         <label htmlFor="proof" className="cursor-pointer">
                           {proofFile ? (
-                            <div>
-                              <CheckCircle className="w-8 h-8 mx-auto mb-2" style={{ color: BRAND.teal }} />
+                            <div className="flex flex-col items-center">
+                              {proofPreview ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={proofPreview} alt="Proof preview" className="max-h-40 rounded-lg mb-3 object-contain" style={{ border: `1px solid ${BRAND.border}` }} />
+                              ) : (
+                                <CheckCircle className="w-8 h-8 mb-2" style={{ color: BRAND.teal }} />
+                              )}
                               <p className="text-sm font-semibold" style={{ color: BRAND.teal }}>{proofFile.name}</p>
                               <p className="text-xs mt-1" style={{ color: BRAND.muted }}>Click to change</p>
                             </div>
@@ -402,7 +415,14 @@ export default function CheckoutPage() {
                     Payment: {PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label}
                   </h2>
                   {proofFile && (
-                    <p className="text-sm" style={{ color: BRAND.teal }}>✓ Proof uploaded: {proofFile.name}</p>
+                    <div className="mt-2">
+                      {proofPreview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={proofPreview} alt="Proof of payment" className="rounded-lg max-h-48 object-contain" style={{ border: `1px solid ${BRAND.border}` }} />
+                      ) : (
+                        <p className="text-sm" style={{ color: BRAND.teal }}>✓ {proofFile.name}</p>
+                      )}
+                    </div>
                   )}
                   {isCOD && <p className="text-sm" style={{ color: BRAND.muted }}>Pay upon delivery</p>}
                 </div>

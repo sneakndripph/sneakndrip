@@ -140,8 +140,8 @@ export default function CartPage() {
               <div key={`${item.product.id}-${item.size}`}
                 className="p-5 rounded-xl flex gap-5"
                 style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
-                {/* Image */}
-                <div className="w-20 h-20 shrink-0 rounded-lg flex items-center justify-center relative overflow-hidden"
+                {/* Image — clickable */}
+                <Link href={`/shop/${item.product.slug}`} className="w-20 h-20 shrink-0 rounded-lg flex items-center justify-center relative overflow-hidden transition-opacity hover:opacity-80"
                   style={{ background: item.product.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}>
                   {item.product.images?.[0] ? (
                     <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover object-center" sizes="80px" />
@@ -150,14 +150,14 @@ export default function CartPage() {
                       {item.product.brand.charAt(0)}
                     </span>
                   )}
-                </div>
+                </Link>
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <p className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: BRAND.muted }}>{item.product.brand}</p>
-                      <h3 className="font-semibold text-sm leading-snug" style={{ color: BRAND.black }}>{item.product.name}</h3>
+                      <Link href={`/shop/${item.product.slug}`} className="font-semibold text-sm leading-snug hover:underline underline-offset-2" style={{ color: BRAND.black }}>{item.product.name}</Link>
                       <div className="flex items-center gap-2 mt-1.5">
                         <span className="text-xs px-2 py-0.5 font-medium"
                           style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
