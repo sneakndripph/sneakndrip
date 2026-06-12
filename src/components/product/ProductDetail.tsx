@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { BRAND, FONTS } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
-import { ShoppingBag, Zap, Shield, Truck, Clock, Star, Minus, Plus, Share2, Bell } from "lucide-react";
+import { ShoppingBag, Zap, Shield, Truck, Clock, Star, Minus, Plus, Share2, Bell, Heart } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRecentlyViewed, useRecentlyViewedStore } from "@/hooks/useRecentlyViewed";
+import { useWishlist } from "@/hooks/useWishlist";
+import { createClient } from "@/lib/supabase/client";
 import type { Product, Review } from "@/lib/types";
 
 function formatETA(start: string, end?: string) {
@@ -44,9 +46,22 @@ export default function ProductDetail({
   const addItem = useCartStore(s => s.addItem);
   const { trackItem } = useRecentlyViewed();
   const recentItems = useRecentlyViewedStore(s => s.items);
+  const { toggle: toggleWishlist, isWishlisted } = useWishlist();
+  const wishlisted = isWishlisted(product.id);
+  const tabsRef = useRef<HTMLDivElement>(null);
   const [notifySize, setNotifySize] = useState<string | null>(null);
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notifySubmitted, setNotifySubmitted] = useState<string | null>(null);
+
+  // Auto-fill reviewer name from auth session
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      if (data.user) {
+        const name = data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "";
+        if (name) setReviewName(name);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     trackItem({
@@ -226,7 +241,7 @@ export default function ProductDetail({
                     ))}
                   </div>
                   <span className="text-sm font-bold" style={{ color: BRAND.black }}>{avg.toFixed(1)}</span>
-                  <button onClick={() => setActiveTab("reviews")} className="text-xs underline" style={{ color: BRAND.muted }}>
+                  <button onClick={() => { setActiveTab("reviews"); setTimeout(() => tabsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50); }} className="text-xs underline hover:opacity-70 transition-opacity" style={{ color: BRAND.muted }}>
                     ({reviews.length} review{reviews.length !== 1 ? "s" : ""})
                   </button>
                 </div>
@@ -396,12 +411,25 @@ export default function ProductDetail({
 
             {/* CTAs */}
             <div className="flex flex-col gap-3 mb-8">
-              <button onClick={handleAddToCart}
-                className="w-full py-4 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
-                style={{ background: BRAND.black, color: BRAND.bg }}>
-                <ShoppingBag className="w-4 h-4" />
-                {isPreOrder ? "Reserve Now" : "Add to Cart"}
-              </button>
+              <div className="flex gap-3">
+                <button onClick={handleAddToCart}
+                  className="flex-1 py-4 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                  style={{ background: BRAND.black, color: BRAND.bg }}>
+                  <ShoppingBag className="w-4 h-4" />
+                  {isPreOrder ? "Reserve Now" : "Add to Cart"}
+                </button>
+                <button
+                  onClick={() => toggleWishlist(product.id)}
+                  className="px-4 py-4 flex items-center justify-center transition-all"
+                  style={{
+                    background: wishlisted ? `${BRAND.teal}15` : "transparent",
+                    border: `1.5px solid ${wishlisted ? BRAND.teal : BRAND.border}`,
+                    color: wishlisted ? BRAND.teal : BRAND.muted,
+                  }}
+                  title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}>
+                  <Heart className="w-5 h-5" fill={wishlisted ? BRAND.teal : "none"} stroke={wishlisted ? BRAND.teal : BRAND.muted} />
+                </button>
+              </div>
               <button onClick={handleBuyNow}
                 className="w-full py-4 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
                 style={{ background: BRAND.teal, color: "#fff" }}>
@@ -430,7 +458,7 @@ export default function ProductDetail({
             </div>
 
             {/* Tabs */}
-            <div style={{ borderTop: `1px solid ${BRAND.border}` }}>
+            <div ref={tabsRef} style={{ borderTop: `1px solid ${BRAND.border}` }}>
               <div className="flex gap-0 -mb-px overflow-x-auto">
                 {(["details", "shipping", "auth", "reviews"] as const).map(tab => (
                   <button key={tab} onClick={() => setActiveTab(tab)}

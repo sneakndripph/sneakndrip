@@ -23,6 +23,7 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
   const [selectedSize, setSelectedSize] = useState(availableSizes[0]?.size ?? product.sizes[0]?.size ?? "");
   const isPreOrder = product.status === "pre-order";
   const { toggle, isWishlisted } = useWishlist();
+  const wishlisted = isWishlisted(product.id);
 
   function handleQuickAdd(e: React.MouseEvent) {
     e.preventDefault();
@@ -83,15 +84,6 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
           </div>
         )}
 
-        {/* Wishlist button */}
-        <button
-          type="button"
-          onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(product.id); }}
-          className="absolute bottom-3 right-3 z-30 w-8 h-8 flex items-center justify-center rounded-full transition-all"
-          style={{ background: isWishlisted(product.id) ? BRAND.teal : "rgba(255,255,255,0.85)", border: `1px solid ${isWishlisted(product.id) ? BRAND.teal : BRAND.border}` }}>
-          <Heart className="w-3.5 h-3.5" fill={isWishlisted(product.id) ? "#fff" : "none"} stroke={isWishlisted(product.id) ? "#fff" : BRAND.muted} />
-        </button>
-
         {/* Hover overlay — sizes + quick add */}
         {showQuickAdd && (
           <div className="absolute inset-0 flex flex-col justify-end z-20 transition-opacity duration-200"
@@ -133,10 +125,28 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
 
       {/* Info */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-widest mb-0.5"
-          style={{ color: BRAND.muted, fontFamily: FONTS.body }}>
-          {product.brand}
-        </p>
+        {/* Brand row with wishlist */}
+        <div className="flex items-center justify-between mb-0.5">
+          <p className="text-[11px] font-bold uppercase tracking-widest"
+            style={{ color: BRAND.muted, fontFamily: FONTS.body }}>
+            {product.brand}
+          </p>
+          <button
+            type="button"
+            onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(product.id); }}
+            className="w-6 h-6 flex items-center justify-center rounded-full transition-all -mr-0.5"
+            style={{
+              background: wishlisted ? `${BRAND.teal}15` : "transparent",
+              border: `1px solid ${wishlisted ? BRAND.teal : "transparent"}`,
+            }}>
+            <Heart
+              className="w-3 h-3 transition-all"
+              fill={wishlisted ? BRAND.teal : "none"}
+              stroke={wishlisted ? BRAND.teal : BRAND.mutedLight}
+            />
+          </button>
+        </div>
+
         <h3 className="text-sm font-semibold leading-snug mb-1 transition-colors"
           style={{ color: hovered ? BRAND.teal : BRAND.black, fontFamily: FONTS.body }}>
           {product.name}

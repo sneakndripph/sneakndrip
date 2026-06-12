@@ -53,7 +53,14 @@ export default function CheckoutPage() {
     setMounted(true);
     import("@/lib/supabase/client").then(({ createClient }) => {
       createClient().auth.getUser().then(({ data: { user } }) => {
-        if (!user) router.replace("/login?redirect=/checkout");
+        if (!user) { router.replace("/login?redirect=/checkout"); return; }
+        // Pre-fill known fields from auth profile
+        setForm(f => ({
+          ...f,
+          name: f.name || user.user_metadata?.full_name || "",
+          email: f.email || user.email || "",
+          mobile: f.mobile || user.user_metadata?.mobile || "",
+        }));
       });
     });
   }, [router]);
@@ -227,9 +234,9 @@ export default function CheckoutPage() {
           ))}
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8 items-start">
-          {/* Main form */}
-          <div className="lg:col-span-2">
+        <div className="grid lg:grid-cols-3 gap-6 items-start">
+          {/* Main form — second on mobile, first on desktop */}
+          <div className="lg:col-span-2 lg:order-1 order-2">
             {/* Step 1: Details */}
             {step === "details" && (
               <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
@@ -466,8 +473,8 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* Order summary */}
-          <div className="rounded-xl overflow-hidden sticky top-24"
+          {/* Order summary — first on mobile, second on desktop */}
+          <div className="lg:order-2 order-1 rounded-xl overflow-hidden lg:sticky lg:top-24"
             style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
             <div className="p-5">
               <h3 className="font-black mb-4" style={{ color: BRAND.black, fontFamily: FONTS.display, fontSize: "1.2rem", letterSpacing: "0.03em" }}>

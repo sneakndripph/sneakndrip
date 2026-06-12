@@ -82,12 +82,13 @@ export async function getReviews(productId?: string): Promise<Review[]> {
     let query = supabase
       .from("reviews")
       .select("*")
+      .eq("is_verified", true)
       .order("created_at", { ascending: false });
     if (productId) query = query.eq("product_id", productId);
     const { data, error } = await query;
-    if (error || !data?.length) return MOCK_REVIEWS as unknown as Review[];
+    if (error || !data?.length) return [];
     return data as unknown as Review[];
   } catch {
-    return MOCK_REVIEWS as unknown as Review[];
+    return [];
   }
 }

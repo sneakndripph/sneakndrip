@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { BRAND, FONTS, BRANDS, SNEAKER_SIZES } from "@/lib/constants";
 import ProductCard from "@/components/product/ProductCard";
-import { SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { SlidersHorizontal, X, ChevronDown, Check } from "lucide-react";
 import type { Product } from "@/lib/types";
 
 const SORT_OPTIONS = [
@@ -39,12 +39,25 @@ export default function ShopClient({
   const [availability, setAvailability] = useState<string>(mapFilter(initialFilter));
   const [showNewOnly, setShowNewOnly] = useState(initialFilter === "new");
   const [maxPrice, setMaxPrice] = useState(20000);
+  const [sortOpen, setSortOpen] = useState(false);
+  const sortRef = useRef<HTMLDivElement>(null);
 
-  // Sync filter state when URL param changes (e.g. navigating between On Hand / Pre-Orders)
+  // Sync filter + search state when URL params change
   useEffect(() => {
     setAvailability(mapFilter(initialFilter));
     setShowNewOnly(initialFilter === "new");
   }, [initialFilter]);
+
+  useEffect(() => { setSearch(initialSearch); }, [initialSearch]);
+
+  // Close sort dropdown on outside click
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
 
   const toggleArr = <T,>(arr: T[], item: T): T[] =>
     arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item];
@@ -105,13 +118,33 @@ export default function ShopClient({
             <SlidersHorizontal className="w-4 h-4" />
             Filters {activeFilters > 0 && `(${activeFilters})`}
           </button>
-          <div className="relative">
-            <select value={sort} onChange={e => setSort(e.target.value)}
-              className="appearance-none px-4 py-3 pr-8 text-sm font-semibold focus:outline-none cursor-pointer"
-              style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}>
-              {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: BRAND.muted }} />
+          <div className="relative" ref={sortRef}>
+            <button
+              onClick={() => setSortOpen(o => !o)}
+              className="flex items-center gap-2 px-4 py-3 text-sm font-semibold min-w-[170px] justify-between"
+              style={{ background: BRAND.card, border: `1px solid ${sortOpen ? BRAND.teal : BRAND.border}`, color: BRAND.black }}>
+              <span>{SORT_OPTIONS.find(o => o.value === sort)?.label}</span>
+              <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: sortOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+            </button>
+            {sortOpen && (
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[170px] overflow-hidden shadow-lg"
+                style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                {SORT_OPTIONS.map(o => (
+                  <button key={o.value}
+                    onClick={() => { setSort(o.value); setSortOpen(false); }}
+                    className="w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors hover:opacity-80"
+                    style={{
+                      background: sort === o.value ? `${BRAND.teal}10` : "transparent",
+                      color: sort === o.value ? BRAND.teal : BRAND.black,
+                      borderBottom: `1px solid ${BRAND.border}`,
+                      fontWeight: sort === o.value ? 700 : 500,
+                    }}>
+                    {o.label}
+                    {sort === o.value && <Check className="w-3.5 h-3.5 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

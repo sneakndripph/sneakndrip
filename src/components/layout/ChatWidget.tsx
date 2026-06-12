@@ -31,18 +31,9 @@ export default function ChatWidget() {
 
   // Restore session from localStorage + pre-fill from auth
   useEffect(() => {
-    const saved = localStorage.getItem("snd_conv");
-    if (saved) {
-      const { id, name: n } = JSON.parse(saved) as { id: string; name: string };
-      setConvId(id);
-      setName(n);
-      fetch(`/api/chat/conversations/${id}/messages`)
-        .then(r => r.json())
-        .then((data: Message[]) => { if (Array.isArray(data)) setMessages(data); });
-    }
-    // Pre-fill from Supabase session
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => {
+      const currentEmail = data.user?.email ?? null;
       if (data.user) {
         const n = data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "";
         const e = data.user.email || "";
@@ -50,6 +41,21 @@ export default function ChatWidget() {
         setAuthedEmail(e);
         setName(prev => prev || n);
         setEmail(prev => prev || e);
+      }
+
+      const saved = localStorage.getItem("snd_conv");
+      if (saved) {
+        const parsed = JSON.parse(saved) as { id: string; name: string; email?: string };
+        // Different logged-in user — clear stale conversation
+        if (parsed.email && currentEmail && parsed.email !== currentEmail) {
+          localStorage.removeItem("snd_conv");
+          return;
+        }
+        setConvId(parsed.id);
+        setName(n => n || parsed.name);
+        fetch(`/api/chat/conversations/${parsed.id}/messages`)
+          .then(r => r.json())
+          .then((msgs: Message[]) => { if (Array.isArray(msgs)) setMessages(msgs); });
       }
     });
   }, []);
@@ -99,7 +105,7 @@ export default function ChatWidget() {
     if (res.ok) {
       const { id } = await res.json() as { id: string };
       setConvId(id);
-      localStorage.setItem("snd_conv", JSON.stringify({ id, name: name.trim() }));
+      localStorage.setItem("snd_conv", JSON.stringify({ id, name: name.trim(), email: email.trim() || null }));
       const msgs = await fetch(`/api/chat/conversations/${id}/messages`).then(r => r.json()) as Message[];
       setMessages(Array.isArray(msgs) ? msgs : []);
       setInput("");
