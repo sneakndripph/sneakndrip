@@ -490,8 +490,13 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                       {liveSelected.payment_type === "downpayment" ? "Downpayment" : "Full Payment"}
                     </p>
                   </div>
-                  {liveSelected.proof_of_payment && liveSelected.payment_method !== "cod" && (
-                    <a href={`/api/admin/proof?path=${encodeURIComponent(liveSelected.proof_of_payment)}`}
+                  {liveSelected.payment_method !== "cod" && (
+                    <a
+                      href={
+                        liveSelected.proof_of_payment
+                          ? `/api/admin/proof?path=${encodeURIComponent(liveSelected.proof_of_payment)}`
+                          : `/api/admin/proof?orderNumber=${encodeURIComponent(liveSelected.order_number)}`
+                      }
                       target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold"
                       style={{ background: `${BRAND.teal}15`, color: BRAND.teal, border: `1px solid ${BRAND.teal}40` }}
@@ -500,14 +505,19 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                     </a>
                   )}
                 </div>
-                {liveSelected.proof_of_payment && liveSelected.payment_method !== "cod" && (
+                {liveSelected.payment_method !== "cod" && (
                   <div className="rounded-lg overflow-hidden"
                     style={{ border: `1px solid ${BRAND.border}`, background: "#F8F7F6" }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={`/api/admin/proof?path=${encodeURIComponent(liveSelected.proof_of_payment)}`}
+                      src={
+                        liveSelected.proof_of_payment
+                          ? `/api/admin/proof?path=${encodeURIComponent(liveSelected.proof_of_payment)}`
+                          : `/api/admin/proof?orderNumber=${encodeURIComponent(liveSelected.order_number)}`
+                      }
                       alt="Proof of payment"
                       className="w-full object-contain max-h-72"
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                     />
                   </div>
                 )}
