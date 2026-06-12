@@ -10,6 +10,7 @@ interface CartState {
   addItem: (product: Product, size: string, paymentType: PaymentType, qty?: number) => void;
   removeItem: (productId: string, size: string) => void;
   updateQuantity: (productId: string, size: string, quantity: number) => void;
+  updateSize: (productId: string, oldSize: string, newSize: string) => void;
   clearCart: () => void;
   itemCount: () => number;
   subtotal: () => number;
@@ -61,6 +62,19 @@ export const useCartStore = create<CartState>()(
             i.product.id === productId && i.size === size ? { ...i, quantity } : i
           ),
         }));
+      },
+
+      updateSize: (productId, oldSize, newSize) => {
+        if (oldSize === newSize) return;
+        set(state => {
+          const conflict = state.items.find(i => i.product.id === productId && i.size === newSize);
+          if (conflict) return state;
+          return {
+            items: state.items.map(i =>
+              i.product.id === productId && i.size === oldSize ? { ...i, size: newSize } : i
+            ),
+          };
+        });
       },
 
       clearCart: () => set({ items: [], cartUserId: null }),

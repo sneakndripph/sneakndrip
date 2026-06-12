@@ -4,6 +4,7 @@ import Image from "next/image";
 import { BRAND, FONTS, BRANDS } from "@/lib/constants";
 import ProductCard from "@/components/product/ProductCard";
 import HomeClient from "@/components/home/HomeClient";
+import HeroAddToCart from "@/components/product/HeroAddToCart";
 
 export const dynamic = "force-dynamic";
 import { getProducts, getReviews, getSettings } from "@/lib/supabase/products";
@@ -157,38 +158,8 @@ export default async function HomePage() {
                     )}
                   </div>
 
-                  {/* Info */}
-                  <div className="px-6 pt-4 pb-6">
-                    <h3 className="font-bold text-base mb-1" style={{ color: BRAND.black, fontFamily: FONTS.body }}>{featured.name}</h3>
-                    <p className="text-xs mb-4" style={{ color: BRAND.muted, fontFamily: FONTS.body }}>{featured.colorway}</p>
-
-                    {/* Sizes */}
-                    <div className="flex flex-wrap gap-1.5 mb-5">
-                      {featured.sizes.filter(s => s.stock > 0).slice(0, 6).map(s => (
-                        <span key={s.size}
-                          className="text-xs px-2.5 py-1 font-medium"
-                          style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted, fontFamily: FONTS.body }}>
-                          {s.size}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span style={{ fontFamily: FONTS.display, fontSize: "1.8rem", color: BRAND.black, letterSpacing: "0.02em" }}>
-                          ₱{featured.full_payment_price.toLocaleString()}
-                        </span>
-                        <span className="text-sm line-through ml-2" style={{ color: BRAND.mutedLight }}>
-                          ₱{featured.srp_price.toLocaleString()}
-                        </span>
-                      </div>
-                      <Link href={`/shop/${featured.slug}`}
-                        className="px-5 py-2.5 text-sm font-bold text-white transition-opacity hover:opacity-80 uppercase tracking-wider"
-                        style={{ background: BRAND.teal, fontFamily: FONTS.body }}>
-                        View
-                      </Link>
-                    </div>
-                  </div>
+                  {/* Info + Add to Cart */}
+                  <HeroAddToCart product={featured} />
                 </div>
 
                 {/* Below SRP float badge */}

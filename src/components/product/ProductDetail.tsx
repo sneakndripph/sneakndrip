@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { BRAND, FONTS } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
-import { ShoppingBag, Zap, Shield, Truck, Clock, Star, Minus, Plus, Share2, Bell, Heart } from "lucide-react";
+import { ShoppingBag, Zap, Shield, Truck, Clock, Star, Minus, Plus, Share2, Bell, Heart, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRecentlyViewed, useRecentlyViewedStore } from "@/hooks/useRecentlyViewed";
 import { useWishlist } from "@/hooks/useWishlist";
@@ -38,6 +38,7 @@ export default function ProductDetail({
   const [paymentType, setPaymentType] = useState<"full_payment" | "downpayment">("full_payment");
   const [activeTab, setActiveTab] = useState<"details" | "shipping" | "auth" | "reviews">("details");
   const [imageIdx, setImageIdx] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewName, setReviewName] = useState("");
   const [reviewTitle, setReviewTitle] = useState("");
@@ -170,7 +171,7 @@ export default function ProductDetail({
     router.push("/cart");
   }
 
-  return (
+  return (<>
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-2 mb-8 text-xs" style={{ color: BRAND.muted }}>
@@ -184,8 +185,9 @@ export default function ProductDetail({
         <div className="grid lg:grid-cols-2 gap-12">
           {/* Gallery */}
           <div>
-            <div className="relative aspect-square mb-3 rounded-xl overflow-hidden flex items-center justify-center"
-              style={{ background: product.bg || BRAND.bg, border: `1px solid ${BRAND.cardBorder}` }}>
+            <div className="relative aspect-square mb-3 rounded-xl overflow-hidden flex items-center justify-center cursor-zoom-in"
+              style={{ background: product.bg || BRAND.bg, border: `1px solid ${BRAND.cardBorder}` }}
+              onClick={() => images[imageIdx] && setLightboxOpen(true)}>
               {images[imageIdx] ? (
                 <Image src={images[imageIdx]!} alt={product.name} fill className="object-cover object-center" sizes="(max-width: 768px) 100vw, 50vw" />
               ) : (
@@ -586,5 +588,23 @@ export default function ProductDetail({
         )}
       </div>
     </div>
-  );
+
+    {/* Lightbox */}
+    {lightboxOpen && images[imageIdx] && (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        style={{ background: "rgba(0,0,0,0.85)" }}
+        onClick={() => setLightboxOpen(false)}>
+        <button
+          className="absolute top-4 right-4 p-2 rounded-full transition-opacity hover:opacity-70"
+          style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
+          onClick={() => setLightboxOpen(false)}>
+          <X className="w-6 h-6" />
+        </button>
+        <div className="relative w-full max-w-2xl aspect-square" onClick={e => e.stopPropagation()}>
+          <Image src={images[imageIdx]!} alt={product.name} fill className="object-contain" sizes="100vw" />
+        </div>
+      </div>
+    )}
+  </>);
 }

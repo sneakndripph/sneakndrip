@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { BRAND, FONTS } from "@/lib/constants";
 import Image from "next/image";
 import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle } from "lucide-react";
@@ -22,7 +23,7 @@ type OrderItem = {
   size: string;
   quantity: number;
   unit_price: number;
-  products: { images: string[] | null; bg: string | null } | null;
+  products: { images: string[] | null; bg: string | null; slug: string | null } | null;
 };
 type Order = {
   id: string;
@@ -325,17 +326,31 @@ export default function AccountPage() {
                           return (
                             <div key={i} className="flex items-center gap-3 px-5 py-3"
                               style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                              <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative"
-                                style={{ background: bg, border: `1px solid ${BRAND.border}` }}>
-                                {img ? (
-                                  <Image src={img} alt={item.product_name} fill className="object-cover" sizes="44px" />
-                                ) : (
-                                  <span className="absolute inset-0 flex items-center justify-center text-xs font-black"
-                                    style={{ color: BRAND.black, opacity: 0.12, fontFamily: FONTS.display }}>
-                                    S
-                                  </span>
-                                )}
-                              </div>
+                              {item.products?.slug ? (
+                                <Link href={`/shop/${item.products.slug}`} className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative transition-opacity hover:opacity-70"
+                                  style={{ background: bg, border: `1px solid ${BRAND.border}` }}>
+                                  {img ? (
+                                    <Image src={img} alt={item.product_name} fill className="object-cover" sizes="44px" />
+                                  ) : (
+                                    <span className="absolute inset-0 flex items-center justify-center text-xs font-black"
+                                      style={{ color: BRAND.black, opacity: 0.12, fontFamily: FONTS.display }}>
+                                      S
+                                    </span>
+                                  )}
+                                </Link>
+                              ) : (
+                                <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative"
+                                  style={{ background: bg, border: `1px solid ${BRAND.border}` }}>
+                                  {img ? (
+                                    <Image src={img} alt={item.product_name} fill className="object-cover" sizes="44px" />
+                                  ) : (
+                                    <span className="absolute inset-0 flex items-center justify-center text-xs font-black"
+                                      style={{ color: BRAND.black, opacity: 0.12, fontFamily: FONTS.display }}>
+                                      S
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-semibold truncate" style={{ color: BRAND.black }}>{item.product_name}</p>
                                 <p className="text-xs" style={{ color: BRAND.muted }}>Size {item.size} · Qty {item.quantity}</p>
@@ -371,7 +386,7 @@ export default function AccountPage() {
                           </button>
                         </div>
                         <div className="flex items-center gap-3">
-                          {order.status === "pending" && (
+                          {order.status === "pending" && isCOD && (
                             <button
                               onClick={() => handleCancelOrder(order.order_number)}
                               disabled={cancellingOrder === order.order_number}

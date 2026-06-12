@@ -15,11 +15,6 @@ async function getRequestingUser() {
 }
 
 export async function GET() {
-  const user = await getRequestingUser();
-  if (!user || user.user_metadata?.role !== "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("activity_log")

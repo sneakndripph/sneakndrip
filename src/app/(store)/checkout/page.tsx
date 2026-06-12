@@ -98,8 +98,7 @@ export default function CheckoutPage() {
       setShowErrors(true);
       return;
     }
-    const mobile = form.mobile.replace(/\s/g, "");
-    if (!/^(09|(\+63)9)\d{9}$/.test(mobile)) {
+    if (!/^09\d{9}$/.test(form.mobile)) {
       setShowErrors(true);
       return;
     }
@@ -281,7 +280,7 @@ export default function CheckoutPage() {
                   ].map(field => {
                     const isMobile = field.key === "mobile";
                     const val = form[field.key as keyof typeof form];
-                    const mobileInvalid = isMobile && showErrors && !!val && !/^(09|(\+63)9)\d{9}$/.test(val.replace(/\s/g, ""));
+                    const mobileInvalid = isMobile && showErrors && !!val && !/^09\d{9}$/.test(val);
                     const isEmpty = showErrors && !val;
                     const hasError = isEmpty || mobileInvalid;
                     return (
@@ -293,7 +292,7 @@ export default function CheckoutPage() {
                           value={val}
                           onChange={e => setForm(f => ({
                             ...f,
-                            [field.key]: isMobile ? e.target.value.replace(/[^\d+]/g, "").slice(0, 13) : e.target.value,
+                            [field.key]: isMobile ? e.target.value.replace(/\D/g, "").slice(0, 11) : e.target.value,
                           }))}
                           placeholder={field.placeholder}
                           inputMode={isMobile ? "numeric" : undefined}
@@ -413,9 +412,9 @@ export default function CheckoutPage() {
                     </div>
 
                     {/* Proof upload */}
-                    <label className="block">
+                    <div>
                       <p className="text-sm font-bold mb-2" style={{ color: BRAND.black }}>Upload Proof of Payment</p>
-                      <div className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors`}
+                      <div className={`border-2 border-dashed rounded-xl p-4 sm:p-8 text-center cursor-pointer transition-colors`}
                         style={{ borderColor: proofFile ? BRAND.teal : BRAND.border, background: proofFile ? `${BRAND.teal}05` : "transparent" }}>
                         <input type="file" accept="image/*,.pdf" className="hidden" id="proof"
                           onChange={e => setProofFile(e.target.files?.[0] || null)} />
@@ -424,7 +423,7 @@ export default function CheckoutPage() {
                             <div className="flex flex-col items-center">
                               {proofPreview ? (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={proofPreview} alt="Proof preview" className="max-h-40 rounded-lg mb-3 object-contain" style={{ border: `1px solid ${BRAND.border}` }} />
+                                <img src={proofPreview} alt="Proof preview" className="w-full max-h-40 rounded-lg mb-3 object-contain" style={{ border: `1px solid ${BRAND.border}` }} />
                               ) : (
                                 <CheckCircle className="w-8 h-8 mb-2" style={{ color: BRAND.teal }} />
                               )}
@@ -440,7 +439,7 @@ export default function CheckoutPage() {
                           )}
                         </label>
                       </div>
-                    </label>
+                    </div>
                   </div>
                 )}
 

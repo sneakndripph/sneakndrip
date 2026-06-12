@@ -56,7 +56,7 @@ function TopProducts({ products }: { products: Product[] }) {
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, removeItem, updateQuantity, subtotal } = useCartStore();
+  const { items, removeItem, updateQuantity, updateSize, subtotal } = useCartStore();
   const [topProducts, setTopProducts] = useState<Product[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const sub = subtotal();
@@ -159,10 +159,17 @@ export default function CartPage() {
                       <p className="text-xs font-bold uppercase tracking-widest mb-0.5" style={{ color: BRAND.muted }}>{item.product.brand}</p>
                       <Link href={`/shop/${item.product.slug}`} className="font-semibold text-sm leading-snug hover:underline underline-offset-2" style={{ color: BRAND.black }}>{item.product.name}</Link>
                       <div className="flex items-center gap-2 mt-1.5">
-                        <span className="text-xs px-2 py-0.5 font-medium"
-                          style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
-                          {item.size}
-                        </span>
+                        <select
+                          value={item.size}
+                          onChange={e => updateSize(item.product.id, item.size, e.target.value)}
+                          className="text-xs px-2 py-0.5 font-medium cursor-pointer focus:outline-none"
+                          style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted, background: BRAND.bg }}>
+                          {item.product.sizes
+                            .filter(s => s.stock > 0 || s.size === item.size)
+                            .map(s => (
+                              <option key={s.size} value={s.size}>{s.size}</option>
+                            ))}
+                        </select>
                         <span className="text-xs px-2 py-0.5 font-semibold"
                           style={{ background: item.payment_type === "full_payment" ? `${BRAND.teal}15` : `${BRAND.red}12`, color: item.payment_type === "full_payment" ? BRAND.teal : BRAND.red }}>
                           {item.payment_type === "full_payment" ? "Full Payment" : "Downpayment"}
