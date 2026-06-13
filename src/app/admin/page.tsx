@@ -176,9 +176,13 @@ export default async function AdminDashboard() {
                     const Icon = cfg?.icon ?? Clock;
                     const firstItem = (order.order_items as { product_name: string; size: string }[])?.[0];
                     return (
-                      <tr key={order.order_number} className="transition-colors hover:bg-black/[0.02]"
+                      <tr key={order.order_number} className="transition-colors hover:bg-black/[0.02] cursor-pointer"
                         style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                        <td className="px-4 py-3.5 text-xs font-bold" style={{ color: BRAND.black }}>{order.order_number}</td>
+                        <td className="px-4 py-3.5 text-xs font-bold">
+                          <Link href={`/admin/orders?q=${order.order_number}`} className="hover:underline" style={{ color: BRAND.black }}>
+                            {order.order_number}
+                          </Link>
+                        </td>
                         <td className="px-4 py-3.5 text-xs font-semibold" style={{ color: BRAND.black }}>{order.customer_name}</td>
                         <td className="px-4 py-3.5 text-xs max-w-[160px] truncate" style={{ color: BRAND.muted }}>
                           {firstItem ? `${firstItem.product_name} (${firstItem.size})` : "—"}

@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await serverClient.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { orderNumber } = await req.json();
+  const { orderNumber, reason } = await req.json();
   if (!orderNumber) return NextResponse.json({ error: "Missing orderNumber" }, { status: 400 });
 
   const admin = createAdminClient();
@@ -53,7 +53,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  await admin.from("orders").update({ status: "cancelled" }).eq("id", order.id);
+  await admin.from("orders").update({
+    status: "cancelled",
+    ...(reason ? { admin_notes: `Customer cancelled: ${reason}` } : {}),
+  }).eq("id", order.id);
 
   return NextResponse.json({ ok: true });
 }

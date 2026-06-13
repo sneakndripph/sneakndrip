@@ -53,6 +53,7 @@ export default function CheckoutPage() {
   const [activeCoupons, setActiveCoupons] = useState<{ code: string; type: string; value: number; min_order: number; expires_at: string | null }[]>([]);
 
   const [shipCfg, setShipCfg] = useState<{ freeThreshold: number; metro: number; prov: number }>({ freeThreshold: SHIPPING_FEE.free_threshold, metro: SHIPPING_FEE.metro_sm, prov: SHIPPING_FEE.provincial_sm });
+  const [codEnabled, setCodEnabled] = useState(true);
 
   const isCOD = paymentMethod === "cod";
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
@@ -64,7 +65,7 @@ export default function CheckoutPage() {
     setMounted(true);
     // Fetch active promo codes for display
     fetch("/api/coupons/active").then(r => r.json()).then(data => { if (Array.isArray(data)) setActiveCoupons(data); }).catch(() => {});
-    // Fetch dynamic shipping config from admin settings
+    // Fetch dynamic shipping config + COD toggle from admin settings
     fetch("/api/admin/settings")
       .then(r => r.json())
       .then((data: Record<string, string>) => {
@@ -73,6 +74,7 @@ export default function CheckoutPage() {
           metro: Number(data.metro_shipping_fee) || SHIPPING_FEE.metro_sm,
           prov: Number(data.provincial_shipping_fee) || SHIPPING_FEE.provincial_sm,
         });
+        setCodEnabled(data.cod_enabled !== "false");
       })
       .catch(() => {});
     import("@/lib/supabase/client").then(({ createClient }) => {
@@ -217,6 +219,7 @@ export default function CheckoutPage() {
       // Save order data for confirmation page
       sessionStorage.setItem("lastOrder", JSON.stringify({
         orderNumber: num, total, isCOD, paymentMethod, name: form.name,
+        shipping, discount, couponCode: couponData?.code ?? null,
         items: items.map(i => ({
           name: i.product.name,
           size: i.size,
@@ -358,7 +361,7 @@ export default function CheckoutPage() {
                 <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
                   <h2 className="mb-5 font-black text-lg" style={{ color: BRAND.black }}>Payment Method</h2>
                   <div className="grid sm:grid-cols-2 gap-3">
-                    {PAYMENT_METHODS.map(pm => (
+                    {PAYMENT_METHODS.filter(pm => pm.id !== "cod" || codEnabled).map(pm => (
                       <button key={pm.id} onClick={() => setPaymentMethod(pm.id)}
                         className="flex items-center gap-3 p-4 rounded-xl text-left transition-all"
                         style={{
@@ -512,19 +515,19 @@ export default function CheckoutPage() {
           </div>
 
           {/* Order summary — first on mobile, second on desktop */}
-          <div className="lg:order-2 order-1 rounded-xl overflow-hidden lg:sticky lg:top-24"
+          <div className="lg:order-2 order-1 rounded-xl overflow-hidden lg:sticky lg:top-24 w-full min-w-0"
             style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
-            <div className="p-5">
+            <div className="p-4 sm:p-5">
               <h3 className="font-black mb-4" style={{ color: BRAND.black, fontFamily: FONTS.display, fontSize: "1.2rem", letterSpacing: "0.03em" }}>
                 ORDER ({items.length})
               </h3>
               <div className="space-y-3 mb-4">
                 {items.map(item => (
-                  <div key={`${item.product.id}-${item.size}`} className="flex gap-3">
-                    <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden relative"
+                  <div key={`${item.product.id}-${item.size}`} className="flex gap-2.5 min-w-0">
+                    <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative"
                       style={{ background: item.product.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}>
                       {item.product.images?.[0] ? (
-                        <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" sizes="48px" />
+                        <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" sizes="44px" />
                       ) : (
                         <span className="absolute inset-0 flex items-center justify-center"
                           style={{ fontFamily: FONTS.display, color: BRAND.black, opacity: 0.08, fontSize: "0.8rem" }}>
@@ -532,15 +535,15 @@ export default function CheckoutPage() {
                         </span>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 overflow-hidden">
                       <p className="text-xs font-semibold leading-snug truncate" style={{ color: BRAND.black }}>{item.product.name}</p>
-                      <p className="text-xs" style={{ color: BRAND.muted }}>{item.size} · {item.payment_type === "full_payment" ? "Full" : "DP"} · x{item.quantity}</p>
+                      <p className="text-xs truncate" style={{ color: BRAND.muted }}>{item.size} · {item.payment_type === "full_payment" ? "Full" : "DP"} · x{item.quantity}</p>
                     </div>
-                    <p className="text-xs font-bold shrink-0" style={{ color: BRAND.black }}>₱{(item.unit_price * item.quantity).toLocaleString()}</p>
+                    <p className="text-xs font-bold shrink-0 pl-1" style={{ color: BRAND.black }}>₱{(item.unit_price * item.quantity).toLocaleString()}</p>
                   </div>
                 ))}
               </div>
-              <div className="space-y-2 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+              <div className="space-y-2 pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
                 <div className="flex justify-between text-sm">
                   <span style={{ color: BRAND.muted }}>Subtotal</span>
                   <span style={{ color: BRAND.black }}>₱{sub.toLocaleString()}</span>
@@ -563,7 +566,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* Coupon code input */}
-            <div className="p-5" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+            <div className="p-4 sm:p-5" style={{ borderTop: `1px solid ${BRAND.border}` }}>
               {couponData ? (
                 <div className="flex items-center justify-between px-3 py-2.5 rounded"
                   style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}30` }}>

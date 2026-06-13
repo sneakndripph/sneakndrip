@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BRAND, FONTS } from "@/lib/constants";
 import Image from "next/image";
-import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle } from "lucide-react";
+import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -79,6 +79,8 @@ export default function AccountPage() {
   const [pwSuccess, setPwSuccess] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
+  const [cancelModalOrder, setCancelModalOrder] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
   const [pwTouched, setPwTouched] = useState(false);
 
   useEffect(() => {
@@ -150,17 +152,21 @@ export default function AccountPage() {
     setSavingPw(false);
   }
 
-  async function handleCancelOrder(orderNumber: string) {
+  async function executeCancelOrder() {
+    if (!cancelModalOrder) return;
+    const orderNumber = cancelModalOrder;
+    setCancelModalOrder(null);
     setCancellingOrder(orderNumber);
     const res = await fetch("/api/orders/cancel", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orderNumber }),
+      body: JSON.stringify({ orderNumber, reason: cancelReason.trim() || undefined }),
     });
     if (res.ok) {
       setOrders(prev => prev.map(o => o.order_number === orderNumber ? { ...o, status: "cancelled" } : o));
     }
     setCancellingOrder(null);
+    setCancelReason("");
   }
 
   if (!user) return null;
@@ -388,7 +394,7 @@ export default function AccountPage() {
                         <div className="flex items-center gap-3">
                           {order.status === "pending" && isCOD && (
                             <button
-                              onClick={() => handleCancelOrder(order.order_number)}
+                              onClick={() => setCancelModalOrder(order.order_number)}
                               disabled={cancellingOrder === order.order_number}
                               className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity disabled:opacity-50"
                               style={{ border: `1px solid ${BRAND.red}`, color: BRAND.red }}>
@@ -594,6 +600,50 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+
+      {/* Cancel order reason modal */}
+      {cancelModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={e => { if (e.target === e.currentTarget) { setCancelModalOrder(null); setCancelReason(""); } }}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+            <div className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
+              <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.red }}>Cancel Order</p>
+              <button onClick={() => { setCancelModalOrder(null); setCancelReason(""); }} className="p-1 transition-opacity hover:opacity-70">
+                <X className="w-4 h-4" style={{ color: BRAND.muted }} />
+              </button>
+            </div>
+            <div className="p-5">
+              <p className="text-sm mb-3" style={{ color: BRAND.muted }}>
+                Please let us know why you&apos;re cancelling order <span className="font-bold" style={{ color: BRAND.black }}>{cancelModalOrder}</span>.
+              </p>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.black }}>Reason (optional)</label>
+              <textarea
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+                placeholder="e.g. Changed my mind, ordered wrong size…"
+                rows={3}
+                className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none"
+                style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+              />
+            </div>
+            <div className="flex gap-3 px-5 pb-5">
+              <button onClick={executeCancelOrder}
+                className="flex-1 py-2.5 text-xs font-black uppercase tracking-wide"
+                style={{ background: BRAND.red, color: "#fff" }}>
+                Confirm Cancel
+              </button>
+              <button onClick={() => { setCancelModalOrder(null); setCancelReason(""); }}
+                className="px-4 py-2.5 text-xs font-bold"
+                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                Keep Order
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -128,7 +128,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await req.json() as { status?: string; tracking_number?: string };
+  const body = await req.json() as { status?: string; tracking_number?: string; admin_notes?: string };
 
   const admin = createAdminClient();
 
@@ -142,6 +142,7 @@ export async function PATCH(
   const update: Record<string, unknown> = {};
   if (body.status) update.status = body.status;
   if (body.tracking_number !== undefined) update.tracking_number = body.tracking_number;
+  if (body.admin_notes !== undefined) update.admin_notes = body.admin_notes;
 
   // Also sync payment_status when order is accepted/paid or COD delivered
   const isCODOrder = currentOrder?.payment_method === "cod";

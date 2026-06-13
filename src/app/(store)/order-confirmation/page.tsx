@@ -14,6 +14,9 @@ type OrderData = {
   paymentMethod: string;
   name: string;
   items: OrderItem[];
+  shipping?: number;
+  discount?: number;
+  couponCode?: string | null;
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -168,11 +171,27 @@ export default function OrderConfirmationPage() {
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between font-black mt-3 pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                <span style={{ color: BRAND.black }}>Total</span>
-                <span style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: BRAND.black }}>
-                  ₱{order.total.toLocaleString()}
-                </span>
+              <div className="space-y-1.5 mt-3 pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                {(order.shipping !== undefined) && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: BRAND.muted }}>Shipping</span>
+                    <span style={{ color: order.shipping === 0 ? BRAND.teal : BRAND.black }}>
+                      {order.shipping === 0 ? "FREE" : `₱${order.shipping.toLocaleString()}`}
+                    </span>
+                  </div>
+                )}
+                {(order.discount ?? 0) > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span style={{ color: BRAND.teal }}>Coupon {order.couponCode ? `(${order.couponCode})` : ""}</span>
+                    <span style={{ color: BRAND.teal }}>−₱{order.discount!.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-black pt-1">
+                  <span style={{ color: BRAND.black }}>Total</span>
+                  <span style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: BRAND.black }}>
+                    ₱{order.total.toLocaleString()}
+                  </span>
+                </div>
               </div>
             </div>
 

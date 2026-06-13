@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Plus, Trash2, ToggleLeft, ToggleRight, Tag, ChevronDown, Check } from "lucide-react";
+import { Plus, Trash2, ToggleLeft, ToggleRight, Tag, ChevronDown, Check, X } from "lucide-react";
 
 type Coupon = {
   id: string;
@@ -16,13 +16,26 @@ type Coupon = {
   created_at: string;
 };
 
-const EMPTY_FORM = { code: "", type: "percent", value: "", min_order: "", max_uses: "", expires_at: "" };
+type FormState = { code: string; type: string; value: string; min_order: string; max_uses: string; expires_at: string };
+const EMPTY_FORM: FormState = { code: "", type: "percent", value: "", min_order: "", max_uses: "", expires_at: "" };
+
+function couponToForm(c: Coupon): FormState {
+  return {
+    code: c.code,
+    type: c.type,
+    value: String(c.value),
+    min_order: String(c.min_order || ""),
+    max_uses: c.max_uses != null ? String(c.max_uses) : "",
+    expires_at: c.expires_at ? c.expires_at.split("T")[0] : "",
+  };
+}
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [typeOpen, setTypeOpen] = useState(false);
@@ -40,21 +53,53 @@ export default function AdminCouponsPage() {
     fetch("/api/admin/coupons").then(r => r.json()).then(setCoupons).finally(() => setLoading(false));
   }, []);
 
-  async function handleCreate(e: React.FormEvent) {
+  function openCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setError("");
+    setShowForm(true);
+  }
+
+  function openEdit(c: Coupon) {
+    setEditingId(c.id);
+    setForm(couponToForm(c));
+    setError("");
+    setShowForm(true);
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setError("");
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.code || !form.value) { setError("Code and value are required"); return; }
     setSaving(true);
     setError("");
-    const res = await fetch("/api/admin/coupons", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    const data = await res.json();
-    if (!res.ok) { setError(data.error || "Failed to create coupon"); setSaving(false); return; }
-    setCoupons(prev => [data, ...prev]);
-    setForm(EMPTY_FORM);
-    setShowForm(false);
+
+    if (editingId) {
+      const res = await fetch(`/api/admin/coupons/${editingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Failed to update coupon"); setSaving(false); return; }
+      setCoupons(prev => prev.map(c => c.id === editingId ? { ...c, ...data } : c));
+    } else {
+      const res = await fetch("/api/admin/coupons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error || "Failed to create coupon"); setSaving(false); return; }
+      setCoupons(prev => [data, ...prev]);
+    }
+    closeForm();
     setSaving(false);
   }
 
@@ -83,7 +128,7 @@ export default function AdminCouponsPage() {
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Promotions</p>
           <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>COUPONS</h1>
         </div>
-        <button onClick={() => { setShowForm(!showForm); setError(""); }}
+        <button onClick={openCreate}
           className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80"
           style={{ background: BRAND.teal, color: "#fff" }}>
           <Plus className="w-4 h-4" /> New Coupon
@@ -91,8 +136,15 @@ export default function AdminCouponsPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleCreate} className="p-6 rounded-xl mb-6" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
-          <p className="font-black text-sm uppercase tracking-wide mb-4" style={{ color: BRAND.black }}>Create Coupon</p>
+        <form onSubmit={handleSubmit} className="p-6 rounded-xl mb-6" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+          <div className="flex items-center justify-between mb-4">
+            <p className="font-black text-sm uppercase tracking-wide" style={{ color: BRAND.black }}>
+              {editingId ? "Edit Coupon" : "Create Coupon"}
+            </p>
+            <button type="button" onClick={closeForm} className="p-1 transition-opacity hover:opacity-70">
+              <X className="w-4 h-4" style={{ color: BRAND.muted }} />
+            </button>
+          </div>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Code *</label>
@@ -160,9 +212,9 @@ export default function AdminCouponsPage() {
             <button type="submit" disabled={saving}
               className="px-6 py-2.5 text-sm font-bold uppercase tracking-wide disabled:opacity-50"
               style={{ background: BRAND.black, color: BRAND.bg }}>
-              {saving ? "Creating…" : "Create Coupon"}
+              {saving ? (editingId ? "Saving…" : "Creating…") : (editingId ? "Save Changes" : "Create Coupon")}
             </button>
-            <button type="button" onClick={() => { setShowForm(false); setError(""); }}
+            <button type="button" onClick={closeForm}
               className="px-6 py-2.5 text-sm font-bold uppercase tracking-wide"
               style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
               Cancel
@@ -192,8 +244,11 @@ export default function AdminCouponsPage() {
             </thead>
             <tbody>
               {coupons.map(c => (
-                <tr key={c.id} style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                  <td className="px-4 py-3.5">
+                <tr key={c.id}
+                  className="transition-colors hover:bg-black/[0.025] cursor-pointer"
+                  style={{ borderBottom: `1px solid ${BRAND.border}` }}
+                  onClick={() => openEdit(c)}>
+                  <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
                     <span className="text-xs font-black px-2 py-0.5 rounded"
                       style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>
                       {c.code}
@@ -212,14 +267,14 @@ export default function AdminCouponsPage() {
                   <td className="px-4 py-3.5 text-xs" style={{ color: BRAND.muted }}>
                     {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "Never"}
                   </td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
                     <button onClick={() => toggleActive(c)} className="transition-opacity hover:opacity-70">
                       {c.is_active
                         ? <ToggleRight className="w-5 h-5" style={{ color: BRAND.teal }} />
                         : <ToggleLeft className="w-5 h-5" style={{ color: BRAND.muted }} />}
                     </button>
                   </td>
-                  <td className="px-4 py-3.5">
+                  <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
                     <button onClick={() => handleDelete(c.id)} className="transition-opacity hover:opacity-70">
                       <Trash2 className="w-3.5 h-3.5" style={{ color: BRAND.red }} />
                     </button>

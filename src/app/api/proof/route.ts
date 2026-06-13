@@ -26,36 +26,16 @@ export async function GET(req: NextRequest) {
 
   if (proofPath) {
     const { data, error } = await admin.storage.from("payment-proofs").createSignedUrl(proofPath, 300);
-    if (!error && data) {
-      const res = await fetch(data.signedUrl);
-      if (res.ok) {
-        const buffer = await res.arrayBuffer();
-        return new NextResponse(buffer, {
-          headers: {
-            "Content-Type": res.headers.get("content-type") ?? "image/jpeg",
-            "Cache-Control": "private, max-age=300",
-          },
-        });
-      }
-      return NextResponse.redirect(data.signedUrl);
-    }
+    if (!error && data?.signedUrl) return NextResponse.redirect(data.signedUrl);
   }
 
-  // Fallback: search by order number prefix
+  // Fallback: search by order number prefix in bucket root
   const { data: files } = await admin.storage.from("payment-proofs").list("", { search: orderNumber });
   const match = files?.find(f => f.name.startsWith(orderNumber));
   if (!match) return NextResponse.json({ error: "No proof found" }, { status: 404 });
 
   const { data, error } = await admin.storage.from("payment-proofs").createSignedUrl(match.name, 300);
-  if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (error || !data?.signedUrl) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const res = await fetch(data.signedUrl);
-  if (!res.ok) return NextResponse.redirect(data.signedUrl);
-  const buffer = await res.arrayBuffer();
-  return new NextResponse(buffer, {
-    headers: {
-      "Content-Type": res.headers.get("content-type") ?? "image/jpeg",
-      "Cache-Control": "private, max-age=300",
-    },
-  });
+  return NextResponse.redirect(data.signedUrl);
 }

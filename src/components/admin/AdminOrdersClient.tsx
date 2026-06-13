@@ -75,9 +75,9 @@ function getNextAction(status: string, isCOD: boolean): { label: string; next: s
   return ACTIONS[status] ?? null;
 }
 
-export default function AdminOrdersClient({ initialOrders }: { initialOrders: Order[] }) {
+export default function AdminOrdersClient({ initialOrders, initialSearch = "" }: { initialOrders: Order[]; initialSearch?: string }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState<Status>("all");
   const [selected, setSelected] = useState<Order | null>(null);
   const [trackingInput, setTrackingInput] = useState("");
@@ -86,6 +86,8 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const bulkRef = useRef<HTMLDivElement>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +98,14 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
     }
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  // Auto-open first matching order when navigated from dashboard
+  useEffect(() => {
+    if (!initialSearch) return;
+    const match = initialOrders.find(o => o.order_number.toLowerCase() === initialSearch.toLowerCase());
+    if (match) openOrder(match);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = orders.filter(o => {
@@ -142,16 +152,32 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
     });
   }
 
-  async function updateStatus(id: string, status: string) {
+  async function updateStatus(id: string, status: string, adminNotes?: string) {
     setSaving(true);
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
-    if (selected?.id === id) setSelected(prev => prev ? { ...prev, status } : prev);
+    setOrders(prev => prev.map(o => o.id === id ? { ...o, status, ...(adminNotes ? { admin_notes: adminNotes } : {}) } : o));
+    if (selected?.id === id) setSelected(prev => prev ? { ...prev, status, ...(adminNotes ? { admin_notes: adminNotes } : {}) } : prev);
     await fetch(`/api/admin/orders/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...(adminNotes ? { admin_notes: adminNotes } : {}) }),
     });
     setSaving(false);
+  }
+
+  function confirmCancel() {
+    if (!liveSelected) return;
+    setShowCancelModal(true);
+  }
+
+  async function executeCancelOrder() {
+    if (!liveSelected) return;
+    const notes = cancelReason.trim()
+      ? `Cancelled by admin: ${cancelReason.trim()}`
+      : "Cancelled by admin";
+    setShowCancelModal(false);
+    setCancelReason("");
+    await updateStatus(liveSelected.id, "cancelled", notes);
+    if (notesInput !== notes) setNotesInput(notes);
   }
 
   async function saveTracking(id: string) {
@@ -560,7 +586,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                 <div className="px-5 py-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Truck className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
-                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Tracking Number</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Tracking Number <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span></p>
                   </div>
                   <div className="flex gap-2">
                     <input
@@ -648,7 +674,7 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
                 </div>
                 {liveSelected.status !== "cancelled" && liveSelected.status !== "delivered" && (
                   <button
-                    onClick={() => updateStatus(liveSelected.id, "cancelled")}
+                    onClick={confirmCancel}
                     disabled={saving}
                     className="px-4 py-2.5 text-xs font-bold transition-opacity disabled:opacity-50"
                     style={{ border: `1px solid #EF4444`, color: "#EF4444", background: "transparent" }}>
@@ -658,6 +684,48 @@ export default function AdminOrdersClient({ initialOrders }: { initialOrders: Or
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Cancel reason modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowCancelModal(false); setCancelReason(""); } }}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+            <div className="px-5 py-4" style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
+              <p className="font-black text-sm uppercase tracking-widest" style={{ color: "#EF4444" }}>Cancel Order</p>
+              <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{liveSelected?.order_number}</p>
+            </div>
+            <div className="p-5">
+              <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.black }}>
+                Reason for cancellation
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+                placeholder="e.g. Customer requested, out of stock, duplicate order…"
+                rows={3}
+                autoFocus
+                className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none"
+                style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+              />
+              <p className="text-xs mt-1" style={{ color: BRAND.muted }}>Optional — stored in admin notes</p>
+            </div>
+            <div className="flex gap-3 px-5 pb-5">
+              <button onClick={executeCancelOrder}
+                className="flex-1 py-2.5 text-xs font-black uppercase tracking-wide"
+                style={{ background: "#EF4444", color: "#fff" }}>
+                Confirm Cancel
+              </button>
+              <button onClick={() => { setShowCancelModal(false); setCancelReason(""); }}
+                className="px-4 py-2.5 text-xs font-bold"
+                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                Back
+              </button>
+            </div>
           </div>
         </div>
       )}

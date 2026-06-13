@@ -111,14 +111,13 @@ export async function POST(req: NextRequest) {
       ).then(entries => supabase.from("inventory_log").insert(entries)).catch(() => {});
     }
 
-    // Fire-and-forget: increment coupon uses
+    // Increment coupon uses
     const couponCode = (order as Record<string, unknown>).coupon_code as string | undefined;
     if (couponCode) {
-      void Promise.resolve(
-        supabase.from("coupons").select("id, uses").eq("code", couponCode).single()
-      ).then(({ data: c }) => {
-        if (c) supabase.from("coupons").update({ uses: c.uses + 1 }).eq("id", c.id);
-      }).catch(() => {});
+      try {
+        const { data: c } = await supabase.from("coupons").select("id, uses").eq("code", couponCode).single();
+        if (c) await supabase.from("coupons").update({ uses: c.uses + 1 }).eq("id", c.id);
+      } catch { /* non-critical */ }
     }
 
     return NextResponse.json({ id: data.id }, { status: 201 });

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Save } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight } from "lucide-react";
 
 type SettingsData = Record<string, string>;
 
@@ -40,7 +40,7 @@ const DEFAULTS: SettingsData = {
   meta_title: "Sneak N' Drip | Authentic Sneakers Philippines",
   meta_description: "Shop authentic sneakers in the Philippines. On Hand & Pre-Order. Best prices, 100% legit.",
   google_analytics_id: "",
-  facebook_pixel_id: "",
+  cod_enabled: "true",
 };
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -185,6 +185,20 @@ export default function AdminSettingsPage() {
             hint="Orders above this amount get free shipping" />
           <Field label="COD Areas" settingsKey="cod_areas" settings={settings} onChange={update} multiline
             hint="Comma-separated cities/regions where COD is available" />
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.black }}>Cash on Delivery (COD)</label>
+            <button type="button"
+              onClick={() => update("cod_enabled", settings.cod_enabled === "false" ? "true" : "false")}
+              className="flex items-center gap-3 transition-opacity hover:opacity-80">
+              {settings.cod_enabled !== "false"
+                ? <ToggleRight className="w-7 h-7" style={{ color: BRAND.teal }} />
+                : <ToggleLeft className="w-7 h-7" style={{ color: BRAND.muted }} />}
+              <span className="text-sm font-semibold" style={{ color: settings.cod_enabled !== "false" ? BRAND.teal : BRAND.muted }}>
+                {settings.cod_enabled !== "false" ? "COD Enabled" : "COD Disabled"}
+              </span>
+            </button>
+            <p className="text-xs mt-1" style={{ color: BRAND.muted }}>When disabled, COD will not appear at checkout</p>
+          </div>
         </Section>
 
         <Section title="Payment — GCash &amp; Maya">
@@ -211,7 +225,6 @@ export default function AdminSettingsPage() {
           <Field label="Meta Title"         settingsKey="meta_title"         settings={settings} onChange={update} />
           <Field label="Meta Description"   settingsKey="meta_description"   settings={settings} onChange={update} multiline />
           <Field label="Google Analytics ID" settingsKey="google_analytics_id" settings={settings} onChange={update} hint="e.g. G-XXXXXXXXXX" />
-          <Field label="Facebook Pixel ID"  settingsKey="facebook_pixel_id"  settings={settings} onChange={update} />
         </Section>
       </div>
     </div>
