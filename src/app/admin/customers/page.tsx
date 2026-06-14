@@ -31,13 +31,13 @@ export default async function AdminCustomersPage() {
     const addr = (c.shipping_addresses as { city: string; province: string }[] | null)?.[0];
     return {
       id: c.id,
-      name: c.full_name,
+      name: c.full_name ?? "—",
       email: c.email,
       mobile: c.mobile ?? "",
       city: addr ? `${addr.city}, ${addr.province}` : "—",
       orders: stats.count,
       total: stats.total,
-      joined: new Date(c.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }),
+      joined: c.created_at ? new Date(c.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—",
       lastOrder: stats.lastOrder ? new Date(stats.lastOrder).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—",
     };
   });

@@ -107,7 +107,7 @@ export default async function AdminDashboard() {
     if (!lowStockMap.has(row.product_id)) lowStockMap.set(row.product_id, { name, sizes: [] });
     lowStockMap.get(row.product_id)!.sizes.push(`${row.size} (${row.stock})`);
   }
-  const lowStock = Array.from(lowStockMap.values());
+  const lowStock = Array.from(lowStockMap.entries()).map(([id, v]) => ({ id, ...v }));
 
   return (
     <div style={{ fontFamily: FONTS.body }}>
@@ -175,15 +175,16 @@ export default async function AdminDashboard() {
                 <p className="text-xs" style={{ color: BRAND.muted }}>All sizes well stocked.</p>
               ) : (
                 <div className="space-y-3">
-                  {lowStock.map((p, i) => (
-                    <div key={i} className="flex items-center justify-between">
+                  {lowStock.map((p) => (
+                    <Link key={p.id} href={`/admin/products/${p.id}`}
+                      className="flex items-center justify-between group transition-opacity hover:opacity-70">
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold truncate" style={{ color: BRAND.black }}>{p.name}</p>
+                        <p className="text-xs font-semibold truncate group-hover:underline" style={{ color: BRAND.black }}>{p.name}</p>
                         <p className="text-[10px]" style={{ color: BRAND.muted }}>{p.sizes.join(" · ")}</p>
                       </div>
                       <span className="ml-2 text-[10px] font-bold px-2 py-0.5"
                         style={{ background: `${BRAND.red}10`, color: BRAND.red }}>Low</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}

@@ -81,7 +81,8 @@ export default function AccountPage() {
   const [profileTouched, setProfileTouched] = useState(false);
 
   // Change password state
-  const [pwForm, setPwForm] = useState({ newPw: "", confirmPw: "" });
+  const [pwForm, setPwForm] = useState({ currentPw: "", newPw: "", confirmPw: "" });
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
   const [pwError, setPwError] = useState("");
@@ -140,6 +141,7 @@ export default function AccountPage() {
     e.preventDefault();
     setProfileTouched(true);
     if (!profileForm.name.trim()) { setProfileError("Full name is required"); return; }
+    if (!profileForm.mobile.trim()) { setProfileError("Mobile number is required"); return; }
     setProfileError("");
     setSavingProfile(true);
     const supabase = createClient();
@@ -162,18 +164,29 @@ export default function AccountPage() {
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
     setPwTouched(true);
+    if (!pwForm.currentPw) { setPwError("Current password is required"); return; }
     if (!pwForm.newPw) { setPwError("New password is required"); return; }
     if (pwForm.newPw.length < 6) { setPwError("Password must be at least 6 characters"); return; }
     if (pwForm.newPw !== pwForm.confirmPw) { setPwError("Passwords do not match"); return; }
     setPwError("");
     setSavingPw(true);
     const supabase = createClient();
+    // Verify current password first
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user?.email ?? "",
+      password: pwForm.currentPw,
+    });
+    if (signInError) {
+      setPwError("Current password is incorrect");
+      setSavingPw(false);
+      return;
+    }
     const { error } = await supabase.auth.updateUser({ password: pwForm.newPw });
     if (error) {
       setPwError(error.message);
     } else {
       setPwSuccess(true);
-      setPwForm({ newPw: "", confirmPw: "" });
+      setPwForm({ currentPw: "", newPw: "", confirmPw: "" });
       setPwTouched(false);
       setTimeout(() => setPwSuccess(false), 4000);
     }
@@ -183,7 +196,7 @@ export default function AccountPage() {
   async function handleSaveAddress(e: React.FormEvent) {
     e.preventDefault();
     setAddressShowErrors(true);
-    if (!addressForm.street || !addressForm.province || !addressForm.city || !addressForm.barangay) return;
+    if (!addressForm.street || !addressForm.province || !addressForm.city || !addressForm.barangay || !addressForm.postal) return;
     setSavingAddress(true);
     const supabase = createClient();
     const { error } = await supabase.auth.updateUser({
@@ -595,7 +608,7 @@ export default function AccountPage() {
 
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                          Mobile Number
+                          Mobile Number <span style={{ color: BRAND.red }}>*</span>
                         </label>
                         <input
                           value={profileForm.mobile}
@@ -604,10 +617,17 @@ export default function AccountPage() {
                           inputMode="numeric"
                           maxLength={11}
                           className={inputCls}
-                          style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                          style={{
+                            background: BRAND.bg,
+                            border: `1px solid ${profileTouched && !profileForm.mobile ? BRAND.red : BRAND.border}`,
+                            color: BRAND.black,
+                          }}
                           onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                          onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)}
+                          onBlur={e => (e.currentTarget.style.borderColor = profileTouched && !profileForm.mobile ? BRAND.red : BRAND.border)}
                         />
+                        {profileTouched && !profileForm.mobile && (
+                          <p className="mt-1 text-[11px] font-semibold" style={{ color: BRAND.red }}>Mobile number is required</p>
+                        )}
                       </div>
                     </div>
 
@@ -676,17 +696,24 @@ export default function AccountPage() {
                       />
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                          Postal Code
+                          Postal Code <span style={{ color: BRAND.red }}>*</span>
                         </label>
                         <input
                           value={addressForm.postal}
                           onChange={e => setAddressForm(f => ({ ...f, postal: e.target.value }))}
                           placeholder="1630"
                           className={inputCls}
-                          style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                          style={{
+                            background: BRAND.bg,
+                            border: `1px solid ${addressShowErrors && !addressForm.postal ? BRAND.red : BRAND.border}`,
+                            color: BRAND.black,
+                          }}
                           onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                          onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)}
+                          onBlur={e => (e.currentTarget.style.borderColor = addressShowErrors && !addressForm.postal ? BRAND.red : BRAND.border)}
                         />
+                        {addressShowErrors && !addressForm.postal && (
+                          <p className="mt-1 text-[11px] font-semibold" style={{ color: BRAND.red }}>Postal code is required</p>
+                        )}
                       </div>
                     </div>
 
@@ -725,6 +752,32 @@ export default function AccountPage() {
                         {pwError}
                       </div>
                     )}
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                        Current Password <span style={{ color: BRAND.red }}>*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showCurrentPw ? "text" : "password"}
+                          value={pwForm.currentPw}
+                          onChange={e => setPwForm(f => ({ ...f, currentPw: e.target.value }))}
+                          placeholder="Your current password"
+                          className={`${inputCls} pr-12`}
+                          style={{
+                            background: BRAND.bg,
+                            border: `1px solid ${pwTouched && !pwForm.currentPw ? BRAND.red : BRAND.border}`,
+                            color: BRAND.black,
+                          }}
+                          onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+                          onBlur={e => (e.currentTarget.style.borderColor = pwTouched && !pwForm.currentPw ? BRAND.red : BRAND.border)}
+                        />
+                        <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
+                          {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
 
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Save, ToggleLeft, ToggleRight } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight, ChevronDown } from "lucide-react";
 
 type SettingsData = Record<string, string>;
 
@@ -49,13 +49,18 @@ const DEFAULTS: SettingsData = {
   cod_enabled: "true",
 };
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, children, open, onToggle }: { title: string; children: React.ReactNode; open: boolean; onToggle: () => void }) {
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-      <div className="px-6 py-4" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-6 py-4 transition-colors hover:bg-black/[0.02]"
+        style={{ borderBottom: open ? `1px solid ${BRAND.border}` : "none" }}>
         <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>{title}</h2>
-      </div>
-      <div className="p-6 space-y-4">{children}</div>
+        <ChevronDown className="w-4 h-4 transition-transform shrink-0" style={{ color: BRAND.muted, transform: open ? "rotate(180deg)" : "rotate(0deg)" }} />
+      </button>
+      {open && <div className="p-6 space-y-4">{children}</div>}
     </div>
   );
 }
@@ -82,12 +87,23 @@ function Field({ label, settingsKey, settings, onChange, type = "text", hint, mu
   );
 }
 
+const ALL_SECTIONS = ["Why Shop With Us", "Announcement Bar", "Homepage Hero", "Store Information", "Shipping & Fees", "Payment — GCash & Maya", "Payment — Bank Transfer", "Pre-Order & Misc", "SEO & Meta"];
+
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SettingsData>(DEFAULTS);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const hasFetched = useRef(false);
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(ALL_SECTIONS));
+
+  function toggleSection(title: string) {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title); else next.add(title);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (hasFetched.current) return;
@@ -151,7 +167,7 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="space-y-5 mb-5">
-        <Section title="Why Shop With Us">
+        <Section title="Why Shop With Us" open={openSections.has("Why Shop With Us")} onToggle={() => toggleSection("Why Shop With Us")}>
           <p className="text-xs -mt-2" style={{ color: BRAND.muted }}>Displayed on the homepage. Edit the 6 promise cards shown to customers.</p>
           <div className="space-y-4">
             {[1, 2, 3, 4, 5, 6].map(n => (
@@ -167,12 +183,12 @@ export default function AdminSettingsPage() {
           </div>
         </Section>
 
-        <Section title="Announcement Bar">
+        <Section title="Announcement Bar" open={openSections.has("Announcement Bar")} onToggle={() => toggleSection("Announcement Bar")}>
           <Field label="Announcement Text" settingsKey="announcement_text" settings={settings} onChange={update}
             hint="Leave blank to use the auto-generated text (free shipping threshold, accepted payments)" />
         </Section>
 
-        <Section title="Homepage Hero">
+        <Section title="Homepage Hero" open={openSections.has("Homepage Hero")} onToggle={() => toggleSection("Homepage Hero")}>
           <Field label="Badge Text" settingsKey="hero_badge" settings={settings} onChange={update}
             hint="Small pill above the headline (e.g. 'New Drops Every Week')" />
           <div className="grid sm:grid-cols-3 gap-4">
@@ -190,7 +206,7 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
-        <Section title="Store Information">
+        <Section title="Store Information" open={openSections.has("Store Information")} onToggle={() => toggleSection("Store Information")}>
           <Field label="Store Name"          settingsKey="store_name"     settings={settings} onChange={update} />
           <Field label="Store Email"         settingsKey="store_email"    settings={settings} onChange={update} type="email" />
           <Field label="Contact Number"      settingsKey="contact_number" settings={settings} onChange={update} />
@@ -200,7 +216,7 @@ export default function AdminSettingsPage() {
           <Field label="TikTok Handle"       settingsKey="tiktok_handle"  settings={settings} onChange={update} />
         </Section>
 
-        <Section title="Shipping & Fees">
+        <Section title="Shipping & Fees" open={openSections.has("Shipping & Fees")} onToggle={() => toggleSection("Shipping & Fees")}>
           <Field label="Metro Manila Shipping Fee (&#8369;)" settingsKey="metro_shipping_fee"     settings={settings} onChange={update} type="number" />
           <Field label="Provincial Shipping Fee (&#8369;)"   settingsKey="provincial_shipping_fee" settings={settings} onChange={update} type="number" />
           <Field label="Free Shipping Threshold (&#8369;)"   settingsKey="free_shipping_threshold" settings={settings} onChange={update} type="number"
@@ -223,14 +239,14 @@ export default function AdminSettingsPage() {
           </div>
         </Section>
 
-        <Section title="Payment — GCash &amp; Maya">
+        <Section title="Payment — GCash &amp; Maya" open={openSections.has("Payment — GCash & Maya")} onToggle={() => toggleSection("Payment — GCash & Maya")}>
           <Field label="GCash Number"       settingsKey="gcash_number"  settings={settings} onChange={update} />
           <Field label="GCash Account Name" settingsKey="gcash_name"    settings={settings} onChange={update} />
           <Field label="Maya Number"        settingsKey="maya_number"   settings={settings} onChange={update} />
           <Field label="Maya Account Name"  settingsKey="maya_name"     settings={settings} onChange={update} />
         </Section>
 
-        <Section title="Payment — Bank Transfer">
+        <Section title="Payment — Bank Transfer" open={openSections.has("Payment — Bank Transfer")} onToggle={() => toggleSection("Payment — Bank Transfer")}>
           <Field label="Bank 1 Name"           settingsKey="bank1_name"           settings={settings} onChange={update} />
           <Field label="Bank 1 Account Number" settingsKey="bank1_account_number" settings={settings} onChange={update} />
           <Field label="Bank 1 Account Name"   settingsKey="bank1_account_name"   settings={settings} onChange={update} />
@@ -239,11 +255,11 @@ export default function AdminSettingsPage() {
           <Field label="Bank 2 Account Name"   settingsKey="bank2_account_name"   settings={settings} onChange={update} />
         </Section>
 
-        <Section title="Pre-Order &amp; Misc">
+        <Section title="Pre-Order &amp; Misc" open={openSections.has("Pre-Order & Misc")} onToggle={() => toggleSection("Pre-Order & Misc")}>
           <Field label="Default Pre-Order Message" settingsKey="preorder_message" settings={settings} onChange={update} multiline />
         </Section>
 
-        <Section title="SEO &amp; Meta">
+        <Section title="SEO &amp; Meta" open={openSections.has("SEO & Meta")} onToggle={() => toggleSection("SEO & Meta")}>
           <Field label="Meta Title"         settingsKey="meta_title"         settings={settings} onChange={update} />
           <Field label="Meta Description"   settingsKey="meta_description"   settings={settings} onChange={update} multiline />
           <Field label="Google Analytics ID" settingsKey="google_analytics_id" settings={settings} onChange={update} hint="e.g. G-XXXXXXXXXX" />
