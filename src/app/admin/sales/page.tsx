@@ -190,7 +190,7 @@ export default function AdminSalesPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <MetricCard label="Total Revenue" value={fmt(m!.totalRevenue)} sub={`${m!.paidOrders} paid`}
               icon={TrendingUp} color={BRAND.teal} bg={`rgba(91,184,180,0.12)`} href="/admin/orders?status=paid" />
-            <MetricCard label="Gross Profit"
+            <MetricCard label="Net Income"
               value={m!.totalCost > 0 ? fmt(m!.totalProfit) : "—"}
               sub={m!.totalCost > 0 ? `${m!.totalRevenue > 0 ? ((m!.totalProfit / m!.totalRevenue) * 100).toFixed(1) : "0"}% margin` : "Add cost prices"}
               icon={Banknote} color="#10B981" bg="rgba(16,185,129,0.1)" />

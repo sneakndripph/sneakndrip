@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { BRAND, FONTS } from "@/lib/constants";
 import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldCheck } from "lucide-react";
 
@@ -15,6 +16,7 @@ type CustomerOrder = {
   total: number;
   status: string;
   created_at: string;
+  images: string[];
 };
 
 type Customer = {
@@ -206,15 +208,26 @@ export default function AdminCustomersClient({ customers, initialSearch = "" }: 
                     <Link key={o.order_number}
                       href={`/admin/orders?q=${o.order_number}`}
                       onClick={() => setSelected(null)}
-                      className="flex items-center justify-between px-6 py-3 transition-colors hover:bg-black/[0.03]"
+                      className="flex items-center gap-3 px-6 py-3 transition-colors hover:bg-black/[0.03]"
                       style={{ borderBottom: i < selected.recentOrders.length - 1 ? `1px solid ${BRAND.border}` : "none" }}>
-                      <div>
+                      {/* Product image thumbnails */}
+                      {o.images.length > 0 && (
+                        <div className="flex shrink-0 -space-x-2">
+                          {o.images.slice(0, 3).map((img, j) => (
+                            <div key={j} className="w-9 h-9 rounded-md overflow-hidden relative border-2"
+                              style={{ borderColor: BRAND.card, background: BRAND.border }}>
+                              <Image src={img} alt="" fill className="object-cover" sizes="36px" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold" style={{ color: BRAND.black }}>{o.order_number}</p>
                         <p className="text-xs" style={{ color: BRAND.muted }}>
                           {new Date(o.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
                         </p>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 shrink-0">
                         <span className="text-[10px] font-bold px-2 py-0.5 capitalize rounded-full"
                           style={{
                             background: `${STATUS_COLORS[o.status] ?? "#999"}18`,

@@ -5,6 +5,7 @@ import { BRAND, FONTS } from "@/lib/constants";
 import { TrendingUp, ShoppingBag, Package, Eye } from "lucide-react";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import DashboardRecentOrdersTable from "@/components/admin/DashboardRecentOrdersTable";
+import DashboardRefresh from "@/components/admin/DashboardRefresh";
 
 export default async function AdminDashboard() {
   noStore();
@@ -93,7 +94,8 @@ export default async function AdminDashboard() {
       revenue,
     }));
 
-  const totalRevenue = allOrders?.reduce((sum, o) => sum + Number(o.total), 0) ?? 0;
+  const paidOrders = allOrders?.filter(o => !["pending", "cancelled"].includes(o.status)) ?? [];
+  const totalRevenue = paidOrders.reduce((sum, o) => sum + Number(o.total), 0);
   const ordersCount = allOrders?.length ?? 0;
   const pendingCount = allOrders?.filter(o => o.status === "pending").length ?? 0;
 
@@ -121,6 +123,7 @@ export default async function AdminDashboard() {
 
   return (
     <div style={{ fontFamily: FONTS.body }}>
+      <DashboardRefresh />
       <div className="mb-8">
         <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Sneak N&apos; Drip</p>
         <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>DASHBOARD</h1>

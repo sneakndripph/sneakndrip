@@ -5,14 +5,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
 async function getRequestingUser() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-  );
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  try {
+    const cookieStore = await cookies();
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      anonKey,
+      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
+    );
+    const { data: { user } } = await supabase.auth.getUser();
+    return user;
+  } catch {
+    return null;
+  }
 }
 
 async function sendRestockEmails(productId: string, restockedSizes: string[], productName: string) {
@@ -56,7 +61,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getRequestingUser();
-  if (!user || user.user_metadata?.role !== "admin") {
+  const isAdmin = user?.user_metadata?.role === "admin" || user?.app_metadata?.role === "admin";
+  if (!user || !isAdmin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -112,7 +118,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getRequestingUser();
-  if (!user || user.user_metadata?.role !== "admin") {
+  const isAdminDel = user?.user_metadata?.role === "admin" || user?.app_metadata?.role === "admin";
+  if (!user || !isAdminDel) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
