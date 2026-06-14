@@ -15,10 +15,12 @@ const STATUS_CFG = {
   cancelled:  { icon: X,          color: "#D94F3D", bg: "rgba(217,79,61,0.1)",   label: "Cancelled" },
 } as const;
 
+type ProductRef = { images: string[] | null; bg: string | null };
+
 type OrderItem = {
   product_name: string;
   size: string;
-  products?: { images: string[] | null; bg: string | null } | null;
+  products?: ProductRef | ProductRef[] | null;
 };
 
 type Order = {
