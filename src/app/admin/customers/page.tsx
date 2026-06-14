@@ -6,7 +6,7 @@ export default async function AdminCustomersPage() {
   noStore();
   const admin = createAdminClient();
 
-  const [{ data: customers }, { data: allOrders }] = await Promise.all([
+  const [{ data: customers }, { data: allOrders }, { data: { users: authUsers } }] = await Promise.all([
     admin
       .from("customers")
       .select("id, full_name, email, mobile, created_at")
@@ -15,7 +15,15 @@ export default async function AdminCustomersPage() {
       .from("orders")
       .select("customer_email, order_number, total, status, created_at, customer_mobile, shipping_city, shipping_province")
       .order("created_at", { ascending: false }),
+    admin.auth.admin.listUsers({ perPage: 1000 }),
   ]);
+
+  const now = new Date();
+  const bannedIds = new Set(
+    (authUsers ?? [])
+      .filter(u => u.banned_until && new Date(u.banned_until) > now)
+      .map(u => u.id)
+  );
 
   type OrderRow = {
     customer_email: string;
@@ -52,6 +60,7 @@ export default async function AdminCustomersPage() {
 
     return {
       id: c.id,
+      banned: bannedIds.has(c.id),
       name: c.full_name ?? "—",
       email: c.email,
       mobile,

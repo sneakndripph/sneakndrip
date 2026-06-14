@@ -102,7 +102,7 @@ export default async function AdminDashboard() {
   });
 
   const METRICS = [
-    { label: "Total Revenue",    value: `₱${totalRevenue.toLocaleString()}`, sub: `${ordersCount} orders total`,    icon: TrendingUp,  color: BRAND.teal,  bg: `rgba(91,184,180,0.12)`,  href: undefined },
+    { label: "Total Revenue",    value: `₱${totalRevenue.toLocaleString()}`, sub: `${ordersCount} orders total`,    icon: TrendingUp,  color: BRAND.teal,  bg: `rgba(91,184,180,0.12)`,  href: "/admin/sales" },
     { label: "Total Orders",     value: String(ordersCount),                  sub: `${pendingCount} pending`,         icon: ShoppingBag, color: BRAND.black, bg: "rgba(13,13,13,0.08)",   href: "/admin/orders" },
     { label: "Products",         value: String(productsCount ?? 0),           sub: "in catalog",                      icon: Package,     color: BRAND.red,   bg: "rgba(217,79,61,0.1)",   href: "/admin/products" },
     { label: "Visitors Today",   value: String(todayVisitors),                sub: `${weekVisitors} this week`,       icon: Eye,         color: "#6366F1",   bg: "rgba(99,102,241,0.1)",  href: undefined },
@@ -208,9 +208,9 @@ export default async function AdminDashboard() {
             </div>
             <div className="p-3 space-y-2">
               {[
-                { label: "Add New Product",      href: "/admin/products/new",          color: BRAND.teal },
-                { label: "View Pending Orders",  href: "/admin/orders",                color: BRAND.black },
-                { label: "View All Customers",   href: "/admin/customers",             color: BRAND.black },
+                { label: "Add New Product",      href: "/admin/products/new",          color: BRAND.black },
+                { label: "View Pending Orders",  href: "/admin/orders?status=pending", color: BRAND.black },
+                { label: "View All Customers",   href: "/",                            color: BRAND.black },
               ].map(a => (
                 <Link key={a.label} href={a.href}
                   className="flex items-center justify-between px-4 py-3 rounded-lg text-sm font-bold transition-colors"

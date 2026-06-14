@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar } from "lucide-react";
+import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldCheck } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#D97706", paid: BRAND.teal, processing: "#6366F1",
@@ -19,6 +19,7 @@ type CustomerOrder = {
 
 type Customer = {
   id: string;
+  banned: boolean;
   name: string;
   email: string;
   mobile: string;
@@ -33,6 +34,21 @@ type Customer = {
 export default function AdminCustomersClient({ customers }: { customers: Customer[] }) {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Customer | null>(null);
+  const [banning, setBanning] = useState(false);
+
+  async function toggleBan(c: Customer) {
+    if (!confirm(`${c.banned ? "Unban" : "Ban"} ${c.name}?`)) return;
+    setBanning(true);
+    const res = await fetch("/api/admin/customers", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: c.id, ban: !c.banned }),
+    });
+    if (res.ok) {
+      setSelected(prev => prev ? { ...prev, banned: !prev.banned } : null);
+    }
+    setBanning(false);
+  }
 
   const filtered = useMemo(() => {
     if (!search) return customers;
@@ -90,7 +106,10 @@ export default function AdminCustomersClient({ customers }: { customers: Custome
                     style={{ borderBottom: `1px solid ${BRAND.border}` }}
                     onClick={() => setSelected(c)}>
                     <td className="px-4 py-3.5">
-                      <p className="text-sm font-bold" style={{ color: BRAND.black }}>{c.name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold" style={{ color: BRAND.black }}>{c.name}</p>
+                        {c.banned && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${BRAND.red}12`, color: BRAND.red }}>Banned</span>}
+                      </div>
                       <p className="text-xs" style={{ color: BRAND.muted }}>{c.email}</p>
                     </td>
                     <td className="px-4 py-3.5 text-xs" style={{ color: c.mobile ? BRAND.black : BRAND.muted }}>
@@ -211,9 +230,15 @@ export default function AdminCustomersClient({ customers }: { customers: Custome
               )}
             </div>
 
-            <div className="px-6 py-4 shrink-0" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+            <div className="px-6 py-4 shrink-0 flex gap-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+              <button onClick={() => toggleBan(selected)} disabled={banning}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80 disabled:opacity-40"
+                style={{ background: selected.banned ? `${BRAND.teal}15` : `${BRAND.red}12`, color: selected.banned ? BRAND.teal : BRAND.red }}>
+                {selected.banned ? <ShieldCheck className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
+                {banning ? "…" : selected.banned ? "Unban" : "Ban"}
+              </button>
               <button onClick={() => setSelected(null)}
-                className="w-full py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
+                className="flex-1 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
                 style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
                 Close
               </button>

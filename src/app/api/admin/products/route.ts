@@ -3,6 +3,23 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
+export async function GET() {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("products")
+    .select("id, name, brand, status, product_sizes(size, stock)")
+    .order("name");
+  const products = (data ?? []).map(p => ({
+    id: p.id,
+    name: p.name,
+    brand: p.brand,
+    status: p.status,
+    sizes: (Array.isArray(p.product_sizes) ? p.product_sizes : [])
+      .sort((a: { size: string }, b: { size: string }) => parseFloat(a.size.replace("US ", "")) - parseFloat(b.size.replace("US ", ""))),
+  }));
+  return NextResponse.json(products);
+}
+
 async function getRequestingUser() {
   const cookieStore = await cookies();
   const supabase = createServerClient(

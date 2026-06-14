@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { TrendingUp, ShoppingBag, DollarSign, XCircle, Download, RefreshCw } from "lucide-react";
+import { TrendingUp, ShoppingBag, Banknote, XCircle, Download, RefreshCw } from "lucide-react";
+import Link from "next/link";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, Legend, CartesianGrid,
@@ -52,12 +53,12 @@ function periodToRange(p: Period): { from?: string; to?: string } {
 
 function fmt(n: number) { return `₱${Number(n).toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
 
-function MetricCard({ label, value, sub, icon: Icon, color, bg }: {
+function MetricCard({ label, value, sub, icon: Icon, color, bg, href }: {
   label: string; value: string; sub?: string;
-  icon: React.ElementType; color: string; bg: string;
+  icon: React.ElementType; color: string; bg: string; href?: string;
 }) {
-  return (
-    <div className="p-5 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+  const inner = (
+    <>
       <div className="flex items-start justify-between mb-4">
         <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: bg }}>
           <Icon className="w-5 h-5" style={{ color }} />
@@ -66,7 +67,12 @@ function MetricCard({ label, value, sub, icon: Icon, color, bg }: {
       </div>
       <p style={{ fontFamily: FONTS.display, fontSize: "1.8rem", color: BRAND.black, letterSpacing: "0.03em", lineHeight: 1 }}>{value}</p>
       <p className="text-xs mt-1 uppercase tracking-widest font-semibold" style={{ color: BRAND.muted }}>{label}</p>
-    </div>
+    </>
+  );
+  return href ? (
+    <Link href={href} className="block p-5 rounded-xl transition-opacity hover:opacity-80" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>{inner}</Link>
+  ) : (
+    <div className="p-5 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>{inner}</div>
   );
 }
 
@@ -147,13 +153,13 @@ export default function AdminSalesPage() {
           {/* Metrics */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard label="Total Revenue" value={fmt(m!.totalRevenue)} sub={`${m!.paidOrders} paid`}
-              icon={TrendingUp} color={BRAND.teal} bg={`rgba(91,184,180,0.12)`} />
+              icon={TrendingUp} color={BRAND.teal} bg={`rgba(91,184,180,0.12)`} href="/admin/orders?status=paid" />
             <MetricCard label="Total Orders" value={String(m!.totalOrders)} sub={`${m!.pendingOrders} pending`}
-              icon={ShoppingBag} color={BRAND.black} bg="rgba(13,13,13,0.08)" />
+              icon={ShoppingBag} color={BRAND.black} bg="rgba(13,13,13,0.08)" href="/admin/orders" />
             <MetricCard label="Avg Order Value" value={fmt(m!.avgOrder)}
-              icon={DollarSign} color="#6366F1" bg="rgba(99,102,241,0.1)" />
+              icon={Banknote} color="#6366F1" bg="rgba(99,102,241,0.1)" />
             <MetricCard label="Cancellation Rate" value={`${m!.cancelRate.toFixed(1)}%`} sub={`${m!.cancelledOrders} orders`}
-              icon={XCircle} color={BRAND.red} bg={`rgba(217,79,61,0.1)`} />
+              icon={XCircle} color={BRAND.red} bg={`rgba(217,79,61,0.1)`} href="/admin/orders?status=cancelled" />
           </div>
 
           {/* Revenue Trend */}

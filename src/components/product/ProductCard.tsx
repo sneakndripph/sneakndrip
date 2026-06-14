@@ -67,7 +67,10 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
 
         {/* Status badge */}
         <div className="absolute top-3 left-3 z-10">
-          {isPreOrder ? (
+          {availableSizes.length === 0 ? (
+            <span className="text-[10px] font-black uppercase px-2.5 py-1 tracking-wider text-white"
+              style={{ background: "#555" }}>Sold Out</span>
+          ) : isPreOrder ? (
             <span className="text-[10px] font-black uppercase px-2.5 py-1 tracking-wider text-white"
               style={{ background: BRAND.red }}>Pre-Order</span>
           ) : (
@@ -85,7 +88,7 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
         )}
 
         {/* Hover overlay — sizes + quick add */}
-        {showQuickAdd && (
+        {showQuickAdd && availableSizes.length > 0 && (
           <div className="absolute inset-0 flex flex-col justify-end z-20 transition-opacity duration-200"
             style={{ opacity: hovered ? 1 : 0, pointerEvents: hovered ? "auto" : "none" }}>
             {/* Gradient scrim */}

@@ -95,7 +95,12 @@ export default function AccountPage() {
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: "", body: "" });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
-  const [reviewedOrderIds, setReviewedOrderIds] = useState<Set<string>>(new Set());
+  const [reviewedOrderIds, setReviewedOrderIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem("snd_reviewed_orders");
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
 
   // Address state
   const [addressForm, setAddressForm] = useState({ street: "", barangay: "", city: "", province: "", postal: "", regionGroup: "" });
@@ -252,7 +257,11 @@ export default function AccountPage() {
     setSubmittingReview(false);
     setReviewSuccess(true);
     if (reviewModalOrder) {
-      setReviewedOrderIds(prev => new Set([...prev, reviewModalOrder.id]));
+      setReviewedOrderIds(prev => {
+        const next = new Set([...prev, reviewModalOrder.id]);
+        try { localStorage.setItem("snd_reviewed_orders", JSON.stringify([...next])); } catch {}
+        return next;
+      });
     }
     setReviewForm({ rating: 5, title: "", body: "" });
     setTimeout(() => {
@@ -456,7 +465,11 @@ export default function AccountPage() {
                                 </div>
                               )}
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold truncate" style={{ color: BRAND.black }}>{item.product_name}</p>
+                                {item.products?.slug ? (
+                                  <Link href={`/shop/${item.products.slug}`} className="text-sm font-semibold truncate block transition-opacity hover:opacity-70" style={{ color: BRAND.black }}>{item.product_name}</Link>
+                                ) : (
+                                  <p className="text-sm font-semibold truncate" style={{ color: BRAND.black }}>{item.product_name}</p>
+                                )}
                                 <p className="text-xs" style={{ color: BRAND.muted }}>Size {item.size} · Qty {item.quantity}</p>
                               </div>
                               <p className="font-bold text-sm shrink-0" style={{ color: BRAND.black }}>
