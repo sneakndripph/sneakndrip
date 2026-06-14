@@ -29,6 +29,15 @@ const HERO_DEFAULTS = {
   hero_cta_secondary: "Pre-Orders",
 };
 
+const PROMISE_DEFAULTS = [
+  { icon: "🔐", title: "100% Authentic", desc: "Every pair is verified authentic. Sourced directly from trusted local and international suppliers. No reps, no fakes — ever." },
+  { icon: "✅", title: "Verified Supplier", desc: "We work only with verified and trusted sneaker suppliers. Our reputation is built on authenticity." },
+  { icon: "🛡️", title: "Secure Checkout", desc: "GCash, Maya, Bank Transfer, and Cash on Delivery. All payments are safe, fast, and easy." },
+  { icon: "📦", title: "Fast Shipping", desc: "Metro Manila: 1–3 days. Provincial: 3–7 days. All orders come with tracking." },
+  { icon: "📅", title: "Pre-Order ETA", desc: "Every pre-order comes with a firm ETA. We update you every step of the way." },
+  { icon: "💬", title: "24/7 Support", desc: "Message us on Facebook or Instagram anytime. Real, fast, friendly replies — always." },
+];
+
 export default async function HomePage() {
   const [products, reviews, settings] = await Promise.all([getProducts(), getReviews(), getSettings()]);
   const newArrivals = products.filter(p => p.is_new).slice(0, 6);
@@ -45,6 +54,12 @@ export default async function HomePage() {
     ctaPrimary: settings.hero_cta_primary || HERO_DEFAULTS.hero_cta_primary,
     ctaSecondary: settings.hero_cta_secondary || HERO_DEFAULTS.hero_cta_secondary,
   };
+
+  const promises = PROMISE_DEFAULTS.map((def, i) => ({
+    icon:  settings[`promise_${i + 1}_icon`]  || def.icon,
+    title: settings[`promise_${i + 1}_title`] || def.title,
+    desc:  settings[`promise_${i + 1}_desc`]  || def.desc,
+  }));
 
   return (
     <>
@@ -320,11 +335,15 @@ export default async function HomePage() {
               <Link href={`/shop/${p.slug}`} className="block">
                 <div className="relative aspect-square overflow-hidden mb-3"
                   style={{ background: p.bg || BRAND.bg, border: `1px solid ${BRAND.cardBorder}` }}>
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span style={{ fontFamily: FONTS.display, fontSize: "4rem", color: BRAND.black, opacity: 0.05 }}>
-                      {p.brand.charAt(0)}
-                    </span>
-                  </div>
+                  {p.images?.[0] ? (
+                    <Image src={p.images[0]} alt={p.name} fill className="object-cover object-center transition-transform group-hover:scale-105" sizes="(max-width: 768px) 50vw, 25vw" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <span style={{ fontFamily: FONTS.display, fontSize: "4rem", color: BRAND.black, opacity: 0.05 }}>
+                        {p.brand.charAt(0)}
+                      </span>
+                    </div>
+                  )}
                   {/* Rank badge */}
                   <div className="absolute top-3 left-3 w-8 h-8 rounded-sm flex items-center justify-center"
                     style={{ background: BRAND.black }}>
@@ -362,14 +381,7 @@ export default async function HomePage() {
             </h2>
           </div>
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {[
-              { icon: "🔐", title: "100% Authentic", desc: "Every pair is verified authentic. Sourced directly from trusted local and international suppliers. No reps, no fakes — ever." },
-              { icon: "✅", title: "Verified Supplier", desc: "We work only with verified and trusted sneaker suppliers. Our reputation is built on authenticity." },
-              { icon: "🛡️", title: "Secure Checkout", desc: "GCash, Maya, Bank Transfer, and Cash on Delivery. All payments are safe, fast, and easy." },
-              { icon: "📦", title: "Fast Shipping", desc: "Metro Manila: 1–3 days. Provincial: 3–7 days. All orders come with tracking." },
-              { icon: "📅", title: "Pre-Order ETA", desc: "Every pre-order comes with a firm ETA. We update you every step of the way." },
-              { icon: "💬", title: "24/7 Support", desc: "Message us on Facebook or Instagram anytime. Real, fast, friendly replies — always." },
-            ].map(b => (
+            {promises.map(b => (
               <div key={b.title}
                 className="p-6 rounded-xl transition-shadow hover:shadow-sm"
                 style={{ border: `1px solid ${BRAND.cardBorder}` }}>
@@ -420,41 +432,6 @@ export default async function HomePage() {
               </div>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* ── Instagram Section ──────────────────────────────────────────── */}
-      <section className="py-16" style={{ background: BRAND.card, borderTop: `1px solid ${BRAND.border}` }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-10">
-            <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.muted, fontFamily: FONTS.body }}>
-              Follow Us
-            </p>
-            <h2 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>
-              @SNEAKNDRIP
-            </h2>
-          </div>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-            {Array(6).fill(0).map((_, i) => (
-              <div key={i}
-                className="aspect-square flex items-center justify-center cursor-pointer transition-opacity hover:opacity-70 overflow-hidden"
-                style={{
-                  background: [BRAND.teal + "20", BRAND.red + "15", BRAND.bg, BRAND.teal + "15", BRAND.red + "20", BRAND.bg + "80"][i % 6],
-                  border: `1px solid ${BRAND.border}`,
-                }}>
-                <span style={{ fontFamily: FONTS.display, fontSize: "2rem", color: BRAND.black, opacity: 0.07 }}>
-                  SND
-                </span>
-              </div>
-            ))}
-          </div>
-          <div className="text-center mt-8">
-            <a href="https://www.instagram.com/sneakndripph/" target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm font-semibold px-6 py-3 transition-opacity hover:opacity-70"
-              style={{ border: `1.5px solid ${BRAND.black}`, color: BRAND.black, fontFamily: FONTS.body }}>
-              Follow on Instagram →
-            </a>
-          </div>
         </div>
       </section>
 

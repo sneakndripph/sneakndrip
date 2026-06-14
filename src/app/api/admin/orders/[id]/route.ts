@@ -211,5 +211,18 @@ export async function PATCH(
     }
   }
 
+  // ── Tracking number added/updated on shipped order → notify customer ──
+  if (!body.status && body.tracking_number && currentOrder?.status === "shipped" && currentOrder.customer_email && resend) {
+    const emailContent = statusEmailContent("shipped", currentOrder.order_number, currentOrder.customer_name, body.tracking_number, isCODOrder);
+    if (emailContent) {
+      resend.emails.send({
+        from: `Sneak N' Drip <${FROM_EMAIL}>`,
+        to: currentOrder.customer_email,
+        subject: `Tracking Number Updated — ${currentOrder.order_number} | Sneak N' Drip`,
+        html: wrapEmail(emailContent.body, currentOrder.order_number),
+      }).catch(err => console.error("Tracking email error:", err));
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }

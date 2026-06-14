@@ -184,17 +184,38 @@ export default function CartPage() {
                   <div className="flex items-center justify-between mt-4">
                     {/* Qty control */}
                     <div className="flex items-center gap-0" style={{ border: `1px solid ${BRAND.border}` }}>
-                      <button onClick={() => updateQuantity(item.product.id, item.size, item.quantity - 1)}
-                        className="w-8 h-8 flex items-center justify-center transition-colors hover:opacity-60"
-                        style={{ color: BRAND.black }}>
-                        <Minus className="w-3 h-3" />
-                      </button>
-                      <span className="w-10 text-center text-sm font-bold" style={{ color: BRAND.black }}>{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.product.id, item.size, item.quantity + 1)}
-                        className="w-8 h-8 flex items-center justify-center transition-colors hover:opacity-60"
-                        style={{ color: BRAND.black }}>
-                        <Plus className="w-3 h-3" />
-                      </button>
+                      {(() => {
+                        const maxStock = item.product.sizes.find(s => s.size === item.size)?.stock ?? 99;
+                        return (
+                          <>
+                            <button onClick={() => updateQuantity(item.product.id, item.size, item.quantity - 1)}
+                              className="w-8 h-8 flex items-center justify-center transition-colors hover:opacity-60"
+                              style={{ color: BRAND.black }}>
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={item.quantity}
+                              onChange={e => {
+                                const val = parseInt(e.target.value.replace(/\D/g, ""), 10);
+                                if (!isNaN(val) && val >= 1) {
+                                  updateQuantity(item.product.id, item.size, Math.min(val, maxStock));
+                                }
+                              }}
+                              className="w-10 text-center text-sm font-bold focus:outline-none bg-transparent"
+                              style={{ color: BRAND.black }}
+                            />
+                            <button onClick={() => updateQuantity(item.product.id, item.size, Math.min(item.quantity + 1, maxStock))}
+                              disabled={item.quantity >= maxStock}
+                              className="w-8 h-8 flex items-center justify-center transition-colors hover:opacity-60 disabled:opacity-30"
+                              style={{ color: BRAND.black }}>
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     <button onClick={() => removeItem(item.product.id, item.size)}

@@ -41,6 +41,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<string>("gcash");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [referenceNumber, setReferenceNumber] = useState("");
   const [regionGroup, setRegionGroup] = useState("");
   const [form, setForm] = useState({ name: "", email: "", mobile: "", street: "", barangay: "", city: "", province: "", postal: "" });
   const [placing, setPlacing] = useState(false);
@@ -81,12 +82,19 @@ export default function CheckoutPage() {
       createClient().auth.getUser().then(({ data: { user } }) => {
         if (!user) { router.replace("/login?redirect=/checkout"); return; }
         // Pre-fill known fields from auth profile
+        const meta = user.user_metadata ?? {};
         setForm(f => ({
           ...f,
-          name: f.name || user.user_metadata?.full_name || "",
+          name: f.name || meta.full_name || "",
           email: f.email || user.email || "",
-          mobile: f.mobile || user.user_metadata?.mobile || "",
+          mobile: f.mobile || meta.mobile || "",
+          street: f.street || meta.addr_street || "",
+          barangay: f.barangay || meta.addr_barangay || "",
+          city: f.city || meta.addr_city || "",
+          province: f.province || meta.addr_province || "",
+          postal: f.postal || meta.addr_postal || "",
         }));
+        if (!regionGroup && meta.addr_region_group) setRegionGroup(meta.addr_region_group);
       });
     });
   }, [router]);
@@ -174,6 +182,7 @@ export default function CheckoutPage() {
             payment_type: items[0]?.payment_type === "downpayment" ? "downpayment" : "full",
             payment_status: "pending",
             proof_of_payment: proofUrl,
+            payment_reference: referenceNumber.trim() || null,
             status: "pending",
           },
           items: items.map(item => ({
@@ -219,7 +228,7 @@ export default function CheckoutPage() {
       // Save order data for confirmation page
       sessionStorage.setItem("lastOrder", JSON.stringify({
         orderNumber: num, total, isCOD, paymentMethod, name: form.name,
-        shipping, discount, couponCode: couponData?.code ?? null,
+        shipping, discount, couponCode: couponData?.code ?? null, referenceNumber: referenceNumber.trim() || null,
         items: items.map(i => ({
           name: i.product.name,
           size: i.size,
@@ -417,6 +426,21 @@ export default function CheckoutPage() {
                       )}
                     </div>
 
+                    {/* Reference number */}
+                    <div className="mb-4">
+                      <p className="text-sm font-bold mb-2" style={{ color: BRAND.black }}>Reference / Transaction Number <span className="font-normal text-xs" style={{ color: BRAND.muted }}>(optional)</span></p>
+                      <input
+                        type="text"
+                        value={referenceNumber}
+                        onChange={e => setReferenceNumber(e.target.value)}
+                        placeholder="e.g. 123456789012"
+                        className="w-full px-4 py-3 text-sm focus:outline-none"
+                        style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                        onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+                        onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)}
+                      />
+                    </div>
+
                     {/* Proof upload */}
                     <div>
                       <p className="text-sm font-bold mb-2" style={{ color: BRAND.black }}>Upload Proof of Payment</p>
@@ -433,7 +457,7 @@ export default function CheckoutPage() {
                               ) : (
                                 <CheckCircle className="w-8 h-8 mb-2" style={{ color: BRAND.teal }} />
                               )}
-                              <p className="text-sm font-semibold" style={{ color: BRAND.teal }}>{proofFile.name}</p>
+                              <p className="text-sm font-semibold max-w-full truncate px-2" style={{ color: BRAND.teal }}>{proofFile.name}</p>
                               <p className="text-xs mt-1" style={{ color: BRAND.muted }}>Click to change</p>
                             </div>
                           ) : (

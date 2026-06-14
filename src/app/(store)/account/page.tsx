@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BRAND, FONTS } from "@/lib/constants";
 import Image from "next/image";
-import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle, X } from "lucide-react";
+import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle, X, Home } from "lucide-react";
+import PhAddressSelect from "@/components/ui/PhAddressSelect";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -31,7 +32,12 @@ type Order = {
   created_at: string;
   status: string;
   total: number;
+  subtotal?: number;
+  shipping_fee?: number;
+  discount?: number;
+  coupon_code?: string | null;
   payment_method: string;
+  payment_reference?: string | null;
   proof_of_payment?: string | null;
   tracking_number?: string;
   shipping_street?: string;
@@ -40,7 +46,7 @@ type Order = {
   shipping_province?: string;
   order_items: OrderItem[];
 };
-type Tab = "orders" | "account" | "password";
+type Tab = "orders" | "account" | "address" | "password";
 
 // COD skips the "Confirmed/Paid" step
 const STEPS_DEFAULT = [
@@ -81,6 +87,12 @@ export default function AccountPage() {
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
   const [cancelModalOrder, setCancelModalOrder] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+
+  // Address state
+  const [addressForm, setAddressForm] = useState({ street: "", barangay: "", city: "", province: "", postal: "", regionGroup: "" });
+  const [addressSuccess, setAddressSuccess] = useState(false);
+  const [savingAddress, setSavingAddress] = useState(false);
+  const [addressShowErrors, setAddressShowErrors] = useState(false);
   const [pwTouched, setPwTouched] = useState(false);
 
   useEffect(() => {
@@ -88,9 +100,18 @@ export default function AccountPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.push("/login"); return; }
       setUser(user);
+      const meta = user.user_metadata ?? {};
       setProfileForm({
-        name: user.user_metadata?.full_name || "",
-        mobile: user.user_metadata?.mobile || "",
+        name: meta.full_name || "",
+        mobile: meta.mobile || "",
+      });
+      setAddressForm({
+        street: meta.addr_street || "",
+        barangay: meta.addr_barangay || "",
+        city: meta.addr_city || "",
+        province: meta.addr_province || "",
+        postal: meta.addr_postal || "",
+        regionGroup: meta.addr_region_group || "",
       });
       fetch("/api/orders")
         .then(r => r.json())
@@ -152,6 +173,29 @@ export default function AccountPage() {
     setSavingPw(false);
   }
 
+  async function handleSaveAddress(e: React.FormEvent) {
+    e.preventDefault();
+    setAddressShowErrors(true);
+    if (!addressForm.street || !addressForm.province || !addressForm.city || !addressForm.barangay) return;
+    setSavingAddress(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        addr_street: addressForm.street.trim(),
+        addr_barangay: addressForm.barangay,
+        addr_city: addressForm.city,
+        addr_province: addressForm.province,
+        addr_postal: addressForm.postal.trim(),
+        addr_region_group: addressForm.regionGroup,
+      },
+    });
+    if (!error) {
+      setAddressSuccess(true);
+      setTimeout(() => setAddressSuccess(false), 3000);
+    }
+    setSavingAddress(false);
+  }
+
   async function executeCancelOrder() {
     if (!cancelModalOrder) return;
     const orderNumber = cancelModalOrder;
@@ -176,6 +220,7 @@ export default function AccountPage() {
   const NAV_TABS = [
     { id: "orders" as Tab, icon: Package, label: "My Orders" },
     { id: "account" as Tab, icon: User, label: "Account Details" },
+    { id: "address" as Tab, icon: Home, label: "My Address" },
     { id: "password" as Tab, icon: Lock, label: "Change Password" },
   ];
 
@@ -369,41 +414,70 @@ export default function AccountPage() {
                         })}
                       </div>
 
-                      {/* Total + Help */}
-                      <div className="px-5 py-4 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <p className="text-xs" style={{ color: BRAND.muted }}>
-                            {isCOD ? "Cash on Delivery" : order.payment_method?.replace("_", " ")}
-                          </p>
-                          {!isCOD && order.proof_of_payment && (
-                            <a
-                              href={`/api/proof?orderNumber=${encodeURIComponent(order.order_number)}`}
-                              target="_blank" rel="noopener noreferrer"
+                      {/* Order breakdown + actions */}
+                      <div className="px-5 py-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                        {/* Price breakdown */}
+                        {(order.subtotal !== undefined) && (
+                          <div className="space-y-1 mb-3 text-xs" style={{ color: BRAND.muted }}>
+                            <div className="flex justify-between">
+                              <span>Subtotal</span>
+                              <span>₱{Number(order.subtotal).toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Shipping</span>
+                              <span style={{ color: order.shipping_fee === 0 ? BRAND.teal : undefined }}>
+                                {order.shipping_fee === 0 ? "FREE" : `₱${Number(order.shipping_fee).toLocaleString()}`}
+                              </span>
+                            </div>
+                            {(order.discount ?? 0) > 0 && (
+                              <div className="flex justify-between" style={{ color: BRAND.teal }}>
+                                <span>Coupon {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
+                                <span>−₱{Number(order.discount).toLocaleString()}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <p className="text-xs" style={{ color: BRAND.muted }}>
+                              {isCOD ? "Cash on Delivery" : order.payment_method?.replace("_", " ")}
+                            </p>
+                            {order.payment_reference && (
+                              <p className="text-xs font-medium" style={{ color: BRAND.muted }}>
+                                Ref: <span style={{ color: BRAND.black }}>{order.payment_reference}</span>
+                              </p>
+                            )}
+                            {!isCOD && order.proof_of_payment && (
+                              <a
+                                href={`/api/proof?orderNumber=${encodeURIComponent(order.order_number)}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70"
+                                style={{ color: BRAND.teal }}>
+                                View Proof
+                              </a>
+                            )}
+                            <button
+                              onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
                               className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70"
                               style={{ color: BRAND.teal }}>
-                              View Proof
-                            </a>
-                          )}
-                          <button
-                            onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
-                            className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70"
-                            style={{ color: BRAND.teal }}>
-                            <MessageCircle className="w-3.5 h-3.5" /> Need help?
-                          </button>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {order.status === "pending" && isCOD && (
-                            <button
-                              onClick={() => setCancelModalOrder(order.order_number)}
-                              disabled={cancellingOrder === order.order_number}
-                              className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity disabled:opacity-50"
-                              style={{ border: `1px solid ${BRAND.red}`, color: BRAND.red }}>
-                              {cancellingOrder === order.order_number ? "Cancelling…" : "Cancel Order"}
+                              <MessageCircle className="w-3.5 h-3.5" /> Need help?
                             </button>
-                          )}
-                          <p className="font-black text-sm shrink-0" style={{ color: BRAND.black }}>
-                            Total ₱{Number(order.total).toLocaleString()}
-                          </p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {order.status === "pending" && isCOD && (
+                              <button
+                                onClick={() => setCancelModalOrder(order.order_number)}
+                                disabled={cancellingOrder === order.order_number}
+                                className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity disabled:opacity-50"
+                                style={{ border: `1px solid ${BRAND.red}`, color: BRAND.red }}>
+                                {cancellingOrder === order.order_number ? "Cancelling…" : "Cancel Order"}
+                              </button>
+                            )}
+                            <p className="font-black text-sm shrink-0" style={{ color: BRAND.black }}>
+                              Total ₱{Number(order.total).toLocaleString()}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -498,6 +572,85 @@ export default function AccountPage() {
                       style={{ background: BRAND.black, color: BRAND.bg }}>
                       <Save className="w-4 h-4" />
                       {savingProfile ? "Saving…" : "Save Changes"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Address tab */}
+            {tab === "address" && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="font-black text-lg" style={{ color: BRAND.black }}>My Default Address</h2>
+                  <span className="text-xs" style={{ color: BRAND.muted }}>
+                    <span style={{ color: BRAND.red }}>*</span> Required
+                  </span>
+                </div>
+                <p className="text-sm mb-6" style={{ color: BRAND.muted }}>
+                  Saved address will auto-fill at checkout.
+                </p>
+
+                <form onSubmit={handleSaveAddress}>
+                  <div className="p-6 rounded-xl space-y-4" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+                    {addressSuccess && (
+                      <div className="flex items-center gap-2 px-4 py-3 rounded text-sm font-semibold"
+                        style={{ background: `${BRAND.teal}15`, color: BRAND.teal, border: `1px solid ${BRAND.teal}30` }}>
+                        <CheckCircle className="w-4 h-4" /> Address saved successfully!
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                        Street Address <span style={{ color: BRAND.red }}>*</span>
+                      </label>
+                      <input
+                        value={addressForm.street}
+                        onChange={e => setAddressForm(f => ({ ...f, street: e.target.value }))}
+                        placeholder="123 Rizal St."
+                        className={inputCls}
+                        style={{
+                          background: BRAND.bg,
+                          border: `1px solid ${addressShowErrors && !addressForm.street ? BRAND.red : BRAND.border}`,
+                          color: BRAND.black,
+                        }}
+                        onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+                        onBlur={e => (e.currentTarget.style.borderColor = addressShowErrors && !addressForm.street ? BRAND.red : BRAND.border)}
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <PhAddressSelect
+                        province={addressForm.province}
+                        city={addressForm.city}
+                        barangay={addressForm.barangay}
+                        onProvinceChange={v => setAddressForm(f => ({ ...f, province: v }))}
+                        onCityChange={v => setAddressForm(f => ({ ...f, city: v }))}
+                        onBarangayChange={v => setAddressForm(f => ({ ...f, barangay: v }))}
+                        onRegionGroupChange={v => setAddressForm(f => ({ ...f, regionGroup: v }))}
+                        showErrors={addressShowErrors}
+                      />
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                          Postal Code
+                        </label>
+                        <input
+                          value={addressForm.postal}
+                          onChange={e => setAddressForm(f => ({ ...f, postal: e.target.value }))}
+                          placeholder="1630"
+                          className={inputCls}
+                          style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                          onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+                          onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)}
+                        />
+                      </div>
+                    </div>
+
+                    <button type="submit" disabled={savingAddress}
+                      className="flex items-center gap-2 mt-2 px-6 py-3 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
+                      style={{ background: BRAND.black, color: BRAND.bg }}>
+                      <Save className="w-4 h-4" />
+                      {savingAddress ? "Saving…" : "Save Address"}
                     </button>
                   </div>
                 </form>

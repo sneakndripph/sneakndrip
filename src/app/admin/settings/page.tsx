@@ -36,6 +36,12 @@ const DEFAULTS: SettingsData = {
   hero_subtitle: "100% Authentic Sneakers · On Hand & Pre-Order\nShips Philippines-wide. GCash, Maya, Bank Transfer & COD accepted.",
   hero_cta_primary: "Shop Now",
   hero_cta_secondary: "Pre-Orders",
+  promise_1_icon: "🔐", promise_1_title: "100% Authentic", promise_1_desc: "Every pair is verified authentic. Sourced directly from trusted local and international suppliers. No reps, no fakes — ever.",
+  promise_2_icon: "✅", promise_2_title: "Verified Supplier", promise_2_desc: "We work only with verified and trusted sneaker suppliers. Our reputation is built on authenticity.",
+  promise_3_icon: "🛡️", promise_3_title: "Secure Checkout", promise_3_desc: "GCash, Maya, Bank Transfer, and Cash on Delivery. All payments are safe, fast, and easy.",
+  promise_4_icon: "📦", promise_4_title: "Fast Shipping", promise_4_desc: "Metro Manila: 1–3 days. Provincial: 3–7 days. All orders come with tracking.",
+  promise_5_icon: "📅", promise_5_title: "Pre-Order ETA", promise_5_desc: "Every pre-order comes with a firm ETA. We update you every step of the way.",
+  promise_6_icon: "💬", promise_6_title: "24/7 Support", promise_6_desc: "Message us on Facebook or Instagram anytime. Real, fast, friendly replies — always.",
   preorder_message: "Your order will be reserved upon payment of downpayment. Balance is due before release.",
   meta_title: "Sneak N' Drip | Authentic Sneakers Philippines",
   meta_description: "Shop authentic sneakers in the Philippines. On Hand & Pre-Order. Best prices, 100% legit.",
@@ -145,6 +151,22 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="space-y-5 mb-5">
+        <Section title="Why Shop With Us">
+          <p className="text-xs -mt-2" style={{ color: BRAND.muted }}>Displayed on the homepage. Edit the 6 promise cards shown to customers.</p>
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5, 6].map(n => (
+              <div key={n} className="p-4 rounded-lg space-y-3" style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+                <p className="text-xs font-black uppercase tracking-wide" style={{ color: BRAND.muted }}>Card {n}</p>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <Field label={`Icon ${n}`} settingsKey={`promise_${n}_icon`} settings={settings} onChange={update} />
+                  <Field label={`Title ${n}`} settingsKey={`promise_${n}_title`} settings={settings} onChange={update} />
+                  <Field label={`Description ${n}`} settingsKey={`promise_${n}_desc`} settings={settings} onChange={update} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
+
         <Section title="Announcement Bar">
           <Field label="Announcement Text" settingsKey="announcement_text" settings={settings} onChange={update}
             hint="Leave blank to use the auto-generated text (free shipping threshold, accepted payments)" />
