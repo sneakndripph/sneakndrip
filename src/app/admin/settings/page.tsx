@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Save, ToggleLeft, ToggleRight } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight, Star, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check } from "lucide-react";
 
 type SettingsData = Record<string, string>;
 
@@ -72,15 +72,15 @@ function Field({ label, settingsKey, settings, onChange, type = "text", hint, mu
 }
 
 const SECTIONS = [
-  { id: "why-shop",      title: "Why Shop With Us" },
-  { id: "announcement",  title: "Announcement Bar" },
-  { id: "hero",          title: "Homepage Hero" },
-  { id: "store-info",    title: "Store Information" },
-  { id: "shipping",      title: "Shipping & Fees" },
-  { id: "gcash-maya",    title: "GCash & Maya" },
-  { id: "bank-transfer", title: "Bank Transfer" },
-  { id: "preorder",      title: "Pre-Order & Misc" },
-  { id: "seo",           title: "SEO & Meta" },
+  { id: "why-shop",      title: "Why Shop With Us",  icon: Star },
+  { id: "announcement",  title: "Announcement Bar",  icon: Bell },
+  { id: "hero",          title: "Homepage Hero",     icon: Monitor },
+  { id: "store-info",    title: "Store Information", icon: MapPin },
+  { id: "shipping",      title: "Shipping & Fees",   icon: Truck },
+  { id: "gcash-maya",    title: "GCash & Maya",      icon: CreditCard },
+  { id: "bank-transfer", title: "Bank Transfer",     icon: CreditCard },
+  { id: "preorder",      title: "Pre-Order & Misc",  icon: Clock },
+  { id: "seo",           title: "SEO & Meta",        icon: Search },
 ];
 
 export default function AdminSettingsPage() {
@@ -135,168 +135,174 @@ export default function AdminSettingsPage() {
     );
   }
 
+  const active = SECTIONS.find(s => s.id === activeSection)!;
+
   return (
     <div style={{ fontFamily: FONTS.body }}>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Configuration</p>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>SETTINGS</h1>
-        </div>
-        <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 px-5 py-3 font-bold text-sm uppercase tracking-wide transition-opacity hover:opacity-80 disabled:opacity-60"
-          style={{ background: saved ? "#10B981" : BRAND.black, color: BRAND.bg }}>
-          <Save className="w-4 h-4" />
-          {saving ? "Saving…" : saved ? "Saved!" : "Save Changes"}
-        </button>
+      <div className="mb-6">
+        <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Configuration</p>
+        <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>SETTINGS</h1>
+        <p className="text-sm mt-1" style={{ color: BRAND.muted }}>Manage your store configuration and content.</p>
       </div>
 
-      <div className="flex gap-6 items-start">
-        {/* Left sidebar nav */}
-        <div className="w-48 shrink-0 sticky top-6">
+      <div className="grid lg:grid-cols-4 gap-6">
+        {/* Section list — matches /pages sidebar exactly */}
+        <div className="lg:col-span-1">
           <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-            {SECTIONS.map((s, idx) => (
-              <button key={s.id} onClick={() => setActiveSection(s.id)}
-                className="w-full text-left px-4 py-3 text-sm font-semibold transition-colors"
-                style={{
-                  borderBottom: idx < SECTIONS.length - 1 ? `1px solid ${BRAND.border}` : "none",
-                  background: activeSection === s.id ? `${BRAND.teal}10` : "transparent",
-                  color: activeSection === s.id ? BRAND.teal : BRAND.black,
-                  borderLeft: activeSection === s.id ? `3px solid ${BRAND.teal}` : "3px solid transparent",
-                }}>
-                {s.title}
-              </button>
-            ))}
+            {SECTIONS.map((s, i) => {
+              const Icon = s.icon;
+              return (
+                <button key={s.id}
+                  onClick={() => setActiveSection(s.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-sm transition-colors"
+                  style={{
+                    borderBottom: i < SECTIONS.length - 1 ? `1px solid ${BRAND.border}` : "none",
+                    background: activeSection === s.id ? `${BRAND.teal}10` : "transparent",
+                    color: activeSection === s.id ? BRAND.teal : BRAND.black,
+                    borderLeft: activeSection === s.id ? `3px solid ${BRAND.teal}` : "3px solid transparent",
+                    fontWeight: activeSection === s.id ? 600 : 400,
+                  }}>
+                  <Icon className="w-3.5 h-3.5 shrink-0 opacity-50" />
+                  <span className="truncate text-xs">{s.title}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Content area */}
-        <div className="flex-1 rounded-xl p-6 space-y-4" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-
-          {activeSection === "why-shop" && (
-            <>
-              <div>
-                <h2 className="font-black text-sm uppercase tracking-widest mb-1" style={{ color: BRAND.black }}>Why Shop With Us</h2>
-                <p className="text-xs" style={{ color: BRAND.muted }}>Displayed on the homepage. Edit the 6 promise cards shown to customers.</p>
+        {/* Content panel — matches /pages editor panel */}
+        <div className="lg:col-span-3">
+          <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+            {/* Toolbar / header */}
+            <div className="px-5 py-3 flex items-center justify-between gap-3"
+              style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.bg }}>
+              <div className="flex items-center gap-2">
+                <active.icon className="w-3.5 h-3.5 opacity-50" style={{ color: BRAND.black }} />
+                <span className="text-xs font-bold uppercase tracking-widest" style={{ color: BRAND.black }}>{active.title}</span>
               </div>
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5, 6].map(n => (
-                  <div key={n} className="p-4 rounded-lg space-y-3" style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
-                    <p className="text-xs font-black uppercase tracking-wide" style={{ color: BRAND.muted }}>Card {n}</p>
-                    <div className="grid sm:grid-cols-3 gap-3">
-                      <Field label={`Icon ${n}`} settingsKey={`promise_${n}_icon`} settings={settings} onChange={update} />
-                      <Field label={`Title ${n}`} settingsKey={`promise_${n}_title`} settings={settings} onChange={update} />
-                      <Field label={`Description ${n}`} settingsKey={`promise_${n}_desc`} settings={settings} onChange={update} />
-                    </div>
+              <button onClick={handleSave} disabled={saving}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all disabled:opacity-50"
+                style={{ background: saved ? "#10B981" : BRAND.teal, color: "#fff" }}>
+                {saved ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
+                {saving ? "Saving…" : saved ? "Saved!" : "Save"}
+              </button>
+            </div>
+
+            {/* Section content */}
+            <div className="p-6 space-y-4">
+
+              {activeSection === "why-shop" && (
+                <>
+                  <p className="text-xs" style={{ color: BRAND.muted }}>Displayed on the homepage. Edit the 6 promise cards shown to customers.</p>
+                  <div className="space-y-4">
+                    {[1, 2, 3, 4, 5, 6].map(n => (
+                      <div key={n} className="p-4 rounded-lg space-y-3" style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+                        <p className="text-xs font-black uppercase tracking-wide" style={{ color: BRAND.muted }}>Card {n}</p>
+                        <div className="grid sm:grid-cols-3 gap-3">
+                          <Field label={`Icon ${n}`} settingsKey={`promise_${n}_icon`} settings={settings} onChange={update} />
+                          <Field label={`Title ${n}`} settingsKey={`promise_${n}_title`} settings={settings} onChange={update} />
+                          <Field label={`Description ${n}`} settingsKey={`promise_${n}_desc`} settings={settings} onChange={update} />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </>
-          )}
+                </>
+              )}
 
-          {activeSection === "announcement" && (
-            <>
-              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Announcement Bar</h2>
-              <Field label="Announcement Text" settingsKey="announcement_text" settings={settings} onChange={update}
-                hint="Leave blank to use the auto-generated text (free shipping threshold, accepted payments)" />
-            </>
-          )}
+              {activeSection === "announcement" && (
+                <Field label="Announcement Text" settingsKey="announcement_text" settings={settings} onChange={update}
+                  hint="Leave blank to use the auto-generated text (free shipping threshold, accepted payments)" />
+              )}
 
-          {activeSection === "hero" && (
-            <>
-              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Homepage Hero</h2>
-              <Field label="Badge Text" settingsKey="hero_badge" settings={settings} onChange={update}
-                hint="Small pill above the headline (e.g. 'New Drops Every Week')" />
-              <div className="grid sm:grid-cols-3 gap-4">
-                <Field label="Headline Line 1" settingsKey="hero_line1" settings={settings} onChange={update} />
-                <Field label="Headline Line 2 (teal)" settingsKey="hero_line2" settings={settings} onChange={update} />
-                <Field label="Headline Line 3" settingsKey="hero_line3" settings={settings} onChange={update} />
-              </div>
-              <Field label="Subtitle" settingsKey="hero_subtitle" settings={settings} onChange={update} multiline
-                hint="Shown below the headline. Use \n for line breaks." />
-              <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Primary CTA Button" settingsKey="hero_cta_primary" settings={settings} onChange={update} />
-                <Field label="Secondary CTA Button" settingsKey="hero_cta_secondary" settings={settings} onChange={update} />
-              </div>
-            </>
-          )}
+              {activeSection === "hero" && (
+                <>
+                  <Field label="Badge Text" settingsKey="hero_badge" settings={settings} onChange={update}
+                    hint="Small pill above the headline (e.g. 'New Drops Every Week')" />
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <Field label="Headline Line 1" settingsKey="hero_line1" settings={settings} onChange={update} />
+                    <Field label="Headline Line 2 (teal)" settingsKey="hero_line2" settings={settings} onChange={update} />
+                    <Field label="Headline Line 3" settingsKey="hero_line3" settings={settings} onChange={update} />
+                  </div>
+                  <Field label="Subtitle" settingsKey="hero_subtitle" settings={settings} onChange={update} multiline
+                    hint="Shown below the headline. Use \n for line breaks." />
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Field label="Primary CTA Button" settingsKey="hero_cta_primary" settings={settings} onChange={update} />
+                    <Field label="Secondary CTA Button" settingsKey="hero_cta_secondary" settings={settings} onChange={update} />
+                  </div>
+                </>
+              )}
 
-          {activeSection === "store-info" && (
-            <>
-              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Store Information</h2>
-              <Field label="Store Name"          settingsKey="store_name"       settings={settings} onChange={update} />
-              <Field label="Store Email"         settingsKey="store_email"      settings={settings} onChange={update} type="email" />
-              <Field label="Contact Number"      settingsKey="contact_number"   settings={settings} onChange={update} />
-              <Field label="Address"             settingsKey="address"          settings={settings} onChange={update} />
-              <Field label="Facebook Page URL"   settingsKey="facebook_url"     settings={settings} onChange={update} />
-              <Field label="Instagram Handle"    settingsKey="instagram_handle" settings={settings} onChange={update} />
-              <Field label="TikTok Handle"       settingsKey="tiktok_handle"    settings={settings} onChange={update} />
-            </>
-          )}
+              {activeSection === "store-info" && (
+                <>
+                  <Field label="Store Name"        settingsKey="store_name"       settings={settings} onChange={update} />
+                  <Field label="Store Email"        settingsKey="store_email"      settings={settings} onChange={update} type="email" />
+                  <Field label="Contact Number"     settingsKey="contact_number"   settings={settings} onChange={update} />
+                  <Field label="Address"            settingsKey="address"          settings={settings} onChange={update} />
+                  <Field label="Facebook Page URL"  settingsKey="facebook_url"     settings={settings} onChange={update} />
+                  <Field label="Instagram Handle"   settingsKey="instagram_handle" settings={settings} onChange={update} />
+                  <Field label="TikTok Handle"      settingsKey="tiktok_handle"    settings={settings} onChange={update} />
+                </>
+              )}
 
-          {activeSection === "shipping" && (
-            <>
-              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Shipping &amp; Fees</h2>
-              <Field label="Metro Manila Shipping Fee (₱)" settingsKey="metro_shipping_fee"      settings={settings} onChange={update} type="number" />
-              <Field label="Provincial Shipping Fee (₱)"   settingsKey="provincial_shipping_fee" settings={settings} onChange={update} type="number" />
-              <Field label="Free Shipping Threshold (₱)"   settingsKey="free_shipping_threshold" settings={settings} onChange={update} type="number"
-                hint="Orders above this amount get free shipping" />
-              <Field label="COD Areas" settingsKey="cod_areas" settings={settings} onChange={update} multiline
-                hint="Comma-separated cities/regions where COD is available" />
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.black }}>Cash on Delivery (COD)</label>
-                <button type="button"
-                  onClick={() => update("cod_enabled", settings.cod_enabled === "false" ? "true" : "false")}
-                  className="flex items-center gap-3 transition-opacity hover:opacity-80">
-                  {settings.cod_enabled !== "false"
-                    ? <ToggleRight className="w-7 h-7" style={{ color: BRAND.teal }} />
-                    : <ToggleLeft className="w-7 h-7" style={{ color: BRAND.muted }} />}
-                  <span className="text-sm font-semibold" style={{ color: settings.cod_enabled !== "false" ? BRAND.teal : BRAND.muted }}>
-                    {settings.cod_enabled !== "false" ? "COD Enabled" : "COD Disabled"}
-                  </span>
-                </button>
-                <p className="text-xs mt-1" style={{ color: BRAND.muted }}>When disabled, COD will not appear at checkout</p>
-              </div>
-            </>
-          )}
+              {activeSection === "shipping" && (
+                <>
+                  <Field label="Metro Manila Shipping Fee (₱)" settingsKey="metro_shipping_fee"      settings={settings} onChange={update} type="number" />
+                  <Field label="Provincial Shipping Fee (₱)"   settingsKey="provincial_shipping_fee" settings={settings} onChange={update} type="number" />
+                  <Field label="Free Shipping Threshold (₱)"   settingsKey="free_shipping_threshold" settings={settings} onChange={update} type="number"
+                    hint="Orders above this amount get free shipping" />
+                  <Field label="COD Areas" settingsKey="cod_areas" settings={settings} onChange={update} multiline
+                    hint="Comma-separated cities/regions where COD is available" />
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.black }}>Cash on Delivery (COD)</label>
+                    <button type="button"
+                      onClick={() => update("cod_enabled", settings.cod_enabled === "false" ? "true" : "false")}
+                      className="flex items-center gap-3 transition-opacity hover:opacity-80">
+                      {settings.cod_enabled !== "false"
+                        ? <ToggleRight className="w-7 h-7" style={{ color: BRAND.teal }} />
+                        : <ToggleLeft className="w-7 h-7" style={{ color: BRAND.muted }} />}
+                      <span className="text-sm font-semibold" style={{ color: settings.cod_enabled !== "false" ? BRAND.teal : BRAND.muted }}>
+                        {settings.cod_enabled !== "false" ? "COD Enabled" : "COD Disabled"}
+                      </span>
+                    </button>
+                    <p className="text-xs mt-1" style={{ color: BRAND.muted }}>When disabled, COD will not appear at checkout</p>
+                  </div>
+                </>
+              )}
 
-          {activeSection === "gcash-maya" && (
-            <>
-              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>GCash &amp; Maya</h2>
-              <Field label="GCash Number"       settingsKey="gcash_number" settings={settings} onChange={update} />
-              <Field label="GCash Account Name" settingsKey="gcash_name"   settings={settings} onChange={update} />
-              <Field label="Maya Number"        settingsKey="maya_number"  settings={settings} onChange={update} />
-              <Field label="Maya Account Name"  settingsKey="maya_name"    settings={settings} onChange={update} />
-            </>
-          )}
+              {activeSection === "gcash-maya" && (
+                <>
+                  <Field label="GCash Number"       settingsKey="gcash_number" settings={settings} onChange={update} />
+                  <Field label="GCash Account Name" settingsKey="gcash_name"   settings={settings} onChange={update} />
+                  <Field label="Maya Number"        settingsKey="maya_number"  settings={settings} onChange={update} />
+                  <Field label="Maya Account Name"  settingsKey="maya_name"    settings={settings} onChange={update} />
+                </>
+              )}
 
-          {activeSection === "bank-transfer" && (
-            <>
-              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Bank Transfer</h2>
-              <Field label="Bank 1 Name"           settingsKey="bank1_name"           settings={settings} onChange={update} />
-              <Field label="Bank 1 Account Number" settingsKey="bank1_account_number" settings={settings} onChange={update} />
-              <Field label="Bank 1 Account Name"   settingsKey="bank1_account_name"   settings={settings} onChange={update} />
-              <Field label="Bank 2 Name"           settingsKey="bank2_name"           settings={settings} onChange={update} />
-              <Field label="Bank 2 Account Number" settingsKey="bank2_account_number" settings={settings} onChange={update} />
-              <Field label="Bank 2 Account Name"   settingsKey="bank2_account_name"   settings={settings} onChange={update} />
-            </>
-          )}
+              {activeSection === "bank-transfer" && (
+                <>
+                  <Field label="Bank 1 Name"           settingsKey="bank1_name"           settings={settings} onChange={update} />
+                  <Field label="Bank 1 Account Number" settingsKey="bank1_account_number" settings={settings} onChange={update} />
+                  <Field label="Bank 1 Account Name"   settingsKey="bank1_account_name"   settings={settings} onChange={update} />
+                  <Field label="Bank 2 Name"           settingsKey="bank2_name"           settings={settings} onChange={update} />
+                  <Field label="Bank 2 Account Number" settingsKey="bank2_account_number" settings={settings} onChange={update} />
+                  <Field label="Bank 2 Account Name"   settingsKey="bank2_account_name"   settings={settings} onChange={update} />
+                </>
+              )}
 
-          {activeSection === "preorder" && (
-            <>
-              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Pre-Order &amp; Misc</h2>
-              <Field label="Default Pre-Order Message" settingsKey="preorder_message" settings={settings} onChange={update} multiline />
-            </>
-          )}
+              {activeSection === "preorder" && (
+                <Field label="Default Pre-Order Message" settingsKey="preorder_message" settings={settings} onChange={update} multiline />
+              )}
 
-          {activeSection === "seo" && (
-            <>
-              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>SEO &amp; Meta</h2>
-              <Field label="Meta Title"          settingsKey="meta_title"          settings={settings} onChange={update} />
-              <Field label="Meta Description"    settingsKey="meta_description"    settings={settings} onChange={update} multiline />
-              <Field label="Google Analytics ID" settingsKey="google_analytics_id" settings={settings} onChange={update} hint="e.g. G-XXXXXXXXXX" />
-            </>
-          )}
+              {activeSection === "seo" && (
+                <>
+                  <Field label="Meta Title"          settingsKey="meta_title"          settings={settings} onChange={update} />
+                  <Field label="Meta Description"    settingsKey="meta_description"    settings={settings} onChange={update} multiline />
+                  <Field label="Google Analytics ID" settingsKey="google_analytics_id" settings={settings} onChange={update} hint="e.g. G-XXXXXXXXXX" />
+                </>
+              )}
 
+            </div>
+          </div>
         </div>
       </div>
     </div>

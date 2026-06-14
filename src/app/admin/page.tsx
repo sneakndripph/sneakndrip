@@ -2,7 +2,7 @@ import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { BRAND, FONTS } from "@/lib/constants";
-import { TrendingUp, ShoppingBag, Package, Users } from "lucide-react";
+import { TrendingUp, ShoppingBag, Package, Eye } from "lucide-react";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import DashboardRecentOrdersTable from "@/components/admin/DashboardRecentOrdersTable";
 
@@ -11,6 +11,9 @@ export default async function AdminDashboard() {
   const admin = createAdminClient();
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayStartISO = todayStart.toISOString();
 
   const [
     { data: allOrders },
@@ -20,12 +23,14 @@ export default async function AdminDashboard() {
     { data: lowStockRows },
     { data: weekOrders },
     { data: topItemsRaw },
+    { data: todayViews },
+    { data: weekViews },
   ] = await Promise.all([
     admin.from("orders").select("total, status"),
     admin.from("products").select("*", { count: "exact", head: true }),
     admin.from("customers").select("*", { count: "exact", head: true }),
     admin.from("orders")
-      .select("order_number, customer_name, total, status, created_at, order_items(product_name, size)")
+      .select("order_number, customer_name, total, status, created_at, order_items(product_name, size, products(images, bg))")
       .order("created_at", { ascending: false })
       .limit(5),
     admin.from("product_sizes")
@@ -39,7 +44,12 @@ export default async function AdminDashboard() {
       .order("created_at", { ascending: true }),
     admin.from("order_items")
       .select("product_name, quantity, unit_price"),
+    admin.from("page_views").select("session_id").gte("created_at", todayStartISO),
+    admin.from("page_views").select("session_id").gte("created_at", sevenDaysAgo),
   ]);
+
+  const todayVisitors = new Set((todayViews ?? []).map(v => v.session_id)).size;
+  const weekVisitors = new Set((weekViews ?? []).map(v => v.session_id)).size;
 
   // Revenue by day (last 7 days)
   const dayMap = new Map<string, { revenue: number; orders: number }>();
@@ -92,10 +102,10 @@ export default async function AdminDashboard() {
   });
 
   const METRICS = [
-    { label: "Total Revenue",  value: `₱${totalRevenue.toLocaleString()}`, sub: `${ordersCount} orders total`,       icon: TrendingUp, color: BRAND.teal,  bg: `rgba(91,184,180,0.12)`,  href: undefined },
-    { label: "Total Orders",   value: String(ordersCount),                  sub: `${pendingCount} pending`,            icon: ShoppingBag, color: BRAND.black, bg: "rgba(13,13,13,0.08)",  href: "/admin/orders" },
-    { label: "Products",       value: String(productsCount ?? 0),           sub: "in catalog",                         icon: Package,    color: BRAND.red,   bg: "rgba(217,79,61,0.1)",  href: "/admin/products" },
-    { label: "Customers",      value: String(customersCount ?? 0),          sub: "registered accounts",                icon: Users,      color: "#6366F1",   bg: "rgba(99,102,241,0.1)", href: "/admin/customers" },
+    { label: "Total Revenue",    value: `₱${totalRevenue.toLocaleString()}`, sub: `${ordersCount} orders total`,    icon: TrendingUp,  color: BRAND.teal,  bg: `rgba(91,184,180,0.12)`,  href: undefined },
+    { label: "Total Orders",     value: String(ordersCount),                  sub: `${pendingCount} pending`,         icon: ShoppingBag, color: BRAND.black, bg: "rgba(13,13,13,0.08)",   href: "/admin/orders" },
+    { label: "Products",         value: String(productsCount ?? 0),           sub: "in catalog",                      icon: Package,     color: BRAND.red,   bg: "rgba(217,79,61,0.1)",   href: "/admin/products" },
+    { label: "Visitors Today",   value: String(todayVisitors),                sub: `${weekVisitors} this week`,       icon: Eye,         color: "#6366F1",   bg: "rgba(99,102,241,0.1)",  href: undefined },
   ];
 
   // Group low stock by product

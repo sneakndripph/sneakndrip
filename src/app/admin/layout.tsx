@@ -5,23 +5,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Package, ShoppingBag, Users, Settings, ChevronRight, Menu, X, LogOut, MessageSquare, MessageCircle, UserCog, FileText, Tag, BarChart2, History } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Users, Settings, ChevronRight, Menu, X, LogOut, MessageSquare, MessageCircle, UserCog, FileText, Tag, BarChart2, History, TrendingUp } from "lucide-react";
 import { BRAND, FONTS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
 const NAV = [
-  { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/admin/products", icon: Package, label: "Products" },
-  { href: "/admin/orders", icon: ShoppingBag, label: "Orders" },
-  { href: "/admin/customers", icon: Users, label: "Customers" },
-  { href: "/admin/coupons", icon: Tag, label: "Coupons" },
-  { href: "/admin/inventory", icon: BarChart2, label: "Inventory Log" },
-  { href: "/admin/reviews", icon: MessageSquare, label: "Reviews" },
-  { href: "/admin/chat",    icon: MessageCircle, label: "Chat" },
-  { href: "/admin/content", icon: FileText, label: "Pages" },
-  { href: "/admin/users", icon: UserCog, label: "Users" },
-  { href: "/admin/activity", icon: History, label: "Activity" },
-  { href: "/admin/settings", icon: Settings, label: "Settings" },
+  { href: "/admin",           icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/admin/products",  icon: Package,         label: "Products" },
+  { href: "/admin/orders",    icon: ShoppingBag,     label: "Orders" },
+  { href: "/admin/customers", icon: Users,           label: "Customers" },
+  { href: "/admin/sales",     icon: TrendingUp,      label: "Sales" },
+  { href: "/admin/coupons",   icon: Tag,             label: "Coupons" },
+  { href: "/admin/inventory", icon: BarChart2,       label: "Inventory Log" },
+  { href: "/admin/reviews",   icon: MessageSquare,   label: "Reviews" },
+  { href: "/admin/chat",      icon: MessageCircle,   label: "Chat" },
+  { href: "/admin/content",   icon: FileText,        label: "Pages" },
+  { href: "/admin/users",     icon: UserCog,         label: "Users" },
+  { href: "/admin/activity",  icon: History,         label: "Activity" },
+  { href: "/admin/settings",  icon: Settings,        label: "Settings" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

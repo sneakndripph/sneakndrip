@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { BRAND, FONTS } from "@/lib/constants";
 import { Clock, CheckCircle, Truck, X } from "lucide-react";
 
@@ -14,13 +15,19 @@ const STATUS_CFG = {
   cancelled:  { icon: X,          color: "#D94F3D", bg: "rgba(217,79,61,0.1)",   label: "Cancelled" },
 } as const;
 
+type OrderItem = {
+  product_name: string;
+  size: string;
+  products?: { images: string[] | null; bg: string | null } | null;
+};
+
 type Order = {
   order_number: string;
   customer_name: string;
   total: number;
   status: string;
   created_at: string;
-  order_items: { product_name: string; size: string }[];
+  order_items: OrderItem[];
 };
 
 export default function DashboardRecentOrdersTable({ orders }: { orders: Order[] }) {
@@ -119,12 +126,28 @@ export default function DashboardRecentOrdersTable({ orders }: { orders: Order[]
               {/* Items */}
               <div style={{ borderBottom: `1px solid ${BRAND.border}` }}>
                 <p className="px-5 pt-3 pb-1 text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>Items</p>
-                {modalOrder.order_items?.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between px-5 py-2">
-                    <p className="text-sm" style={{ color: BRAND.black }}>{item.product_name}</p>
-                    <p className="text-xs" style={{ color: BRAND.muted }}>Size {item.size}</p>
-                  </div>
-                ))}
+                {modalOrder.order_items?.map((item, i) => {
+                  const prod = Array.isArray(item.products) ? item.products[0] : item.products;
+                  const imgUrl = prod?.images?.[0] ?? null;
+                  return (
+                    <div key={i} className="flex items-center gap-3 px-5 py-2">
+                      {imgUrl ? (
+                        <div className="w-10 h-10 rounded overflow-hidden shrink-0"
+                          style={{ background: prod?.bg ?? BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                          <Image src={imgUrl} alt={item.product_name} width={40} height={40}
+                            className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded shrink-0"
+                          style={{ background: BRAND.border }} />
+                      )}
+                      <div className="flex-1 flex items-center justify-between">
+                        <p className="text-sm" style={{ color: BRAND.black }}>{item.product_name}</p>
+                        <p className="text-xs" style={{ color: BRAND.muted }}>Size {item.size}</p>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Total + link */}
