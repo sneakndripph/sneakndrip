@@ -169,7 +169,7 @@ export default function AdminSalesPage() {
                   <YAxis tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false}
                     tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} width={48} />
                   <Tooltip
-                    formatter={(v: number) => [fmt(v), "Revenue"]}
+                    formatter={(v) => [fmt(Number(v ?? 0)), "Revenue"]}
                     contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }} />
                   <Line type="monotone" dataKey="revenue" stroke={BRAND.teal} strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: BRAND.teal }} />
                 </LineChart>
@@ -191,7 +191,7 @@ export default function AdminSalesPage() {
                       tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} />
                     <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false} width={120} />
                     <Tooltip
-                      formatter={(v: number) => [fmt(v), "Revenue"]}
+                      formatter={(v) => [fmt(Number(v ?? 0)), "Revenue"]}
                       contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }} />
                     <Bar dataKey="revenue" fill={BRAND.teal} radius={[0, 4, 4, 0]} />
                   </BarChart>
@@ -216,7 +216,7 @@ export default function AdminSalesPage() {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(v: number, name: string) => [v + " orders", name]}
+                      formatter={(v, name) => [Number(v ?? 0) + " orders", String(name)]}
                       contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }} />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, color: BRAND.muted }} />
                   </PieChart>
@@ -239,7 +239,7 @@ export default function AdminSalesPage() {
                     <YAxis tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false}
                       tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} width={48} />
                     <Tooltip
-                      formatter={(v: number) => [fmt(v), "Revenue"]}
+                      formatter={(v) => [fmt(Number(v ?? 0)), "Revenue"]}
                       contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }} />
                     <Bar dataKey="revenue" fill="#6366F1" radius={[4, 4, 0, 0]}>
                       {data.byPayment.map((_, i) => (
