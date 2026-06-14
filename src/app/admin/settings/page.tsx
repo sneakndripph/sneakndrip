@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Save, ToggleLeft, ToggleRight, ChevronDown } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight } from "lucide-react";
 
 type SettingsData = Record<string, string>;
 
@@ -49,22 +49,6 @@ const DEFAULTS: SettingsData = {
   cod_enabled: "true",
 };
 
-function Section({ title, children, open, onToggle }: { title: string; children: React.ReactNode; open: boolean; onToggle: () => void }) {
-  return (
-    <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-      <button
-        type="button"
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-6 py-4 transition-colors hover:bg-black/[0.02]"
-        style={{ borderBottom: open ? `1px solid ${BRAND.border}` : "none" }}>
-        <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>{title}</h2>
-        <ChevronDown className="w-4 h-4 transition-transform shrink-0" style={{ color: BRAND.muted, transform: open ? "rotate(180deg)" : "rotate(0deg)" }} />
-      </button>
-      {open && <div className="p-6 space-y-4">{children}</div>}
-    </div>
-  );
-}
-
 function Field({ label, settingsKey, settings, onChange, type = "text", hint, multiline }: {
   label: string; settingsKey: string; settings: SettingsData; onChange: (key: string, val: string) => void;
   type?: string; hint?: string; multiline?: boolean;
@@ -87,7 +71,17 @@ function Field({ label, settingsKey, settings, onChange, type = "text", hint, mu
   );
 }
 
-const ALL_SECTIONS = ["Why Shop With Us", "Announcement Bar", "Homepage Hero", "Store Information", "Shipping & Fees", "Payment — GCash & Maya", "Payment — Bank Transfer", "Pre-Order & Misc", "SEO & Meta"];
+const SECTIONS = [
+  { id: "why-shop",      title: "Why Shop With Us" },
+  { id: "announcement",  title: "Announcement Bar" },
+  { id: "hero",          title: "Homepage Hero" },
+  { id: "store-info",    title: "Store Information" },
+  { id: "shipping",      title: "Shipping & Fees" },
+  { id: "gcash-maya",    title: "GCash & Maya" },
+  { id: "bank-transfer", title: "Bank Transfer" },
+  { id: "preorder",      title: "Pre-Order & Misc" },
+  { id: "seo",           title: "SEO & Meta" },
+];
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SettingsData>(DEFAULTS);
@@ -95,15 +89,7 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const hasFetched = useRef(false);
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(ALL_SECTIONS));
-
-  function toggleSection(title: string) {
-    setOpenSections(prev => {
-      const next = new Set(prev);
-      if (next.has(title)) next.delete(title); else next.add(title);
-      return next;
-    });
-  }
+  const [activeSection, setActiveSection] = useState("why-shop");
 
   useEffect(() => {
     if (hasFetched.current) return;
@@ -149,8 +135,6 @@ export default function AdminSettingsPage() {
     );
   }
 
-  const fp = (key: string) => ({ label: "", settingsKey: key, settings, onChange: update });
-
   return (
     <div style={{ fontFamily: FONTS.body }}>
       <div className="flex items-center justify-between mb-6">
@@ -166,104 +150,154 @@ export default function AdminSettingsPage() {
         </button>
       </div>
 
-      <div className="space-y-5 mb-5">
-        <Section title="Why Shop With Us" open={openSections.has("Why Shop With Us")} onToggle={() => toggleSection("Why Shop With Us")}>
-          <p className="text-xs -mt-2" style={{ color: BRAND.muted }}>Displayed on the homepage. Edit the 6 promise cards shown to customers.</p>
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5, 6].map(n => (
-              <div key={n} className="p-4 rounded-lg space-y-3" style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
-                <p className="text-xs font-black uppercase tracking-wide" style={{ color: BRAND.muted }}>Card {n}</p>
-                <div className="grid sm:grid-cols-3 gap-3">
-                  <Field label={`Icon ${n}`} settingsKey={`promise_${n}_icon`} settings={settings} onChange={update} />
-                  <Field label={`Title ${n}`} settingsKey={`promise_${n}_title`} settings={settings} onChange={update} />
-                  <Field label={`Description ${n}`} settingsKey={`promise_${n}_desc`} settings={settings} onChange={update} />
-                </div>
-              </div>
+      <div className="flex gap-6 items-start">
+        {/* Left sidebar nav */}
+        <div className="w-48 shrink-0 sticky top-6">
+          <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+            {SECTIONS.map((s, idx) => (
+              <button key={s.id} onClick={() => setActiveSection(s.id)}
+                className="w-full text-left px-4 py-3 text-sm font-semibold transition-colors"
+                style={{
+                  borderBottom: idx < SECTIONS.length - 1 ? `1px solid ${BRAND.border}` : "none",
+                  background: activeSection === s.id ? `${BRAND.teal}10` : "transparent",
+                  color: activeSection === s.id ? BRAND.teal : BRAND.black,
+                  borderLeft: activeSection === s.id ? `3px solid ${BRAND.teal}` : "3px solid transparent",
+                }}>
+                {s.title}
+              </button>
             ))}
           </div>
-        </Section>
+        </div>
 
-        <Section title="Announcement Bar" open={openSections.has("Announcement Bar")} onToggle={() => toggleSection("Announcement Bar")}>
-          <Field label="Announcement Text" settingsKey="announcement_text" settings={settings} onChange={update}
-            hint="Leave blank to use the auto-generated text (free shipping threshold, accepted payments)" />
-        </Section>
+        {/* Content area */}
+        <div className="flex-1 rounded-xl p-6 space-y-4" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
 
-        <Section title="Homepage Hero" open={openSections.has("Homepage Hero")} onToggle={() => toggleSection("Homepage Hero")}>
-          <Field label="Badge Text" settingsKey="hero_badge" settings={settings} onChange={update}
-            hint="Small pill above the headline (e.g. 'New Drops Every Week')" />
-          <div className="grid sm:grid-cols-3 gap-4">
-            <Field label="Headline Line 1" settingsKey="hero_line1" settings={settings} onChange={update} />
-            <Field label="Headline Line 2 (teal)" settingsKey="hero_line2" settings={settings} onChange={update} />
-            <Field label="Headline Line 3" settingsKey="hero_line3" settings={settings} onChange={update} />
-          </div>
-          <Field label="Subtitle" settingsKey="hero_subtitle" settings={settings} onChange={update} multiline
-            hint="Shown below the headline. Use \\n for line breaks." />
-          <div className="grid sm:grid-cols-2 gap-4">
-            <Field label="Primary CTA Button" settingsKey="hero_cta_primary" settings={settings} onChange={update} />
-            <Field label="Secondary CTA Button" settingsKey="hero_cta_secondary" settings={settings} onChange={update} />
-          </div>
-        </Section>
-      </div>
+          {activeSection === "why-shop" && (
+            <>
+              <div>
+                <h2 className="font-black text-sm uppercase tracking-widest mb-1" style={{ color: BRAND.black }}>Why Shop With Us</h2>
+                <p className="text-xs" style={{ color: BRAND.muted }}>Displayed on the homepage. Edit the 6 promise cards shown to customers.</p>
+              </div>
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5, 6].map(n => (
+                  <div key={n} className="p-4 rounded-lg space-y-3" style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+                    <p className="text-xs font-black uppercase tracking-wide" style={{ color: BRAND.muted }}>Card {n}</p>
+                    <div className="grid sm:grid-cols-3 gap-3">
+                      <Field label={`Icon ${n}`} settingsKey={`promise_${n}_icon`} settings={settings} onChange={update} />
+                      <Field label={`Title ${n}`} settingsKey={`promise_${n}_title`} settings={settings} onChange={update} />
+                      <Field label={`Description ${n}`} settingsKey={`promise_${n}_desc`} settings={settings} onChange={update} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
-      <div className="grid lg:grid-cols-2 gap-5">
-        <Section title="Store Information" open={openSections.has("Store Information")} onToggle={() => toggleSection("Store Information")}>
-          <Field label="Store Name"          settingsKey="store_name"     settings={settings} onChange={update} />
-          <Field label="Store Email"         settingsKey="store_email"    settings={settings} onChange={update} type="email" />
-          <Field label="Contact Number"      settingsKey="contact_number" settings={settings} onChange={update} />
-          <Field label="Address"             settingsKey="address"        settings={settings} onChange={update} />
-          <Field label="Facebook Page URL"   settingsKey="facebook_url"   settings={settings} onChange={update} />
-          <Field label="Instagram Handle"    settingsKey="instagram_handle" settings={settings} onChange={update} />
-          <Field label="TikTok Handle"       settingsKey="tiktok_handle"  settings={settings} onChange={update} />
-        </Section>
+          {activeSection === "announcement" && (
+            <>
+              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Announcement Bar</h2>
+              <Field label="Announcement Text" settingsKey="announcement_text" settings={settings} onChange={update}
+                hint="Leave blank to use the auto-generated text (free shipping threshold, accepted payments)" />
+            </>
+          )}
 
-        <Section title="Shipping & Fees" open={openSections.has("Shipping & Fees")} onToggle={() => toggleSection("Shipping & Fees")}>
-          <Field label="Metro Manila Shipping Fee (&#8369;)" settingsKey="metro_shipping_fee"     settings={settings} onChange={update} type="number" />
-          <Field label="Provincial Shipping Fee (&#8369;)"   settingsKey="provincial_shipping_fee" settings={settings} onChange={update} type="number" />
-          <Field label="Free Shipping Threshold (&#8369;)"   settingsKey="free_shipping_threshold" settings={settings} onChange={update} type="number"
-            hint="Orders above this amount get free shipping" />
-          <Field label="COD Areas" settingsKey="cod_areas" settings={settings} onChange={update} multiline
-            hint="Comma-separated cities/regions where COD is available" />
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.black }}>Cash on Delivery (COD)</label>
-            <button type="button"
-              onClick={() => update("cod_enabled", settings.cod_enabled === "false" ? "true" : "false")}
-              className="flex items-center gap-3 transition-opacity hover:opacity-80">
-              {settings.cod_enabled !== "false"
-                ? <ToggleRight className="w-7 h-7" style={{ color: BRAND.teal }} />
-                : <ToggleLeft className="w-7 h-7" style={{ color: BRAND.muted }} />}
-              <span className="text-sm font-semibold" style={{ color: settings.cod_enabled !== "false" ? BRAND.teal : BRAND.muted }}>
-                {settings.cod_enabled !== "false" ? "COD Enabled" : "COD Disabled"}
-              </span>
-            </button>
-            <p className="text-xs mt-1" style={{ color: BRAND.muted }}>When disabled, COD will not appear at checkout</p>
-          </div>
-        </Section>
+          {activeSection === "hero" && (
+            <>
+              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Homepage Hero</h2>
+              <Field label="Badge Text" settingsKey="hero_badge" settings={settings} onChange={update}
+                hint="Small pill above the headline (e.g. 'New Drops Every Week')" />
+              <div className="grid sm:grid-cols-3 gap-4">
+                <Field label="Headline Line 1" settingsKey="hero_line1" settings={settings} onChange={update} />
+                <Field label="Headline Line 2 (teal)" settingsKey="hero_line2" settings={settings} onChange={update} />
+                <Field label="Headline Line 3" settingsKey="hero_line3" settings={settings} onChange={update} />
+              </div>
+              <Field label="Subtitle" settingsKey="hero_subtitle" settings={settings} onChange={update} multiline
+                hint="Shown below the headline. Use \n for line breaks." />
+              <div className="grid sm:grid-cols-2 gap-4">
+                <Field label="Primary CTA Button" settingsKey="hero_cta_primary" settings={settings} onChange={update} />
+                <Field label="Secondary CTA Button" settingsKey="hero_cta_secondary" settings={settings} onChange={update} />
+              </div>
+            </>
+          )}
 
-        <Section title="Payment — GCash &amp; Maya" open={openSections.has("Payment — GCash & Maya")} onToggle={() => toggleSection("Payment — GCash & Maya")}>
-          <Field label="GCash Number"       settingsKey="gcash_number"  settings={settings} onChange={update} />
-          <Field label="GCash Account Name" settingsKey="gcash_name"    settings={settings} onChange={update} />
-          <Field label="Maya Number"        settingsKey="maya_number"   settings={settings} onChange={update} />
-          <Field label="Maya Account Name"  settingsKey="maya_name"     settings={settings} onChange={update} />
-        </Section>
+          {activeSection === "store-info" && (
+            <>
+              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Store Information</h2>
+              <Field label="Store Name"          settingsKey="store_name"       settings={settings} onChange={update} />
+              <Field label="Store Email"         settingsKey="store_email"      settings={settings} onChange={update} type="email" />
+              <Field label="Contact Number"      settingsKey="contact_number"   settings={settings} onChange={update} />
+              <Field label="Address"             settingsKey="address"          settings={settings} onChange={update} />
+              <Field label="Facebook Page URL"   settingsKey="facebook_url"     settings={settings} onChange={update} />
+              <Field label="Instagram Handle"    settingsKey="instagram_handle" settings={settings} onChange={update} />
+              <Field label="TikTok Handle"       settingsKey="tiktok_handle"    settings={settings} onChange={update} />
+            </>
+          )}
 
-        <Section title="Payment — Bank Transfer" open={openSections.has("Payment — Bank Transfer")} onToggle={() => toggleSection("Payment — Bank Transfer")}>
-          <Field label="Bank 1 Name"           settingsKey="bank1_name"           settings={settings} onChange={update} />
-          <Field label="Bank 1 Account Number" settingsKey="bank1_account_number" settings={settings} onChange={update} />
-          <Field label="Bank 1 Account Name"   settingsKey="bank1_account_name"   settings={settings} onChange={update} />
-          <Field label="Bank 2 Name"           settingsKey="bank2_name"           settings={settings} onChange={update} />
-          <Field label="Bank 2 Account Number" settingsKey="bank2_account_number" settings={settings} onChange={update} />
-          <Field label="Bank 2 Account Name"   settingsKey="bank2_account_name"   settings={settings} onChange={update} />
-        </Section>
+          {activeSection === "shipping" && (
+            <>
+              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Shipping &amp; Fees</h2>
+              <Field label="Metro Manila Shipping Fee (₱)" settingsKey="metro_shipping_fee"      settings={settings} onChange={update} type="number" />
+              <Field label="Provincial Shipping Fee (₱)"   settingsKey="provincial_shipping_fee" settings={settings} onChange={update} type="number" />
+              <Field label="Free Shipping Threshold (₱)"   settingsKey="free_shipping_threshold" settings={settings} onChange={update} type="number"
+                hint="Orders above this amount get free shipping" />
+              <Field label="COD Areas" settingsKey="cod_areas" settings={settings} onChange={update} multiline
+                hint="Comma-separated cities/regions where COD is available" />
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.black }}>Cash on Delivery (COD)</label>
+                <button type="button"
+                  onClick={() => update("cod_enabled", settings.cod_enabled === "false" ? "true" : "false")}
+                  className="flex items-center gap-3 transition-opacity hover:opacity-80">
+                  {settings.cod_enabled !== "false"
+                    ? <ToggleRight className="w-7 h-7" style={{ color: BRAND.teal }} />
+                    : <ToggleLeft className="w-7 h-7" style={{ color: BRAND.muted }} />}
+                  <span className="text-sm font-semibold" style={{ color: settings.cod_enabled !== "false" ? BRAND.teal : BRAND.muted }}>
+                    {settings.cod_enabled !== "false" ? "COD Enabled" : "COD Disabled"}
+                  </span>
+                </button>
+                <p className="text-xs mt-1" style={{ color: BRAND.muted }}>When disabled, COD will not appear at checkout</p>
+              </div>
+            </>
+          )}
 
-        <Section title="Pre-Order &amp; Misc" open={openSections.has("Pre-Order & Misc")} onToggle={() => toggleSection("Pre-Order & Misc")}>
-          <Field label="Default Pre-Order Message" settingsKey="preorder_message" settings={settings} onChange={update} multiline />
-        </Section>
+          {activeSection === "gcash-maya" && (
+            <>
+              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>GCash &amp; Maya</h2>
+              <Field label="GCash Number"       settingsKey="gcash_number" settings={settings} onChange={update} />
+              <Field label="GCash Account Name" settingsKey="gcash_name"   settings={settings} onChange={update} />
+              <Field label="Maya Number"        settingsKey="maya_number"  settings={settings} onChange={update} />
+              <Field label="Maya Account Name"  settingsKey="maya_name"    settings={settings} onChange={update} />
+            </>
+          )}
 
-        <Section title="SEO &amp; Meta" open={openSections.has("SEO & Meta")} onToggle={() => toggleSection("SEO & Meta")}>
-          <Field label="Meta Title"         settingsKey="meta_title"         settings={settings} onChange={update} />
-          <Field label="Meta Description"   settingsKey="meta_description"   settings={settings} onChange={update} multiline />
-          <Field label="Google Analytics ID" settingsKey="google_analytics_id" settings={settings} onChange={update} hint="e.g. G-XXXXXXXXXX" />
-        </Section>
+          {activeSection === "bank-transfer" && (
+            <>
+              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Bank Transfer</h2>
+              <Field label="Bank 1 Name"           settingsKey="bank1_name"           settings={settings} onChange={update} />
+              <Field label="Bank 1 Account Number" settingsKey="bank1_account_number" settings={settings} onChange={update} />
+              <Field label="Bank 1 Account Name"   settingsKey="bank1_account_name"   settings={settings} onChange={update} />
+              <Field label="Bank 2 Name"           settingsKey="bank2_name"           settings={settings} onChange={update} />
+              <Field label="Bank 2 Account Number" settingsKey="bank2_account_number" settings={settings} onChange={update} />
+              <Field label="Bank 2 Account Name"   settingsKey="bank2_account_name"   settings={settings} onChange={update} />
+            </>
+          )}
+
+          {activeSection === "preorder" && (
+            <>
+              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Pre-Order &amp; Misc</h2>
+              <Field label="Default Pre-Order Message" settingsKey="preorder_message" settings={settings} onChange={update} multiline />
+            </>
+          )}
+
+          {activeSection === "seo" && (
+            <>
+              <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>SEO &amp; Meta</h2>
+              <Field label="Meta Title"          settingsKey="meta_title"          settings={settings} onChange={update} />
+              <Field label="Meta Description"    settingsKey="meta_description"    settings={settings} onChange={update} multiline />
+              <Field label="Google Analytics ID" settingsKey="google_analytics_id" settings={settings} onChange={update} hint="e.g. G-XXXXXXXXXX" />
+            </>
+          )}
+
+        </div>
       </div>
     </div>
   );

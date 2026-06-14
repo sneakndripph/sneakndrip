@@ -136,91 +136,95 @@ export default function AdminCouponsPage() {
       </div>
 
       {showForm && (
-        <form onSubmit={handleSubmit} className="p-6 rounded-xl mb-6" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
-          <div className="flex items-center justify-between mb-4">
-            <p className="font-black text-sm uppercase tracking-wide" style={{ color: BRAND.black }}>
-              {editingId ? "Edit Coupon" : "Create Coupon"}
-            </p>
-            <button type="button" onClick={closeForm} className="p-1 transition-opacity hover:opacity-70">
-              <X className="w-4 h-4" style={{ color: BRAND.muted }} />
-            </button>
-          </div>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Code *</label>
-              <input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
-                placeholder="SUMMER20" required className={inputCls} style={inputStyle} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
+          <div className="w-full max-w-2xl rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+              <p className="font-black text-sm uppercase tracking-wide" style={{ color: BRAND.black }}>
+                {editingId ? "Edit Coupon" : "Create Coupon"}
+              </p>
+              <button type="button" onClick={closeForm} className="p-1 transition-opacity hover:opacity-70">
+                <X className="w-4 h-4" style={{ color: BRAND.muted }} />
+              </button>
             </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Type</label>
-              <div className="relative" ref={typeRef}>
-                <button type="button" onClick={() => setTypeOpen(o => !o)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold focus:outline-none"
-                  style={{ ...inputStyle, border: `1px solid ${typeOpen ? BRAND.teal : BRAND.border}` }}>
-                  <span style={{ color: BRAND.black }}>{form.type === "percent" ? "Percent (%)" : "Fixed Amount (₱)"}</span>
-                  <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: typeOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-                </button>
-                {typeOpen && (
-                  <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden shadow-lg"
-                    style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-                    {[{ value: "percent", label: "Percent (%)" }, { value: "fixed", label: "Fixed Amount (₱)" }].map(o => (
-                      <button key={o.value} type="button"
-                        onClick={() => { setForm(f => ({ ...f, type: o.value })); setTypeOpen(false); }}
-                        className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-left transition-colors hover:opacity-80"
-                        style={{
-                          background: form.type === o.value ? `${BRAND.teal}10` : "transparent",
-                          color: form.type === o.value ? BRAND.teal : BRAND.black,
-                          borderBottom: `1px solid ${BRAND.border}`,
-                          fontWeight: form.type === o.value ? 700 : 500,
-                        }}>
-                        {o.label}
-                        {form.type === o.value && <Check className="w-3.5 h-3.5 shrink-0" />}
-                      </button>
-                    ))}
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Code *</label>
+                  <input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
+                    placeholder="SUMMER20" required className={inputCls} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Type</label>
+                  <div className="relative" ref={typeRef}>
+                    <button type="button" onClick={() => setTypeOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-semibold focus:outline-none"
+                      style={{ ...inputStyle, border: `1px solid ${typeOpen ? BRAND.teal : BRAND.border}` }}>
+                      <span style={{ color: BRAND.black }}>{form.type === "percent" ? "Percent (%)" : "Fixed Amount (₱)"}</span>
+                      <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: typeOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                    </button>
+                    {typeOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden shadow-lg"
+                        style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                        {[{ value: "percent", label: "Percent (%)" }, { value: "fixed", label: "Fixed Amount (₱)" }].map(o => (
+                          <button key={o.value} type="button"
+                            onClick={() => { setForm(f => ({ ...f, type: o.value })); setTypeOpen(false); }}
+                            className="w-full flex items-center justify-between px-3 py-2.5 text-sm text-left transition-colors hover:opacity-80"
+                            style={{
+                              background: form.type === o.value ? `${BRAND.teal}10` : "transparent",
+                              color: form.type === o.value ? BRAND.teal : BRAND.black,
+                              borderBottom: `1px solid ${BRAND.border}`,
+                              fontWeight: form.type === o.value ? 700 : 500,
+                            }}>
+                            {o.label}
+                            {form.type === o.value && <Check className="w-3.5 h-3.5 shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                    Value * {form.type === "percent" ? "(%)" : "(₱)"}
+                  </label>
+                  <input value={form.value} onChange={e => setForm(f => ({ ...f, value: e.target.value }))}
+                    type="number" min="0" placeholder={form.type === "percent" ? "20" : "200"} required
+                    className={inputCls} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Min Order (₱)</label>
+                  <input value={form.min_order} onChange={e => setForm(f => ({ ...f, min_order: e.target.value }))}
+                    type="number" min="0" placeholder="0 = no minimum"
+                    className={inputCls} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Max Uses</label>
+                  <input value={form.max_uses} onChange={e => setForm(f => ({ ...f, max_uses: e.target.value }))}
+                    type="number" min="0" placeholder="Leave blank for unlimited"
+                    className={inputCls} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Expires At</label>
+                  <input value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
+                    type="date" className={inputCls} style={inputStyle} />
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                Value * {form.type === "percent" ? "(%)" : "(₱)"}
-              </label>
-              <input value={form.value} onChange={e => setForm(f => ({ ...f, value: e.target.value }))}
-                type="number" min="0" placeholder={form.type === "percent" ? "20" : "200"} required
-                className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Min Order (₱)</label>
-              <input value={form.min_order} onChange={e => setForm(f => ({ ...f, min_order: e.target.value }))}
-                type="number" min="0" placeholder="0 = no minimum"
-                className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Max Uses</label>
-              <input value={form.max_uses} onChange={e => setForm(f => ({ ...f, max_uses: e.target.value }))}
-                type="number" min="0" placeholder="Leave blank for unlimited"
-                className={inputCls} style={inputStyle} />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Expires At</label>
-              <input value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
-                type="date" className={inputCls} style={inputStyle} />
-            </div>
+              {error && <p className="mt-3 text-sm font-semibold" style={{ color: BRAND.red }}>{error}</p>}
+              <div className="flex gap-3 mt-5">
+                <button type="submit" disabled={saving}
+                  className="px-6 py-2.5 text-sm font-bold uppercase tracking-wide disabled:opacity-50"
+                  style={{ background: BRAND.black, color: BRAND.bg }}>
+                  {saving ? (editingId ? "Saving…" : "Creating…") : (editingId ? "Save Changes" : "Create Coupon")}
+                </button>
+                <button type="button" onClick={closeForm}
+                  className="px-6 py-2.5 text-sm font-bold uppercase tracking-wide"
+                  style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
-          {error && <p className="mt-3 text-sm font-semibold" style={{ color: BRAND.red }}>{error}</p>}
-          <div className="flex gap-3 mt-5">
-            <button type="submit" disabled={saving}
-              className="px-6 py-2.5 text-sm font-bold uppercase tracking-wide disabled:opacity-50"
-              style={{ background: BRAND.black, color: BRAND.bg }}>
-              {saving ? (editingId ? "Saving…" : "Creating…") : (editingId ? "Save Changes" : "Create Coupon")}
-            </button>
-            <button type="button" onClick={closeForm}
-              className="px-6 py-2.5 text-sm font-bold uppercase tracking-wide"
-              style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
-              Cancel
-            </button>
-          </div>
-        </form>
+        </div>
       )}
 
       <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>

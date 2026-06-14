@@ -26,6 +26,18 @@ export default function AdminUsersPage() {
   const [editingRole, setEditingRole] = useState<{ id: string; role: string } | null>(null);
   const [roleOpen, setRoleOpen] = useState(false);
   const roleRef = useRef<HTMLDivElement>(null);
+  const [viewUser, setViewUser] = useState<UserRow | null>(null);
+  const [viewRoleOpen, setViewRoleOpen] = useState(false);
+  const [viewRole, setViewRole] = useState("customer");
+  const viewRoleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (viewRoleRef.current && !viewRoleRef.current.contains(e.target as Node)) setViewRoleOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -84,7 +96,27 @@ export default function AdminUsersPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
+    setViewUser(null);
     loadUsers();
+  }
+
+  function openViewUser(u: UserRow) {
+    setViewUser(u);
+    setViewRole(u.role);
+    setViewRoleOpen(false);
+  }
+
+  async function handleViewRoleChange(role: string) {
+    if (!viewUser) return;
+    setViewRole(role);
+    setViewRoleOpen(false);
+    await fetch("/api/admin/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: viewUser.id, role, full_name: viewUser.full_name }),
+    });
+    setUsers(prev => prev.map(u => u.id === viewUser.id ? { ...u, role } : u));
+    setViewUser(prev => prev ? { ...prev, role } : null);
   }
 
   const inputCls = "w-full px-4 py-3 text-sm focus:outline-none transition-colors";
@@ -124,12 +156,15 @@ export default function AdminUsersPage() {
             </thead>
             <tbody>
               {users.map((u, i) => (
-                <tr key={u.id} style={{ borderBottom: i < users.length - 1 ? `1px solid ${BRAND.border}` : "none" }}>
+                <tr key={u.id}
+                  className="transition-colors hover:bg-black/[0.02] cursor-pointer"
+                  style={{ borderBottom: i < users.length - 1 ? `1px solid ${BRAND.border}` : "none" }}
+                  onClick={() => openViewUser(u)}>
                   <td className="px-5 py-4">
                     <p className="font-semibold" style={{ color: BRAND.black }}>{u.full_name || "—"}</p>
                     <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{u.email}</p>
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
                     {editingRole?.id === u.id ? (
                       <div className="relative inline-block">
                         <div className="shadow-lg overflow-hidden z-50"
@@ -172,7 +207,7 @@ export default function AdminUsersPage() {
                       ? new Date(u.last_sign_in).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
                       : "Never"}
                   </td>
-                  <td className="px-5 py-4">
+                  <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
                     <button
                       onClick={() => handleDelete(u.id, u.email)}
                       className="p-1.5 rounded transition-opacity hover:opacity-70"
@@ -288,6 +323,93 @@ export default function AdminUsersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* View user modal */}
+      {viewUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
+          <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+            <div className="flex items-start justify-between px-6 py-5" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+              <div>
+                <p className="font-black text-lg" style={{ color: BRAND.black }}>{viewUser.full_name || "—"}</p>
+                <p className="text-sm mt-0.5" style={{ color: BRAND.muted }}>{viewUser.email}</p>
+              </div>
+              <button onClick={() => setViewUser(null)} className="transition-opacity hover:opacity-60 mt-1">
+                <X className="w-5 h-5" style={{ color: BRAND.muted }} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.muted }}>Role</label>
+                <div className="relative" ref={viewRoleRef}>
+                  <button type="button" onClick={() => setViewRoleOpen(o => !o)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold focus:outline-none"
+                    style={{ background: BRAND.bg, border: `1px solid ${viewRoleOpen ? BRAND.teal : BRAND.border}`, color: BRAND.black }}>
+                    <div className="flex items-center gap-2">
+                      {viewRole === "admin" ? <Shield className="w-4 h-4" style={{ color: BRAND.teal }} /> : <User className="w-4 h-4" style={{ color: BRAND.muted }} />}
+                      <span>{viewRole.charAt(0).toUpperCase() + viewRole.slice(1)}</span>
+                    </div>
+                    <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: viewRoleOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                  </button>
+                  {viewRoleOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden shadow-lg"
+                      style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                      {ROLES.map(r => (
+                        <button key={r} type="button"
+                          onClick={() => handleViewRoleChange(r)}
+                          className="w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors hover:opacity-80"
+                          style={{
+                            background: viewRole === r ? `${BRAND.teal}10` : "transparent",
+                            color: viewRole === r ? BRAND.teal : BRAND.black,
+                            borderBottom: `1px solid ${BRAND.border}`,
+                            fontWeight: viewRole === r ? 700 : 500,
+                          }}>
+                          <div className="flex items-center gap-2">
+                            {r === "admin" ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
+                            {r.charAt(0).toUpperCase() + r.slice(1)}
+                          </div>
+                          {viewRole === r && <Check className="w-3.5 h-3.5 shrink-0" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>Joined</p>
+                  <p style={{ color: BRAND.black }}>
+                    {new Date(viewUser.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>Last Sign In</p>
+                  <p style={{ color: BRAND.black }}>
+                    {viewUser.last_sign_in
+                      ? new Date(viewUser.last_sign_in).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
+                      : "Never"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 pb-5 flex gap-3">
+              <button
+                onClick={() => { handleDelete(viewUser.id, viewUser.email); }}
+                className="px-4 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
+                style={{ border: `1px solid ${BRAND.red}`, color: BRAND.red }}>
+                Delete
+              </button>
+              <button onClick={() => setViewUser(null)}
+                className="flex-1 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
+                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

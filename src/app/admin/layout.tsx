@@ -3,9 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { LayoutDashboard, Package, ShoppingBag, Users, Settings, ChevronRight, Menu, X, LogOut, MessageSquare, MessageCircle, UserCog, FileText, Tag, BarChart2, History } from "lucide-react";
 import { BRAND, FONTS } from "@/lib/constants";
+import { createClient } from "@/lib/supabase/client";
 
 const NAV = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -24,7 +26,14 @@ const NAV = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  async function handleSignOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  }
 
   const Sidebar = () => (
     <aside className="flex flex-col h-full" style={{ background: BRAND.black }}>
@@ -63,9 +72,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Bottom */}
       <div className="p-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <Link href="/" className="flex items-center gap-2 text-xs font-semibold transition-opacity hover:opacity-60" style={{ color: "#555" }}>
-          <LogOut className="w-3.5 h-3.5" /> View Store
-        </Link>
+        <button onClick={handleSignOut} className="flex items-center gap-2 text-xs font-semibold transition-opacity hover:opacity-60" style={{ color: "#555" }}>
+          <LogOut className="w-3.5 h-3.5" /> Log Out
+        </button>
       </div>
     </aside>
   );

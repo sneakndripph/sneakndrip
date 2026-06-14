@@ -95,6 +95,7 @@ export default function AccountPage() {
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: "", body: "" });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [reviewedOrderIds, setReviewedOrderIds] = useState<Set<string>>(new Set());
 
   // Address state
   const [addressForm, setAddressForm] = useState({ street: "", barangay: "", city: "", province: "", postal: "", regionGroup: "" });
@@ -250,6 +251,9 @@ export default function AccountPage() {
     });
     setSubmittingReview(false);
     setReviewSuccess(true);
+    if (reviewModalOrder) {
+      setReviewedOrderIds(prev => new Set([...prev, reviewModalOrder.id]));
+    }
     setReviewForm({ rating: 5, title: "", body: "" });
     setTimeout(() => {
       setReviewModalOrder(null);
@@ -528,7 +532,8 @@ export default function AccountPage() {
                                 onClick={() => { setReviewModalOrder(order); setReviewForm({ rating: 5, title: "", body: "" }); setReviewSuccess(false); }}
                                 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
                                 style={{ border: `1px solid ${BRAND.teal}`, color: BRAND.teal }}>
-                                <Star className="w-3 h-3" /> Write a Review
+                                <Star className="w-3 h-3" />
+                                {reviewedOrderIds.has(order.id) ? "Edit Review" : "Write a Review"}
                               </button>
                             )}
                             <p className="font-black text-sm shrink-0" style={{ color: BRAND.black }}>
