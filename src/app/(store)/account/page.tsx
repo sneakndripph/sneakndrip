@@ -95,6 +95,8 @@ export default function AccountPage() {
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: "", body: "" });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState(false);
+  const [existingReviewId, setExistingReviewId] = useState<string | null>(null);
+  const [loadingReview, setLoadingReview] = useState(false);
   const [reviewedOrderIds, setReviewedOrderIds] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem("snd_reviewed_orders");
@@ -243,17 +245,30 @@ export default function AccountPage() {
     if (!reviewModalOrder || !reviewForm.body.trim()) return;
     setSubmittingReview(true);
     const firstItem = reviewModalOrder.order_items[0];
-    await fetch("/api/reviews", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        product_id: firstItem?.product_id ?? null,
-        author_name: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Customer",
-        rating: reviewForm.rating,
-        title: reviewForm.title.trim() || null,
-        body: reviewForm.body.trim(),
-      }),
-    });
+    if (existingReviewId) {
+      await fetch("/api/reviews", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: existingReviewId,
+          rating: reviewForm.rating,
+          title: reviewForm.title.trim() || null,
+          body: reviewForm.body.trim(),
+        }),
+      });
+    } else {
+      await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          product_id: firstItem?.product_id ?? null,
+          author_name: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Customer",
+          rating: reviewForm.rating,
+          title: reviewForm.title.trim() || null,
+          body: reviewForm.body.trim(),
+        }),
+      });
+    }
     setSubmittingReview(false);
     setReviewSuccess(true);
     if (reviewModalOrder) {
@@ -542,7 +557,30 @@ export default function AccountPage() {
                             )}
                             {order.status === "delivered" && (
                               <button
-                                onClick={() => { setReviewModalOrder(order); setReviewForm({ rating: 5, title: "", body: "" }); setReviewSuccess(false); }}
+                                onClick={async () => {
+                                  const isEditing = reviewedOrderIds.has(order.id);
+                                  setReviewForm({ rating: 5, title: "", body: "" });
+                                  setExistingReviewId(null);
+                                  setReviewSuccess(false);
+                                  setReviewModalOrder(order);
+                                  if (isEditing) {
+                                    const firstItem = order.order_items[0];
+                                    const productId = firstItem?.product_id;
+                                    const authorName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Customer";
+                                    if (productId) {
+                                      setLoadingReview(true);
+                                      try {
+                                        const r = await fetch(`/api/reviews?product_id=${encodeURIComponent(productId)}&author_name=${encodeURIComponent(authorName)}`);
+                                        const { review } = await r.json();
+                                        if (review) {
+                                          setReviewForm({ rating: review.rating, title: review.title ?? "", body: review.body });
+                                          setExistingReviewId(review.id);
+                                        }
+                                      } catch {}
+                                      setLoadingReview(false);
+                                    }
+                                  }
+                                }}
                                 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
                                 style={{ border: `1px solid ${BRAND.teal}`, color: BRAND.teal }}>
                                 <Star className="w-3 h-3" />
@@ -878,7 +916,9 @@ export default function AccountPage() {
             style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
             <div className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
-              <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Write a Review</p>
+              <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>
+                {existingReviewId ? "Edit Review" : "Write a Review"}
+              </p>
               <button onClick={() => { setReviewModalOrder(null); setReviewSuccess(false); }} className="p-1 transition-opacity hover:opacity-70">
                 <X className="w-4 h-4" style={{ color: BRAND.muted }} />
               </button>
@@ -931,12 +971,15 @@ export default function AccountPage() {
                       style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
                     />
                   </div>
+                  {loadingReview && (
+                    <p className="text-xs text-center" style={{ color: BRAND.muted }}>Loading your previous review…</p>
+                  )}
                   <button
                     onClick={handleSubmitReview}
-                    disabled={submittingReview || !reviewForm.body.trim()}
+                    disabled={submittingReview || !reviewForm.body.trim() || loadingReview}
                     className="w-full py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
                     style={{ background: BRAND.teal, color: "#fff" }}>
-                    {submittingReview ? "Submitting…" : "Submit Review"}
+                    {submittingReview ? "Submitting…" : existingReviewId ? "Update Review" : "Submit Review"}
                   </button>
                 </>
               )}

@@ -38,6 +38,7 @@ export default function EditProductForm({ product }: { product: Product }) {
     srp: String(product.srp_price ?? ""),
     dp: String(product.downpayment_price ?? ""),
     full: String(product.full_payment_price ?? ""),
+    cost: String(product.cost_price ?? ""),
     etaStart: String(product.eta_start ?? ""),
     etaEnd: String(product.eta_end ?? ""),
   });
@@ -87,7 +88,9 @@ export default function EditProductForm({ product }: { product: Product }) {
         sku: form.sku || null, description: form.description || null,
         srp_price: Number(form.srp) || Number(form.full),
         downpayment_price: Number(form.dp) || Math.round(Number(form.full) * 0.5),
-        full_payment_price: Number(form.full), status,
+        full_payment_price: Number(form.full),
+        cost_price: form.cost ? Number(form.cost) : null,
+        status,
         eta_start: status === "pre-order" && form.etaStart ? form.etaStart : null,
         eta_end: status === "pre-order" && form.etaEnd ? form.etaEnd : null,
         is_published: visibility.published, is_featured: visibility.featured,
@@ -251,6 +254,17 @@ export default function EditProductForm({ product }: { product: Product }) {
                     </div>
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>
+                  Cost Price (internal — used for profit calculation)
+                </label>
+                <div className="relative max-w-[180px]">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: BRAND.muted }}>₱</span>
+                  <input type="number" value={form.cost} onChange={e => set("cost", e.target.value)}
+                    placeholder="0"
+                    className="w-full pl-7 pr-4 py-3 text-sm focus:outline-none" style={inputStyle} />
+                </div>
               </div>
             </div>
 

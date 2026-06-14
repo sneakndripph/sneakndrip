@@ -62,14 +62,25 @@ export async function PATCH(
 
   const { id } = await params;
   const admin = createAdminClient();
-  const formData = await req.formData();
 
-  const productRaw = formData.get("product") as string;
-  const sizesRaw = formData.get("sizes") as string;
+  let formData: FormData;
+  try { formData = await req.formData(); }
+  catch { return NextResponse.json({ error: "Invalid form data" }, { status: 400 }); }
 
-  const { id: _id, created_at, updated_at, product_sizes, ...product } =
-    JSON.parse(productRaw) as Record<string, unknown>;
-  const sizes = JSON.parse(sizesRaw ?? "[]") as { size: string; stock: number }[];
+  const productRaw = formData.get("product") as string | null;
+  const sizesRaw = formData.get("sizes") as string | null;
+  if (!productRaw) return NextResponse.json({ error: "Missing product data" }, { status: 400 });
+
+  let parsedProduct: Record<string, unknown>;
+  let sizes: { size: string; stock: number }[];
+  try {
+    parsedProduct = JSON.parse(productRaw) as Record<string, unknown>;
+    sizes = JSON.parse(sizesRaw ?? "[]") as { size: string; stock: number }[];
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON in form data" }, { status: 400 });
+  }
+
+  const { id: _id, created_at, updated_at, product_sizes, ...product } = parsedProduct;
 
   // Read current sizes to detect restocks
   const { data: oldSizes } = await admin.from("product_sizes").select("size, stock").eq("product_id", id);

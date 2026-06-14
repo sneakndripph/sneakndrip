@@ -210,7 +210,7 @@ export default async function AdminDashboard() {
               {[
                 { label: "Add New Product",      href: "/admin/products/new",          color: BRAND.black },
                 { label: "View Pending Orders",  href: "/admin/orders?status=pending", color: BRAND.black },
-                { label: "View All Customers",   href: "/",                            color: BRAND.black },
+                { label: "View All Customers",   href: "/admin/customers",             color: BRAND.black },
               ].map(a => (
                 <Link key={a.label} href={a.href}
                   className="flex items-center justify-between px-4 py-3 rounded-lg text-sm font-bold transition-colors"

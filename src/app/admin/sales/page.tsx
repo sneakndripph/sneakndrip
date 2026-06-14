@@ -26,13 +26,14 @@ const STATUS_COLORS: Record<string, string> = {
 const PIE_COLORS = [BRAND.teal, "#6366F1", "#3B82F6", "#10B981", "#D97706", BRAND.red, "#8B5CF6", "#EC4899"];
 
 type Metrics = {
-  totalRevenue: number; totalOrders: number; paidOrders: number;
+  totalRevenue: number; totalCost: number; totalProfit: number;
+  totalOrders: number; paidOrders: number;
   cancelledOrders: number; pendingOrders: number; avgOrder: number; cancelRate: number;
 };
 type SalesData = {
   metrics: Metrics;
   revenueByDay: { date: string; revenue: number; orders: number }[];
-  topProducts: { name: string; revenue: number; units: number }[];
+  topProducts: { name: string; revenue: number; units: number; profit: number | null }[];
   byPayment: { method: string; revenue: number }[];
   byStatus: { status: string; count: number }[];
   topCustomers: { name: string; email: string; revenue: number; orders: number }[];
@@ -151,9 +152,13 @@ export default function AdminSalesPage() {
       ) : (
         <div className="space-y-6">
           {/* Metrics */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <MetricCard label="Total Revenue" value={fmt(m!.totalRevenue)} sub={`${m!.paidOrders} paid`}
               icon={TrendingUp} color={BRAND.teal} bg={`rgba(91,184,180,0.12)`} href="/admin/orders?status=paid" />
+            <MetricCard label="Gross Profit"
+              value={m!.totalCost > 0 ? fmt(m!.totalProfit) : "—"}
+              sub={m!.totalCost > 0 ? `${m!.totalRevenue > 0 ? ((m!.totalProfit / m!.totalRevenue) * 100).toFixed(1) : "0"}% margin` : "Add cost prices"}
+              icon={Banknote} color="#10B981" bg="rgba(16,185,129,0.1)" />
             <MetricCard label="Total Orders" value={String(m!.totalOrders)} sub={`${m!.pendingOrders} pending`}
               icon={ShoppingBag} color={BRAND.black} bg="rgba(13,13,13,0.08)" href="/admin/orders" />
             <MetricCard label="Avg Order Value" value={fmt(m!.avgOrder)}

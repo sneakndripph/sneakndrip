@@ -608,7 +608,7 @@ export default function CheckoutPage() {
                     value={couponCode}
                     onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(""); }}
                     placeholder="Promo code"
-                    className="flex-1 px-3 py-2.5 text-sm focus:outline-none"
+                    className="flex-1 min-w-0 px-3 py-2.5 text-sm focus:outline-none"
                     style={{ background: BRAND.bg, border: `1px solid ${couponError ? BRAND.red : BRAND.border}`, color: BRAND.black }}
                     onKeyDown={e => e.key === "Enter" && handleApplyCoupon()}
                   />

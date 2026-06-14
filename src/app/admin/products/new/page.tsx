@@ -19,7 +19,7 @@ export default function NewProductPage() {
 
   const [form, setForm] = useState({
     name: "", brand: "", colorway: "", gender: "Unisex", sku: "", description: "",
-    srp: "", dp: "", full: "", etaStart: "", etaEnd: "",
+    srp: "", dp: "", full: "", cost: "", etaStart: "", etaEnd: "",
   });
   const [visibility, setVisibility] = useState({ published: true, featured: false, trending: false });
   const [brandOpen, setBrandOpen] = useState(false);
@@ -62,7 +62,9 @@ export default function NewProductPage() {
         sku: form.sku || null, description: form.description || null,
         srp_price: Number(form.srp) || Number(form.full),
         downpayment_price: Number(form.dp) || Math.round(Number(form.full) * 0.5),
-        full_payment_price: Number(form.full), status,
+        full_payment_price: Number(form.full),
+        cost_price: form.cost ? Number(form.cost) : null,
+        status,
         eta_start: status === "pre-order" && form.etaStart ? form.etaStart : null,
         eta_end: status === "pre-order" && form.etaEnd ? form.etaEnd : null,
         is_published: visibility.published, is_featured: visibility.featured,
@@ -96,7 +98,7 @@ export default function NewProductPage() {
             style={{ background: BRAND.black, color: BRAND.bg }}>Back to Products</Link>
           <button onClick={() => {
             setSaved(false);
-            setForm({ name: "", brand: "", colorway: "", gender: "Unisex", sku: "", description: "", srp: "", dp: "", full: "", etaStart: "", etaEnd: "" });
+            setForm({ name: "", brand: "", colorway: "", gender: "Unisex", sku: "", description: "", srp: "", dp: "", full: "", cost: "", etaStart: "", etaEnd: "" });
             setSizes([]); setImageUrls([]);
           }} className="px-6 py-3 font-bold text-sm uppercase tracking-wider"
             style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black }}>Add Another</button>
@@ -240,6 +242,17 @@ export default function NewProductPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>
+                  Cost Price (internal — used for profit calculation)
+                </label>
+                <div className="relative max-w-[180px]">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: BRAND.muted }}>₱</span>
+                  <input type="number" value={form.cost} onChange={e => set("cost", e.target.value)}
+                    placeholder="0"
+                    className="w-full pl-7 pr-4 py-3 text-sm focus:outline-none" style={inputStyle} />
+                </div>
               </div>
             </div>
 
