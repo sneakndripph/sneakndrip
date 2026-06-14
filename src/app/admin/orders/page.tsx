@@ -5,14 +5,14 @@ import AdminOrdersClient from "@/components/admin/AdminOrdersClient";
 export default async function AdminOrdersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; status?: string }>;
 }) {
   noStore();
-  const [admin, { q }] = [createAdminClient(), await searchParams];
+  const [admin, { q, status }] = [createAdminClient(), await searchParams];
   const { data: orders } = await admin
     .from("orders")
     .select("*, order_items(product_name, brand, size, quantity, unit_price, payment_type, products(images, bg))")
     .order("created_at", { ascending: false });
 
-  return <AdminOrdersClient initialOrders={orders ?? []} initialSearch={q ?? ""} />;
+  return <AdminOrdersClient initialOrders={orders ?? []} initialSearch={q ?? ""} initialStatus={status ?? ""} />;
 }

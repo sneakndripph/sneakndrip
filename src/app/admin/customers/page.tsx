@@ -2,8 +2,13 @@ import { unstable_noStore as noStore } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import AdminCustomersClient from "@/components/admin/AdminCustomersClient";
 
-export default async function AdminCustomersPage() {
+export default async function AdminCustomersPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ q?: string }>;
+}) {
   noStore();
+  const q = searchParams ? (await searchParams)?.q ?? "" : "";
   const admin = createAdminClient();
 
   const [{ data: customers }, { data: allOrders }, { data: { users: authUsers } }] = await Promise.all([
@@ -82,5 +87,5 @@ export default async function AdminCustomersPage() {
     };
   });
 
-  return <AdminCustomersClient customers={enriched} />;
+  return <AdminCustomersClient customers={enriched} initialSearch={q} />;
 }

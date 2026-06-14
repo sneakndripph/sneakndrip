@@ -64,12 +64,15 @@ export async function GET(req: NextRequest) {
     }));
 
   // By payment method
-  const paymentMap = new Map<string, number>();
+  const paymentMap = new Map<string, { revenue: number; orders: { order_number: string; customer_name: string; total: number; status: string; created_at: string }[] }>();
   for (const o of paid) {
     const pm = (o.payment_method ?? "unknown").replace(/_/g, " ");
-    paymentMap.set(pm, (paymentMap.get(pm) ?? 0) + Number(o.total));
+    const ex = paymentMap.get(pm) ?? { revenue: 0, orders: [] };
+    ex.revenue += Number(o.total);
+    ex.orders.push({ order_number: o.order_number, customer_name: o.customer_name ?? "", total: Number(o.total), status: o.status, created_at: o.created_at });
+    paymentMap.set(pm, ex);
   }
-  const byPayment = Array.from(paymentMap.entries()).map(([method, revenue]) => ({ method, revenue }));
+  const byPayment = Array.from(paymentMap.entries()).map(([method, v]) => ({ method, revenue: v.revenue, orders: v.orders }));
 
   // By status
   const statusMap = new Map<string, number>();

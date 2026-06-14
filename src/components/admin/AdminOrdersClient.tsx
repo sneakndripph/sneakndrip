@@ -75,10 +75,12 @@ function getNextAction(status: string, isCOD: boolean): { label: string; next: s
   return ACTIONS[status] ?? null;
 }
 
-export default function AdminOrdersClient({ initialOrders, initialSearch = "" }: { initialOrders: Order[]; initialSearch?: string }) {
+export default function AdminOrdersClient({ initialOrders, initialSearch = "", initialStatus = "" }: { initialOrders: Order[]; initialSearch?: string; initialStatus?: string }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [search, setSearch] = useState(initialSearch);
-  const [statusFilter, setStatusFilter] = useState<Status>("all");
+  const [statusFilter, setStatusFilter] = useState<Status>(
+    STATUSES.includes(initialStatus as Status) ? (initialStatus as Status) : "all"
+  );
   const [selected, setSelected] = useState<Order | null>(null);
   const [trackingInput, setTrackingInput] = useState("");
   const [notesInput, setNotesInput] = useState("");

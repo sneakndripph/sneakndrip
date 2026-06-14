@@ -5,43 +5,44 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Package, ShoppingBag, Users, Settings, ChevronRight, Menu, X, LogOut, MessageSquare, MessageCircle, UserCog, FileText, Tag, BarChart2, History, TrendingUp, Bell } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Users, Settings, ChevronRight, Menu, X, LogOut, MessageSquare, MessageCircle, UserCog, FileText, Tag, BarChart2, History, TrendingUp } from "lucide-react";
 import { BRAND, FONTS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
-const NAV = [
-  { href: "/admin",           icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/admin/products",  icon: Package,         label: "Products" },
-  { href: "/admin/orders",    icon: ShoppingBag,     label: "Orders" },
-  { href: "/admin/customers", icon: Users,           label: "Customers" },
-  { href: "/admin/sales",     icon: TrendingUp,      label: "Sales" },
-  { href: "/admin/coupons",   icon: Tag,             label: "Coupons" },
-  { href: "/admin/inventory", icon: BarChart2,       label: "Inventory Log" },
-  { href: "/admin/reviews",   icon: MessageSquare,   label: "Reviews" },
-  { href: "/admin/chat",      icon: MessageCircle,   label: "Chat" },
-  { href: "/admin/content",   icon: FileText,        label: "Pages" },
-  { href: "/admin/users",     icon: UserCog,         label: "Users" },
-  { href: "/admin/activity",  icon: History,         label: "Activity" },
-  { href: "/admin/settings",  icon: Settings,        label: "Settings" },
+type NotifCounts = { pendingOrders: number; pendingReviews: number };
+type BadgeKey = "pendingOrders" | "pendingReviews";
+
+const NAV: { href: string; icon: React.ElementType; label: string; badgeKey: BadgeKey | null }[] = [
+  { href: "/admin",           icon: LayoutDashboard, label: "Dashboard",     badgeKey: null },
+  { href: "/admin/products",  icon: Package,         label: "Products",      badgeKey: null },
+  { href: "/admin/orders",    icon: ShoppingBag,     label: "Orders",        badgeKey: "pendingOrders" },
+  { href: "/admin/customers", icon: Users,           label: "Customers",     badgeKey: null },
+  { href: "/admin/sales",     icon: TrendingUp,      label: "Sales",         badgeKey: null },
+  { href: "/admin/coupons",   icon: Tag,             label: "Coupons",       badgeKey: null },
+  { href: "/admin/inventory", icon: BarChart2,       label: "Inventory Log", badgeKey: null },
+  { href: "/admin/reviews",   icon: MessageSquare,   label: "Reviews",       badgeKey: "pendingReviews" },
+  { href: "/admin/chat",      icon: MessageCircle,   label: "Chat",          badgeKey: null },
+  { href: "/admin/content",   icon: FileText,        label: "Pages",         badgeKey: null },
+  { href: "/admin/users",     icon: UserCog,         label: "Users",         badgeKey: null },
+  { href: "/admin/activity",  icon: History,         label: "Activity",      badgeKey: null },
+  { href: "/admin/settings",  icon: Settings,        label: "Settings",      badgeKey: null },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifCount, setNotifCount] = useState(0);
+  const [notifs, setNotifs] = useState<NotifCounts>({ pendingOrders: 0, pendingReviews: 0 });
 
   useEffect(() => {
-    fetch("/api/admin/notifications")
-      .then(r => r.json())
-      .then(d => setNotifCount(d.total ?? 0))
-      .catch(() => {});
-    const interval = setInterval(() => {
+    function load() {
       fetch("/api/admin/notifications")
         .then(r => r.json())
-        .then(d => setNotifCount(d.total ?? 0))
+        .then(d => setNotifs({ pendingOrders: d.pendingOrders ?? 0, pendingReviews: d.pendingReviews ?? 0 }))
         .catch(() => {});
-    }, 60000);
+    }
+    load();
+    const interval = setInterval(load, 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -67,6 +68,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {NAV.map(item => {
           const Icon = item.icon;
           const active = pathname === item.href;
+          const count = item.badgeKey ? notifs[item.badgeKey] : 0;
           return (
             <Link key={item.href} href={item.href}
               onClick={() => setSidebarOpen(false)}
@@ -80,25 +82,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <Icon className="w-4 h-4" />
                 {item.label}
               </div>
-              {active && <ChevronRight className="w-3 h-3" />}
+              <div className="flex items-center gap-1.5">
+                {count > 0 && (
+                  <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
+                    style={{ background: BRAND.red, color: "#fff" }}>
+                    {count > 99 ? "99+" : count}
+                  </span>
+                )}
+                {active && <ChevronRight className="w-3 h-3" />}
+              </div>
             </Link>
           );
         })}
       </nav>
 
       {/* Bottom */}
-      <div className="p-4 space-y-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
-        <Link href="/admin/orders?status=pending" className="flex items-center justify-between transition-opacity hover:opacity-80">
-          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: "#666" }}>
-            <Bell className="w-3.5 h-3.5" /> Notifications
-          </div>
-          {notifCount > 0 && (
-            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
-              style={{ background: BRAND.red, color: "#fff" }}>
-              {notifCount}
-            </span>
-          )}
-        </Link>
+      <div className="p-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
         <button onClick={handleSignOut} className="flex items-center gap-2 text-xs font-semibold transition-opacity hover:opacity-60" style={{ color: "#555" }}>
           <LogOut className="w-3.5 h-3.5" /> Log Out
         </button>
@@ -132,15 +131,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Menu className="w-5 h-5" />
           </button>
           <span style={{ fontFamily: FONTS.display, fontSize: "1.2rem", color: BRAND.black }}>ADMIN</span>
-          <Link href="/admin/orders?status=pending" className="relative p-1" style={{ color: BRAND.black }}>
-            <Bell className="w-5 h-5" />
-            {notifCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black"
-                style={{ background: BRAND.red, color: "#fff" }}>
-                {notifCount > 9 ? "9+" : notifCount}
-              </span>
+          <div className="flex items-center gap-3">
+            {(notifs.pendingOrders > 0 || notifs.pendingReviews > 0) && (
+              <Link href="/admin/orders?status=pending" className="relative flex items-center gap-1 text-xs font-bold px-2 py-1 rounded"
+                style={{ background: `${BRAND.red}15`, color: BRAND.red }}>
+                <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: BRAND.red }} />
+                {notifs.pendingOrders + notifs.pendingReviews}
+              </Link>
             )}
-          </Link>
+            <div className="w-5" />
+          </div>
         </div>
 
         <div className="flex-1 p-4 sm:p-6 lg:p-8" style={{ background: "#F5F3F2" }}>

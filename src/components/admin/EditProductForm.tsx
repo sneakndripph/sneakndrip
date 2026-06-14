@@ -100,7 +100,7 @@ export default function EditProductForm({ product }: { product: Product }) {
       fd.append("sizes", JSON.stringify(sizes));
 
       const res = await fetch(`/api/admin/products/${product.id}`, { method: "PATCH", body: fd });
-      const result = await res.json();
+      const result = await res.json().catch(() => ({})) as { error?: string };
       if (!res.ok) { setError(result.error ?? "Failed to save"); setSaving(false); return; }
 
       setSaved(true);

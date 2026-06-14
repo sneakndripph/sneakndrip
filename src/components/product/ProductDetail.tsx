@@ -13,6 +13,54 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { createClient } from "@/lib/supabase/client";
 import type { Product, Review } from "@/lib/types";
 
+type SizeGuide = { label: string; note: string; rows: string[][] };
+
+const NIKE_ROWS: string[][] = [
+  ["US 4","36","3.5","22"],["US 4.5","36.5","4","22.5"],["US 5","37.5","4.5","23"],
+  ["US 5.5","38","5","23.5"],["US 6","38.5","5.5","24"],["US 6.5","39","6","24.5"],
+  ["US 7","40","6","25"],["US 7.5","40.5","6.5","25.5"],["US 8","41","7","26"],
+  ["US 8.5","42","7.5","26.5"],["US 9","42.5","8","27"],["US 9.5","43","8.5","27.5"],
+  ["US 10","44","9","28"],["US 10.5","44.5","9.5","28.5"],["US 11","45","10","29"],
+  ["US 11.5","45.5","10.5","29.5"],["US 12","46","11","30"],["US 13","47.5","12","31"],
+  ["US 14","48.5","13","32"],["US 15","49.5","14","33"],
+];
+
+const ADIDAS_ROWS: string[][] = [
+  ["US 4","36","3.5","22.5"],["US 4.5","36.5","4","23"],["US 5","37","4.5","23.5"],
+  ["US 5.5","38","5","23.5"],["US 6","38.5","5.5","24"],["US 6.5","39","6","24.5"],
+  ["US 7","40","6.5","25"],["US 7.5","40.5","7","25.5"],["US 8","41","7.5","26"],
+  ["US 8.5","42","8","26.5"],["US 9","42.5","8.5","27"],["US 9.5","43","9","27.5"],
+  ["US 10","44","9.5","28"],["US 10.5","44.5","10","28.5"],["US 11","45","10.5","29"],
+  ["US 11.5","45.5","11","29.5"],["US 12","46","11.5","30"],["US 13","47.5","12.5","31"],
+  ["US 14","48","13.5","32"],
+];
+
+const VANS_ROWS: string[][] = [
+  ["US 3.5","35","3","22"],["US 4","36","3.5","22.5"],["US 4.5","36.5","4","23"],
+  ["US 5","37","4.5","23"],["US 5.5","38","5","23.5"],["US 6","38.5","5.5","24"],
+  ["US 6.5","39","6","24.5"],["US 7","40","6.5","25"],["US 7.5","40.5","7","25.5"],
+  ["US 8","41","7.5","26"],["US 8.5","42","8","26.5"],["US 9","42.5","8.5","27"],
+  ["US 9.5","43","9","27.5"],["US 10","44","9.5","28"],["US 10.5","44.5","10","28.5"],
+  ["US 11","45","10.5","29"],["US 12","46","11.5","30"],["US 13","47","12.5","31"],
+];
+
+function getSizeGuideData(brand: string): SizeGuide {
+  const b = brand.toLowerCase();
+  if (b.includes("adidas") || b.includes("yeezy")) {
+    return { label: "Adidas / Yeezy", note: "Adidas generally fits true to size. If between sizes, go half size up.", rows: ADIDAS_ROWS };
+  }
+  if (b.includes("vans")) {
+    return { label: "Vans", note: "Vans fits true to size. Slip-ons run half a size large — consider sizing down.", rows: VANS_ROWS };
+  }
+  if (b.includes("converse")) {
+    return { label: "Converse", note: "Converse runs 1–1.5 sizes large. We recommend going 1 size down from your usual US size.", rows: NIKE_ROWS };
+  }
+  if (b.includes("new balance")) {
+    return { label: "New Balance", note: "New Balance fits true to size. Wide widths available — check product details.", rows: NIKE_ROWS };
+  }
+  return { label: `Nike / Jordan / ${brand}`, note: "Nike and Jordan sizes run true to size. If between sizes, go half size up.", rows: NIKE_ROWS };
+}
+
 function formatETA(start: string, end?: string) {
   const s = new Date(start);
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -53,6 +101,7 @@ export default function ProductDetail({
   const [notifySize, setNotifySize] = useState<string | null>(null);
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notifySubmitted, setNotifySubmitted] = useState<string | null>(null);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
 
   // Auto-fill reviewer name from auth session
   useEffect(() => {
@@ -171,7 +220,51 @@ export default function ProductDetail({
     router.push("/cart");
   }
 
+  const sizeGuideData = getSizeGuideData(product.brand);
+
   return (<>
+    {/* Size Guide Modal */}
+    {showSizeGuide && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
+        onClick={() => setShowSizeGuide(false)}>
+        <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, maxHeight: "85vh" }}
+          onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 py-4 shrink-0" style={{ background: BRAND.black }}>
+            <div>
+              <h2 style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: "#fff" }}>SIZE GUIDE</h2>
+              <p className="text-xs mt-0.5" style={{ color: "#999" }}>{sizeGuideData.label} · All sizes in US (men&apos;s)</p>
+            </div>
+            <button onClick={() => setShowSizeGuide(false)} className="opacity-60 hover:opacity-100">
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <p className="text-xs mb-3 px-1" style={{ color: BRAND.muted }}>{sizeGuideData.note}</p>
+            <div className="overflow-x-auto rounded-lg" style={{ border: `1px solid ${BRAND.border}` }}>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr style={{ background: BRAND.black }}>
+                    {["US", "EU", "UK", "CM"].map(h => (
+                      <th key={h} className="px-3 py-2.5 text-left font-black uppercase tracking-wider" style={{ color: "#fff" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sizeGuideData.rows.map((row, i) => (
+                    <tr key={row[0]} style={{ background: i % 2 === 0 ? BRAND.bg : BRAND.card, borderBottom: `1px solid ${BRAND.border}` }}>
+                      {row.map((cell, j) => (
+                        <td key={j} className="px-3 py-2.5 font-semibold" style={{ color: j === 0 ? BRAND.teal : BRAND.black }}>{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center gap-2 mb-8 text-xs" style={{ color: BRAND.muted }}>
@@ -309,7 +402,14 @@ export default function ProductDetail({
             <div className="mb-6">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-bold uppercase tracking-wide" style={{ color: BRAND.black }}>Select Size</p>
-                {selectedSize && <p className="text-sm font-semibold" style={{ color: BRAND.teal }}>{selectedSize}</p>}
+                <div className="flex items-center gap-3">
+                  {selectedSize && <p className="text-sm font-semibold" style={{ color: BRAND.teal }}>{selectedSize}</p>}
+                  <button type="button" onClick={() => setShowSizeGuide(true)}
+                    className="text-xs underline transition-opacity hover:opacity-60"
+                    style={{ color: BRAND.muted }}>
+                    Size Guide
+                  </button>
+                </div>
               </div>
               <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                 {product.sizes.map(s => {
