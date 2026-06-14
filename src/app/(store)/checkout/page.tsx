@@ -275,8 +275,8 @@ export default function CheckoutPage() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6 items-start">
-          {/* Main form — second on mobile, first on desktop */}
-          <div className="lg:col-span-2 lg:order-1 order-2">
+          {/* Main form */}
+          <div className="lg:col-span-2">
             {/* Step 1: Details */}
             {step === "details" && (
               <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
@@ -428,7 +428,7 @@ export default function CheckoutPage() {
 
                     {/* Reference number */}
                     <div className="mb-4">
-                      <p className="text-sm font-bold mb-2" style={{ color: BRAND.black }}>Reference / Transaction Number <span className="font-normal text-xs" style={{ color: BRAND.muted }}>(optional)</span></p>
+                      <p className="text-sm font-bold mb-2" style={{ color: BRAND.black }}>Reference / Transaction Number <span style={{ color: BRAND.red }}>*</span></p>
                       <input
                         type="text"
                         value={referenceNumber}
@@ -488,7 +488,7 @@ export default function CheckoutPage() {
 
                 <button
                   onClick={() => setStep("confirm")}
-                  disabled={!isCOD && !proofFile}
+                  disabled={!isCOD && (!proofFile || !referenceNumber.trim())}
                   className="w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-40"
                   style={{ background: BRAND.black, color: BRAND.bg }}>
                   Review Order →
@@ -538,8 +538,8 @@ export default function CheckoutPage() {
             )}
           </div>
 
-          {/* Order summary — first on mobile, second on desktop */}
-          <div className="lg:order-2 order-1 rounded-xl overflow-hidden lg:sticky lg:top-24 w-full min-w-0"
+          {/* Order summary */}
+          <div className="lg:order-2 rounded-xl overflow-hidden lg:sticky lg:top-24 w-full min-w-0"
             style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
             <div className="p-4 sm:p-5">
               <h3 className="font-black mb-4" style={{ color: BRAND.black, fontFamily: FONTS.display, fontSize: "1.2rem", letterSpacing: "0.03em" }}>
@@ -613,7 +613,7 @@ export default function CheckoutPage() {
                     onKeyDown={e => e.key === "Enter" && handleApplyCoupon()}
                   />
                   <button onClick={handleApplyCoupon} disabled={applyingCoupon || !couponCode.trim()}
-                    className="px-4 py-2.5 text-xs font-black uppercase tracking-wide disabled:opacity-50"
+                    className="shrink-0 px-4 py-2.5 text-xs font-black uppercase tracking-wide disabled:opacity-50"
                     style={{ background: BRAND.black, color: BRAND.bg }}>
                     {applyingCoupon ? "…" : "Apply"}
                   </button>

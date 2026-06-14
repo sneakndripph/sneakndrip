@@ -2,16 +2,9 @@ import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { BRAND, FONTS } from "@/lib/constants";
-import { TrendingUp, ShoppingBag, Package, Users, Clock, CheckCircle, Truck } from "lucide-react";
+import { TrendingUp, ShoppingBag, Package, Users } from "lucide-react";
 import DashboardCharts from "@/components/admin/DashboardCharts";
-
-const STATUS_CFG = {
-  pending:    { icon: Clock,       color: "#D97706", bg: "rgba(217,119,6,0.1)",   label: "Pending" },
-  paid:       { icon: CheckCircle, color: BRAND.teal, bg: `rgba(91,184,180,0.1)`, label: "Paid" },
-  processing: { icon: Clock,       color: "#6366F1", bg: "rgba(99,102,241,0.1)",  label: "Processing" },
-  shipped:    { icon: Truck,       color: "#3B82F6", bg: "rgba(59,130,246,0.1)",  label: "Shipped" },
-  delivered:  { icon: CheckCircle, color: "#10B981", bg: "rgba(16,185,129,0.1)",  label: "Delivered" },
-} as const;
+import DashboardRecentOrdersTable from "@/components/admin/DashboardRecentOrdersTable";
 
 export default async function AdminDashboard() {
   noStore();
@@ -99,10 +92,10 @@ export default async function AdminDashboard() {
   });
 
   const METRICS = [
-    { label: "Total Revenue",  value: `₱${totalRevenue.toLocaleString()}`, sub: `${ordersCount} orders total`,       icon: TrendingUp, color: BRAND.teal,  bg: `rgba(91,184,180,0.12)` },
-    { label: "Total Orders",   value: String(ordersCount),                  sub: `${pendingCount} pending`,            icon: ShoppingBag, color: BRAND.black, bg: "rgba(13,13,13,0.08)" },
-    { label: "Products",       value: String(productsCount ?? 0),           sub: "in catalog",                         icon: Package,    color: BRAND.red,   bg: "rgba(217,79,61,0.1)" },
-    { label: "Customers",      value: String(customersCount ?? 0),          sub: "registered accounts",                icon: Users,      color: "#6366F1",   bg: "rgba(99,102,241,0.1)" },
+    { label: "Total Revenue",  value: `₱${totalRevenue.toLocaleString()}`, sub: `${ordersCount} orders total`,       icon: TrendingUp, color: BRAND.teal,  bg: `rgba(91,184,180,0.12)`,  href: undefined },
+    { label: "Total Orders",   value: String(ordersCount),                  sub: `${pendingCount} pending`,            icon: ShoppingBag, color: BRAND.black, bg: "rgba(13,13,13,0.08)",  href: "/admin/orders" },
+    { label: "Products",       value: String(productsCount ?? 0),           sub: "in catalog",                         icon: Package,    color: BRAND.red,   bg: "rgba(217,79,61,0.1)",  href: "/admin/products" },
+    { label: "Customers",      value: String(customersCount ?? 0),          sub: "registered accounts",                icon: Users,      color: "#6366F1",   bg: "rgba(99,102,241,0.1)", href: "/admin/customers" },
   ];
 
   // Group low stock by product
@@ -128,8 +121,8 @@ export default async function AdminDashboard() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {METRICS.map(m => {
           const Icon = m.icon;
-          return (
-            <div key={m.label} className="p-5 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+          const inner = (
+            <>
               <div className="flex items-start justify-between mb-4">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: m.bg }}>
                   <Icon className="w-5 h-5" style={{ color: m.color }} />
@@ -141,6 +134,17 @@ export default async function AdminDashboard() {
                 {m.value}
               </p>
               <p className="text-xs mt-1 uppercase tracking-widest font-semibold" style={{ color: BRAND.muted }}>{m.label}</p>
+            </>
+          );
+          return m.href ? (
+            <Link key={m.label} href={m.href}
+              className="block p-5 rounded-xl transition-opacity hover:opacity-80"
+              style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+              {inner}
+            </Link>
+          ) : (
+            <div key={m.label} className="p-5 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+              {inner}
             </div>
           );
         })}
@@ -155,57 +159,7 @@ export default async function AdminDashboard() {
               View All →
             </Link>
           </div>
-          {!recentOrders?.length ? (
-            <div className="py-12 text-center">
-              <p className="text-sm" style={{ color: BRAND.muted }}>No orders yet.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                    {["Order ID", "Customer", "Item", "Total", "Status", "Date"].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest"
-                        style={{ color: BRAND.muted }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentOrders.map(order => {
-                    const cfg = STATUS_CFG[order.status as keyof typeof STATUS_CFG];
-                    const Icon = cfg?.icon ?? Clock;
-                    const firstItem = (order.order_items as { product_name: string; size: string }[])?.[0];
-                    return (
-                      <tr key={order.order_number} className="transition-colors hover:bg-black/[0.02] cursor-pointer"
-                        style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                        <td className="px-4 py-3.5 text-xs font-bold">
-                          <Link href={`/admin/orders?q=${order.order_number}`} className="hover:underline" style={{ color: BRAND.black }}>
-                            {order.order_number}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3.5 text-xs font-semibold" style={{ color: BRAND.black }}>{order.customer_name}</td>
-                        <td className="px-4 py-3.5 text-xs max-w-[160px] truncate" style={{ color: BRAND.muted }}>
-                          {firstItem ? `${firstItem.product_name} (${firstItem.size})` : "—"}
-                        </td>
-                        <td className="px-4 py-3.5 text-xs font-bold" style={{ color: BRAND.black }}>
-                          ₱{Number(order.total).toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
-                            style={{ background: cfg?.bg ?? "#eee", color: cfg?.color ?? "#666" }}>
-                            <Icon className="w-3 h-3" />{cfg?.label ?? order.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 text-xs" style={{ color: BRAND.muted }}>
-                          {new Date(order.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <DashboardRecentOrdersTable orders={(recentOrders ?? []) as Parameters<typeof DashboardRecentOrdersTable>[0]["orders"]} />
         </div>
 
         {/* Right column */}

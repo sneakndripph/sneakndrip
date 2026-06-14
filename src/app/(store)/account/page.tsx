@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BRAND, FONTS } from "@/lib/constants";
 import Image from "next/image";
-import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle, X, Home } from "lucide-react";
+import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle, X, Home, Star } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -24,6 +24,7 @@ type OrderItem = {
   size: string;
   quantity: number;
   unit_price: number;
+  product_id?: string | null;
   products: { images: string[] | null; bg: string | null; slug: string | null } | null;
 };
 type Order = {
@@ -44,6 +45,8 @@ type Order = {
   shipping_barangay?: string;
   shipping_city?: string;
   shipping_province?: string;
+  customer_name?: string;
+  customer_mobile?: string;
   order_items: OrderItem[];
 };
 type Tab = "orders" | "account" | "address" | "password";
@@ -87,6 +90,10 @@ export default function AccountPage() {
   const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
   const [cancelModalOrder, setCancelModalOrder] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [reviewModalOrder, setReviewModalOrder] = useState<Order | null>(null);
+  const [reviewForm, setReviewForm] = useState({ rating: 5, title: "", body: "" });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewSuccess, setReviewSuccess] = useState(false);
 
   // Address state
   const [addressForm, setAddressForm] = useState({ street: "", barangay: "", city: "", province: "", postal: "", regionGroup: "" });
@@ -213,6 +220,30 @@ export default function AccountPage() {
     setCancelReason("");
   }
 
+  async function handleSubmitReview() {
+    if (!reviewModalOrder || !reviewForm.body.trim()) return;
+    setSubmittingReview(true);
+    const firstItem = reviewModalOrder.order_items[0];
+    await fetch("/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        product_id: firstItem?.product_id ?? null,
+        author_name: user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Customer",
+        rating: reviewForm.rating,
+        title: reviewForm.title.trim() || null,
+        body: reviewForm.body.trim(),
+      }),
+    });
+    setSubmittingReview(false);
+    setReviewSuccess(true);
+    setReviewForm({ rating: 5, title: "", body: "" });
+    setTimeout(() => {
+      setReviewModalOrder(null);
+      setReviewSuccess(false);
+    }, 2000);
+  }
+
   if (!user) return null;
 
   const displayName = user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
@@ -305,6 +336,11 @@ export default function AccountPage() {
                           <div>
                             <p className="font-black text-sm" style={{ color: BRAND.black }}>{order.order_number}</p>
                             <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{date}</p>
+                            {(order.customer_name || order.customer_mobile) && (
+                              <p className="text-xs mt-1" style={{ color: BRAND.muted }}>
+                                {[order.customer_name, order.customer_mobile].filter(Boolean).join(" · ")}
+                              </p>
+                            )}
                           </div>
                           <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full shrink-0"
                             style={{ background: cfg.bg, color: cfg.color }}>
@@ -464,7 +500,7 @@ export default function AccountPage() {
                               <MessageCircle className="w-3.5 h-3.5" /> Need help?
                             </button>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-3 flex-wrap">
                             {order.status === "pending" && isCOD && (
                               <button
                                 onClick={() => setCancelModalOrder(order.order_number)}
@@ -472,6 +508,14 @@ export default function AccountPage() {
                                 className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity disabled:opacity-50"
                                 style={{ border: `1px solid ${BRAND.red}`, color: BRAND.red }}>
                                 {cancellingOrder === order.order_number ? "Cancelling…" : "Cancel Order"}
+                              </button>
+                            )}
+                            {order.status === "delivered" && (
+                              <button
+                                onClick={() => { setReviewModalOrder(order); setReviewForm({ rating: 5, title: "", body: "" }); setReviewSuccess(false); }}
+                                className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
+                                style={{ border: `1px solid ${BRAND.teal}`, color: BRAND.teal }}>
+                                <Star className="w-3 h-3" /> Write a Review
                               </button>
                             )}
                             <p className="font-black text-sm shrink-0" style={{ color: BRAND.black }}>
@@ -753,6 +797,82 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+
+      {/* Write a Review modal */}
+      {reviewModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={e => { if (e.target === e.currentTarget) { setReviewModalOrder(null); setReviewSuccess(false); } }}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+            <div className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
+              <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Write a Review</p>
+              <button onClick={() => { setReviewModalOrder(null); setReviewSuccess(false); }} className="p-1 transition-opacity hover:opacity-70">
+                <X className="w-4 h-4" style={{ color: BRAND.muted }} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {reviewSuccess ? (
+                <div className="py-6 text-center">
+                  <CheckCircle className="w-10 h-10 mx-auto mb-2" style={{ color: BRAND.teal }} />
+                  <p className="font-bold text-sm" style={{ color: BRAND.black }}>Thank you for your review!</p>
+                </div>
+              ) : (
+                <>
+                  {reviewModalOrder.order_items[0] && (
+                    <p className="text-xs font-semibold" style={{ color: BRAND.muted }}>
+                      Order: <span style={{ color: BRAND.black }}>{reviewModalOrder.order_number}</span>
+                      {" · "}{reviewModalOrder.order_items[0].product_name}
+                    </p>
+                  )}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.black }}>Rating</label>
+                    <div className="flex gap-1">
+                      {[1,2,3,4,5].map(n => (
+                        <button key={n} type="button"
+                          onClick={() => setReviewForm(f => ({ ...f, rating: n }))}
+                          className="transition-opacity hover:opacity-80">
+                          <Star className="w-7 h-7" fill={n <= reviewForm.rating ? BRAND.teal : "none"}
+                            style={{ color: n <= reviewForm.rating ? BRAND.teal : BRAND.border }} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Title (optional)</label>
+                    <input
+                      value={reviewForm.title}
+                      onChange={e => setReviewForm(f => ({ ...f, title: e.target.value }))}
+                      placeholder="e.g. Great quality!"
+                      className="w-full px-3 py-2.5 text-sm focus:outline-none"
+                      style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Review <span style={{ color: BRAND.red }}>*</span></label>
+                    <textarea
+                      value={reviewForm.body}
+                      onChange={e => setReviewForm(f => ({ ...f, body: e.target.value }))}
+                      placeholder="Share your experience…"
+                      rows={3}
+                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none"
+                      style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                    />
+                  </div>
+                  <button
+                    onClick={handleSubmitReview}
+                    disabled={submittingReview || !reviewForm.body.trim()}
+                    className="w-full py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
+                    style={{ background: BRAND.teal, color: "#fff" }}>
+                    {submittingReview ? "Submitting…" : "Submit Review"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Cancel order reason modal */}
       {cancelModalOrder && (

@@ -12,7 +12,8 @@ export async function GET(req: NextRequest) {
   const admin = createAdminClient();
 
   if (path) {
-    const { data, error } = await admin.storage.from("payment-proofs").createSignedUrl(path, 300);
+    const cleanPath = path.replace(/^payment-proofs\//, "");
+    const { data, error } = await admin.storage.from("payment-proofs").createSignedUrl(cleanPath, 300);
     if (error || !data?.signedUrl) return NextResponse.json({ error: "Not found" }, { status: 404 });
     return NextResponse.redirect(data.signedUrl);
   }

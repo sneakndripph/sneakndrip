@@ -25,7 +25,8 @@ export async function GET(req: NextRequest) {
   const proofPath = order.proof_of_payment as string | null;
 
   if (proofPath) {
-    const { data, error } = await admin.storage.from("payment-proofs").createSignedUrl(proofPath, 300);
+    const cleanPath = proofPath.replace(/^payment-proofs\//, "");
+    const { data, error } = await admin.storage.from("payment-proofs").createSignedUrl(cleanPath, 300);
     if (!error && data?.signedUrl) return NextResponse.redirect(data.signedUrl);
   }
 

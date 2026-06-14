@@ -329,42 +329,9 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {trending.map((p, i) => (
-            <div key={p.id} className="group">
-              <Link href={`/shop/${p.slug}`} className="block">
-                <div className="relative aspect-square overflow-hidden mb-3"
-                  style={{ background: p.bg || BRAND.bg, border: `1px solid ${BRAND.cardBorder}` }}>
-                  {p.images?.[0] ? (
-                    <Image src={p.images[0]} alt={p.name} fill className="object-cover object-center transition-transform group-hover:scale-105" sizes="(max-width: 768px) 50vw, 25vw" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span style={{ fontFamily: FONTS.display, fontSize: "4rem", color: BRAND.black, opacity: 0.05 }}>
-                        {p.brand.charAt(0)}
-                      </span>
-                    </div>
-                  )}
-                  {/* Rank badge */}
-                  <div className="absolute top-3 left-3 w-8 h-8 rounded-sm flex items-center justify-center"
-                    style={{ background: BRAND.black }}>
-                    <span style={{ fontFamily: FONTS.display, fontSize: "1rem", color: BRAND.bg, lineHeight: 1 }}>
-                      {String(i + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-                  {p.status === "pre-order" && (
-                    <div className="absolute top-3 right-3">
-                      <span className="text-[9px] font-black uppercase px-2 py-0.5 text-white"
-                        style={{ background: BRAND.red }}>Pre-Order</span>
-                    </div>
-                  )}
-                </div>
-                <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: BRAND.muted }}>{p.brand}</p>
-                <p className="text-sm font-semibold leading-snug" style={{ color: BRAND.black }}>{p.name}</p>
-                <p className="text-sm font-black mt-1" style={{ color: BRAND.black, fontFamily: FONTS.display, fontSize: "1.1rem" }}>
-                  ₱{p.full_payment_price.toLocaleString()}
-                </p>
-              </Link>
-            </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
+          {trending.map(p => (
+            <ProductCard key={p.id} product={p} />
           ))}
         </div>
       </section>

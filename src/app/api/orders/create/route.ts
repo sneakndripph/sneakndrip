@@ -59,10 +59,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Extract payment_reference separately — column may not exist yet if migration hasn't been run
+    const { payment_reference, ...orderWithoutRef } = order as Record<string, unknown> & { payment_reference?: string };
+
     // Insert order
     const { data, error } = await supabase
       .from("orders")
-      .insert(order)
+      .insert(orderWithoutRef)
       .select("id")
       .single();
 
@@ -70,6 +73,13 @@ export async function POST(req: NextRequest) {
       console.error("Order insert error:", error);
       if (stockItems.length > 0) await refundStock(supabase, stockItems);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Store payment_reference if provided (silently fails if column doesn't exist yet)
+    if (payment_reference && data?.id) {
+      await supabase.from("orders").update({ payment_reference }).eq("id", data.id).then(
+        () => {}, () => {}
+      );
     }
 
     const { error: itemsError } = await supabase

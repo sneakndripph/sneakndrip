@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BRAND, FONTS } from "@/lib/constants";
 import { Plus, Search, Edit, Trash2, Eye } from "lucide-react";
 
 type Row = Record<string, unknown> & { product_sizes?: { size: string; stock: number }[] };
 
 export default function AdminProductsClient({ initialProducts }: { initialProducts: Row[] }) {
+  const router = useRouter();
   const [products, setProducts] = useState<Row[]>(initialProducts);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -79,8 +81,11 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                   const sizes = (p.product_sizes ?? []) as { size: string; stock: number }[];
                   const inStock = sizes.filter(s => s.stock > 0).length;
                   return (
-                    <tr key={String(p.id)} className="transition-colors hover:bg-black/[0.01]"
-                      style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                    <tr key={String(p.id)}
+                      className="transition-colors hover:bg-black/[0.02] cursor-pointer"
+                      style={{ borderBottom: `1px solid ${BRAND.border}` }}
+                      onClick={() => router.push(`/admin/products/${String(p.id)}`)}>
+
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 overflow-hidden"
@@ -110,7 +115,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                       <td className="px-4 py-4 text-sm" style={{ color: BRAND.muted }}>₱{Number(p.srp_price).toLocaleString()}</td>
                       <td className="px-4 py-4 text-sm font-bold" style={{ color: BRAND.black }}>₱{Number(p.full_payment_price).toLocaleString()}</td>
                       <td className="px-4 py-4 text-sm" style={{ color: BRAND.muted }}>{inStock}/{sizes.length}</td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
                           <Link href={`/shop/${String(p.slug)}`}
                             className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:opacity-70"
