@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Package, ShoppingBag, Users, Settings, ChevronRight, Menu, X, LogOut, MessageSquare, MessageCircle, UserCog, FileText, Tag, BarChart2, History, TrendingUp } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Users, Settings, ChevronRight, Menu, X, LogOut, MessageSquare, MessageCircle, UserCog, FileText, Tag, BarChart2, History, TrendingUp, Bell } from "lucide-react";
 import { BRAND, FONTS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
@@ -29,6 +29,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/admin/notifications")
+      .then(r => r.json())
+      .then(d => setNotifCount(d.total ?? 0))
+      .catch(() => {});
+    const interval = setInterval(() => {
+      fetch("/api/admin/notifications")
+        .then(r => r.json())
+        .then(d => setNotifCount(d.total ?? 0))
+        .catch(() => {});
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -72,7 +87,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </nav>
 
       {/* Bottom */}
-      <div className="p-4" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+      <div className="p-4 space-y-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <Link href="/admin/orders?status=pending" className="flex items-center justify-between transition-opacity hover:opacity-80">
+          <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: "#666" }}>
+            <Bell className="w-3.5 h-3.5" /> Notifications
+          </div>
+          {notifCount > 0 && (
+            <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
+              style={{ background: BRAND.red, color: "#fff" }}>
+              {notifCount}
+            </span>
+          )}
+        </Link>
         <button onClick={handleSignOut} className="flex items-center gap-2 text-xs font-semibold transition-opacity hover:opacity-60" style={{ color: "#555" }}>
           <LogOut className="w-3.5 h-3.5" /> Log Out
         </button>
@@ -106,7 +132,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Menu className="w-5 h-5" />
           </button>
           <span style={{ fontFamily: FONTS.display, fontSize: "1.2rem", color: BRAND.black }}>ADMIN</span>
-          <div />
+          <Link href="/admin/orders?status=pending" className="relative p-1" style={{ color: BRAND.black }}>
+            <Bell className="w-5 h-5" />
+            {notifCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black"
+                style={{ background: BRAND.red, color: "#fff" }}>
+                {notifCount > 9 ? "9+" : notifCount}
+              </span>
+            )}
+          </Link>
         </div>
 
         <div className="flex-1 p-4 sm:p-6 lg:p-8" style={{ background: "#F5F3F2" }}>

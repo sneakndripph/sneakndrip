@@ -88,6 +88,8 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "" }:
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [showShippingModal, setShowShippingModal] = useState(false);
+  const [shippingTrackingInput, setShippingTrackingInput] = useState("");
   const bulkRef = useRef<HTMLDivElement>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -638,7 +640,14 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "" }:
 
               {nextAction && (
                 <button
-                  onClick={() => updateStatus(liveSelected.id, nextAction.next)}
+                  onClick={() => {
+                    if (nextAction.next === "shipped") {
+                      setShippingTrackingInput(liveSelected.tracking_number ?? "");
+                      setShowShippingModal(true);
+                    } else {
+                      updateStatus(liveSelected.id, nextAction.next);
+                    }
+                  }}
                   disabled={saving}
                   className="w-full py-3.5 font-black text-sm uppercase tracking-widest transition-opacity disabled:opacity-50"
                   style={{ background: nextAction.color, color: "#fff" }}>
@@ -684,6 +693,63 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "" }:
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Shipping modal — tracking number required before marking as shipped */}
+      {showShippingModal && liveSelected && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={e => { if (e.target === e.currentTarget) setShowShippingModal(false); }}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+            <div className="px-5 py-4" style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
+              <p className="font-black text-sm uppercase tracking-widest" style={{ color: "#3B82F6" }}>Mark as Shipped</p>
+              <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{liveSelected.order_number}</p>
+            </div>
+            <div className="p-5">
+              <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.black }}>
+                Tracking Number <span style={{ color: BRAND.red }}>*</span>
+              </label>
+              <input
+                value={shippingTrackingInput}
+                onChange={e => setShippingTrackingInput(e.target.value)}
+                placeholder="e.g. JRS-123456789"
+                autoFocus
+                className="w-full px-3 py-2.5 text-sm focus:outline-none"
+                style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+              />
+              <p className="text-xs mt-1" style={{ color: BRAND.muted }}>Required to ship — customer will see this to track delivery.</p>
+            </div>
+            <div className="flex gap-3 px-5 pb-5">
+              <button
+                onClick={async () => {
+                  if (!shippingTrackingInput.trim()) return;
+                  setShowShippingModal(false);
+                  setSaving(true);
+                  const trk = shippingTrackingInput.trim();
+                  setOrders(prev => prev.map(o => o.id === liveSelected.id ? { ...o, status: "shipped", tracking_number: trk } : o));
+                  if (selected?.id === liveSelected.id) setSelected(prev => prev ? { ...prev, status: "shipped", tracking_number: trk } : prev);
+                  setTrackingInput(trk);
+                  await fetch(`/api/admin/orders/${liveSelected.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: "shipped", tracking_number: trk }),
+                  });
+                  setSaving(false);
+                }}
+                disabled={!shippingTrackingInput.trim()}
+                className="flex-1 py-2.5 text-xs font-black uppercase tracking-wide disabled:opacity-40"
+                style={{ background: "#3B82F6", color: "#fff" }}>
+                Confirm & Ship
+              </button>
+              <button onClick={() => setShowShippingModal(false)}
+                className="px-4 py-2.5 text-xs font-bold"
+                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                Back
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Search, BarChart2, X, Package, Edit2, Check, Download, Filter, RefreshCw } from "lucide-react";
+import { Search, BarChart2, X, Package, Edit2, Download, Filter, RefreshCw } from "lucide-react";
 
 type LogEntry = {
   id: string;
@@ -100,7 +100,9 @@ export default function AdminInventoryPage() {
   const [search, setSearch] = useState("");
   const [reasonFilter, setReasonFilter] = useState("all");
   const [selected, setSelected] = useState<LogEntry | null>(null);
-  const [editingCell, setEditingCell] = useState<{ productId: string; size: string; value: string } | null>(null);
+  const [adjustModal, setAdjustModal] = useState<{ product: ProductStock } | null>(null);
+  const [adjustValues, setAdjustValues] = useState<Record<string, string>>({});
+  const [adjustReason, setAdjustReason] = useState("manual_adjustment");
   const [saving, setSaving] = useState(false);
 
   const loadAll = useCallback(async () => {
@@ -138,26 +140,40 @@ export default function AdminInventoryPage() {
     return products.filter(p => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q));
   }, [products, search]);
 
-  async function handleStockSave(productId: string, productName: string, size: string, newStockStr: string) {
-    const newStock = parseInt(newStockStr, 10);
-    if (isNaN(newStock) || newStock < 0) { setEditingCell(null); return; }
+  function openAdjustModal(product: ProductStock) {
+    const vals: Record<string, string> = {};
+    product.sizes.forEach(s => { vals[s.size] = String(s.stock); });
+    setAdjustValues(vals);
+    setAdjustReason("manual_adjustment");
+    setAdjustModal({ product });
+  }
+
+  async function handleAdjustSave() {
+    if (!adjustModal) return;
+    const { product } = adjustModal;
     setSaving(true);
-    const res = await fetch("/api/admin/inventory-log", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ product_id: productId, product_name: productName, size, new_stock: newStock, reason: "manual_adjustment" }),
+    const changed = product.sizes.filter(s => {
+      const newVal = parseInt(adjustValues[s.size] ?? "", 10);
+      return !isNaN(newVal) && newVal !== s.stock;
     });
-    if (res.ok) {
+    for (const s of changed) {
+      const newStock = parseInt(adjustValues[s.size], 10);
+      await fetch("/api/admin/inventory-log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product_id: product.id, product_name: product.name, size: s.size, new_stock: newStock, reason: adjustReason }),
+      });
       setProducts(prev => prev.map(p =>
-        p.id === productId
-          ? { ...p, sizes: p.sizes.map(s => s.size === size ? { ...s, stock: newStock } : s) }
+        p.id === product.id
+          ? { ...p, sizes: p.sizes.map(sz => sz.size === s.size ? { ...sz, stock: newStock } : sz) }
           : p
       ));
-      // Refresh log in background
+    }
+    if (changed.length > 0) {
       fetch("/api/admin/inventory-log").then(r => r.json()).then(data => setLog(Array.isArray(data) ? data : []));
     }
     setSaving(false);
-    setEditingCell(null);
+    setAdjustModal(null);
   }
 
   function exportLog() {
@@ -185,6 +201,70 @@ export default function AdminInventoryPage() {
   return (
     <div style={{ fontFamily: FONTS.body }}>
       {selected && <DetailModal entry={selected} onClose={() => setSelected(null)} />}
+
+      {/* Stock Adjust Modal */}
+      {adjustModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={e => { if (e.target === e.currentTarget) setAdjustModal(null); }}>
+          <div className="w-full max-w-md rounded-2xl overflow-hidden flex flex-col" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, maxHeight: "90vh" }}>
+            <div className="flex items-center justify-between px-6 py-4 shrink-0"
+              style={{ background: BRAND.black, borderBottom: `1px solid rgba(255,255,255,0.07)` }}>
+              <div>
+                <h2 style={{ fontFamily: FONTS.display, fontSize: "1.1rem", letterSpacing: "0.04em", color: "#fff" }}>ADJUST STOCK</h2>
+                <p className="text-xs mt-0.5" style={{ color: "#999" }}>{adjustModal.product.name}</p>
+              </div>
+              <button onClick={() => setAdjustModal(null)} className="opacity-60 hover:opacity-100 transition-opacity">
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-3">
+              {adjustModal.product.sizes.map(s => (
+                <div key={s.size} className="flex items-center justify-between gap-4 px-4 py-3 rounded-lg"
+                  style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+                  <div>
+                    <p className="text-sm font-bold" style={{ color: BRAND.black }}>{s.size}</p>
+                    <p className="text-xs" style={{ color: BRAND.muted }}>Current: {s.stock}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs" style={{ color: BRAND.muted }}>New qty:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={adjustValues[s.size] ?? ""}
+                      onChange={e => setAdjustValues(v => ({ ...v, [s.size]: e.target.value }))}
+                      className="w-20 px-3 py-2 text-sm text-center font-bold focus:outline-none"
+                      style={{ background: BRAND.card, border: `1px solid ${BRAND.teal}`, color: BRAND.black }}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="pt-2">
+                <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.black }}>Reason</label>
+                <select value={adjustReason} onChange={e => setAdjustReason(e.target.value)}
+                  className="w-full px-3 py-2.5 text-sm focus:outline-none"
+                  style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}>
+                  <option value="manual_adjustment">Manual Adjustment</option>
+                  <option value="restock">Restock</option>
+                  <option value="correction">Stock Correction</option>
+                </select>
+              </div>
+            </div>
+            <div className="px-5 py-4 shrink-0 flex gap-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+              <button onClick={handleAdjustSave} disabled={saving}
+                className="flex-1 py-3 text-sm font-black uppercase tracking-widest transition-opacity disabled:opacity-50"
+                style={{ background: BRAND.teal, color: "#fff" }}>
+                {saving ? "Saving…" : "Save Changes"}
+              </button>
+              <button onClick={() => setAdjustModal(null)}
+                className="px-5 py-3 text-sm font-bold transition-opacity hover:opacity-70"
+                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
@@ -273,7 +353,7 @@ export default function AdminInventoryPage() {
               <table className="w-full">
                 <thead>
                   <tr style={{ background: "rgba(13,13,13,0.02)", borderBottom: `1px solid ${BRAND.border}` }}>
-                    {["Product", "Brand", "Status", "Sizes & Stock", "Total Units"].map(h => (
+                    {["Product", "Brand", "Status", "Sizes & Stock", "Total Units", ""].map(h => (
                       <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>{h}</th>
                     ))}
                   </tr>
@@ -296,51 +376,26 @@ export default function AdminInventoryPage() {
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="flex flex-wrap gap-1.5">
-                            {p.sizes.map(sz => {
-                              const isEditing = editingCell?.productId === p.id && editingCell.size === sz.size;
-                              return (
-                                <div key={sz.size} className="flex items-center gap-1 px-2 py-1 rounded text-[11px]"
-                                  style={{ background: sz.stock === 0 ? `${BRAND.red}08` : sz.stock <= 2 ? "#D9770610" : `${BRAND.teal}10`, border: `1px solid ${sz.stock === 0 ? BRAND.red + "30" : sz.stock <= 2 ? "#D9770630" : BRAND.teal + "30"}` }}>
-                                  <span className="font-semibold" style={{ color: BRAND.muted }}>{sz.size.replace("US ", "")}</span>
-                                  {isEditing ? (
-                                    <div className="flex items-center gap-1">
-                                      <input
-                                        autoFocus
-                                        type="number"
-                                        min="0"
-                                        value={editingCell.value}
-                                        onChange={e => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
-                                        onKeyDown={e => {
-                                          if (e.key === "Enter") handleStockSave(p.id, p.name, sz.size, editingCell.value);
-                                          if (e.key === "Escape") setEditingCell(null);
-                                        }}
-                                        className="w-10 text-center text-xs font-bold focus:outline-none"
-                                        style={{ background: "transparent", color: BRAND.black, borderBottom: `1px solid ${BRAND.teal}` }}
-                                      />
-                                      <button onClick={() => handleStockSave(p.id, p.name, sz.size, editingCell.value)} disabled={saving}>
-                                        <Check className="w-3 h-3" style={{ color: BRAND.teal }} />
-                                      </button>
-                                      <button onClick={() => setEditingCell(null)}>
-                                        <X className="w-3 h-3" style={{ color: BRAND.muted }} />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-1">
-                                      <span className="font-black" style={{ color: sz.stock === 0 ? BRAND.red : sz.stock <= 2 ? "#D97706" : BRAND.black }}>{sz.stock}</span>
-                                      <button onClick={() => setEditingCell({ productId: p.id, size: sz.size, value: String(sz.stock) })}
-                                        className="opacity-40 hover:opacity-100 transition-opacity">
-                                        <Edit2 className="w-2.5 h-2.5" style={{ color: BRAND.muted }} />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
+                            {p.sizes.map(sz => (
+                              <div key={sz.size} className="px-2 py-1 rounded text-[11px]"
+                                style={{ background: sz.stock === 0 ? `${BRAND.red}08` : sz.stock <= 2 ? "#D9770610" : `${BRAND.teal}10`, border: `1px solid ${sz.stock === 0 ? BRAND.red + "30" : sz.stock <= 2 ? "#D9770630" : BRAND.teal + "30"}` }}>
+                                <span className="font-semibold" style={{ color: BRAND.muted }}>{sz.size.replace("US ", "")}</span>
+                                {" "}
+                                <span className="font-black" style={{ color: sz.stock === 0 ? BRAND.red : sz.stock <= 2 ? "#D97706" : BRAND.black }}>{sz.stock}</span>
+                              </div>
+                            ))}
                           </div>
                         </td>
                         <td className="px-4 py-3.5">
                           <span className="text-sm font-black" style={{ color: allSoldOut ? BRAND.red : BRAND.black }}>{totalUnits}</span>
                           {allSoldOut && <span className="ml-2 text-[10px] font-bold" style={{ color: BRAND.red }}>SOLD OUT</span>}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <button onClick={() => openAdjustModal(p)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-80 whitespace-nowrap"
+                            style={{ border: `1px solid ${BRAND.teal}`, color: BRAND.teal, background: `${BRAND.teal}08` }}>
+                            <Edit2 className="w-3 h-3" /> Adjust Stock
+                          </button>
                         </td>
                       </tr>
                     );
