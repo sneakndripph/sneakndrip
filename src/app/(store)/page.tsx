@@ -44,6 +44,7 @@ export default async function HomePage() {
   const onHand = products.filter(p => p.status === "on-hand").slice(0, 6);
   const trending = products.filter(p => p.is_trending).slice(0, 4);
   const featured = products.find(p => p.is_featured && p.status === "on-hand") ?? products[0];
+  const productSlugMap = new Map(products.map(p => [p.id, p.slug]));
 
   const hero = {
     badge: settings.hero_badge || HERO_DEFAULTS.hero_badge,
@@ -373,32 +374,36 @@ export default async function HomePage() {
         </div>
 
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
-          {reviews.slice(0, 6).map(r => (
-            <div key={r.id}
-              className="p-6 rounded-xl"
-              style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
-              <div className="flex gap-0.5 mb-4">
-                {Array(r.rating).fill(0).map((_, i) => (
-                  <span key={i} className="text-sm" style={{ color: BRAND.teal }}>★</span>
-                ))}
-              </div>
-              <p className="text-sm leading-relaxed mb-5 italic" style={{ color: BRAND.black, fontFamily: FONTS.body }}>
-                &ldquo;{r.body}&rdquo;
-              </p>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-sm" style={{ color: BRAND.black, fontFamily: FONTS.body }}>{r.author_name}</p>
-                  {r.title && <p className="text-xs" style={{ color: BRAND.muted, fontFamily: FONTS.body }}>{r.title}</p>}
+          {reviews.slice(0, 6).map(r => {
+            const slug = r.product_id ? productSlugMap.get(r.product_id) : null;
+            const href = slug ? `/shop/${slug}#reviews` : "/shop";
+            return (
+              <Link key={r.id} href={href}
+                className="block p-6 rounded-xl transition-shadow hover:shadow-md"
+                style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+                <div className="flex gap-0.5 mb-4">
+                  {Array(r.rating).fill(0).map((_, i) => (
+                    <span key={i} className="text-sm" style={{ color: BRAND.teal }}>★</span>
+                  ))}
                 </div>
-                {r.is_verified && (
-                  <span className="text-[10px] font-semibold px-2.5 py-1"
-                    style={{ background: `${BRAND.teal}15`, color: BRAND.teal, fontFamily: FONTS.body }}>
-                    Verified
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
+                <p className="text-sm leading-relaxed mb-5 italic" style={{ color: BRAND.black, fontFamily: FONTS.body }}>
+                  &ldquo;{r.body}&rdquo;
+                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-sm" style={{ color: BRAND.black, fontFamily: FONTS.body }}>{r.author_name}</p>
+                    {r.title && <p className="text-xs" style={{ color: BRAND.muted, fontFamily: FONTS.body }}>{r.title}</p>}
+                  </div>
+                  {r.is_verified && (
+                    <span className="text-[10px] font-semibold px-2.5 py-1"
+                      style={{ background: `${BRAND.teal}15`, color: BRAND.teal, fontFamily: FONTS.body }}>
+                      Verified
+                    </span>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       </section>
 

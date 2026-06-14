@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { TrendingUp, ShoppingBag, Banknote, XCircle, Download, RefreshCw } from "lucide-react";
+import { TrendingUp, ShoppingBag, Banknote, XCircle, Download, RefreshCw, X } from "lucide-react";
 import Link from "next/link";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -30,11 +30,12 @@ type Metrics = {
   totalOrders: number; paidOrders: number;
   cancelledOrders: number; pendingOrders: number; avgOrder: number; cancelRate: number;
 };
+type PaymentOrder = { order_number: string; customer_name: string; total: number; status: string; created_at: string };
 type SalesData = {
   metrics: Metrics;
   revenueByDay: { date: string; revenue: number; orders: number }[];
   topProducts: { name: string; revenue: number; units: number; profit: number | null }[];
-  byPayment: { method: string; revenue: number }[];
+  byPayment: { method: string; revenue: number; orders: PaymentOrder[] }[];
   byStatus: { status: string; count: number }[];
   topCustomers: { name: string; email: string; revenue: number; orders: number }[];
 };
@@ -81,6 +82,7 @@ export default function AdminSalesPage() {
   const [period, setPeriod] = useState<Period>("30d");
   const [data, setData] = useState<SalesData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [paymentModal, setPaymentModal] = useState<{ method: string; orders: PaymentOrder[] } | null>(null);
 
   const load = useCallback(async (p: Period) => {
     setLoading(true);
@@ -112,6 +114,39 @@ export default function AdminSalesPage() {
 
   return (
     <div style={{ fontFamily: FONTS.body }}>
+      {/* Payment Method Orders Modal */}
+      {paymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setPaymentModal(null)}>
+          <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, maxHeight: "80vh" }}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 shrink-0" style={{ background: BRAND.black }}>
+              <div>
+                <h2 style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: "#fff" }}>ORDERS — {paymentModal.method.toUpperCase()}</h2>
+                <p className="text-xs mt-0.5" style={{ color: "#999" }}>{paymentModal.orders.length} paid orders</p>
+              </div>
+              <button onClick={() => setPaymentModal(null)} className="opacity-60 hover:opacity-100"><X className="w-5 h-5 text-white" /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto divide-y" style={{ borderColor: BRAND.border }}>
+              {paymentModal.orders.map(o => (
+                <div key={o.order_number} className="flex items-center justify-between px-5 py-3">
+                  <div>
+                    <p className="text-sm font-bold" style={{ color: BRAND.black }}>{o.order_number}</p>
+                    <p className="text-xs" style={{ color: BRAND.muted }}>{o.customer_name}</p>
+                    <p className="text-[10px]" style={{ color: BRAND.mutedLight }}>{new Date(o.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black" style={{ color: BRAND.black }}>{fmt(o.total)}</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded capitalize"
+                      style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>{o.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
@@ -245,13 +280,19 @@ export default function AdminSalesPage() {
                 <p className="text-sm text-center py-8" style={{ color: BRAND.muted }}>No data.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={data.byPayment} margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
+                  <BarChart data={data.byPayment} margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
+                    onClick={e => {
+                      const item = data.byPayment.find(p => p.method === e?.activeLabel);
+                      if (item) setPaymentModal({ method: item.method, orders: item.orders });
+                    }}
+                    style={{ cursor: "pointer" }}>
                     <XAxis dataKey="method" tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false} />
                     <YAxis tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false}
                       tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} width={48} />
                     <Tooltip
                       formatter={(v) => [fmt(Number(v ?? 0)), "Revenue"]}
-                      contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }} />
+                      contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }}
+                      cursor={{ fill: "rgba(0,0,0,0.04)" }} />
                     <Bar dataKey="revenue" fill="#6366F1" radius={[4, 4, 0, 0]}>
                       {data.byPayment.map((_, i) => (
                         <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
@@ -272,7 +313,8 @@ export default function AdminSalesPage() {
               ) : (
                 <div>
                   {data.topCustomers.map((c, i) => (
-                    <div key={c.email} className="flex items-center justify-between px-5 py-3"
+                    <Link key={c.email} href={`/admin/customers?q=${encodeURIComponent(c.email)}`}
+                      className="flex items-center justify-between px-5 py-3 transition-colors hover:bg-black/[0.02]"
                       style={{ borderBottom: i < data.topCustomers.length - 1 ? `1px solid ${BRAND.border}` : "none" }}>
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0"
@@ -288,7 +330,7 @@ export default function AdminSalesPage() {
                         <p className="text-sm font-black" style={{ color: BRAND.black }}>{fmt(c.revenue)}</p>
                         <p className="text-xs" style={{ color: BRAND.muted }}>{c.orders} order{c.orders !== 1 ? "s" : ""}</p>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}

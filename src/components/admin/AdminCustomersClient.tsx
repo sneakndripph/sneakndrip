@@ -31,8 +31,8 @@ type Customer = {
   recentOrders: CustomerOrder[];
 };
 
-export default function AdminCustomersClient({ customers }: { customers: Customer[] }) {
-  const [search, setSearch] = useState("");
+export default function AdminCustomersClient({ customers, initialSearch = "" }: { customers: Customer[]; initialSearch?: string }) {
+  const [search, setSearch] = useState(initialSearch);
   const [selected, setSelected] = useState<Customer | null>(null);
   const [banning, setBanning] = useState(false);
 

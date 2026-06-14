@@ -103,6 +103,7 @@ export default function AdminInventoryPage() {
   const [adjustModal, setAdjustModal] = useState<{ product: ProductStock } | null>(null);
   const [adjustValues, setAdjustValues] = useState<Record<string, string>>({});
   const [adjustReason, setAdjustReason] = useState("manual_adjustment");
+  const [adjustError, setAdjustError] = useState("");
   const [saving, setSaving] = useState(false);
 
   const loadAll = useCallback(async () => {
@@ -145,33 +146,43 @@ export default function AdminInventoryPage() {
     product.sizes.forEach(s => { vals[s.size] = String(s.stock); });
     setAdjustValues(vals);
     setAdjustReason("manual_adjustment");
+    setAdjustError("");
     setAdjustModal({ product });
   }
 
   async function handleAdjustSave() {
     if (!adjustModal) return;
     const { product } = adjustModal;
-    setSaving(true);
+    setAdjustError("");
     const changed = product.sizes.filter(s => {
       const newVal = parseInt(adjustValues[s.size] ?? "", 10);
       return !isNaN(newVal) && newVal !== s.stock;
     });
+    if (changed.length === 0) {
+      setAdjustError("No changes detected. Update at least one size quantity.");
+      return;
+    }
+    setSaving(true);
     for (const s of changed) {
       const newStock = parseInt(adjustValues[s.size], 10);
-      await fetch("/api/admin/inventory-log", {
+      const res = await fetch("/api/admin/inventory-log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ product_id: product.id, product_name: product.name, size: s.size, new_stock: newStock, reason: adjustReason }),
-      });
+      }).catch(() => null);
+      if (!res || !res.ok) {
+        const err = await res?.json().catch(() => ({})) as { error?: string };
+        setSaving(false);
+        setAdjustError(err?.error ?? "Failed to save. Make sure you are logged in as admin.");
+        return;
+      }
       setProducts(prev => prev.map(p =>
         p.id === product.id
           ? { ...p, sizes: p.sizes.map(sz => sz.size === s.size ? { ...sz, stock: newStock } : sz) }
           : p
       ));
     }
-    if (changed.length > 0) {
-      fetch("/api/admin/inventory-log").then(r => r.json()).then(data => setLog(Array.isArray(data) ? data : []));
-    }
+    fetch("/api/admin/inventory-log").then(r => r.json()).then(data => setLog(Array.isArray(data) ? data : []));
     setSaving(false);
     setAdjustModal(null);
   }
@@ -250,6 +261,11 @@ export default function AdminInventoryPage() {
                 </select>
               </div>
             </div>
+            {adjustError && (
+              <div className="px-5 py-2 text-xs font-semibold" style={{ color: BRAND.red, background: `${BRAND.red}10`, borderTop: `1px solid ${BRAND.red}20` }}>
+                {adjustError}
+              </div>
+            )}
             <div className="px-5 py-4 shrink-0 flex gap-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
               <button onClick={handleAdjustSave} disabled={saving}
                 className="flex-1 py-3 text-sm font-black uppercase tracking-widest transition-opacity disabled:opacity-50"
@@ -379,8 +395,8 @@ export default function AdminInventoryPage() {
                             {p.sizes.map(sz => (
                               <div key={sz.size} className="px-2 py-1 rounded text-[11px]"
                                 style={{ background: sz.stock === 0 ? `${BRAND.red}08` : sz.stock <= 2 ? "#D9770610" : `${BRAND.teal}10`, border: `1px solid ${sz.stock === 0 ? BRAND.red + "30" : sz.stock <= 2 ? "#D9770630" : BRAND.teal + "30"}` }}>
-                                <span className="font-semibold" style={{ color: BRAND.muted }}>{sz.size.replace("US ", "")}</span>
-                                {" "}
+                                <span className="font-semibold" style={{ color: BRAND.muted }}>{sz.size}</span>
+                                <span className="font-bold" style={{ color: BRAND.mutedLight }}>-</span>
                                 <span className="font-black" style={{ color: sz.stock === 0 ? BRAND.red : sz.stock <= 2 ? "#D97706" : BRAND.black }}>{sz.stock}</span>
                               </div>
                             ))}
