@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { LayoutDashboard, Package, ShoppingBag, Users, Settings, ChevronRight, Menu, X, LogOut, MessageSquare, MessageCircle, UserCog, FileText, Tag, BarChart2, History, TrendingUp } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingBag, Users, Settings, ChevronRight, Menu, X, LogOut, MessageSquare, MessageCircle, UserCog, FileText, Tag, BarChart2, History, TrendingUp, RotateCcw } from "lucide-react";
 import { BRAND, FONTS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
@@ -21,6 +21,7 @@ const NAV: { href: string; icon: React.ElementType; label: string; badgeKey: Bad
   { href: "/admin/coupons",   icon: Tag,             label: "Coupons",       badgeKey: null },
   { href: "/admin/inventory", icon: BarChart2,       label: "Inventory Log", badgeKey: null },
   { href: "/admin/reviews",   icon: MessageSquare,   label: "Reviews",       badgeKey: "pendingReviews" },
+  { href: "/admin/returns",   icon: RotateCcw,       label: "Returns",       badgeKey: null },
   { href: "/admin/chat",      icon: MessageCircle,   label: "Chat",          badgeKey: null },
   { href: "/admin/content",   icon: FileText,        label: "Pages",         badgeKey: null },
   { href: "/admin/users",     icon: UserCog,         label: "Users",         badgeKey: null },

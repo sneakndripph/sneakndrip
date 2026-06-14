@@ -18,7 +18,7 @@ export default async function AdminCustomersPage({
       .order("created_at", { ascending: false }),
     admin
       .from("orders")
-      .select("customer_email, order_number, total, status, created_at, customer_mobile, shipping_city, shipping_province")
+      .select("customer_email, order_number, total, status, created_at, customer_mobile, shipping_city, shipping_province, order_items(product_name, products(images))")
       .order("created_at", { ascending: false }),
     admin.auth.admin.listUsers({ perPage: 1000 }),
   ]);
@@ -30,6 +30,7 @@ export default async function AdminCustomersPage({
       .map(u => u.id)
   );
 
+  type OrderItem = { product_name: string; products: { images: string[] | null } | { images: string[] | null }[] | null };
   type OrderRow = {
     customer_email: string;
     order_number: string;
@@ -39,6 +40,7 @@ export default async function AdminCustomersPage({
     customer_mobile: string | null;
     shipping_city: string | null;
     shipping_province: string | null;
+    order_items: OrderItem[] | null;
   };
 
   // Group orders by email
@@ -83,6 +85,10 @@ export default async function AdminCustomersPage({
         total: o.total,
         status: o.status,
         created_at: o.created_at,
+        images: (o.order_items ?? []).slice(0, 3).map(item => {
+          const p = Array.isArray(item.products) ? item.products[0] : item.products;
+          return p?.images?.[0] ?? null;
+        }).filter(Boolean) as string[],
       })),
     };
   });

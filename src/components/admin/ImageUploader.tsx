@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
-import { Upload, X, Crop, Loader2, AlertCircle } from "lucide-react";
+import { Upload, X, Crop, Loader2, AlertCircle, ChevronUp, ChevronDown } from "lucide-react";
 import { BRAND } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
@@ -131,6 +131,7 @@ export default function ImageUploader({
 
   function onDragStart(idx: number) { setDragIdx(idx); }
   function onDragOver(e: React.DragEvent, idx: number) { e.preventDefault(); setDragOverIdx(idx); }
+  function onDragLeave() { setDragOverIdx(null); }
   function onDrop(idx: number) {
     if (dragIdx === null || dragIdx === idx) { setDragIdx(null); setDragOverIdx(null); return; }
     const updated = [...entries];
@@ -140,6 +141,20 @@ export default function ImageUploader({
     notify(updated);
     setDragIdx(null);
     setDragOverIdx(null);
+  }
+  function moveUp(idx: number) {
+    if (idx === 0) return;
+    const updated = [...entries];
+    [updated[idx - 1], updated[idx]] = [updated[idx], updated[idx - 1]];
+    setEntries(updated);
+    notify(updated);
+  }
+  function moveDown(idx: number) {
+    if (idx === entries.length - 1) return;
+    const updated = [...entries];
+    [updated[idx], updated[idx + 1]] = [updated[idx + 1], updated[idx]];
+    setEntries(updated);
+    notify(updated);
   }
 
   return (
@@ -167,6 +182,7 @@ export default function ImageUploader({
               <div key={entry.id} draggable={!entry.uploading}
                 onDragStart={() => onDragStart(i)}
                 onDragOver={e => onDragOver(e, i)}
+                onDragLeave={onDragLeave}
                 onDrop={() => onDrop(i)}
                 onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
                 className="relative aspect-square rounded-lg overflow-hidden cursor-grab active:cursor-grabbing"
@@ -176,7 +192,7 @@ export default function ImageUploader({
                   transition: "opacity 0.15s",
                 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={entry.preview} alt="" className="w-full h-full object-cover" />
+                <img src={entry.preview} alt="" className="w-full h-full object-cover" draggable={false} />
 
                 {/* Upload overlay */}
                 {entry.uploading && (
@@ -199,6 +215,26 @@ export default function ImageUploader({
                 {i === 0 && !entry.uploading && !entry.error && (
                   <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white rounded-sm"
                     style={{ background: BRAND.black }}>Cover</div>
+                )}
+
+                {/* Move arrows (mobile reorder) */}
+                {!entry.uploading && entries.length > 1 && (
+                  <div className="absolute bottom-1 left-1 flex gap-0.5">
+                    {i > 0 && (
+                      <button type="button" onClick={() => moveUp(i)}
+                        className="w-5 h-5 rounded-sm flex items-center justify-center shadow"
+                        style={{ background: "rgba(0,0,0,0.55)" }}>
+                        <ChevronUp className="w-3 h-3 text-white" />
+                      </button>
+                    )}
+                    {i < entries.length - 1 && (
+                      <button type="button" onClick={() => moveDown(i)}
+                        className="w-5 h-5 rounded-sm flex items-center justify-center shadow"
+                        style={{ background: "rgba(0,0,0,0.55)" }}>
+                        <ChevronDown className="w-3 h-3 text-white" />
+                      </button>
+                    )}
+                  </div>
                 )}
 
                 {/* Action buttons */}

@@ -75,7 +75,7 @@ export default function NewProductPage() {
 
       const res = await fetch("/api/admin/products", { method: "POST", body: fd });
 
-      const result = await res.json();
+      const result = await res.json().catch(() => ({})) as { error?: string; id?: string };
       if (!res.ok) { setError(result.error ?? "Failed to save product"); setSaving(false); return; }
 
       setSaved(true);

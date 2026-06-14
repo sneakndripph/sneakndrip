@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BRAND, FONTS } from "@/lib/constants";
 import Image from "next/image";
-import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle, X, Home, Star } from "lucide-react";
+import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle, X, Home, Star, RotateCcw } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -104,6 +104,14 @@ export default function AccountPage() {
     } catch { return new Set(); }
   });
 
+  // Return request state
+  const [returnModalOrder, setReturnModalOrder] = useState<Order | null>(null);
+  const [returnReason, setReturnReason] = useState("");
+  const [submittingReturn, setSubmittingReturn] = useState(false);
+  const [returnError, setReturnError] = useState("");
+  const [returnSuccess, setReturnSuccess] = useState(false);
+  const [returnedOrderIds, setReturnedOrderIds] = useState<Set<string>>(new Set());
+
   // Address state
   const [addressForm, setAddressForm] = useState({ street: "", barangay: "", city: "", province: "", postal: "", regionGroup: "" });
   const [addressSuccess, setAddressSuccess] = useState(false);
@@ -129,12 +137,17 @@ export default function AccountPage() {
         postal: meta.addr_postal || "",
         regionGroup: meta.addr_region_group || "",
       });
-      fetch("/api/orders")
-        .then(r => r.json())
-        .then(({ orders }) => {
-          setOrders((orders as Order[]) ?? []);
-          setLoadingOrders(false);
-        });
+      Promise.all([
+        fetch("/api/orders").then(r => r.json()),
+        fetch("/api/returns").then(r => r.json()).catch(() => ({ returns: [] })),
+      ]).then(([ordersData, returnsData]) => {
+        setOrders((ordersData.orders as Order[]) ?? []);
+        const returnedIds = new Set<string>(
+          ((returnsData.returns ?? []) as { order_number: string }[]).map(r => r.order_number)
+        );
+        setReturnedOrderIds(returnedIds);
+        setLoadingOrders(false);
+      });
     });
   }, [router]);
 
@@ -283,6 +296,34 @@ export default function AccountPage() {
       setReviewModalOrder(null);
       setReviewSuccess(false);
     }, 2000);
+  }
+
+  async function handleSubmitReturn() {
+    if (!returnModalOrder || !returnReason.trim()) return;
+    setSubmittingReturn(true);
+    setReturnError("");
+    const res = await fetch("/api/returns", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        order_id: returnModalOrder.id,
+        order_number: returnModalOrder.order_number,
+        reason: returnReason.trim(),
+      }),
+    });
+    if (res.ok) {
+      setReturnSuccess(true);
+      setReturnedOrderIds(prev => new Set([...prev, returnModalOrder.order_number]));
+      setTimeout(() => {
+        setReturnModalOrder(null);
+        setReturnSuccess(false);
+        setReturnReason("");
+      }, 2000);
+    } else {
+      const err = await res.json().catch(() => ({})) as { error?: string };
+      setReturnError(err.error ?? "Failed to submit return request.");
+    }
+    setSubmittingReturn(false);
   }
 
   if (!user) return null;
@@ -554,6 +595,25 @@ export default function AccountPage() {
                                 style={{ border: `1px solid ${BRAND.red}`, color: BRAND.red }}>
                                 {cancellingOrder === order.order_number ? "Cancelling…" : "Cancel Order"}
                               </button>
+                            )}
+                            {order.status === "delivered" && !returnedOrderIds.has(order.order_number) && (
+                              <button
+                                onClick={() => {
+                                  setReturnModalOrder(order);
+                                  setReturnReason("");
+                                  setReturnError("");
+                                  setReturnSuccess(false);
+                                }}
+                                className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
+                                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                                <RotateCcw className="w-3 h-3" />
+                                Request Return
+                              </button>
+                            )}
+                            {order.status === "delivered" && returnedOrderIds.has(order.order_number) && (
+                              <span className="text-xs font-semibold px-3 py-1.5" style={{ color: BRAND.muted }}>
+                                Return requested
+                              </span>
                             )}
                             {order.status === "delivered" && (
                               <button
@@ -980,6 +1040,66 @@ export default function AccountPage() {
                     className="w-full py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
                     style={{ background: BRAND.teal, color: "#fff" }}>
                     {submittingReview ? "Submitting…" : existingReviewId ? "Update Review" : "Submit Review"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Return request modal */}
+      {returnModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={e => { if (e.target === e.currentTarget) { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); } }}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+            <div className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
+              <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Request Return</p>
+              <button onClick={() => { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); }}
+                className="p-1 transition-opacity hover:opacity-70">
+                <X className="w-4 h-4" style={{ color: BRAND.muted }} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              {returnSuccess ? (
+                <div className="py-6 text-center">
+                  <CheckCircle className="w-10 h-10 mx-auto mb-2" style={{ color: BRAND.teal }} />
+                  <p className="font-bold text-sm" style={{ color: BRAND.black }}>Return request submitted!</p>
+                  <p className="text-xs mt-1" style={{ color: BRAND.muted }}>We&apos;ll review it and get back to you soon.</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs" style={{ color: BRAND.muted }}>
+                    Order: <span className="font-bold" style={{ color: BRAND.black }}>{returnModalOrder.order_number}</span>
+                  </p>
+                  {returnError && (
+                    <div className="px-3 py-2.5 rounded text-xs font-medium"
+                      style={{ background: `${BRAND.red}12`, color: BRAND.red, border: `1px solid ${BRAND.red}30` }}>
+                      {returnError}
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                      Reason for Return <span style={{ color: BRAND.red }}>*</span>
+                    </label>
+                    <textarea
+                      value={returnReason}
+                      onChange={e => setReturnReason(e.target.value)}
+                      placeholder="e.g. Wrong size, defective item, changed mind…"
+                      rows={3}
+                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none"
+                      style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                    />
+                  </div>
+                  <button
+                    onClick={handleSubmitReturn}
+                    disabled={submittingReturn || !returnReason.trim()}
+                    className="w-full py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
+                    style={{ background: BRAND.black, color: BRAND.bg }}>
+                    {submittingReturn ? "Submitting…" : "Submit Return Request"}
                   </button>
                 </>
               )}
