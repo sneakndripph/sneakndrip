@@ -209,7 +209,7 @@ export default function AdminSalesPage() {
                   <PieChart>
                     <Pie data={data.byStatus} dataKey="count" nameKey="status" cx="50%" cy="50%"
                       outerRadius={100} innerRadius={55} paddingAngle={2}
-                      label={({ status, percent }) => `${status} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                       labelLine={false}>
                       {data.byStatus.map((entry, i) => (
                         <Cell key={entry.status} fill={STATUS_COLORS[entry.status] ?? PIE_COLORS[i % PIE_COLORS.length]} />
