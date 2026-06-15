@@ -43,8 +43,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         .catch(() => {});
     }
     load();
-    const interval = setInterval(load, 60000);
-    return () => clearInterval(interval);
+    const supabase = createClient();
+    const channel = supabase
+      .channel("admin-notifs-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "reviews" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "return_requests" }, load)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   async function handleSignOut() {

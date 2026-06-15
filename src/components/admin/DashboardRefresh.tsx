@@ -2,12 +2,19 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
-export default function DashboardRefresh({ intervalMs = 60000 }: { intervalMs?: number }) {
+export default function DashboardRefresh() {
   const router = useRouter();
   useEffect(() => {
-    const id = setInterval(() => router.refresh(), intervalMs);
-    return () => clearInterval(id);
-  }, [router, intervalMs]);
+    const supabase = createClient();
+    const channel = supabase
+      .channel("dashboard-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        router.refresh();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [router]);
   return null;
 }
