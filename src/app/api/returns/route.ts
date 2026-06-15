@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     const user = await getUser();
     if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { order_id, order_number, reason } = await req.json();
+    const { order_id, order_number, reason, photo_url } = await req.json();
     if (!order_id || !order_number || !reason?.trim()) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
       customer_email: user.email,
       customer_name: order.customer_name ?? user.user_metadata?.full_name ?? user.email,
       reason: reason.trim(),
+      photo_url: photo_url ?? null,
     }).select().single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
 import { UserPlus, Shield, User, Trash2, X, Eye, EyeOff, ChevronDown, Check } from "lucide-react";
+// Check is used in create-user modal role dropdown
 
 type UserRow = {
   id: string;
@@ -23,7 +24,6 @@ export default function AdminUsersPage() {
   const [showPw, setShowPw] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
-  const [editingRole, setEditingRole] = useState<{ id: string; role: string } | null>(null);
   const [roleOpen, setRoleOpen] = useState(false);
   const roleRef = useRef<HTMLDivElement>(null);
   const [viewUser, setViewUser] = useState<UserRow | null>(null);
@@ -77,16 +77,6 @@ export default function AdminUsersPage() {
       setFormError(err.error ?? "Failed to create user");
     }
     setSaving(false);
-  }
-
-  async function handleRoleChange(id: string, role: string, full_name: string) {
-    await fetch("/api/admin/users", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, role, full_name }),
-    });
-    setEditingRole(null);
-    loadUsers();
   }
 
   async function handleDelete(id: string, email: string) {
@@ -164,40 +154,15 @@ export default function AdminUsersPage() {
                     <p className="font-semibold" style={{ color: BRAND.black }}>{u.full_name || "—"}</p>
                     <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{u.email}</p>
                   </td>
-                  <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
-                    {editingRole?.id === u.id ? (
-                      <div className="relative inline-block">
-                        <div className="shadow-lg overflow-hidden z-50"
-                          style={{ background: BRAND.card, border: `1px solid ${BRAND.teal}`, minWidth: 110 }}>
-                          {ROLES.map(r => (
-                            <button key={r} type="button"
-                              onClick={() => { setEditingRole({ id: u.id, role: r }); handleRoleChange(u.id, r, u.full_name); }}
-                              className="w-full flex items-center justify-between px-3 py-2 text-xs text-left transition-colors hover:opacity-80"
-                              style={{
-                                background: editingRole.role === r ? `${BRAND.teal}12` : "transparent",
-                                color: editingRole.role === r ? BRAND.teal : BRAND.black,
-                                fontWeight: editingRole.role === r ? 700 : 500,
-                              }}>
-                              {r === "admin" ? <Shield className="w-3 h-3 mr-1.5 shrink-0" /> : <User className="w-3 h-3 mr-1.5 shrink-0" />}
-                              {r}
-                              {editingRole.role === r && <Check className="w-3 h-3 ml-auto shrink-0" />}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setEditingRole({ id: u.id, role: u.role })}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
-                        style={{
-                          background: u.role === "admin" ? `${BRAND.teal}18` : `${BRAND.border}`,
-                          color: u.role === "admin" ? BRAND.teal : BRAND.muted,
-                        }}
-                      >
-                        {u.role === "admin" ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
-                        {u.role}
-                      </button>
-                    )}
+                  <td className="px-5 py-4">
+                    <span className="flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
+                      style={{
+                        background: u.role === "admin" ? `${BRAND.teal}18` : `${BRAND.border}`,
+                        color: u.role === "admin" ? BRAND.teal : BRAND.muted,
+                      }}>
+                      {u.role === "admin" ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
+                      {u.role}
+                    </span>
                   </td>
                   <td className="px-5 py-4 text-xs" style={{ color: BRAND.muted }}>
                     {new Date(u.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
