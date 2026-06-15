@@ -33,21 +33,26 @@ type Customer = {
   recentOrders: CustomerOrder[];
 };
 
-export default function AdminCustomersClient({ customers, initialSearch = "" }: { customers: Customer[]; initialSearch?: string }) {
+export default function AdminCustomersClient({ customers: initialCustomers, initialSearch = "" }: { customers: Customer[]; initialSearch?: string }) {
+  const [customers, setCustomers] = useState(initialCustomers);
   const [search, setSearch] = useState(initialSearch);
   const [selected, setSelected] = useState<Customer | null>(null);
   const [banning, setBanning] = useState(false);
+  const [banTarget, setBanTarget] = useState<Customer | null>(null);
 
-  async function toggleBan(c: Customer) {
-    if (!confirm(`${c.banned ? "Unban" : "Ban"} ${c.name}?`)) return;
+  async function executeBan() {
+    if (!banTarget) return;
     setBanning(true);
     const res = await fetch("/api/admin/customers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: c.id, ban: !c.banned }),
+      body: JSON.stringify({ userId: banTarget.id, ban: !banTarget.banned }),
     });
     if (res.ok) {
-      setSelected(prev => prev ? { ...prev, banned: !prev.banned } : null);
+      const newBanned = !banTarget.banned;
+      setCustomers(prev => prev.map(c => c.id === banTarget.id ? { ...c, banned: newBanned } : c));
+      setSelected(prev => prev?.id === banTarget.id ? { ...prev, banned: newBanned } : prev);
+      setBanTarget(null);
     }
     setBanning(false);
   }
@@ -244,16 +249,47 @@ export default function AdminCustomersClient({ customers, initialSearch = "" }: 
             </div>
 
             <div className="px-6 py-4 shrink-0 flex gap-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-              <button onClick={() => toggleBan(selected)} disabled={banning}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80 disabled:opacity-40"
+              <button onClick={() => setBanTarget(selected)}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80"
                 style={{ background: selected.banned ? `${BRAND.teal}15` : `${BRAND.red}12`, color: selected.banned ? BRAND.teal : BRAND.red }}>
                 {selected.banned ? <ShieldCheck className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
-                {banning ? "…" : selected.banned ? "Unban" : "Ban"}
+                {selected.banned ? "Unban" : "Ban"}
               </button>
               <button onClick={() => setSelected(null)}
                 className="flex-1 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
                 style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ban confirmation modal */}
+      {banTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={e => { if (e.target === e.currentTarget) setBanTarget(null); }}>
+          <div className="w-full max-w-xs rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+            <div className="px-6 py-5">
+              <p className="font-black text-base mb-1" style={{ color: BRAND.black }}>
+                {banTarget.banned ? "Unban Customer?" : "Ban Customer?"}
+              </p>
+              <p className="text-sm" style={{ color: BRAND.muted }}>
+                {banTarget.banned
+                  ? `${banTarget.name} will be able to log in again.`
+                  : `${banTarget.name} will be blocked from logging in.`}
+              </p>
+            </div>
+            <div className="flex gap-3 px-6 pb-5">
+              <button onClick={executeBan} disabled={banning}
+                className="flex-1 py-2.5 text-sm font-black uppercase tracking-wide disabled:opacity-50"
+                style={{ background: banTarget.banned ? BRAND.teal : BRAND.red, color: "#fff" }}>
+                {banning ? "…" : banTarget.banned ? "Unban" : "Ban"}
+              </button>
+              <button onClick={() => setBanTarget(null)}
+                className="px-4 py-2.5 text-sm font-bold"
+                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                Cancel
               </button>
             </div>
           </div>

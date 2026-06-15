@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -39,6 +40,8 @@ export default function DashboardCharts({
   ordersByStatus: StatusData[];
   topProducts: ProductData[];
 }) {
+  const router = useRouter();
+
   return (
     <div className="grid lg:grid-cols-3 gap-5 mt-6">
       {/* Revenue + Orders line — spans 2 cols */}
@@ -79,10 +82,15 @@ export default function DashboardCharts({
 
       {/* Orders by status — donut */}
       <CardWrap title="ORDERS BY STATUS">
+        <p className="text-[10px] mb-1" style={{ color: BRAND.mutedLight }}>Click to view orders</p>
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
             <Pie data={ordersByStatus} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
-              dataKey="value" paddingAngle={2}>
+              dataKey="value" paddingAngle={2}
+              style={{ cursor: "pointer" }}
+              onClick={(entry) => {
+                if (entry?.name) router.push(`/admin/orders?status=${encodeURIComponent(entry.name.toLowerCase())}`);
+              }}>
               {ordersByStatus.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
               ))}

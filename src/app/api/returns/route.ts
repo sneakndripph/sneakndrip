@@ -81,3 +81,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const user = await getUser();
+    if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id, reason, photo_url } = await req.json();
+    if (!id || !reason?.trim()) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+
+    const admin = createAdminClient();
+
+    // Verify this return request belongs to this customer and is still pending
+    const { data: existing } = await admin
+      .from("return_requests")
+      .select("id, customer_email, status")
+      .eq("id", id)
+      .single();
+
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (existing.customer_email !== user.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (existing.status !== "pending") return NextResponse.json({ error: "Can only edit pending requests" }, { status: 400 });
+
+    const { error } = await admin
+      .from("return_requests")
+      .update({ reason: reason.trim(), photo_url: photo_url ?? null, updated_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}

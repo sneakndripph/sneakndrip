@@ -112,9 +112,16 @@ export default function AccountPage() {
   const [submittingReturn, setSubmittingReturn] = useState(false);
   const [returnError, setReturnError] = useState("");
   const [returnSuccess, setReturnSuccess] = useState(false);
-  type ReturnInfo = { status: string; admin_note: string | null; reason: string; photo_url: string | null };
+  type ReturnInfo = { id?: string; status: string; admin_note: string | null; reason: string; photo_url: string | null };
   const [returnedOrders, setReturnedOrders] = useState<Map<string, ReturnInfo>>(new Map());
   const [viewReturnModal, setViewReturnModal] = useState<{ orderNumber: string } & ReturnInfo | null>(null);
+  const [editingReturn, setEditingReturn] = useState(false);
+  const [editReturnReason, setEditReturnReason] = useState("");
+  const [editReturnPhotoFile, setEditReturnPhotoFile] = useState<File | null>(null);
+  const [editReturnPhotoPreview, setEditReturnPhotoPreview] = useState<string | null>(null);
+  const [savingEditReturn, setSavingEditReturn] = useState(false);
+  const [editReturnError, setEditReturnError] = useState("");
+  const [proofModal, setProofModal] = useState<{ url: string; orderNumber: string } | null>(null);
 
   // Address state
   const [addressForm, setAddressForm] = useState({ street: "", barangay: "", city: "", province: "", postal: "", regionGroup: "" });
@@ -146,9 +153,9 @@ export default function AccountPage() {
         fetch("/api/returns").then(r => r.json()).catch(() => ({ returns: [] })),
       ]).then(([ordersData, returnsData]) => {
         setOrders((ordersData.orders as Order[]) ?? []);
-        const returnMap = new Map<string, { status: string; admin_note: string | null; reason: string; photo_url: string | null }>(
-          ((returnsData.returns ?? []) as { order_number: string; status: string; admin_note: string | null; reason: string; photo_url: string | null }[])
-            .map(r => [r.order_number, { status: r.status, admin_note: r.admin_note, reason: r.reason, photo_url: r.photo_url ?? null }])
+        const returnMap = new Map<string, { id?: string; status: string; admin_note: string | null; reason: string; photo_url: string | null }>(
+          ((returnsData.returns ?? []) as { id: string; order_number: string; status: string; admin_note: string | null; reason: string; photo_url: string | null }[])
+            .map(r => [r.order_number, { id: r.id, status: r.status, admin_note: r.admin_note, reason: r.reason, photo_url: r.photo_url ?? null }])
         );
         setReturnedOrders(returnMap);
         setLoadingOrders(false);
@@ -349,6 +356,49 @@ export default function AccountPage() {
       setReturnError(err.error ?? "Failed to submit return request.");
     }
     setSubmittingReturn(false);
+  }
+
+  async function handleSaveEditReturn() {
+    if (!viewReturnModal?.id || !editReturnReason.trim()) return;
+    setSavingEditReturn(true);
+    setEditReturnError("");
+
+    let photoUrl = viewReturnModal.photo_url;
+    if (editReturnPhotoFile) {
+      const supabase = createClient();
+      const ext = editReturnPhotoFile.name.split(".").pop() ?? "jpg";
+      const filePath = `${user?.id ?? "anon"}/${Date.now()}.${ext}`;
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from("return-photos")
+        .upload(filePath, editReturnPhotoFile, { cacheControl: "3600", upsert: false });
+      if (uploadErr) {
+        setEditReturnError("Failed to upload photo.");
+        setSavingEditReturn(false);
+        return;
+      }
+      photoUrl = supabase.storage.from("return-photos").getPublicUrl(uploadData.path).data.publicUrl;
+    }
+
+    const res = await fetch("/api/returns", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: viewReturnModal.id, reason: editReturnReason.trim(), photo_url: photoUrl }),
+    });
+    if (res.ok) {
+      const updated = { ...viewReturnModal, reason: editReturnReason.trim(), photo_url: photoUrl };
+      setReturnedOrders(prev => new Map([...prev, [viewReturnModal.orderNumber, {
+        id: viewReturnModal.id, status: viewReturnModal.status,
+        admin_note: viewReturnModal.admin_note, reason: editReturnReason.trim(), photo_url: photoUrl,
+      }]]));
+      setViewReturnModal(updated);
+      setEditingReturn(false);
+      setEditReturnPhotoFile(null);
+      setEditReturnPhotoPreview(null);
+    } else {
+      const err = await res.json().catch(() => ({})) as { error?: string };
+      setEditReturnError(err.error ?? "Failed to save.");
+    }
+    setSavingEditReturn(false);
   }
 
   if (!user) return null;
@@ -585,7 +635,7 @@ export default function AccountPage() {
                           </div>
                         )}
 
-                        <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-start justify-between gap-3">
                           <div className="flex items-center gap-3 flex-wrap">
                             <p className="text-xs" style={{ color: BRAND.muted }}>
                               {isCOD ? "Cash on Delivery" : order.payment_method?.replace("_", " ")}
@@ -596,13 +646,12 @@ export default function AccountPage() {
                               </p>
                             )}
                             {!isCOD && order.proof_of_payment && (
-                              <a
-                                href={`/api/proof?orderNumber=${encodeURIComponent(order.order_number)}`}
-                                target="_blank" rel="noopener noreferrer"
+                              <button
+                                onClick={() => setProofModal({ url: `/api/proof?orderNumber=${encodeURIComponent(order.order_number)}`, orderNumber: order.order_number })}
                                 className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70"
                                 style={{ color: BRAND.teal }}>
-                                View Proof
-                              </a>
+                                <Eye className="w-3.5 h-3.5" /> View Proof
+                              </button>
                             )}
                             <button
                               onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
@@ -611,7 +660,7 @@ export default function AccountPage() {
                               <MessageCircle className="w-3.5 h-3.5" /> Need help?
                             </button>
                           </div>
-                          <div className="flex items-center gap-3 flex-wrap">
+                          <div className="flex items-center gap-3 flex-wrap shrink-0">
                             {order.status === "pending" && isCOD && (
                               <button
                                 onClick={() => setCancelModalOrder(order.order_number)}
@@ -684,10 +733,10 @@ export default function AccountPage() {
                                 {reviewedOrderIds.has(order.id) ? "Edit Review" : "Write a Review"}
                               </button>
                             )}
-                            <p className="font-black text-sm shrink-0" style={{ color: BRAND.black }}>
-                              Total ₱{Number(order.total).toLocaleString()}
-                            </p>
                           </div>
+                          <p className="font-black text-sm shrink-0 self-end" style={{ color: BRAND.black }}>
+                            Total ₱{Number(order.total).toLocaleString()}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1190,13 +1239,15 @@ export default function AccountPage() {
       {viewReturnModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={e => { if (e.target === e.currentTarget) setViewReturnModal(null); }}>
+          onClick={e => { if (e.target === e.currentTarget) { setViewReturnModal(null); setEditingReturn(false); } }}>
           <div className="w-full max-w-sm rounded-2xl overflow-hidden"
             style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
             <div className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
-              <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Return Request</p>
-              <button onClick={() => setViewReturnModal(null)} className="p-1 transition-opacity hover:opacity-70">
+              <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>
+                {editingReturn ? "Edit Request" : "Return Request"}
+              </p>
+              <button onClick={() => { setViewReturnModal(null); setEditingReturn(false); }} className="p-1 transition-opacity hover:opacity-70">
                 <X className="w-4 h-4" style={{ color: BRAND.muted }} />
               </button>
             </div>
@@ -1213,38 +1264,149 @@ export default function AccountPage() {
                   {viewReturnModal.status === "approved" ? "Approved" : viewReturnModal.status === "denied" ? "Denied" : "Pending Review"}
                 </span>
               </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.muted }}>Your Reason</p>
-                <p className="text-sm" style={{ color: BRAND.black }}>{viewReturnModal.reason}</p>
-              </div>
-              {viewReturnModal.photo_url && (
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>Your Photo</p>
-                  <a href={viewReturnModal.photo_url} target="_blank" rel="noopener noreferrer"
-                    className="block relative w-full h-36 rounded-lg overflow-hidden transition-opacity hover:opacity-80"
-                    style={{ background: BRAND.card }}>
-                    <Image src={viewReturnModal.photo_url} alt="Return photo" fill className="object-contain" sizes="280px" />
-                  </a>
-                </div>
-              )}
-              {viewReturnModal.admin_note && (
-                <div className="px-4 py-3 rounded-lg" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.teal }}>Message from Store</p>
-                  <p className="text-sm" style={{ color: BRAND.black }}>{viewReturnModal.admin_note}</p>
-                </div>
-              )}
-              {viewReturnModal.status === "pending" && (
-                <p className="text-xs text-center" style={{ color: BRAND.mutedLight }}>
-                  We&apos;ll review your request and get back to you soon.
-                </p>
+
+              {editingReturn ? (
+                <>
+                  {editReturnError && (
+                    <div className="px-3 py-2 rounded text-xs font-medium"
+                      style={{ background: `${BRAND.red}12`, color: BRAND.red }}>
+                      {editReturnError}
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                      Reason <span style={{ color: BRAND.red }}>*</span>
+                    </label>
+                    <textarea
+                      value={editReturnReason}
+                      onChange={e => setEditReturnReason(e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none"
+                      style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                      Replace Photo (optional)
+                    </label>
+                    <label className="flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-lg cursor-pointer"
+                      style={{ border: `2px dashed ${editReturnPhotoFile ? BRAND.teal : BRAND.border}`, background: BRAND.card }}>
+                      {editReturnPhotoPreview ? (
+                        <div className="relative w-full h-24 rounded overflow-hidden">
+                          <Image src={editReturnPhotoPreview} alt="Preview" fill className="object-contain" sizes="260px" />
+                        </div>
+                      ) : (
+                        <span className="text-xs font-semibold" style={{ color: BRAND.muted }}>
+                          {viewReturnModal.photo_url ? "Click to replace photo" : "Click to add photo"}
+                        </span>
+                      )}
+                      <input type="file" accept="image/*" className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setEditReturnPhotoFile(file);
+                          setEditReturnPhotoPreview(URL.createObjectURL(file));
+                        }} />
+                    </label>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={handleSaveEditReturn} disabled={savingEditReturn || !editReturnReason.trim()}
+                      className="flex-1 py-2.5 text-xs font-black uppercase tracking-wide disabled:opacity-50"
+                      style={{ background: BRAND.teal, color: "#fff" }}>
+                      {savingEditReturn ? "Saving…" : "Save Changes"}
+                    </button>
+                    <button onClick={() => { setEditingReturn(false); setEditReturnPhotoFile(null); setEditReturnPhotoPreview(null); setEditReturnError(""); }}
+                      className="px-4 py-2.5 text-xs font-bold"
+                      style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.muted }}>Your Reason</p>
+                    <p className="text-sm" style={{ color: BRAND.black }}>{viewReturnModal.reason}</p>
+                  </div>
+                  {viewReturnModal.photo_url && (
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>Your Photo</p>
+                      <a href={viewReturnModal.photo_url} target="_blank" rel="noopener noreferrer"
+                        className="block relative w-full h-36 rounded-lg overflow-hidden transition-opacity hover:opacity-80"
+                        style={{ background: BRAND.card }}>
+                        <Image src={viewReturnModal.photo_url} alt="Return photo" fill className="object-contain" sizes="280px" />
+                      </a>
+                    </div>
+                  )}
+                  {viewReturnModal.admin_note && (
+                    <div className="px-4 py-3 rounded-lg" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
+                      <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.teal }}>Message from Store</p>
+                      <p className="text-sm" style={{ color: BRAND.black }}>{viewReturnModal.admin_note}</p>
+                    </div>
+                  )}
+                  {viewReturnModal.status === "pending" && (
+                    <p className="text-xs text-center" style={{ color: BRAND.mutedLight }}>
+                      We&apos;ll review your request and get back to you soon.
+                    </p>
+                  )}
+                </>
               )}
             </div>
-            <div className="px-5 pb-5">
-              <button onClick={() => setViewReturnModal(null)}
-                className="w-full py-2.5 text-sm font-bold transition-opacity hover:opacity-70"
-                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
-                Close
+            <div className="px-5 pb-5 flex gap-3">
+              {!editingReturn && viewReturnModal.status === "pending" && viewReturnModal.id && (
+                <button
+                  onClick={() => { setEditingReturn(true); setEditReturnReason(viewReturnModal.reason); setEditReturnPhotoFile(null); setEditReturnPhotoPreview(null); setEditReturnError(""); }}
+                  className="flex-1 py-2.5 text-sm font-bold transition-opacity hover:opacity-80"
+                  style={{ border: `1px solid ${BRAND.teal}`, color: BRAND.teal }}>
+                  Edit Request
+                </button>
+              )}
+              {!editingReturn && (
+                <button onClick={() => setViewReturnModal(null)}
+                  className="flex-1 py-2.5 text-sm font-bold transition-opacity hover:opacity-70"
+                  style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                  Close
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Proof of Payment Modal */}
+      {proofModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={e => { if (e.target === e.currentTarget) setProofModal(null); }}>
+          <div className="w-full max-w-lg rounded-2xl overflow-hidden"
+            style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+            <div className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
+              <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>
+                Payment Proof — {proofModal.orderNumber}
+              </p>
+              <button onClick={() => setProofModal(null)} className="p-1 transition-opacity hover:opacity-70">
+                <X className="w-4 h-4" style={{ color: BRAND.muted }} />
               </button>
+            </div>
+            <div className="p-4">
+              <iframe
+                src={proofModal.url}
+                className="w-full rounded-lg"
+                style={{ height: "60vh", border: `1px solid ${BRAND.border}` }}
+              />
+              <div className="flex gap-3 mt-3">
+                <a href={proofModal.url} target="_blank" rel="noopener noreferrer"
+                  className="flex-1 text-center text-xs font-bold py-2.5 transition-opacity hover:opacity-80"
+                  style={{ background: BRAND.teal, color: "#fff" }}>
+                  Open in New Tab
+                </a>
+                <button onClick={() => setProofModal(null)}
+                  className="px-5 text-xs font-bold py-2.5"
+                  style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

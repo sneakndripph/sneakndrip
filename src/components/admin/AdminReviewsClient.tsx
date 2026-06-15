@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { BRAND, FONTS } from "@/lib/constants";
 import { Check, Trash2, Star, X, MessageSquare } from "lucide-react";
 
@@ -13,6 +14,7 @@ type Review = {
   body: string;
   is_verified: boolean;
   created_at: string;
+  image_url?: string | null;
   product_name?: string;
 };
 
@@ -202,6 +204,17 @@ export default function AdminReviewsClient({ initialReviews }: { initialReviews:
               )}
 
               <p className="text-sm leading-relaxed" style={{ color: BRAND.muted }}>{selected.body}</p>
+
+              {selected.image_url && (
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.muted }}>Customer Photo</p>
+                  <a href={selected.image_url} target="_blank" rel="noopener noreferrer"
+                    className="block relative w-full h-44 rounded-xl overflow-hidden transition-opacity hover:opacity-80"
+                    style={{ background: BRAND.bg }}>
+                    <Image src={selected.image_url} alt="Review photo" fill className="object-contain" sizes="480px" />
+                  </a>
+                </div>
+              )}
 
               <p className="text-xs pt-2" style={{ color: BRAND.mutedLight, borderTop: `1px solid ${BRAND.border}` }}>
                 {new Date(selected.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}

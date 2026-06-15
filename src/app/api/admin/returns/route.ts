@@ -57,11 +57,37 @@ export async function PATCH(req: NextRequest) {
   if (!["approved", "denied"].includes(status)) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
 
   const admin = createAdminClient();
+
+  // Get return request to find the order number
+  const { data: returnReq } = await admin
+    .from("return_requests")
+    .select("order_number")
+    .eq("id", id)
+    .single();
+
   const { error } = await admin
     .from("return_requests")
     .update({ status, admin_note: admin_note ?? null, updated_at: new Date().toISOString() })
     .eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // When approved, update the order status to "returned"
+  if (status === "approved" && returnReq?.order_number) {
+    await admin
+      .from("orders")
+      .update({ status: "returned" })
+      .eq("order_number", returnReq.order_number);
+  }
+
+  void admin.from("activity_log").insert({
+    action: `return_${status}`,
+    entity_type: "return_request",
+    entity_id: id,
+    entity_name: returnReq?.order_number ?? null,
+    actor_email: caller.email ?? null,
+    details: null,
+  });
+
   return NextResponse.json({ ok: true });
 }
