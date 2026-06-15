@@ -11,7 +11,7 @@ export default async function AdminOrdersPage({
   const [admin, { q, status }] = [createAdminClient(), await searchParams];
   const { data: orders } = await admin
     .from("orders")
-    .select("*, order_items(product_name, brand, size, quantity, unit_price, payment_type, products(images, bg))")
+    .select("*, payment_reference, order_items(product_name, brand, size, quantity, unit_price, payment_type, products(images, bg))")
     .order("created_at", { ascending: false });
 
   return <AdminOrdersClient initialOrders={orders ?? []} initialSearch={q ?? ""} initialStatus={status ?? ""} />;

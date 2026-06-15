@@ -50,6 +50,7 @@ type Order = {
   status: string;
   tracking_number: string | null;
   proof_of_payment: string | null;
+  payment_reference: string | null;
   admin_notes: string | null;
   created_at: string;
   order_items: OrderItem[];
@@ -545,6 +546,11 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                     <p className="text-xs capitalize" style={{ color: BRAND.muted }}>
                       {liveSelected.payment_type === "downpayment" ? "Downpayment" : "Full Payment"}
                     </p>
+                    {liveSelected.payment_reference && (
+                      <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>
+                        Ref: <span className="font-semibold" style={{ color: BRAND.black }}>{liveSelected.payment_reference}</span>
+                      </p>
+                    )}
                   </div>
                   {liveSelected.payment_method !== "cod" && (
                     <a

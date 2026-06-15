@@ -59,7 +59,7 @@ export default async function AdminDashboard() {
     const key = d.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
     dayMap.set(key, { revenue: 0, orders: 0 });
   }
-  for (const o of weekOrders ?? []) {
+  for (const o of (weekOrders ?? []).filter(o => !["pending", "cancelled"].includes(o.status))) {
     const key = new Date(o.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" });
     const slot = dayMap.get(key);
     if (slot) { slot.revenue += Number(o.total); slot.orders++; }

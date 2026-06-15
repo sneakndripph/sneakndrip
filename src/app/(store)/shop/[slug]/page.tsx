@@ -31,6 +31,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     getSettings(),
   ]);
   if (!product) notFound();
-  const productReviews = reviews.filter(r => !r.product_id || r.product_id === product.id);
+  const productReviews = reviews.filter(r => r.product_id === product.id);
   return <ProductDetail product={product} reviews={productReviews} settings={settings} />;
 }
