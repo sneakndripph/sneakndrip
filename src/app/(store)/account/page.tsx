@@ -107,18 +107,18 @@ export default function AccountPage() {
   // Return request state
   const [returnModalOrder, setReturnModalOrder] = useState<Order | null>(null);
   const [returnReason, setReturnReason] = useState("");
-  const [returnPhotoFile, setReturnPhotoFile] = useState<File | null>(null);
-  const [returnPhotoPreview, setReturnPhotoPreview] = useState<string | null>(null);
+  const [returnPhotoFiles, setReturnPhotoFiles] = useState<File[]>([]);
+  const [returnPhotoPreviews, setReturnPhotoPreviews] = useState<string[]>([]);
   const [submittingReturn, setSubmittingReturn] = useState(false);
   const [returnError, setReturnError] = useState("");
   const [returnSuccess, setReturnSuccess] = useState(false);
-  type ReturnInfo = { id?: string; status: string; admin_note: string | null; reason: string; photo_url: string | null };
+  type ReturnInfo = { id?: string; status: string; admin_note: string | null; reason: string; photo_url: string | null; photo_urls?: string[] | null };
   const [returnedOrders, setReturnedOrders] = useState<Map<string, ReturnInfo>>(new Map());
   const [viewReturnModal, setViewReturnModal] = useState<{ orderNumber: string } & ReturnInfo | null>(null);
   const [editingReturn, setEditingReturn] = useState(false);
   const [editReturnReason, setEditReturnReason] = useState("");
-  const [editReturnPhotoFile, setEditReturnPhotoFile] = useState<File | null>(null);
-  const [editReturnPhotoPreview, setEditReturnPhotoPreview] = useState<string | null>(null);
+  const [editReturnPhotoFiles, setEditReturnPhotoFiles] = useState<File[]>([]);
+  const [editReturnPhotoPreviews, setEditReturnPhotoPreviews] = useState<string[]>([]);
   const [savingEditReturn, setSavingEditReturn] = useState(false);
   const [editReturnError, setEditReturnError] = useState("");
   const [proofModal, setProofModal] = useState<{ url: string; orderNumber: string } | null>(null);
@@ -153,9 +153,9 @@ export default function AccountPage() {
         fetch("/api/returns").then(r => r.json()).catch(() => ({ returns: [] })),
       ]).then(([ordersData, returnsData]) => {
         setOrders((ordersData.orders as Order[]) ?? []);
-        const returnMap = new Map<string, { id?: string; status: string; admin_note: string | null; reason: string; photo_url: string | null }>(
-          ((returnsData.returns ?? []) as { id: string; order_number: string; status: string; admin_note: string | null; reason: string; photo_url: string | null }[])
-            .map(r => [r.order_number, { id: r.id, status: r.status, admin_note: r.admin_note, reason: r.reason, photo_url: r.photo_url ?? null }])
+        const returnMap = new Map<string, ReturnInfo>(
+          ((returnsData.returns ?? []) as { id: string; order_number: string; status: string; admin_note: string | null; reason: string; photo_url: string | null; photo_urls?: string[] | null }[])
+            .map(r => [r.order_number, { id: r.id, status: r.status, admin_note: r.admin_note, reason: r.reason, photo_url: r.photo_url ?? null, photo_urls: r.photo_urls ?? null }])
         );
         setReturnedOrders(returnMap);
         setLoadingOrders(false);
@@ -311,23 +311,25 @@ export default function AccountPage() {
   }
 
   async function handleSubmitReturn() {
-    if (!returnModalOrder || !returnReason.trim() || !returnPhotoFile) return;
+    if (!returnModalOrder || !returnReason.trim() || returnPhotoFiles.length === 0) return;
     setSubmittingReturn(true);
     setReturnError("");
 
-    let photoUrl: string | null = null;
     const supabase = createClient();
-    const ext = returnPhotoFile.name.split(".").pop() ?? "jpg";
-    const filePath = `${user?.id ?? "anon"}/${Date.now()}.${ext}`;
-    const { data: uploadData, error: uploadErr } = await supabase.storage
-      .from("return-photos")
-      .upload(filePath, returnPhotoFile, { cacheControl: "3600", upsert: false });
-    if (uploadErr) {
-      setReturnError("Failed to upload photo. Please try again.");
-      setSubmittingReturn(false);
-      return;
+    const photoUrls: string[] = [];
+    for (const file of returnPhotoFiles) {
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const filePath = `${user?.id ?? "anon"}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { data: uploadData, error: uploadErr } = await supabase.storage
+        .from("return-photos")
+        .upload(filePath, file, { cacheControl: "3600", upsert: false });
+      if (uploadErr) {
+        setReturnError("Failed to upload photo. Please try again.");
+        setSubmittingReturn(false);
+        return;
+      }
+      photoUrls.push(supabase.storage.from("return-photos").getPublicUrl(uploadData.path).data.publicUrl);
     }
-    photoUrl = supabase.storage.from("return-photos").getPublicUrl(uploadData.path).data.publicUrl;
 
     const res = await fetch("/api/returns", {
       method: "POST",
@@ -336,20 +338,21 @@ export default function AccountPage() {
         order_id: returnModalOrder.id,
         order_number: returnModalOrder.order_number,
         reason: returnReason.trim(),
-        photo_url: photoUrl,
+        photo_url: photoUrls[0] ?? null,
+        photo_urls: photoUrls,
       }),
     });
     if (res.ok) {
       setReturnSuccess(true);
       setReturnedOrders(prev => new Map([...prev, [returnModalOrder.order_number, {
-        status: "pending", admin_note: null, reason: returnReason.trim(), photo_url: photoUrl,
+        status: "pending", admin_note: null, reason: returnReason.trim(), photo_url: photoUrls[0] ?? null, photo_urls: photoUrls,
       }]]));
       setTimeout(() => {
         setReturnModalOrder(null);
         setReturnSuccess(false);
         setReturnReason("");
-        setReturnPhotoFile(null);
-        setReturnPhotoPreview(null);
+        setReturnPhotoFiles([]);
+        setReturnPhotoPreviews([]);
       }, 2000);
     } else {
       const err = await res.json().catch(() => ({})) as { error?: string };
@@ -363,37 +366,45 @@ export default function AccountPage() {
     setSavingEditReturn(true);
     setEditReturnError("");
 
-    let photoUrl = viewReturnModal.photo_url;
-    if (editReturnPhotoFile) {
+    let photoUrls: string[] = viewReturnModal.photo_urls?.length
+      ? viewReturnModal.photo_urls
+      : viewReturnModal.photo_url ? [viewReturnModal.photo_url] : [];
+
+    if (editReturnPhotoFiles.length > 0) {
       const supabase = createClient();
-      const ext = editReturnPhotoFile.name.split(".").pop() ?? "jpg";
-      const filePath = `${user?.id ?? "anon"}/${Date.now()}.${ext}`;
-      const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from("return-photos")
-        .upload(filePath, editReturnPhotoFile, { cacheControl: "3600", upsert: false });
-      if (uploadErr) {
-        setEditReturnError("Failed to upload photo.");
-        setSavingEditReturn(false);
-        return;
+      const uploadedUrls: string[] = [];
+      for (const file of editReturnPhotoFiles) {
+        const ext = file.name.split(".").pop() ?? "jpg";
+        const filePath = `${user?.id ?? "anon"}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from("return-photos")
+          .upload(filePath, file, { cacheControl: "3600", upsert: false });
+        if (uploadErr) {
+          setEditReturnError("Failed to upload photo.");
+          setSavingEditReturn(false);
+          return;
+        }
+        uploadedUrls.push(supabase.storage.from("return-photos").getPublicUrl(uploadData.path).data.publicUrl);
       }
-      photoUrl = supabase.storage.from("return-photos").getPublicUrl(uploadData.path).data.publicUrl;
+      photoUrls = uploadedUrls;
     }
 
     const res = await fetch("/api/returns", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: viewReturnModal.id, reason: editReturnReason.trim(), photo_url: photoUrl }),
+      body: JSON.stringify({ id: viewReturnModal.id, reason: editReturnReason.trim(), photo_url: photoUrls[0] ?? null, photo_urls: photoUrls }),
     });
     if (res.ok) {
-      const updated = { ...viewReturnModal, reason: editReturnReason.trim(), photo_url: photoUrl };
+      const updated = { ...viewReturnModal, reason: editReturnReason.trim(), photo_url: photoUrls[0] ?? null, photo_urls: photoUrls };
       setReturnedOrders(prev => new Map([...prev, [viewReturnModal.orderNumber, {
         id: viewReturnModal.id, status: viewReturnModal.status,
-        admin_note: viewReturnModal.admin_note, reason: editReturnReason.trim(), photo_url: photoUrl,
+        admin_note: viewReturnModal.admin_note, reason: editReturnReason.trim(),
+        photo_url: photoUrls[0] ?? null, photo_urls: photoUrls,
       }]]));
       setViewReturnModal(updated);
       setEditingReturn(false);
-      setEditReturnPhotoFile(null);
-      setEditReturnPhotoPreview(null);
+      setEditReturnPhotoFiles([]);
+      setEditReturnPhotoPreviews([]);
     } else {
       const err = await res.json().catch(() => ({})) as { error?: string };
       setEditReturnError(err.error ?? "Failed to save.");
@@ -677,8 +688,8 @@ export default function AccountPage() {
                                   setReturnReason("");
                                   setReturnError("");
                                   setReturnSuccess(false);
-                                  setReturnPhotoFile(null);
-                                  setReturnPhotoPreview(null);
+                                  setReturnPhotoFiles([]);
+                                  setReturnPhotoPreviews([]);
                                 }}
                                 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
                                 style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
@@ -1138,13 +1149,13 @@ export default function AccountPage() {
       {returnModalOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={e => { if (e.target === e.currentTarget) { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); setReturnPhotoFile(null); setReturnPhotoPreview(null); } }}>
+          onClick={e => { if (e.target === e.currentTarget) { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); setReturnPhotoFiles([]); setReturnPhotoPreviews([]); } }}>
           <div className="w-full max-w-sm rounded-2xl overflow-hidden"
             style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
             <div className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
               <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Request Return</p>
-              <button onClick={() => { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); setReturnPhotoFile(null); setReturnPhotoPreview(null); }}
+              <button onClick={() => { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); setReturnPhotoFiles([]); setReturnPhotoPreviews([]); }}
                 className="p-1 transition-opacity hover:opacity-70">
                 <X className="w-4 h-4" style={{ color: BRAND.muted }} />
               </button>
@@ -1182,48 +1193,63 @@ export default function AccountPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                      Photo of Item <span style={{ color: BRAND.red }}>*</span>
-                    </label>
-                    <label className="flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-lg cursor-pointer transition-colors"
-                      style={{ border: `2px dashed ${returnPhotoFile ? BRAND.teal : BRAND.border}`, background: returnPhotoFile ? `${BRAND.teal}08` : BRAND.card }}>
-                      {returnPhotoPreview ? (
-                        <div className="relative w-full h-32 rounded overflow-hidden">
-                          <Image src={returnPhotoPreview} alt="Preview" fill className="object-contain" sizes="280px" />
-                        </div>
-                      ) : (
-                        <>
-                          <span className="text-2xl">📷</span>
-                          <span className="text-xs font-semibold text-center" style={{ color: BRAND.muted }}>
-                            Click to upload photo<br />
-                            <span style={{ color: BRAND.mutedLight }}>JPG, PNG, WEBP · max 10MB</span>
-                          </span>
-                        </>
+                      Photos of Item <span style={{ color: BRAND.red }}>*</span>
+                      {returnPhotoFiles.length > 0 && (
+                        <span className="ml-2 font-normal normal-case" style={{ color: BRAND.muted }}>
+                          {returnPhotoFiles.length}/5
+                        </span>
                       )}
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/gif"
-                        className="hidden"
-                        onChange={e => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setReturnPhotoFile(file);
-                          setReturnPhotoPreview(URL.createObjectURL(file));
-                        }}
-                      />
                     </label>
-                    {returnPhotoFile && (
-                      <button
-                        type="button"
-                        onClick={() => { setReturnPhotoFile(null); setReturnPhotoPreview(null); }}
-                        className="mt-1 text-xs transition-opacity hover:opacity-70"
-                        style={{ color: BRAND.muted }}>
-                        Remove photo
-                      </button>
+                    {returnPhotoPreviews.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-2 mb-2">
+                        {returnPhotoPreviews.map((preview, i) => (
+                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden group"
+                            style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                            <Image src={preview} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="100px" />
+                            <button type="button"
+                              onClick={() => {
+                                setReturnPhotoFiles(prev => prev.filter((_, j) => j !== i));
+                                setReturnPhotoPreviews(prev => prev.filter((_, j) => j !== i));
+                              }}
+                              className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              style={{ background: "rgba(0,0,0,0.55)" }}>
+                              <X className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                        {returnPhotoFiles.length < 5 && (
+                          <label className="relative aspect-square rounded-lg flex items-center justify-center cursor-pointer transition-colors"
+                            style={{ background: BRAND.card, border: `2px dashed ${BRAND.border}` }}>
+                            <span className="text-xl font-bold" style={{ color: BRAND.muted }}>+</span>
+                            <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+                              onChange={e => {
+                                const files = Array.from(e.target.files ?? []).slice(0, 5 - returnPhotoFiles.length);
+                                setReturnPhotoFiles(prev => [...prev, ...files]);
+                                setReturnPhotoPreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
+                              }} />
+                          </label>
+                        )}
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-lg cursor-pointer transition-colors"
+                        style={{ border: `2px dashed ${BRAND.border}`, background: BRAND.card }}>
+                        <span className="text-2xl">📷</span>
+                        <span className="text-xs font-semibold text-center" style={{ color: BRAND.muted }}>
+                          Click to upload up to 5 photos<br />
+                          <span style={{ color: BRAND.mutedLight }}>JPG, PNG, WEBP · max 10MB each</span>
+                        </span>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+                          onChange={e => {
+                            const files = Array.from(e.target.files ?? []).slice(0, 5);
+                            setReturnPhotoFiles(files);
+                            setReturnPhotoPreviews(files.map(f => URL.createObjectURL(f)));
+                          }} />
+                      </label>
                     )}
                   </div>
                   <button
                     onClick={handleSubmitReturn}
-                    disabled={submittingReturn || !returnReason.trim() || !returnPhotoFile}
+                    disabled={submittingReturn || !returnReason.trim() || returnPhotoFiles.length === 0}
                     className="w-full py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
                     style={{ background: BRAND.black, color: BRAND.bg }}>
                     {submittingReturn ? "Submitting…" : "Submit Return Request"}
@@ -1287,27 +1313,57 @@ export default function AccountPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                      Replace Photo (optional)
-                    </label>
-                    <label className="flex flex-col items-center justify-center gap-1 px-3 py-3 rounded-lg cursor-pointer"
-                      style={{ border: `2px dashed ${editReturnPhotoFile ? BRAND.teal : BRAND.border}`, background: BRAND.card }}>
-                      {editReturnPhotoPreview ? (
-                        <div className="relative w-full h-24 rounded overflow-hidden">
-                          <Image src={editReturnPhotoPreview} alt="Preview" fill className="object-contain" sizes="260px" />
-                        </div>
-                      ) : (
-                        <span className="text-xs font-semibold" style={{ color: BRAND.muted }}>
-                          {viewReturnModal.photo_url ? "Click to replace photo" : "Click to add photo"}
+                      Replace Photos (optional)
+                      {editReturnPhotoFiles.length > 0 && (
+                        <span className="ml-2 font-normal normal-case" style={{ color: BRAND.muted }}>
+                          {editReturnPhotoFiles.length}/5 new
                         </span>
                       )}
-                      <input type="file" accept="image/*" className="hidden"
-                        onChange={e => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          setEditReturnPhotoFile(file);
-                          setEditReturnPhotoPreview(URL.createObjectURL(file));
-                        }} />
                     </label>
+                    {editReturnPhotoPreviews.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-2 mb-1">
+                        {editReturnPhotoPreviews.map((preview, i) => (
+                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden group"
+                            style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                            <Image src={preview} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="90px" />
+                            <button type="button"
+                              onClick={() => {
+                                setEditReturnPhotoFiles(prev => prev.filter((_, j) => j !== i));
+                                setEditReturnPhotoPreviews(prev => prev.filter((_, j) => j !== i));
+                              }}
+                              className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              style={{ background: "rgba(0,0,0,0.55)" }}>
+                              <X className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                        ))}
+                        {editReturnPhotoFiles.length < 5 && (
+                          <label className="relative aspect-square rounded-lg flex items-center justify-center cursor-pointer"
+                            style={{ background: BRAND.card, border: `2px dashed ${BRAND.border}` }}>
+                            <span className="text-xl font-bold" style={{ color: BRAND.muted }}>+</span>
+                            <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+                              onChange={e => {
+                                const files = Array.from(e.target.files ?? []).slice(0, 5 - editReturnPhotoFiles.length);
+                                setEditReturnPhotoFiles(prev => [...prev, ...files]);
+                                setEditReturnPhotoPreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))]);
+                              }} />
+                          </label>
+                        )}
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg cursor-pointer"
+                        style={{ border: `2px dashed ${BRAND.border}`, background: BRAND.card }}>
+                        <span className="text-xs font-semibold" style={{ color: BRAND.muted }}>
+                          Click to replace all photos (up to 5)
+                        </span>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
+                          onChange={e => {
+                            const files = Array.from(e.target.files ?? []).slice(0, 5);
+                            setEditReturnPhotoFiles(files);
+                            setEditReturnPhotoPreviews(files.map(f => URL.createObjectURL(f)));
+                          }} />
+                      </label>
+                    )}
                   </div>
                   <div className="flex gap-3">
                     <button onClick={handleSaveEditReturn} disabled={savingEditReturn || !editReturnReason.trim()}
@@ -1315,7 +1371,7 @@ export default function AccountPage() {
                       style={{ background: BRAND.teal, color: "#fff" }}>
                       {savingEditReturn ? "Saving…" : "Save Changes"}
                     </button>
-                    <button onClick={() => { setEditingReturn(false); setEditReturnPhotoFile(null); setEditReturnPhotoPreview(null); setEditReturnError(""); }}
+                    <button onClick={() => { setEditingReturn(false); setEditReturnPhotoFiles([]); setEditReturnPhotoPreviews([]); setEditReturnError(""); }}
                       className="px-4 py-2.5 text-xs font-bold"
                       style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
                       Cancel
@@ -1328,16 +1384,28 @@ export default function AccountPage() {
                     <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.muted }}>Your Reason</p>
                     <p className="text-sm" style={{ color: BRAND.black }}>{viewReturnModal.reason}</p>
                   </div>
-                  {viewReturnModal.photo_url && (
-                    <div>
-                      <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>Your Photo</p>
-                      <a href={viewReturnModal.photo_url} target="_blank" rel="noopener noreferrer"
-                        className="block relative w-full h-36 rounded-lg overflow-hidden transition-opacity hover:opacity-80"
-                        style={{ background: BRAND.card }}>
-                        <Image src={viewReturnModal.photo_url} alt="Return photo" fill className="object-contain" sizes="280px" />
-                      </a>
-                    </div>
-                  )}
+                  {(() => {
+                    const photos = viewReturnModal.photo_urls?.length
+                      ? viewReturnModal.photo_urls
+                      : viewReturnModal.photo_url ? [viewReturnModal.photo_url] : [];
+                    if (!photos.length) return null;
+                    return (
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>
+                          Your Photos ({photos.length})
+                        </p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {photos.map((url, i) => (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                              className="relative aspect-square rounded-lg overflow-hidden transition-opacity hover:opacity-80"
+                              style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                              <Image src={url} alt={`Return photo ${i + 1}`} fill className="object-cover" sizes="90px" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   {viewReturnModal.admin_note && (
                     <div className="px-4 py-3 rounded-lg" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
                       <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.teal }}>Message from Store</p>
@@ -1355,7 +1423,7 @@ export default function AccountPage() {
             <div className="px-5 pb-5 flex gap-3">
               {!editingReturn && viewReturnModal.status === "pending" && viewReturnModal.id && (
                 <button
-                  onClick={() => { setEditingReturn(true); setEditReturnReason(viewReturnModal.reason); setEditReturnPhotoFile(null); setEditReturnPhotoPreview(null); setEditReturnError(""); }}
+                  onClick={() => { setEditingReturn(true); setEditReturnReason(viewReturnModal.reason); setEditReturnPhotoFiles([]); setEditReturnPhotoPreviews([]); setEditReturnError(""); }}
                   className="flex-1 py-2.5 text-sm font-bold transition-opacity hover:opacity-80"
                   style={{ border: `1px solid ${BRAND.teal}`, color: BRAND.teal }}>
                   Edit Request

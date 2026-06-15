@@ -30,6 +30,7 @@ type ReturnRequest = {
   status: "pending" | "approved" | "denied";
   admin_note: string | null;
   photo_url: string | null;
+  photo_urls?: string[] | null;
   created_at: string;
   order: ReturnOrder;
 };
@@ -231,17 +232,29 @@ export default function AdminReturnsPage() {
                 <p className="text-sm" style={{ color: BRAND.black }}>{selected.reason}</p>
               </div>
 
-              {/* Customer Photo */}
-              {selected.photo_url && (
-                <div className="px-6 py-4" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.muted }}>Photo Evidence</p>
-                  <a href={selected.photo_url} target="_blank" rel="noopener noreferrer"
-                    className="block relative w-full h-48 rounded-xl overflow-hidden transition-opacity hover:opacity-80"
-                    style={{ background: BRAND.bg }}>
-                    <Image src={selected.photo_url} alt="Return photo" fill className="object-contain" sizes="480px" />
-                  </a>
-                </div>
-              )}
+              {/* Customer Photos */}
+              {(() => {
+                const photos = selected.photo_urls?.length
+                  ? selected.photo_urls
+                  : selected.photo_url ? [selected.photo_url] : [];
+                if (!photos.length) return null;
+                return (
+                  <div className="px-6 py-4" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                    <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.muted }}>
+                      Photo Evidence ({photos.length})
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {photos.map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                          className="relative aspect-square rounded-xl overflow-hidden transition-opacity hover:opacity-80"
+                          style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+                          <Image src={url} alt={`Return photo ${i + 1}`} fill className="object-cover" sizes="150px" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Admin note + actions */}
               <div className="px-6 py-4 space-y-3">

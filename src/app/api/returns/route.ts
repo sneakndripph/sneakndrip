@@ -39,10 +39,11 @@ export async function POST(req: NextRequest) {
     const user = await getUser();
     if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { order_id, order_number, reason, photo_url } = await req.json();
+    const { order_id, order_number, reason, photo_url, photo_urls } = await req.json() as { order_id: string; order_number: string; reason: string; photo_url?: string | null; photo_urls?: string[] };
     if (!order_id || !order_number || !reason?.trim()) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
+    const finalPhotoUrls: string[] = photo_urls?.length ? photo_urls : (photo_url ? [photo_url] : []);
 
     const admin = createAdminClient();
 
@@ -72,7 +73,8 @@ export async function POST(req: NextRequest) {
       customer_email: user.email,
       customer_name: order.customer_name ?? user.user_metadata?.full_name ?? user.email,
       reason: reason.trim(),
-      photo_url: photo_url ?? null,
+      photo_url: finalPhotoUrls[0] ?? null,
+      photo_urls: finalPhotoUrls,
     }).select().single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -87,8 +89,9 @@ export async function PATCH(req: NextRequest) {
     const user = await getUser();
     if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { id, reason, photo_url } = await req.json();
+    const { id, reason, photo_url, photo_urls } = await req.json() as { id: string; reason: string; photo_url?: string | null; photo_urls?: string[] };
     if (!id || !reason?.trim()) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    const finalPhotoUrls: string[] = photo_urls?.length ? photo_urls : (photo_url ? [photo_url] : []);
 
     const admin = createAdminClient();
 
@@ -105,7 +108,7 @@ export async function PATCH(req: NextRequest) {
 
     const { error } = await admin
       .from("return_requests")
-      .update({ reason: reason.trim(), photo_url: photo_url ?? null, updated_at: new Date().toISOString() })
+      .update({ reason: reason.trim(), photo_url: finalPhotoUrls[0] ?? null, photo_urls: finalPhotoUrls, updated_at: new Date().toISOString() })
       .eq("id", id);
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
