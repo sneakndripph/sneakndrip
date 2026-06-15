@@ -34,19 +34,21 @@ const tooltipStyle = {
 };
 
 export default function DashboardCharts({
-  revenueByDay, ordersByStatus, topProducts,
+  revenueByDay, ordersByStatus, topProducts, period = "week",
 }: {
   revenueByDay: DayData[];
   ordersByStatus: StatusData[];
   topProducts: ProductData[];
+  period?: string;
 }) {
   const router = useRouter();
+  const xAxisInterval = period === "month" ? 4 : period === "today" ? 3 : "preserveStartEnd";
 
   return (
-    <div className="grid lg:grid-cols-3 gap-5 mt-6">
+    <div className="grid lg:grid-cols-3 gap-5">
       {/* Revenue + Orders line — spans 2 cols */}
       <div className="lg:col-span-2">
-        <CardWrap title="REVENUE — LAST 7 DAYS">
+        <CardWrap title="REVENUE CHART">
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={revenueByDay} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <defs>
@@ -56,7 +58,7 @@ export default function DashboardCharts({
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={BRAND.border} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: BRAND.muted }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: BRAND.muted }} axisLine={false} tickLine={false} interval={xAxisInterval} />
               <YAxis tick={{ fontSize: 10, fill: BRAND.muted }} axisLine={false} tickLine={false}
                 tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} />
               <Tooltip {...tooltipStyle}
