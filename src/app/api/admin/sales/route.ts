@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   let query = admin
     .from("orders")
-    .select("id, order_number, total, status, created_at, payment_method, customer_name, customer_email, order_items(product_name, unit_price, quantity, products(cost_price))")
+    .select("id, order_number, total, status, created_at, payment_method, customer_name, customer_email, order_items(product_name, unit_price, quantity, products(cost_price, images, slug))")
     .order("created_at", { ascending: true });
 
   if (from) query = query.gte("created_at", from);
@@ -40,17 +40,24 @@ export async function GET(req: NextRequest) {
   const revenueByDay = Array.from(dayMap.entries()).map(([date, v]) => ({ date, ...v }));
 
   // Top products + profit computation
-  const productMap = new Map<string, { revenue: number; units: number; cost: number }>();
+  type ProdEntry = { revenue: number; units: number; cost: number; image: string | null; slug: string | null };
+  const productMap = new Map<string, ProdEntry>();
   let totalCost = 0;
   for (const o of paid) {
-    for (const item of (o.order_items as unknown as { product_name: string; unit_price: number; quantity: number; products: { cost_price: number | null } | { cost_price: number | null }[] | null }[]) ?? []) {
+    for (const item of (o.order_items as unknown as { product_name: string; unit_price: number; quantity: number; products: { cost_price: number | null; images: string[] | null; slug: string | null } | { cost_price: number | null; images: string[] | null; slug: string | null }[] | null }[]) ?? []) {
       const rev = Number(item.unit_price) * Number(item.quantity);
-      const prodCost = Array.isArray(item.products) ? item.products[0]?.cost_price : item.products?.cost_price;
-      const costPrice = prodCost ? Number(prodCost) : 0;
+      const prod = Array.isArray(item.products) ? item.products[0] : item.products;
+      const costPrice = prod?.cost_price ? Number(prod.cost_price) : 0;
       const itemCost = costPrice * Number(item.quantity);
       totalCost += itemCost;
-      const ex = productMap.get(item.product_name) ?? { revenue: 0, units: 0, cost: 0 };
-      productMap.set(item.product_name, { revenue: ex.revenue + rev, units: ex.units + Number(item.quantity), cost: ex.cost + itemCost });
+      const ex = productMap.get(item.product_name) ?? { revenue: 0, units: 0, cost: 0, image: null, slug: null };
+      productMap.set(item.product_name, {
+        revenue: ex.revenue + rev,
+        units: ex.units + Number(item.quantity),
+        cost: ex.cost + itemCost,
+        image: ex.image ?? (prod?.images?.[0] ?? null),
+        slug: ex.slug ?? (prod?.slug ?? null),
+      });
     }
   }
   const totalProfit = totalRevenue - totalCost;
@@ -61,6 +68,8 @@ export async function GET(req: NextRequest) {
       name: name.length > 28 ? name.slice(0, 28) + "…" : name,
       revenue: v.revenue, units: v.units,
       profit: v.cost > 0 ? v.revenue - v.cost : null,
+      image: v.image,
+      slug: v.slug,
     }));
 
   // By payment method

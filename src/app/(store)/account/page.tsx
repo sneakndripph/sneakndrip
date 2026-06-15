@@ -107,10 +107,14 @@ export default function AccountPage() {
   // Return request state
   const [returnModalOrder, setReturnModalOrder] = useState<Order | null>(null);
   const [returnReason, setReturnReason] = useState("");
+  const [returnPhotoFile, setReturnPhotoFile] = useState<File | null>(null);
+  const [returnPhotoPreview, setReturnPhotoPreview] = useState<string | null>(null);
   const [submittingReturn, setSubmittingReturn] = useState(false);
   const [returnError, setReturnError] = useState("");
   const [returnSuccess, setReturnSuccess] = useState(false);
-  const [returnedOrders, setReturnedOrders] = useState<Map<string, { status: string; admin_note: string | null }>>(new Map());
+  type ReturnInfo = { status: string; admin_note: string | null; reason: string; photo_url: string | null };
+  const [returnedOrders, setReturnedOrders] = useState<Map<string, ReturnInfo>>(new Map());
+  const [viewReturnModal, setViewReturnModal] = useState<{ orderNumber: string } & ReturnInfo | null>(null);
 
   // Address state
   const [addressForm, setAddressForm] = useState({ street: "", barangay: "", city: "", province: "", postal: "", regionGroup: "" });
@@ -142,9 +146,9 @@ export default function AccountPage() {
         fetch("/api/returns").then(r => r.json()).catch(() => ({ returns: [] })),
       ]).then(([ordersData, returnsData]) => {
         setOrders((ordersData.orders as Order[]) ?? []);
-        const returnMap = new Map<string, { status: string; admin_note: string | null }>(
-          ((returnsData.returns ?? []) as { order_number: string; status: string; admin_note: string | null }[])
-            .map(r => [r.order_number, { status: r.status, admin_note: r.admin_note }])
+        const returnMap = new Map<string, { status: string; admin_note: string | null; reason: string; photo_url: string | null }>(
+          ((returnsData.returns ?? []) as { order_number: string; status: string; admin_note: string | null; reason: string; photo_url: string | null }[])
+            .map(r => [r.order_number, { status: r.status, admin_note: r.admin_note, reason: r.reason, photo_url: r.photo_url ?? null }])
         );
         setReturnedOrders(returnMap);
         setLoadingOrders(false);
@@ -300,9 +304,24 @@ export default function AccountPage() {
   }
 
   async function handleSubmitReturn() {
-    if (!returnModalOrder || !returnReason.trim()) return;
+    if (!returnModalOrder || !returnReason.trim() || !returnPhotoFile) return;
     setSubmittingReturn(true);
     setReturnError("");
+
+    let photoUrl: string | null = null;
+    const supabase = createClient();
+    const ext = returnPhotoFile.name.split(".").pop() ?? "jpg";
+    const filePath = `${user?.id ?? "anon"}/${Date.now()}.${ext}`;
+    const { data: uploadData, error: uploadErr } = await supabase.storage
+      .from("return-photos")
+      .upload(filePath, returnPhotoFile, { cacheControl: "3600", upsert: false });
+    if (uploadErr) {
+      setReturnError("Failed to upload photo. Please try again.");
+      setSubmittingReturn(false);
+      return;
+    }
+    photoUrl = supabase.storage.from("return-photos").getPublicUrl(uploadData.path).data.publicUrl;
+
     const res = await fetch("/api/returns", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -310,15 +329,20 @@ export default function AccountPage() {
         order_id: returnModalOrder.id,
         order_number: returnModalOrder.order_number,
         reason: returnReason.trim(),
+        photo_url: photoUrl,
       }),
     });
     if (res.ok) {
       setReturnSuccess(true);
-      setReturnedOrders(prev => new Map([...prev, [returnModalOrder.order_number, { status: "pending", admin_note: null }]]));
+      setReturnedOrders(prev => new Map([...prev, [returnModalOrder.order_number, {
+        status: "pending", admin_note: null, reason: returnReason.trim(), photo_url: photoUrl,
+      }]]));
       setTimeout(() => {
         setReturnModalOrder(null);
         setReturnSuccess(false);
         setReturnReason("");
+        setReturnPhotoFile(null);
+        setReturnPhotoPreview(null);
       }, 2000);
     } else {
       const err = await res.json().catch(() => ({})) as { error?: string };
@@ -604,6 +628,8 @@ export default function AccountPage() {
                                   setReturnReason("");
                                   setReturnError("");
                                   setReturnSuccess(false);
+                                  setReturnPhotoFile(null);
+                                  setReturnPhotoPreview(null);
                                 }}
                                 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
                                 style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
@@ -614,18 +640,16 @@ export default function AccountPage() {
                             {order.status === "delivered" && returnedOrders.has(order.order_number) && (() => {
                               const ret = returnedOrders.get(order.order_number)!;
                               return (
-                                <div className="flex flex-col items-end gap-1">
-                                  <span className="text-xs font-bold px-3 py-1.5 rounded-full"
-                                    style={{
-                                      background: ret.status === "approved" ? "rgba(16,185,129,0.12)" : ret.status === "denied" ? `${BRAND.red}12` : "rgba(138,133,128,0.12)",
-                                      color: ret.status === "approved" ? "#10B981" : ret.status === "denied" ? BRAND.red : BRAND.muted,
-                                    }}>
-                                    {ret.status === "approved" ? "✓ Return Approved" : ret.status === "denied" ? "✗ Return Denied" : "Return Requested"}
-                                  </span>
-                                  {ret.admin_note && (
-                                    <p className="text-[11px] text-right max-w-[180px]" style={{ color: BRAND.muted }}>{ret.admin_note}</p>
-                                  )}
-                                </div>
+                                <button
+                                  onClick={() => setViewReturnModal({ orderNumber: order.order_number, ...ret })}
+                                  className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
+                                  style={{
+                                    border: `1px solid ${ret.status === "approved" ? "#10B981" : ret.status === "denied" ? BRAND.red : BRAND.border}`,
+                                    color: ret.status === "approved" ? "#10B981" : ret.status === "denied" ? BRAND.red : BRAND.muted,
+                                    background: ret.status === "approved" ? "rgba(16,185,129,0.08)" : ret.status === "denied" ? `${BRAND.red}08` : "transparent",
+                                  }}>
+                                  View Request
+                                </button>
                               );
                             })()}
                             {order.status === "delivered" && (
@@ -1065,13 +1089,13 @@ export default function AccountPage() {
       {returnModalOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={e => { if (e.target === e.currentTarget) { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); } }}>
+          onClick={e => { if (e.target === e.currentTarget) { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); setReturnPhotoFile(null); setReturnPhotoPreview(null); } }}>
           <div className="w-full max-w-sm rounded-2xl overflow-hidden"
             style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
             <div className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
               <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Request Return</p>
-              <button onClick={() => { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); }}
+              <button onClick={() => { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); setReturnPhotoFile(null); setReturnPhotoPreview(null); }}
                 className="p-1 transition-opacity hover:opacity-70">
                 <X className="w-4 h-4" style={{ color: BRAND.muted }} />
               </button>
@@ -1107,15 +1131,120 @@ export default function AccountPage() {
                       style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
                     />
                   </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                      Photo of Item <span style={{ color: BRAND.red }}>*</span>
+                    </label>
+                    <label className="flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-lg cursor-pointer transition-colors"
+                      style={{ border: `2px dashed ${returnPhotoFile ? BRAND.teal : BRAND.border}`, background: returnPhotoFile ? `${BRAND.teal}08` : BRAND.card }}>
+                      {returnPhotoPreview ? (
+                        <div className="relative w-full h-32 rounded overflow-hidden">
+                          <Image src={returnPhotoPreview} alt="Preview" fill className="object-contain" sizes="280px" />
+                        </div>
+                      ) : (
+                        <>
+                          <span className="text-2xl">📷</span>
+                          <span className="text-xs font-semibold text-center" style={{ color: BRAND.muted }}>
+                            Click to upload photo<br />
+                            <span style={{ color: BRAND.mutedLight }}>JPG, PNG, WEBP · max 10MB</span>
+                          </span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        className="hidden"
+                        onChange={e => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setReturnPhotoFile(file);
+                          setReturnPhotoPreview(URL.createObjectURL(file));
+                        }}
+                      />
+                    </label>
+                    {returnPhotoFile && (
+                      <button
+                        type="button"
+                        onClick={() => { setReturnPhotoFile(null); setReturnPhotoPreview(null); }}
+                        className="mt-1 text-xs transition-opacity hover:opacity-70"
+                        style={{ color: BRAND.muted }}>
+                        Remove photo
+                      </button>
+                    )}
+                  </div>
                   <button
                     onClick={handleSubmitReturn}
-                    disabled={submittingReturn || !returnReason.trim()}
+                    disabled={submittingReturn || !returnReason.trim() || !returnPhotoFile}
                     className="w-full py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
                     style={{ background: BRAND.black, color: BRAND.bg }}>
                     {submittingReturn ? "Submitting…" : "Submit Return Request"}
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Return Request modal */}
+      {viewReturnModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={e => { if (e.target === e.currentTarget) setViewReturnModal(null); }}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden"
+            style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+            <div className="flex items-center justify-between px-5 py-4"
+              style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
+              <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Return Request</p>
+              <button onClick={() => setViewReturnModal(null)} className="p-1 transition-opacity hover:opacity-70">
+                <X className="w-4 h-4" style={{ color: BRAND.muted }} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs" style={{ color: BRAND.muted }}>
+                  Order: <span className="font-bold" style={{ color: BRAND.black }}>{viewReturnModal.orderNumber}</span>
+                </p>
+                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full"
+                  style={{
+                    background: viewReturnModal.status === "approved" ? "rgba(16,185,129,0.12)" : viewReturnModal.status === "denied" ? `${BRAND.red}12` : "rgba(138,133,128,0.12)",
+                    color: viewReturnModal.status === "approved" ? "#10B981" : viewReturnModal.status === "denied" ? BRAND.red : BRAND.muted,
+                  }}>
+                  {viewReturnModal.status === "approved" ? "Approved" : viewReturnModal.status === "denied" ? "Denied" : "Pending Review"}
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.muted }}>Your Reason</p>
+                <p className="text-sm" style={{ color: BRAND.black }}>{viewReturnModal.reason}</p>
+              </div>
+              {viewReturnModal.photo_url && (
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>Your Photo</p>
+                  <a href={viewReturnModal.photo_url} target="_blank" rel="noopener noreferrer"
+                    className="block relative w-full h-36 rounded-lg overflow-hidden transition-opacity hover:opacity-80"
+                    style={{ background: BRAND.card }}>
+                    <Image src={viewReturnModal.photo_url} alt="Return photo" fill className="object-contain" sizes="280px" />
+                  </a>
+                </div>
+              )}
+              {viewReturnModal.admin_note && (
+                <div className="px-4 py-3 rounded-lg" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.teal }}>Message from Store</p>
+                  <p className="text-sm" style={{ color: BRAND.black }}>{viewReturnModal.admin_note}</p>
+                </div>
+              )}
+              {viewReturnModal.status === "pending" && (
+                <p className="text-xs text-center" style={{ color: BRAND.mutedLight }}>
+                  We&apos;ll review your request and get back to you soon.
+                </p>
+              )}
+            </div>
+            <div className="px-5 pb-5">
+              <button onClick={() => setViewReturnModal(null)}
+                className="w-full py-2.5 text-sm font-bold transition-opacity hover:opacity-70"
+                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                Close
+              </button>
             </div>
           </div>
         </div>

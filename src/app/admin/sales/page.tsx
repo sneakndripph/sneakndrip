@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { TrendingUp, ShoppingBag, Banknote, XCircle, Download, RefreshCw, X } from "lucide-react";
+import { TrendingUp, ShoppingBag, Banknote, XCircle, Download, RefreshCw, X, Package } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell, Legend, CartesianGrid,
@@ -31,10 +32,11 @@ type Metrics = {
   cancelledOrders: number; pendingOrders: number; avgOrder: number; cancelRate: number;
 };
 type PaymentOrder = { order_number: string; customer_name: string; total: number; status: string; created_at: string };
+type TopProduct = { name: string; revenue: number; units: number; profit: number | null; image: string | null; slug: string | null };
 type SalesData = {
   metrics: Metrics;
   revenueByDay: { date: string; revenue: number; orders: number }[];
-  topProducts: { name: string; revenue: number; units: number; profit: number | null }[];
+  topProducts: TopProduct[];
   byPayment: { method: string; revenue: number; orders: PaymentOrder[] }[];
   byStatus: { status: string; count: number }[];
   topCustomers: { name: string; email: string; revenue: number; orders: number }[];
@@ -55,9 +57,9 @@ function periodToRange(p: Period): { from?: string; to?: string } {
 
 function fmt(n: number) { return `₱${Number(n).toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
 
-function MetricCard({ label, value, sub, icon: Icon, color, bg, href }: {
+function MetricCard({ label, value, sub, icon: Icon, color, bg, href, onClick }: {
   label: string; value: string; sub?: string;
-  icon: React.ElementType; color: string; bg: string; href?: string;
+  icon: React.ElementType; color: string; bg: string; href?: string; onClick?: () => void;
 }) {
   const inner = (
     <>
@@ -71,11 +73,9 @@ function MetricCard({ label, value, sub, icon: Icon, color, bg, href }: {
       <p className="text-xs mt-1 uppercase tracking-widest font-semibold" style={{ color: BRAND.muted }}>{label}</p>
     </>
   );
-  return href ? (
-    <Link href={href} className="block p-5 rounded-xl transition-opacity hover:opacity-80" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>{inner}</Link>
-  ) : (
-    <div className="p-5 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>{inner}</div>
-  );
+  if (href) return <Link href={href} className="block p-5 rounded-xl transition-opacity hover:opacity-80" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>{inner}</Link>;
+  if (onClick) return <button onClick={onClick} className="w-full text-left p-5 rounded-xl transition-opacity hover:opacity-80" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>{inner}</button>;
+  return <div className="p-5 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>{inner}</div>;
 }
 
 export default function AdminSalesPage() {
@@ -83,6 +83,8 @@ export default function AdminSalesPage() {
   const [data, setData] = useState<SalesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentModal, setPaymentModal] = useState<{ method: string; orders: PaymentOrder[] } | null>(null);
+  const [topProductModal, setTopProductModal] = useState<TopProduct | null>(null);
+  const [netIncomeModal, setNetIncomeModal] = useState(false);
 
   const load = useCallback(async (p: Period) => {
     setLoading(true);
@@ -129,7 +131,10 @@ export default function AdminSalesPage() {
             </div>
             <div className="flex-1 overflow-y-auto divide-y" style={{ borderColor: BRAND.border }}>
               {paymentModal.orders.map(o => (
-                <div key={o.order_number} className="flex items-center justify-between px-5 py-3">
+                <Link key={o.order_number}
+                  href={`/admin/orders?q=${encodeURIComponent(o.order_number)}`}
+                  onClick={() => setPaymentModal(null)}
+                  className="flex items-center justify-between px-5 py-3 transition-colors hover:bg-black/[0.02]">
                   <div>
                     <p className="text-sm font-bold" style={{ color: BRAND.black }}>{o.order_number}</p>
                     <p className="text-xs" style={{ color: BRAND.muted }}>{o.customer_name}</p>
@@ -140,8 +145,92 @@ export default function AdminSalesPage() {
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded capitalize"
                       style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>{o.status}</span>
                   </div>
-                </div>
+                </Link>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top Product Modal */}
+      {topProductModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setTopProductModal(null)}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ background: BRAND.black }}>
+              <h2 style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: "#fff", letterSpacing: "0.04em" }}>TOP PRODUCT</h2>
+              <button onClick={() => setTopProductModal(null)} className="opacity-60 hover:opacity-100"><X className="w-5 h-5 text-white" /></button>
+            </div>
+            <div className="p-5">
+              {topProductModal.image ? (
+                <div className="relative w-full h-44 rounded-xl overflow-hidden mb-4" style={{ background: BRAND.bg }}>
+                  <Image src={topProductModal.image} alt={topProductModal.name} fill className="object-cover" sizes="320px" />
+                </div>
+              ) : (
+                <div className="w-full h-44 rounded-xl flex items-center justify-center mb-4" style={{ background: BRAND.bg }}>
+                  <Package className="w-12 h-12 opacity-20" style={{ color: BRAND.black }} />
+                </div>
+              )}
+              <p className="font-black text-base mb-4" style={{ color: BRAND.black }}>{topProductModal.name}</p>
+              <div className="space-y-2">
+                {[
+                  { label: "Revenue", value: fmt(topProductModal.revenue), color: BRAND.teal },
+                  { label: "Units Sold", value: String(topProductModal.units), color: BRAND.black },
+                  ...(topProductModal.profit !== null ? [{ label: "Profit", value: fmt(topProductModal.profit), color: "#10B981" }] : []),
+                ].map(r => (
+                  <div key={r.label} className="flex justify-between items-center px-4 py-2.5 rounded-lg" style={{ background: BRAND.bg }}>
+                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>{r.label}</span>
+                    <span className="text-sm font-black" style={{ color: r.color }}>{r.value}</span>
+                  </div>
+                ))}
+              </div>
+              {topProductModal.slug && (
+                <Link href={`/admin/products`}
+                  onClick={() => setTopProductModal(null)}
+                  className="block mt-4 text-center text-xs font-bold uppercase tracking-wide py-2.5 transition-opacity hover:opacity-80"
+                  style={{ background: BRAND.teal, color: "#fff" }}>
+                  View in Products →
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Net Income Modal */}
+      {netIncomeModal && m && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setNetIncomeModal(false)}>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ background: BRAND.black }}>
+              <h2 style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: "#fff", letterSpacing: "0.04em" }}>NET INCOME</h2>
+              <button onClick={() => setNetIncomeModal(false)} className="opacity-60 hover:opacity-100"><X className="w-5 h-5 text-white" /></button>
+            </div>
+            <div className="p-6 space-y-3">
+              <div className="flex justify-between items-center py-2.5 px-4 rounded-lg" style={{ background: BRAND.bg }}>
+                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>Total Revenue</span>
+                <span className="text-sm font-black" style={{ color: BRAND.teal }}>{fmt(m.totalRevenue)}</span>
+              </div>
+              <div className="flex justify-between items-center py-2.5 px-4 rounded-lg" style={{ background: BRAND.bg }}>
+                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>Total Cost</span>
+                <span className="text-sm font-black" style={{ color: BRAND.red }}>−{fmt(m.totalCost)}</span>
+              </div>
+              <div className="flex justify-between items-center py-3 px-4 rounded-xl" style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)" }}>
+                <span className="text-sm font-black uppercase tracking-wide" style={{ color: BRAND.black }}>Net Income</span>
+                <span className="text-lg font-black" style={{ color: "#10B981" }}>{fmt(m.totalProfit)}</span>
+              </div>
+              {m.totalRevenue > 0 && (
+                <p className="text-xs text-center pt-1" style={{ color: BRAND.muted }}>
+                  {((m.totalProfit / m.totalRevenue) * 100).toFixed(1)}% profit margin
+                </p>
+              )}
+              {m.totalCost === 0 && (
+                <p className="text-xs text-center" style={{ color: BRAND.mutedLight }}>
+                  Add cost prices in Products to see accurate figures.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -188,12 +277,13 @@ export default function AdminSalesPage() {
         <div className="space-y-6">
           {/* Metrics */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <MetricCard label="Total Revenue" value={fmt(m!.totalRevenue)} sub={`${m!.paidOrders} paid`}
-              icon={TrendingUp} color={BRAND.teal} bg={`rgba(91,184,180,0.12)`} href="/admin/orders?status=paid" />
+            <MetricCard label="Total Revenue" value={fmt(m!.totalRevenue)} sub={`${m!.paidOrders} orders`}
+              icon={TrendingUp} color={BRAND.teal} bg={`rgba(91,184,180,0.12)`} href="/admin/orders?status=delivered" />
             <MetricCard label="Net Income"
               value={m!.totalCost > 0 ? fmt(m!.totalProfit) : "—"}
               sub={m!.totalCost > 0 ? `${m!.totalRevenue > 0 ? ((m!.totalProfit / m!.totalRevenue) * 100).toFixed(1) : "0"}% margin` : "Add cost prices"}
-              icon={Banknote} color="#10B981" bg="rgba(16,185,129,0.1)" />
+              icon={Banknote} color="#10B981" bg="rgba(16,185,129,0.1)"
+              onClick={m!.totalCost > 0 ? () => setNetIncomeModal(true) : undefined} />
             <MetricCard label="Total Orders" value={String(m!.totalOrders)} sub={`${m!.pendingOrders} pending`}
               icon={ShoppingBag} color={BRAND.black} bg="rgba(13,13,13,0.08)" href="/admin/orders" />
             <MetricCard label="Avg Order Value" value={fmt(m!.avgOrder)}
@@ -232,13 +322,20 @@ export default function AdminSalesPage() {
                 <p className="text-sm text-center py-8" style={{ color: BRAND.muted }}>No data.</p>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={data.topProducts} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
+                  <BarChart data={data.topProducts} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
+                    onClick={e => {
+                      const name = e?.activeLabel;
+                      const prod = data.topProducts.find(p => p.name === name);
+                      if (prod) setTopProductModal(prod);
+                    }}
+                    style={{ cursor: "pointer" }}>
                     <XAxis type="number" tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false}
                       tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} />
                     <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false} width={120} />
                     <Tooltip
                       formatter={(v) => [fmt(Number(v ?? 0)), "Revenue"]}
-                      contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }} />
+                      contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }}
+                      cursor={{ fill: "rgba(0,0,0,0.04)" }} />
                     <Bar dataKey="revenue" fill={BRAND.teal} radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>

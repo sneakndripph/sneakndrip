@@ -33,7 +33,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const user = await getRequestingUser();
-  if (!user || user.user_metadata?.role !== "admin") {
+  const isAdmin = user?.user_metadata?.role === "admin" || user?.app_metadata?.role === "admin";
+  if (!user || !isAdmin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

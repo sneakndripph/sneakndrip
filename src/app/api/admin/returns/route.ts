@@ -26,13 +26,26 @@ export async function GET() {
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const admin = createAdminClient();
-  const { data, error } = await admin
+  const { data: returns, error } = await admin
     .from("return_requests")
     .select("*")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ returns: data ?? [] });
+
+  // Batch-fetch orders for all return requests
+  const orderNumbers = [...new Set((returns ?? []).map(r => r.order_number))];
+  const { data: orders } = orderNumbers.length
+    ? await admin
+        .from("orders")
+        .select("order_number, total, payment_method, created_at, order_items(product_name, size, quantity, unit_price, products(images, bg))")
+        .in("order_number", orderNumbers)
+    : { data: [] };
+
+  const orderMap = new Map((orders ?? []).map(o => [o.order_number, o]));
+  const returnsWithOrders = (returns ?? []).map(r => ({ ...r, order: orderMap.get(r.order_number) ?? null }));
+
+  return NextResponse.json({ returns: returnsWithOrders });
 }
 
 export async function PATCH(req: NextRequest) {

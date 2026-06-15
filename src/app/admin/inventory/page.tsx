@@ -379,7 +379,10 @@ export default function AdminInventoryPage() {
                     const totalUnits = p.sizes.reduce((s, sz) => s + sz.stock, 0);
                     const allSoldOut = totalUnits === 0;
                     return (
-                      <tr key={p.id} style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                      <tr key={p.id}
+                        className="cursor-pointer transition-colors hover:bg-black/[0.02]"
+                        onClick={() => openAdjustModal(p)}
+                        style={{ borderBottom: `1px solid ${BRAND.border}` }}>
                         <td className="px-4 py-3.5">
                           <p className="text-sm font-semibold max-w-[180px] truncate" style={{ color: BRAND.black }}>{p.name}</p>
                         </td>
@@ -406,7 +409,7 @@ export default function AdminInventoryPage() {
                           <span className="text-sm font-black" style={{ color: allSoldOut ? BRAND.red : BRAND.black }}>{totalUnits}</span>
                           {allSoldOut && <span className="ml-2 text-[10px] font-bold" style={{ color: BRAND.red }}>SOLD OUT</span>}
                         </td>
-                        <td className="px-4 py-3.5">
+                        <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
                           <button onClick={() => openAdjustModal(p)}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-opacity hover:opacity-80 whitespace-nowrap"
                             style={{ border: `1px solid ${BRAND.teal}`, color: BRAND.teal, background: `${BRAND.teal}08` }}>

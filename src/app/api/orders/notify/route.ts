@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = "donjulio263@gmail.com";
 const FROM_EMAIL = "orders@sneakndrip.ph";
 const BRAND_TEAL = "#5BB8B4";
@@ -144,13 +144,13 @@ export async function POST(req: NextRequest) {
 
   try {
     await Promise.all([
-      resend.emails.send({
+      resend!.emails.send({
         from: `Sneak N' Drip <${FROM_EMAIL}>`,
         to: customer.email,
         subject: `Order Confirmed — ${orderNumber} | Sneak N' Drip`,
         html: customerHtml,
       }),
-      resend.emails.send({
+      resend!.emails.send({
         from: `Sneak N' Drip Orders <${FROM_EMAIL}>`,
         to: ADMIN_EMAIL,
         subject: `🛍️ New Order ${orderNumber} — ₱${total.toLocaleString()} (${paymentLabel[paymentMethod] ?? paymentMethod})`,
