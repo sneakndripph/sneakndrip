@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = "donjulio263@gmail.com";
-const FROM_EMAIL = "orders@sneakndrip.ph";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
 const BRAND_TEAL = "#5BB8B4";
 const BRAND_BLACK = "#0D0D0D";
 const BRAND_BG = "#F2F0EF";

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -33,17 +34,21 @@ const tooltipStyle = {
 };
 
 export default function DashboardCharts({
-  revenueByDay, ordersByStatus, topProducts,
+  revenueByDay, ordersByStatus, topProducts, period = "week",
 }: {
   revenueByDay: DayData[];
   ordersByStatus: StatusData[];
   topProducts: ProductData[];
+  period?: string;
 }) {
+  const router = useRouter();
+  const xAxisInterval = period === "month" ? 4 : period === "today" ? 3 : "preserveStartEnd";
+
   return (
-    <div className="grid lg:grid-cols-3 gap-5 mt-6">
+    <div className="grid lg:grid-cols-3 gap-5">
       {/* Revenue + Orders line — spans 2 cols */}
       <div className="lg:col-span-2">
-        <CardWrap title="REVENUE — LAST 7 DAYS">
+        <CardWrap title="REVENUE CHART">
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={revenueByDay} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <defs>
@@ -53,7 +58,7 @@ export default function DashboardCharts({
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={BRAND.border} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: BRAND.muted }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: BRAND.muted }} axisLine={false} tickLine={false} interval={xAxisInterval} />
               <YAxis tick={{ fontSize: 10, fill: BRAND.muted }} axisLine={false} tickLine={false}
                 tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} />
               <Tooltip {...tooltipStyle}
@@ -79,10 +84,15 @@ export default function DashboardCharts({
 
       {/* Orders by status — donut */}
       <CardWrap title="ORDERS BY STATUS">
+        <p className="text-[10px] mb-1" style={{ color: BRAND.mutedLight }}>Click to view orders</p>
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
             <Pie data={ordersByStatus} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
-              dataKey="value" paddingAngle={2}>
+              dataKey="value" paddingAngle={2}
+              style={{ cursor: "pointer" }}
+              onClick={(entry) => {
+                if (entry?.name) router.push(`/admin/orders?status=${encodeURIComponent(entry.name.toLowerCase())}`);
+              }}>
               {ordersByStatus.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
               ))}

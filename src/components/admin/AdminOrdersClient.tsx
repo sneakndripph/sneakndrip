@@ -12,6 +12,22 @@ import {
 const STATUSES = ["all", "pending", "paid", "processing", "shipped", "delivered", "cancelled"] as const;
 type Status = (typeof STATUSES)[number];
 
+type Period = "all" | "today" | "7d" | "30d" | "90d";
+const PERIODS: { id: Period; label: string }[] = [
+  { id: "all", label: "All Time" },
+  { id: "today", label: "Today" },
+  { id: "7d", label: "7 Days" },
+  { id: "30d", label: "30 Days" },
+  { id: "90d", label: "90 Days" },
+];
+function periodStart(p: Period): Date | null {
+  const now = new Date();
+  if (p === "all") return null;
+  if (p === "today") { const d = new Date(now); d.setHours(0, 0, 0, 0); return d; }
+  const days = p === "7d" ? 7 : p === "30d" ? 30 : 90;
+  return new Date(now.getTime() - days * 86400000);
+}
+
 const STATUS_CFG = {
   pending:    { icon: Clock,        color: "#D97706", bg: "rgba(217,119,6,0.1)",    label: "Pending" },
   paid:       { icon: CheckCircle,  color: "#5BB8B4", bg: "rgba(91,184,180,0.1)",   label: "Paid" },
@@ -82,6 +98,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
   const [statusFilter, setStatusFilter] = useState<Status>(
     STATUSES.includes(initialStatus as Status) ? (initialStatus as Status) : "all"
   );
+  const [periodFilter, setPeriodFilter] = useState<Period>("all");
   const [selected, setSelected] = useState<Order | null>(null);
   const [trackingInput, setTrackingInput] = useState("");
   const [notesInput, setNotesInput] = useState("");
@@ -113,13 +130,15 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const pStart = periodStart(periodFilter);
   const filtered = orders.filter(o => {
     const matchSearch = !search ||
       o.customer_name.toLowerCase().includes(search.toLowerCase()) ||
       o.order_number.toLowerCase().includes(search.toLowerCase()) ||
       o.order_items.some(i => i.product_name.toLowerCase().includes(search.toLowerCase()));
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchPeriod = !pStart || new Date(o.created_at) >= pStart;
+    return matchSearch && matchStatus && matchPeriod;
   });
 
   const counts = STATUSES.reduce((acc, s) => {
@@ -242,6 +261,21 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
             <p className="text-xs" style={{ color: BRAND.muted }}>Total Revenue</p>
           </div>
         )}
+      </div>
+
+      {/* Period filter */}
+      <div className="flex gap-1.5 mb-4">
+        {PERIODS.map(p => (
+          <button key={p.id} onClick={() => setPeriodFilter(p.id)}
+            className="px-3 py-1.5 text-xs font-bold transition-colors"
+            style={{
+              background: periodFilter === p.id ? BRAND.teal : "transparent",
+              color: periodFilter === p.id ? "#fff" : BRAND.muted,
+              border: `1px solid ${periodFilter === p.id ? BRAND.teal : BRAND.border}`,
+            }}>
+            {p.label}
+          </button>
+        ))}
       </div>
 
       {/* Status tabs */}
@@ -674,18 +708,31 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                   {statusDropdownOpen && (
                     <div className="absolute left-0 right-0 bottom-full mb-1 z-50 overflow-hidden shadow-lg"
                       style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-                      {statusOptions.map(([k, v]) => (
-                        <button key={k} type="button"
-                          onClick={() => { updateStatus(liveSelected.id, k); setStatusDropdownOpen(false); }}
-                          className="w-full flex items-center justify-between px-3 py-2.5 text-xs text-left transition-colors hover:opacity-80"
-                          style={{ background: liveSelected.status === k ? `${BRAND.teal}10` : "transparent", color: liveSelected.status === k ? BRAND.teal : BRAND.black, borderBottom: `1px solid ${BRAND.border}`, fontWeight: liveSelected.status === k ? 700 : 500 }}>
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: (v as { color: string }).color }} />
-                            {k === "delivered" && isCODSelected ? "Delivered / Cash Collected" : (v as { label: string }).label}
-                          </div>
-                          {liveSelected.status === k && <Check className="w-3 h-3 shrink-0" />}
-                        </button>
-                      ))}
+                      {statusOptions.map(([k, v]) => {
+                        const needsTracking = (k === "shipped" || k === "delivered") && !liveSelected.tracking_number && !isCODSelected;
+                        return (
+                          <button key={k} type="button"
+                            disabled={needsTracking}
+                            onClick={() => {
+                              if (k === "shipped" && !liveSelected.tracking_number) {
+                                setShippingTrackingInput("");
+                                setShowShippingModal(true);
+                              } else {
+                                updateStatus(liveSelected.id, k);
+                              }
+                              setStatusDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center justify-between px-3 py-2.5 text-xs text-left transition-colors hover:opacity-80 disabled:opacity-40"
+                            style={{ background: liveSelected.status === k ? `${BRAND.teal}10` : "transparent", color: liveSelected.status === k ? BRAND.teal : BRAND.black, borderBottom: `1px solid ${BRAND.border}`, fontWeight: liveSelected.status === k ? 700 : 500 }}>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: (v as { color: string }).color }} />
+                              {k === "delivered" && isCODSelected ? "Delivered / Cash Collected" : (v as { label: string }).label}
+                              {needsTracking && <span style={{ color: BRAND.red }}>(add tracking first)</span>}
+                            </div>
+                            {liveSelected.status === k && <Check className="w-3 h-3 shrink-0" />}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>

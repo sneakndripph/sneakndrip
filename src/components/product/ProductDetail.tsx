@@ -91,6 +91,8 @@ export default function ProductDetail({
   const [reviewName, setReviewName] = useState("");
   const [reviewTitle, setReviewTitle] = useState("");
   const [reviewBody, setReviewBody] = useState("");
+  const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
+  const [reviewImagePreview, setReviewImagePreview] = useState<string | null>(null);
   const [submittingReview, setSubmittingReview] = useState(false);
   const addItem = useCartStore(s => s.addItem);
   const { trackItem } = useRecentlyViewed();
@@ -158,14 +160,26 @@ export default function ProductDetail({
     if (!reviewName.trim() || !reviewBody.trim()) return;
     setSubmittingReview(true);
     try {
+      let image_url: string | null = null;
+      if (reviewImageFile) {
+        const supabase = createClient();
+        const ext = reviewImageFile.name.split(".").pop() ?? "jpg";
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from("review-photos").upload(path, reviewImageFile, { upsert: false });
+        if (!upErr) {
+          const { data: urlData } = supabase.storage.from("review-photos").getPublicUrl(path);
+          image_url = urlData.publicUrl;
+        }
+      }
       const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_id: product.id, author_name: reviewName.trim(), rating: reviewRating, title: reviewTitle.trim(), body: reviewBody.trim() }),
+        body: JSON.stringify({ product_id: product.id, author_name: reviewName.trim(), rating: reviewRating, title: reviewTitle.trim(), body: reviewBody.trim(), image_url }),
       });
       if (res.ok) {
         toast.success("Review submitted! It will appear after approval.");
         setReviewName(""); setReviewTitle(""); setReviewBody(""); setReviewRating(5);
+        setReviewImageFile(null); setReviewImagePreview(null);
       } else {
         toast.error("Couldn't submit review. Try again.");
       }
@@ -647,6 +661,35 @@ export default function ProductDetail({
                         placeholder="Share your experience…"
                         className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none"
                         style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+                      {/* Photo upload */}
+                      {reviewImagePreview ? (
+                        <div className="relative w-24 h-24">
+                          <Image src={reviewImagePreview} alt="Review photo" fill className="object-cover rounded-lg" sizes="96px" />
+                          <button type="button" onClick={() => { setReviewImageFile(null); setReviewImagePreview(null); }}
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                            style={{ background: BRAND.black, color: BRAND.bg }}>
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex items-center gap-2 cursor-pointer w-fit">
+                          <div className="w-24 h-24 rounded-lg flex flex-col items-center justify-center gap-1 border-2 border-dashed"
+                            style={{ borderColor: BRAND.border, color: BRAND.muted }}>
+                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.338-2.32 3.75 3.75 0 0 1 3.822 6.77A4.5 4.5 0 0 1 17.25 19.5H6.75Z" />
+                            </svg>
+                            <span className="text-[10px] font-semibold">Add Photo</span>
+                          </div>
+                          <input type="file" accept="image/*" className="hidden"
+                            onChange={e => {
+                              const f = e.target.files?.[0];
+                              if (!f) return;
+                              setReviewImageFile(f);
+                              const url = URL.createObjectURL(f);
+                              setReviewImagePreview(url);
+                            }} />
+                        </label>
+                      )}
                       <button type="submit" disabled={submittingReview}
                         className="px-6 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80 disabled:opacity-50"
                         style={{ background: BRAND.black, color: BRAND.bg }}>

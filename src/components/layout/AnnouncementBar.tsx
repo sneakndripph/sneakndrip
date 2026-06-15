@@ -5,12 +5,10 @@ import { BRAND } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
 function buildText(data: Record<string, string>): string {
-  const threshold = data.free_shipping_threshold || "5000";
+  const threshold = Number(data.free_shipping_threshold || "5000").toLocaleString();
   const custom = data.announcement_text?.trim();
-  return (
-    custom ||
-    `Free Shipping on Orders ₱${Number(threshold).toLocaleString()}+  ·  100% Authentic Guaranteed  ·  GCash, Maya, Bank Transfer & COD Accepted`
-  );
+  if (custom) return custom;
+  return `Free Shipping on Orders ₱${threshold}+  ·  100% Authentic Guaranteed  ·  GCash, Maya, Bank Transfer & COD Accepted`;
 }
 
 const DEFAULT_TEXT =

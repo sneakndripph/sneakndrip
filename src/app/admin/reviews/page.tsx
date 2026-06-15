@@ -7,7 +7,7 @@ export default async function AdminReviewsPage() {
   const admin = createAdminClient();
   const { data: reviews } = await admin
     .from("reviews")
-    .select("id, product_id, author_name, rating, title, body, is_verified, created_at, products(name)")
+    .select("id, product_id, author_name, rating, title, body, is_verified, created_at, image_url, products(name)")
     .order("created_at", { ascending: false });
 
   const enriched = (reviews ?? []).map(r => {

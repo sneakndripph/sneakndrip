@@ -4,6 +4,7 @@ import Image from "next/image";
 import { BRAND, FONTS, BRANDS } from "@/lib/constants";
 import ProductCard from "@/components/product/ProductCard";
 import HomeClient from "@/components/home/HomeClient";
+import HomeReviews from "@/components/home/HomeReviews";
 import HeroAddToCart from "@/components/product/HeroAddToCart";
 
 export const dynamic = "force-dynamic";
@@ -373,38 +374,7 @@ export default async function HomePage() {
           </h2>
         </div>
 
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-5">
-          {reviews.slice(0, 6).map(r => {
-            const slug = r.product_id ? productSlugMap.get(r.product_id) : null;
-            const href = slug ? `/shop/${slug}#reviews` : "/shop";
-            return (
-              <Link key={r.id} href={href}
-                className="block p-6 rounded-xl transition-shadow hover:shadow-md"
-                style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
-                <div className="flex gap-0.5 mb-4">
-                  {Array(r.rating).fill(0).map((_, i) => (
-                    <span key={i} className="text-sm" style={{ color: BRAND.teal }}>★</span>
-                  ))}
-                </div>
-                <p className="text-sm leading-relaxed mb-5 italic" style={{ color: BRAND.black, fontFamily: FONTS.body }}>
-                  &ldquo;{r.body}&rdquo;
-                </p>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-bold text-sm" style={{ color: BRAND.black, fontFamily: FONTS.body }}>{r.author_name}</p>
-                    {r.title && <p className="text-xs" style={{ color: BRAND.muted, fontFamily: FONTS.body }}>{r.title}</p>}
-                  </div>
-                  {r.is_verified && (
-                    <span className="text-[10px] font-semibold px-2.5 py-1"
-                      style={{ background: `${BRAND.teal}15`, color: BRAND.teal, fontFamily: FONTS.body }}>
-                      Verified
-                    </span>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <HomeReviews reviews={reviews} productSlugMap={productSlugMap} />
       </section>
 
       {/* ── Newsletter ─────────────────────────────────────────────────── */}

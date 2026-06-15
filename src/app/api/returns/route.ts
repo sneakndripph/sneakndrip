@@ -39,10 +39,11 @@ export async function POST(req: NextRequest) {
     const user = await getUser();
     if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { order_id, order_number, reason, photo_url } = await req.json();
+    const { order_id, order_number, reason, photo_url, photo_urls } = await req.json() as { order_id: string; order_number: string; reason: string; photo_url?: string | null; photo_urls?: string[] };
     if (!order_id || !order_number || !reason?.trim()) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
+    const finalPhotoUrls: string[] = photo_urls?.length ? photo_urls : (photo_url ? [photo_url] : []);
 
     const admin = createAdminClient();
 
@@ -72,11 +73,46 @@ export async function POST(req: NextRequest) {
       customer_email: user.email,
       customer_name: order.customer_name ?? user.user_metadata?.full_name ?? user.email,
       reason: reason.trim(),
-      photo_url: photo_url ?? null,
+      photo_url: finalPhotoUrls[0] ?? null,
+      photo_urls: finalPhotoUrls,
     }).select().single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ return_request: data }, { status: 201 });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const user = await getUser();
+    if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const { id, reason, photo_url, photo_urls } = await req.json() as { id: string; reason: string; photo_url?: string | null; photo_urls?: string[] };
+    if (!id || !reason?.trim()) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    const finalPhotoUrls: string[] = photo_urls?.length ? photo_urls : (photo_url ? [photo_url] : []);
+
+    const admin = createAdminClient();
+
+    // Verify this return request belongs to this customer and is still pending
+    const { data: existing } = await admin
+      .from("return_requests")
+      .select("id, customer_email, status")
+      .eq("id", id)
+      .single();
+
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (existing.customer_email !== user.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (existing.status !== "pending") return NextResponse.json({ error: "Can only edit pending requests" }, { status: 400 });
+
+    const { error } = await admin
+      .from("return_requests")
+      .update({ reason: reason.trim(), photo_url: finalPhotoUrls[0] ?? null, photo_urls: finalPhotoUrls, updated_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }

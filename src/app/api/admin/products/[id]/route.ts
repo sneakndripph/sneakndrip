@@ -24,7 +24,7 @@ async function sendRestockEmails(productId: string, restockedSizes: string[], pr
   if (!process.env.RESEND_API_KEY || restockedSizes.length === 0) return;
   const admin = createAdminClient();
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const FROM_EMAIL = "orders@sneakndrip.ph";
+  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
 
   for (const size of restockedSizes) {
     const { data: notifs } = await admin

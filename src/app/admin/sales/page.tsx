@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { BRAND, FONTS } from "@/lib/constants";
 import { TrendingUp, ShoppingBag, Banknote, XCircle, Download, RefreshCw, X, Package } from "lucide-react";
 import Link from "next/link";
@@ -33,13 +34,14 @@ type Metrics = {
 };
 type PaymentOrder = { order_number: string; customer_name: string; total: number; status: string; created_at: string };
 type TopProduct = { name: string; revenue: number; units: number; profit: number | null; image: string | null; slug: string | null };
+type TopCustomer = { name: string; email: string; revenue: number; orders: number };
 type SalesData = {
   metrics: Metrics;
   revenueByDay: { date: string; revenue: number; orders: number }[];
   topProducts: TopProduct[];
   byPayment: { method: string; revenue: number; orders: PaymentOrder[] }[];
   byStatus: { status: string; count: number }[];
-  topCustomers: { name: string; email: string; revenue: number; orders: number }[];
+  topCustomers: TopCustomer[];
 };
 
 function periodToRange(p: Period): { from?: string; to?: string } {
@@ -79,12 +81,14 @@ function MetricCard({ label, value, sub, icon: Icon, color, bg, href, onClick }:
 }
 
 export default function AdminSalesPage() {
+  const router = useRouter();
   const [period, setPeriod] = useState<Period>("30d");
   const [data, setData] = useState<SalesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentModal, setPaymentModal] = useState<{ method: string; orders: PaymentOrder[] } | null>(null);
   const [topProductModal, setTopProductModal] = useState<TopProduct | null>(null);
   const [netIncomeModal, setNetIncomeModal] = useState(false);
+  const [topCustomerModal, setTopCustomerModal] = useState<TopCustomer | null>(null);
 
   const load = useCallback(async (p: Period) => {
     setLoading(true);
@@ -164,11 +168,11 @@ export default function AdminSalesPage() {
             </div>
             <div className="p-5">
               {topProductModal.image ? (
-                <div className="relative w-full h-44 rounded-xl overflow-hidden mb-4" style={{ background: BRAND.bg }}>
-                  <Image src={topProductModal.image} alt={topProductModal.name} fill className="object-cover" sizes="320px" />
+                <div className="relative aspect-square w-full rounded-xl overflow-hidden mb-4" style={{ background: BRAND.bg }}>
+                  <Image src={topProductModal.image} alt={topProductModal.name} fill className="object-contain p-2" sizes="320px" />
                 </div>
               ) : (
-                <div className="w-full h-44 rounded-xl flex items-center justify-center mb-4" style={{ background: BRAND.bg }}>
+                <div className="aspect-square w-full rounded-xl flex items-center justify-center mb-4" style={{ background: BRAND.bg }}>
                   <Package className="w-12 h-12 opacity-20" style={{ color: BRAND.black }} />
                 </div>
               )}
@@ -231,6 +235,41 @@ export default function AdminSalesPage() {
                   Add cost prices in Products to see accurate figures.
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Top Customer Modal */}
+      {topCustomerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setTopCustomerModal(null)}>
+          <div className="w-full max-w-xs rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ background: BRAND.black }}>
+              <h2 style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: "#fff", letterSpacing: "0.04em" }}>TOP CUSTOMER</h2>
+              <button onClick={() => setTopCustomerModal(null)} className="opacity-60 hover:opacity-100"><X className="w-5 h-5 text-white" /></button>
+            </div>
+            <div className="p-5 space-y-3">
+              <div>
+                <p className="font-black text-base" style={{ color: BRAND.black }}>{topCustomerModal.name}</p>
+                <p className="text-xs" style={{ color: BRAND.muted }}>{topCustomerModal.email}</p>
+              </div>
+              {[
+                { label: "Total Spent", value: fmt(topCustomerModal.revenue), color: BRAND.teal },
+                { label: "Orders", value: String(topCustomerModal.orders), color: BRAND.black },
+              ].map(r => (
+                <div key={r.label} className="flex justify-between items-center px-4 py-2.5 rounded-lg" style={{ background: BRAND.bg }}>
+                  <span className="text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>{r.label}</span>
+                  <span className="text-sm font-black" style={{ color: r.color }}>{r.value}</span>
+                </div>
+              ))}
+              <Link href={`/admin/customers?q=${encodeURIComponent(topCustomerModal.email)}`}
+                onClick={() => setTopCustomerModal(null)}
+                className="block mt-2 text-center text-xs font-bold uppercase tracking-wide py-2.5 transition-opacity hover:opacity-80"
+                style={{ background: BRAND.teal, color: "#fff" }}>
+                View Customer →
+              </Link>
             </div>
           </div>
         </div>
@@ -345,6 +384,7 @@ export default function AdminSalesPage() {
             {/* Orders by Status */}
             <div className="rounded-xl p-5" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
               <h2 className="font-black text-sm uppercase tracking-widest mb-4" style={{ color: BRAND.black }}>Orders by Status</h2>
+              <p className="text-[11px] mb-2" style={{ color: BRAND.mutedLight }}>Click a slice to view those orders</p>
               {data.byStatus.length === 0 ? (
                 <p className="text-sm text-center py-8" style={{ color: BRAND.muted }}>No data.</p>
               ) : (
@@ -353,7 +393,12 @@ export default function AdminSalesPage() {
                     <Pie data={data.byStatus} dataKey="count" nameKey="status" cx="50%" cy="50%"
                       outerRadius={100} innerRadius={55} paddingAngle={2}
                       label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                      labelLine={false}>
+                      labelLine={false}
+                      style={{ cursor: "pointer" }}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      onClick={(data: any) => {
+                        if (data?.status) router.push(`/admin/orders?status=${encodeURIComponent(String(data.status).toLowerCase())}`);
+                      }}>
                       {data.byStatus.map((entry, i) => (
                         <Cell key={entry.status} fill={STATUS_COLORS[entry.status] ?? PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
@@ -410,8 +455,9 @@ export default function AdminSalesPage() {
               ) : (
                 <div>
                   {data.topCustomers.map((c, i) => (
-                    <Link key={c.email} href={`/admin/customers?q=${encodeURIComponent(c.email)}`}
-                      className="flex items-center justify-between px-5 py-3 transition-colors hover:bg-black/[0.02]"
+                    <button key={c.email}
+                      onClick={() => setTopCustomerModal(c)}
+                      className="w-full flex items-center justify-between px-5 py-3 transition-colors hover:bg-black/[0.02] text-left"
                       style={{ borderBottom: i < data.topCustomers.length - 1 ? `1px solid ${BRAND.border}` : "none" }}>
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0"
@@ -427,7 +473,7 @@ export default function AdminSalesPage() {
                         <p className="text-sm font-black" style={{ color: BRAND.black }}>{fmt(c.revenue)}</p>
                         <p className="text-xs" style={{ color: BRAND.muted }}>{c.orders} order{c.orders !== 1 ? "s" : ""}</p>
                       </div>
-                    </Link>
+                    </button>
                   ))}
                 </div>
               )}

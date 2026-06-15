@@ -17,6 +17,7 @@ type OrderData = {
   shipping?: number;
   discount?: number;
   couponCode?: string | null;
+  referenceNumber?: string | null;
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -198,9 +199,14 @@ export default function OrderConfirmationPage() {
             {/* Payment info */}
             <div className="p-5">
               <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: BRAND.muted }}>Payment</p>
-              <p className="text-sm font-semibold mb-3" style={{ color: BRAND.black }}>
+              <p className="text-sm font-semibold mb-1" style={{ color: BRAND.black }}>
                 {PAYMENT_LABELS[order.paymentMethod] ?? order.paymentMethod}
               </p>
+              {order.referenceNumber && (
+                <p className="text-xs mb-3" style={{ color: BRAND.muted }}>
+                  Reference No: <span className="font-semibold" style={{ color: BRAND.black }}>{order.referenceNumber}</span>
+                </p>
+              )}
               {order.isCOD ? (
                 <div className="p-3 rounded-lg text-sm leading-relaxed" style={{ background: `${BRAND.teal}10`, color: BRAND.black }}>
                   Your order is confirmed! Our team will contact you before delivery to confirm details. Prepare the exact amount upon arrival.

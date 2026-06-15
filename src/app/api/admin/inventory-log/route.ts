@@ -17,7 +17,7 @@ async function sendRestockEmails(productId: string, productName: string, size: s
   for (const n of notifs) {
     if (!n.email) continue;
     await resend.emails.send({
-      from: "Sneak N' Drip <orders@sneakndrip.ph>",
+      from: `Sneak N' Drip <${process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"}>`,
       to: n.email,
       subject: `${productName} (${size}) is back in stock!`,
       html: `<div style="max-width:500px;margin:0 auto;font-family:Arial,sans-serif;padding:24px"><h2 style="color:#0D0D0D">Back In Stock!</h2><p style="color:#555;font-size:15px">Good news! <strong>${productName}</strong> in size <strong>${size}</strong> is now available.</p><a href="https://sneakndrip.ph/shop" style="display:inline-block;background:#5BB8B4;color:#fff;padding:12px 24px;text-decoration:none;font-weight:bold;margin-top:12px">Shop Now</a><p style="color:#aaa;font-size:12px;margin-top:24px">You requested to be notified when this item restocked. Reply to unsubscribe.</p></div>`,
