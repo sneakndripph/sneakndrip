@@ -110,7 +110,7 @@ export default function AccountPage() {
   const [submittingReturn, setSubmittingReturn] = useState(false);
   const [returnError, setReturnError] = useState("");
   const [returnSuccess, setReturnSuccess] = useState(false);
-  const [returnedOrderIds, setReturnedOrderIds] = useState<Set<string>>(new Set());
+  const [returnedOrders, setReturnedOrders] = useState<Map<string, { status: string; admin_note: string | null }>>(new Map());
 
   // Address state
   const [addressForm, setAddressForm] = useState({ street: "", barangay: "", city: "", province: "", postal: "", regionGroup: "" });
@@ -142,10 +142,11 @@ export default function AccountPage() {
         fetch("/api/returns").then(r => r.json()).catch(() => ({ returns: [] })),
       ]).then(([ordersData, returnsData]) => {
         setOrders((ordersData.orders as Order[]) ?? []);
-        const returnedIds = new Set<string>(
-          ((returnsData.returns ?? []) as { order_number: string }[]).map(r => r.order_number)
+        const returnMap = new Map<string, { status: string; admin_note: string | null }>(
+          ((returnsData.returns ?? []) as { order_number: string; status: string; admin_note: string | null }[])
+            .map(r => [r.order_number, { status: r.status, admin_note: r.admin_note }])
         );
-        setReturnedOrderIds(returnedIds);
+        setReturnedOrders(returnMap);
         setLoadingOrders(false);
       });
     });
@@ -313,7 +314,7 @@ export default function AccountPage() {
     });
     if (res.ok) {
       setReturnSuccess(true);
-      setReturnedOrderIds(prev => new Set([...prev, returnModalOrder.order_number]));
+      setReturnedOrders(prev => new Map([...prev, [returnModalOrder.order_number, { status: "pending", admin_note: null }]]));
       setTimeout(() => {
         setReturnModalOrder(null);
         setReturnSuccess(false);
@@ -596,7 +597,7 @@ export default function AccountPage() {
                                 {cancellingOrder === order.order_number ? "Cancelling…" : "Cancel Order"}
                               </button>
                             )}
-                            {order.status === "delivered" && !returnedOrderIds.has(order.order_number) && (
+                            {order.status === "delivered" && !returnedOrders.has(order.order_number) && (
                               <button
                                 onClick={() => {
                                   setReturnModalOrder(order);
@@ -610,11 +611,23 @@ export default function AccountPage() {
                                 Request Return
                               </button>
                             )}
-                            {order.status === "delivered" && returnedOrderIds.has(order.order_number) && (
-                              <span className="text-xs font-semibold px-3 py-1.5" style={{ color: BRAND.muted }}>
-                                Return requested
-                              </span>
-                            )}
+                            {order.status === "delivered" && returnedOrders.has(order.order_number) && (() => {
+                              const ret = returnedOrders.get(order.order_number)!;
+                              return (
+                                <div className="flex flex-col items-end gap-1">
+                                  <span className="text-xs font-bold px-3 py-1.5 rounded-full"
+                                    style={{
+                                      background: ret.status === "approved" ? "rgba(16,185,129,0.12)" : ret.status === "denied" ? `${BRAND.red}12` : "rgba(138,133,128,0.12)",
+                                      color: ret.status === "approved" ? "#10B981" : ret.status === "denied" ? BRAND.red : BRAND.muted,
+                                    }}>
+                                    {ret.status === "approved" ? "✓ Return Approved" : ret.status === "denied" ? "✗ Return Denied" : "Return Requested"}
+                                  </span>
+                                  {ret.admin_note && (
+                                    <p className="text-[11px] text-right max-w-[180px]" style={{ color: BRAND.muted }}>{ret.admin_note}</p>
+                                  )}
+                                </div>
+                              );
+                            })()}
                             {order.status === "delivered" && (
                               <button
                                 onClick={async () => {

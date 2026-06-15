@@ -9,8 +9,8 @@ import { LayoutDashboard, Package, ShoppingBag, Users, Settings, ChevronRight, M
 import { BRAND, FONTS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
-type NotifCounts = { pendingOrders: number; pendingReviews: number };
-type BadgeKey = "pendingOrders" | "pendingReviews";
+type NotifCounts = { pendingOrders: number; pendingReviews: number; pendingReturns: number };
+type BadgeKey = "pendingOrders" | "pendingReviews" | "pendingReturns";
 
 const NAV: { href: string; icon: React.ElementType; label: string; badgeKey: BadgeKey | null }[] = [
   { href: "/admin",           icon: LayoutDashboard, label: "Dashboard",     badgeKey: null },
@@ -21,7 +21,7 @@ const NAV: { href: string; icon: React.ElementType; label: string; badgeKey: Bad
   { href: "/admin/coupons",   icon: Tag,             label: "Coupons",       badgeKey: null },
   { href: "/admin/inventory", icon: BarChart2,       label: "Inventory Log", badgeKey: null },
   { href: "/admin/reviews",   icon: MessageSquare,   label: "Reviews",       badgeKey: "pendingReviews" },
-  { href: "/admin/returns",   icon: RotateCcw,       label: "Returns",       badgeKey: null },
+  { href: "/admin/returns",   icon: RotateCcw,       label: "Returns",       badgeKey: "pendingReturns" as BadgeKey },
   { href: "/admin/chat",      icon: MessageCircle,   label: "Chat",          badgeKey: null },
   { href: "/admin/content",   icon: FileText,        label: "Pages",         badgeKey: null },
   { href: "/admin/users",     icon: UserCog,         label: "Users",         badgeKey: null },
@@ -33,13 +33,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifs, setNotifs] = useState<NotifCounts>({ pendingOrders: 0, pendingReviews: 0 });
+  const [notifs, setNotifs] = useState<NotifCounts>({ pendingOrders: 0, pendingReviews: 0, pendingReturns: 0 });
 
   useEffect(() => {
     function load() {
       fetch("/api/admin/notifications")
         .then(r => r.json())
-        .then(d => setNotifs({ pendingOrders: d.pendingOrders ?? 0, pendingReviews: d.pendingReviews ?? 0 }))
+        .then(d => setNotifs({ pendingOrders: d.pendingOrders ?? 0, pendingReviews: d.pendingReviews ?? 0, pendingReturns: d.pendingReturns ?? 0 }))
         .catch(() => {});
     }
     load();

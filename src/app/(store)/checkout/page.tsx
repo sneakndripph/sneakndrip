@@ -55,6 +55,12 @@ export default function CheckoutPage() {
 
   const [shipCfg, setShipCfg] = useState<{ freeThreshold: number; metro: number; prov: number }>({ freeThreshold: SHIPPING_FEE.free_threshold, metro: SHIPPING_FEE.metro_sm, prov: SHIPPING_FEE.provincial_sm });
   const [codEnabled, setCodEnabled] = useState(true);
+  const [payCfg, setPayCfg] = useState({
+    gcashNumber: "0961 177 4119", gcashName: "Lorenzo Agalo P. Julio",
+    mayaNumber: "0961 177 4119", mayaName: "Lorenzo Agalo P. Julio",
+    bank1Name: "Maribank", bank1Account: "14156569205", bank1AccountName: "Lorenzo Agalo P. Julio",
+    bank2Name: "BPI", bank2Account: "0596199188", bank2AccountName: "Lorenzo Agalo P. Julio",
+  });
 
   const isCOD = paymentMethod === "cod";
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
@@ -76,6 +82,18 @@ export default function CheckoutPage() {
           prov: Number(data.provincial_shipping_fee) || SHIPPING_FEE.provincial_sm,
         });
         setCodEnabled(data.cod_enabled !== "false");
+        setPayCfg(prev => ({
+          gcashNumber: data.gcash_number || prev.gcashNumber,
+          gcashName: data.gcash_name || prev.gcashName,
+          mayaNumber: data.maya_number || prev.mayaNumber,
+          mayaName: data.maya_name || prev.mayaName,
+          bank1Name: data.bank1_name || prev.bank1Name,
+          bank1Account: data.bank1_account_number || prev.bank1Account,
+          bank1AccountName: data.bank1_account_name || prev.bank1AccountName,
+          bank2Name: data.bank2_name || prev.bank2Name,
+          bank2Account: data.bank2_account_number || prev.bank2Account,
+          bank2AccountName: data.bank2_account_name || prev.bank2AccountName,
+        }));
       })
       .catch(() => {});
     import("@/lib/supabase/client").then(({ createClient }) => {
@@ -397,29 +415,29 @@ export default function CheckoutPage() {
                     <div className="p-4 rounded-lg mb-4" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
                       {paymentMethod === "gcash" && (
                         <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
-                          <p className="font-bold">GCash Number: 0961 177 4119</p>
-                          <p>Account Name: Lorenzo Agalo P. Julio</p>
+                          <p className="font-bold">GCash Number: {payCfg.gcashNumber}</p>
+                          <p>Account Name: {payCfg.gcashName}</p>
                           <p>Amount: ₱{total.toLocaleString()}</p>
                         </div>
                       )}
                       {paymentMethod === "maya" && (
                         <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
-                          <p className="font-bold">Maya Number: 0961 177 4119</p>
-                          <p>Account Name: Lorenzo Agalo P. Julio</p>
+                          <p className="font-bold">Maya Number: {payCfg.mayaNumber}</p>
+                          <p>Account Name: {payCfg.mayaName}</p>
                           <p>Amount: ₱{total.toLocaleString()}</p>
                         </div>
                       )}
                       {paymentMethod === "bank_transfer" && (
                         <div className="text-sm space-y-4" style={{ color: BRAND.black }}>
                           <div className="space-y-1">
-                            <p className="font-bold">Maribank</p>
-                            <p>Account Number: 14156569205</p>
-                            <p>Account Name: Lorenzo Agalo P. Julio</p>
+                            <p className="font-bold">{payCfg.bank1Name}</p>
+                            <p>Account Number: {payCfg.bank1Account}</p>
+                            <p>Account Name: {payCfg.bank1AccountName}</p>
                           </div>
                           <div className="space-y-1" style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>
-                            <p className="font-bold">BPI</p>
-                            <p>Account Number: 0596199188</p>
-                            <p>Account Name: Lorenzo Agalo P. Julio</p>
+                            <p className="font-bold">{payCfg.bank2Name}</p>
+                            <p>Account Number: {payCfg.bank2Account}</p>
+                            <p>Account Name: {payCfg.bank2AccountName}</p>
                           </div>
                           <p className="font-bold" style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>Amount: ₱{total.toLocaleString()}</p>
                         </div>
