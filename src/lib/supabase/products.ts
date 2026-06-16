@@ -28,6 +28,9 @@ function mapRow(p: Record<string, unknown>): Product {
     eta_start: (p.eta_start as string) ?? undefined,
     eta_end: (p.eta_end as string) ?? undefined,
     images: Array.isArray(p.images) ? (p.images as string[]) : undefined,
+    sale_price: p.sale_price != null ? Number(p.sale_price) : null,
+    sale_start: (p.sale_start as string) ?? null,
+    sale_end: (p.sale_end as string) ?? null,
   };
 }
 

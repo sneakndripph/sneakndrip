@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldCheck } from "lucide-react";
+import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldCheck, Download } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#D97706", paid: BRAND.teal, processing: "#6366F1",
@@ -66,12 +66,37 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
     );
   }, [customers, search]);
 
+  function exportCSV() {
+    const rows = [
+      ["Name", "Email", "Mobile", "City", "Orders", "Total Spent", "Joined", "Status"],
+      ...filtered.map(c => [
+        c.name, c.email, c.mobile, c.city,
+        c.orders, `₱${Number(c.total).toLocaleString()}`,
+        new Date(c.joined).toLocaleDateString("en-PH"),
+        c.banned ? "Banned" : "Active",
+      ]),
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `customers-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
   return (
     <div style={{ fontFamily: FONTS.body }}>
-      <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Management</p>
-        <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>CUSTOMERS</h1>
-        <p className="text-sm mt-1" style={{ color: BRAND.muted }}>{customers.length} registered accounts</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Management</p>
+          <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>CUSTOMERS</h1>
+          <p className="text-sm mt-1" style={{ color: BRAND.muted }}>{customers.length} registered accounts</p>
+        </div>
+        <button onClick={exportCSV}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-opacity hover:opacity-70"
+          style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+          <Download className="w-3.5 h-3.5" /> Export CSV
+        </button>
       </div>
 
       <div className="relative mb-6 max-w-sm">

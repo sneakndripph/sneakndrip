@@ -41,6 +41,9 @@ export default function EditProductForm({ product }: { product: Product }) {
     cost: String(product.cost_price ?? ""),
     etaStart: String(product.eta_start ?? ""),
     etaEnd: String(product.eta_end ?? ""),
+    salePrice: String(product.sale_price ?? ""),
+    saleStart: product.sale_start ? String(product.sale_start).split("T")[0] : "",
+    saleEnd:   product.sale_end   ? String(product.sale_end).split("T")[0]   : "",
   });
   const [visibility, setVisibility] = useState({
     published: Boolean(product.is_published ?? true),
@@ -90,6 +93,9 @@ export default function EditProductForm({ product }: { product: Product }) {
         downpayment_price: Number(form.dp) || Math.round(Number(form.full) * 0.5),
         full_payment_price: Number(form.full),
         cost_price: form.cost ? Number(form.cost) : null,
+        sale_price: form.salePrice ? Number(form.salePrice) : null,
+        sale_start: form.salePrice && form.saleStart ? form.saleStart : null,
+        sale_end:   form.salePrice && form.saleEnd   ? form.saleEnd   : null,
         status,
         eta_start: status === "pre-order" && form.etaStart ? form.etaStart : null,
         eta_end: status === "pre-order" && form.etaEnd ? form.etaEnd : null,
@@ -265,6 +271,35 @@ export default function EditProductForm({ product }: { product: Product }) {
                     placeholder="0"
                     className="w-full pl-7 pr-4 py-3 text-sm focus:outline-none" style={inputStyle} />
                 </div>
+              </div>
+              <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                <p className="text-xs font-bold uppercase tracking-wide mb-3" style={{ color: BRAND.red }}>
+                  Sale / Scheduled Discount
+                </p>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>Sale Price</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: BRAND.muted }}>₱</span>
+                      <input type="number" value={form.salePrice} onChange={e => set("salePrice", e.target.value)}
+                        placeholder="Leave blank to disable"
+                        className="w-full pl-7 pr-4 py-3 text-sm focus:outline-none" style={inputStyle} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>Sale Start</label>
+                    <input type="date" value={form.saleStart} onChange={e => set("saleStart", e.target.value)}
+                      className="w-full px-4 py-3 text-sm focus:outline-none" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>Sale End</label>
+                    <input type="date" value={form.saleEnd} onChange={e => set("saleEnd", e.target.value)}
+                      className="w-full px-4 py-3 text-sm focus:outline-none" style={inputStyle} />
+                  </div>
+                </div>
+                <p className="text-[10px] mt-2" style={{ color: BRAND.mutedLight }}>
+                  Leave start/end blank for an always-on discount. Sale badge shows automatically on the product.
+                </p>
               </div>
             </div>
 
