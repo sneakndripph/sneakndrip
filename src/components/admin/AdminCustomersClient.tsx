@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldCheck, Download } from "lucide-react";
+import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldCheck, Download, MessageCircle } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "#D97706", paid: BRAND.teal, processing: "#6366F1",
@@ -21,6 +21,7 @@ type CustomerOrder = {
 
 type Customer = {
   id: string;
+  authUserId: string | null;
   banned: boolean;
   name: string;
   email: string;
@@ -45,10 +46,11 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
     if (!banTarget) return;
     setBanning(true);
     setBanError("");
+    const userId = banTarget.authUserId ?? banTarget.id;
     const res = await fetch("/api/admin/customers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: banTarget.id, ban: !banTarget.banned }),
+      body: JSON.stringify({ userId, ban: !banTarget.banned }),
     });
     if (res.ok) {
       const newBanned = !banTarget.banned;
@@ -285,6 +287,11 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
                 {selected.banned ? <ShieldCheck className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
                 {selected.banned ? "Unban" : "Ban"}
               </button>
+              <a href={`/admin/chat?email=${encodeURIComponent(selected.email)}`}
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80"
+                style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>
+                <MessageCircle className="w-3.5 h-3.5" /> Message
+              </a>
               <button onClick={() => setSelected(null)}
                 className="flex-1 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
                 style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>

@@ -68,7 +68,7 @@ export default function AdminMarketingPage() {
   // --- Discounts state ---
   const [products, setProducts] = useState<DiscountProduct[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const [editingDiscountId, setEditingDiscountId] = useState<string | null>(null);
+  const [editingDiscountProduct, setEditingDiscountProduct] = useState<DiscountProduct | null>(null);
   const [discountEdit, setDiscountEdit] = useState<DiscountEdit>({ salePrice: "", saleStart: "", saleEnd: "" });
   const [discountError, setDiscountError] = useState("");
   const [savingDiscount, setSavingDiscount] = useState(false);
@@ -86,13 +86,13 @@ export default function AdminMarketingPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === "discounts" && products.length === 0 && !loadingProducts) {
-      setLoadingProducts(true);
-      fetch("/api/admin/products?limit=200")
-        .then(r => r.json())
-        .then(d => setProducts((d.products ?? d) as DiscountProduct[]))
-        .finally(() => setLoadingProducts(false));
-    }
+    if (activeTab !== "discounts" || products.length > 0 || loadingProducts) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoadingProducts(true);
+    fetch("/api/admin/products?limit=200")
+      .then(r => r.json())
+      .then(d => setProducts((d.products ?? d) as DiscountProduct[]))
+      .finally(() => setLoadingProducts(false));
   }, [activeTab, products.length, loadingProducts]);
 
   // --- Coupon handlers ---
@@ -138,14 +138,14 @@ export default function AdminMarketingPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this coupon?")) return;
+    if (!confirm("Delete this voucher?")) return;
     setCoupons(prev => prev.filter(c => c.id !== id));
     await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" });
   }
 
   // --- Discount handlers ---
   function openDiscountEdit(p: DiscountProduct) {
-    setEditingDiscountId(p.id);
+    setEditingDiscountProduct(p);
     setDiscountEdit({
       salePrice: p.sale_price != null ? String(p.sale_price) : "",
       saleStart: toDatetimeLocal(p.sale_start),
@@ -155,7 +155,7 @@ export default function AdminMarketingPage() {
   }
 
   function closeDiscountEdit() {
-    setEditingDiscountId(null);
+    setEditingDiscountProduct(null);
     setDiscountEdit({ salePrice: "", saleStart: "", saleEnd: "" });
     setDiscountError("");
   }
@@ -204,7 +204,7 @@ export default function AdminMarketingPage() {
   const inputStyle = { background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black };
 
   const TABS = [
-    { id: "coupons" as const, label: "Coupons", icon: Tag },
+    { id: "coupons" as const, label: "Voucher", icon: Tag },
     { id: "discounts" as const, label: "Scheduled Discounts", icon: Calendar },
   ];
 
@@ -219,7 +219,7 @@ export default function AdminMarketingPage() {
           <button onClick={openCreate}
             className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80"
             style={{ background: BRAND.teal, color: "#fff" }}>
-            <Plus className="w-4 h-4" /> New Coupon
+            <Plus className="w-4 h-4" /> New Voucher
           </button>
         )}
       </div>
@@ -248,7 +248,7 @@ export default function AdminMarketingPage() {
           <div className="w-full max-w-2xl rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
               <p className="font-black text-sm uppercase tracking-wide" style={{ color: BRAND.black }}>
-                {editingId ? "Edit Coupon" : "Create Coupon"}
+                {editingId ? "Edit Voucher" : "Create Voucher"}
               </p>
               <button type="button" onClick={closeForm} className="p-1 transition-opacity hover:opacity-70">
                 <X className="w-4 h-4" style={{ color: BRAND.muted }} />
@@ -322,7 +322,7 @@ export default function AdminMarketingPage() {
                 <button type="submit" disabled={saving}
                   className="px-6 py-2.5 text-sm font-bold uppercase tracking-wide disabled:opacity-50"
                   style={{ background: BRAND.black, color: BRAND.bg }}>
-                  {saving ? (editingId ? "Saving…" : "Creating…") : (editingId ? "Save Changes" : "Create Coupon")}
+                  {saving ? (editingId ? "Saving…" : "Creating…") : (editingId ? "Save Changes" : "Create Voucher")}
                 </button>
                 <button type="button" onClick={closeForm}
                   className="px-6 py-2.5 text-sm font-bold uppercase tracking-wide"
@@ -331,6 +331,82 @@ export default function AdminMarketingPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Discount edit modal */}
+      {editingDiscountProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={e => { if (e.target === e.currentTarget) closeDiscountEdit(); }}>
+          <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+              <div>
+                <p className="font-black text-sm uppercase tracking-wide" style={{ color: BRAND.black }}>Scheduled Discount</p>
+                <p className="text-xs mt-0.5 truncate max-w-[260px]" style={{ color: BRAND.muted }}>{editingDiscountProduct.name}</p>
+              </div>
+              <button type="button" onClick={closeDiscountEdit} className="p-1 transition-opacity hover:opacity-70">
+                <X className="w-4 h-4" style={{ color: BRAND.muted }} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between text-sm">
+                <span style={{ color: BRAND.muted }}>Full Price</span>
+                <span className="font-bold" style={{ color: BRAND.black }}>₱{Number(editingDiscountProduct.full_payment_price).toLocaleString()}</span>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                  Sale Price (₱) <span style={{ color: BRAND.muted, fontWeight: 400, textTransform: "none" }}>— set 0 to remove sale</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: BRAND.muted }}>₱</span>
+                  <input
+                    type="number" min="0"
+                    value={discountEdit.salePrice}
+                    onChange={e => setDiscountEdit(d => ({ ...d, salePrice: e.target.value }))}
+                    placeholder="0 = no sale"
+                    autoFocus
+                    className="w-full pl-7 pr-3 py-2.5 text-sm focus:outline-none"
+                    style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Sale Start</label>
+                <input
+                  type="datetime-local"
+                  value={discountEdit.saleStart}
+                  onChange={e => setDiscountEdit(d => ({ ...d, saleStart: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm focus:outline-none"
+                  style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Sale End</label>
+                <input
+                  type="datetime-local"
+                  value={discountEdit.saleEnd}
+                  onChange={e => setDiscountEdit(d => ({ ...d, saleEnd: e.target.value }))}
+                  className="w-full px-3 py-2.5 text-sm focus:outline-none"
+                  style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                />
+              </div>
+              {discountError && (
+                <p className="text-sm font-semibold" style={{ color: BRAND.red }}>{discountError}</p>
+              )}
+            </div>
+            <div className="flex gap-3 px-6 pb-6">
+              <button onClick={() => saveDiscount(editingDiscountProduct)} disabled={savingDiscount}
+                className="flex-1 py-2.5 text-sm font-black uppercase tracking-wide disabled:opacity-50"
+                style={{ background: BRAND.teal, color: "#fff" }}>
+                {savingDiscount ? "Saving…" : "Save Discount"}
+              </button>
+              <button onClick={closeDiscountEdit}
+                className="px-5 py-2.5 text-sm font-bold"
+                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -423,10 +499,12 @@ export default function AdminMarketingPage() {
               </thead>
               <tbody>
                 {products.map(p => {
-                  const isEditing = editingDiscountId === p.id;
                   const hasSale = p.sale_price != null;
                   return (
-                    <tr key={p.id} style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                    <tr key={p.id}
+                      className="transition-colors hover:bg-black/[0.025] cursor-pointer"
+                      style={{ borderBottom: `1px solid ${BRAND.border}` }}
+                      onClick={() => openDiscountEdit(p)}>
                       <td className="px-4 py-3">
                         <p className="text-sm font-semibold" style={{ color: BRAND.black }}>{p.name}</p>
                         <p className="text-xs" style={{ color: BRAND.muted }}>{p.brand}</p>
@@ -434,85 +512,27 @@ export default function AdminMarketingPage() {
                       <td className="px-4 py-3 text-sm font-bold" style={{ color: BRAND.black }}>
                         ₱{Number(p.full_payment_price).toLocaleString()}
                       </td>
-                      {isEditing ? (
-                        <>
-                          <td className="px-4 py-3">
-                            <div className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold" style={{ color: BRAND.muted }}>₱</span>
-                              <input
-                                type="number" min="0"
-                                value={discountEdit.salePrice}
-                                onChange={e => setDiscountEdit(d => ({ ...d, salePrice: e.target.value }))}
-                                placeholder="0 = no sale"
-                                className="w-28 pl-5 pr-2 py-1.5 text-sm focus:outline-none"
-                                style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
-                              />
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="datetime-local"
-                              value={discountEdit.saleStart}
-                              onChange={e => setDiscountEdit(d => ({ ...d, saleStart: e.target.value }))}
-                              className="text-xs px-2 py-1.5 focus:outline-none"
-                              style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <input
-                              type="datetime-local"
-                              value={discountEdit.saleEnd}
-                              onChange={e => setDiscountEdit(d => ({ ...d, saleEnd: e.target.value }))}
-                              className="text-xs px-2 py-1.5 focus:outline-none"
-                              style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
-                            />
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex flex-col gap-1 min-w-[120px]">
-                              {discountError && (
-                                <p className="text-[10px] font-semibold" style={{ color: BRAND.red }}>{discountError}</p>
-                              )}
-                              <div className="flex gap-2">
-                                <button onClick={() => saveDiscount(p)} disabled={savingDiscount}
-                                  className="px-3 py-1 text-xs font-bold uppercase tracking-wide disabled:opacity-50"
-                                  style={{ background: BRAND.teal, color: "#fff" }}>
-                                  {savingDiscount ? "…" : "Save"}
-                                </button>
-                                <button onClick={closeDiscountEdit}
-                                  className="px-3 py-1 text-xs font-bold"
-                                  style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
-                                  Cancel
-                                </button>
-                              </div>
-                            </div>
-                          </td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="px-4 py-3">
-                            {hasSale ? (
-                              <span className="text-sm font-bold" style={{ color: BRAND.red }}>
-                                ₱{Number(p.sale_price).toLocaleString()}
-                              </span>
-                            ) : (
-                              <span className="text-xs" style={{ color: BRAND.mutedLight }}>—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-xs" style={{ color: BRAND.muted }}>
-                            {p.sale_start ? new Date(p.sale_start).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-xs" style={{ color: BRAND.muted }}>
-                            {p.sale_end ? new Date(p.sale_end).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "—"}
-                          </td>
-                          <td className="px-4 py-3">
-                            <button onClick={() => openDiscountEdit(p)}
-                              className="text-xs font-bold px-3 py-1.5 transition-opacity hover:opacity-70"
-                              style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
-                              Edit
-                            </button>
-                          </td>
-                        </>
-                      )}
+                      <td className="px-4 py-3">
+                        {hasSale ? (
+                          <span className="text-sm font-bold" style={{ color: BRAND.red }}>
+                            ₱{Number(p.sale_price).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-xs" style={{ color: BRAND.mutedLight }}>—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-xs" style={{ color: BRAND.muted }}>
+                        {p.sale_start ? new Date(p.sale_start).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-xs" style={{ color: BRAND.muted }}>
+                        {p.sale_end ? new Date(p.sale_end).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs font-bold px-3 py-1.5 transition-opacity hover:opacity-70"
+                          style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                          Edit
+                        </span>
+                      </td>
                     </tr>
                   );
                 })}

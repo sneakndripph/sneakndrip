@@ -14,7 +14,7 @@ export default async function AdminCustomersPage({
   const [{ data: customers }, { data: allOrders }, { data: { users: authUsers } }] = await Promise.all([
     admin
       .from("customers")
-      .select("id, full_name, email, mobile, created_at")
+      .select("id, auth_user_id, full_name, email, mobile, created_at")
       .order("created_at", { ascending: false }),
     admin
       .from("orders")
@@ -28,6 +28,9 @@ export default async function AdminCustomersPage({
     (authUsers ?? [])
       .filter(u => u.banned_until && new Date(u.banned_until) > now)
       .map(u => u.id)
+  );
+  const authUsersByEmail = new Map(
+    (authUsers ?? []).filter(u => u.email).map(u => [u.email!, u.id])
   );
 
   type OrderItem = { product_name: string; products: { images: string[] | null } | { images: string[] | null }[] | null };
@@ -65,9 +68,11 @@ export default async function AdminCustomersPage({
     const totalRevenue = orders.filter(o => !["pending", "cancelled"].includes(o.status))
       .reduce((sum, o) => sum + Number(o.total), 0);
 
+    const authUserId = (c as { auth_user_id?: string | null }).auth_user_id ?? authUsersByEmail.get(c.email) ?? null;
     return {
       id: c.id,
-      banned: bannedIds.has(c.id),
+      authUserId,
+      banned: bannedIds.has(authUserId ?? ""),
       name: c.full_name ?? "—",
       email: c.email,
       mobile,
