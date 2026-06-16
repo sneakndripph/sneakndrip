@@ -46,6 +46,7 @@ export default function AdminReturnsPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<ReturnRequest | null>(null);
   const [noteInput, setNoteInput] = useState("");
+  const [noteError, setNoteError] = useState("");
   const [processing, setProcessing] = useState(false);
 
   async function load() {
@@ -63,15 +64,22 @@ export default function AdminReturnsPage() {
   function openModal(r: ReturnRequest) {
     setSelected(r);
     setNoteInput(r.admin_note ?? "");
+    setNoteError("");
   }
 
   function closeModal() {
     setSelected(null);
     setNoteInput("");
+    setNoteError("");
   }
 
   async function handleAction(status: "approved" | "denied") {
     if (!selected) return;
+    if (!noteInput.trim()) {
+      setNoteError("Note to customer is required.");
+      return;
+    }
+    setNoteError("");
     setProcessing(true);
     const res = await fetch("/api/admin/returns", {
       method: "PATCH",
@@ -269,16 +277,19 @@ export default function AdminReturnsPage() {
                   <>
                     <div>
                       <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>
-                        Note to Customer (optional)
+                        Note to Customer <span style={{ color: BRAND.red }}>*</span>
                       </label>
                       <textarea
                         rows={2}
                         placeholder="Reason for approval or denial…"
                         value={noteInput}
-                        onChange={e => setNoteInput(e.target.value)}
+                        onChange={e => { setNoteInput(e.target.value); setNoteError(""); }}
                         className="w-full px-4 py-3 text-sm focus:outline-none resize-none"
-                        style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                        style={{ background: BRAND.bg, border: `1px solid ${noteError ? BRAND.red : BRAND.border}`, color: BRAND.black }}
                       />
+                      {noteError && (
+                        <p className="text-xs mt-1 font-semibold" style={{ color: BRAND.red }}>{noteError}</p>
+                      )}
                     </div>
                     <div className="flex gap-3">
                       <button

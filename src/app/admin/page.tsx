@@ -30,13 +30,6 @@ export default async function AdminDashboard({
     return new Date(Date.now() - 7 * 86400000).toISOString(); // week (default)
   })();
 
-  const PERIOD_LABELS: Record<string, string> = {
-    today: "Today",
-    week: "Last 7 Days",
-    month: "Last 30 Days",
-    year: "Last 12 Months",
-  };
-  const periodLabel = PERIOD_LABELS[period] ?? "Last 7 Days";
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
@@ -267,20 +260,15 @@ export default async function AdminDashboard({
       </div>
 
       {/* Charts */}
-      <div className="mt-6 flex items-center justify-between mb-4">
-        <h2 style={{ fontFamily: FONTS.display, fontSize: "1rem", letterSpacing: "0.04em", color: BRAND.black }}>
-          REVENUE — {periodLabel.toUpperCase()}
-        </h2>
-        <Suspense fallback={null}>
-          <DashboardPeriodSelector current={period} />
-        </Suspense>
+      <div className="mt-6">
+        <DashboardCharts
+          revenueByDay={revenueByDay}
+          ordersByStatus={ordersByStatus}
+          topProducts={topProducts}
+          period={period}
+          periodSelector={<Suspense fallback={null}><DashboardPeriodSelector current={period} /></Suspense>}
+        />
       </div>
-      <DashboardCharts
-        revenueByDay={revenueByDay}
-        ordersByStatus={ordersByStatus}
-        topProducts={topProducts}
-        period={period}
-      />
     </div>
   );
 }

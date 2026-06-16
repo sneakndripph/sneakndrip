@@ -10,7 +10,6 @@ import { ShoppingBag, Zap, Shield, Truck, Clock, Star, Minus, Plus, Share2, Bell
 import toast from "react-hot-toast";
 import { useRecentlyViewed, useRecentlyViewedStore } from "@/hooks/useRecentlyViewed";
 import { useWishlist } from "@/hooks/useWishlist";
-import { createClient } from "@/lib/supabase/client";
 import type { Product, Review } from "@/lib/types";
 
 type SizeGuide = { label: string; note: string; rows: string[][] };
@@ -87,13 +86,7 @@ export default function ProductDetail({
   const [activeTab, setActiveTab] = useState<"details" | "shipping" | "auth" | "reviews">("details");
   const [imageIdx, setImageIdx] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [reviewRating, setReviewRating] = useState(5);
-  const [reviewName, setReviewName] = useState("");
-  const [reviewTitle, setReviewTitle] = useState("");
-  const [reviewBody, setReviewBody] = useState("");
-  const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
-  const [reviewImagePreview, setReviewImagePreview] = useState<string | null>(null);
-  const [submittingReview, setSubmittingReview] = useState(false);
+  const [lightboxReview, setLightboxReview] = useState<Review | null>(null);
   const addItem = useCartStore(s => s.addItem);
   const { trackItem } = useRecentlyViewed();
   const recentItems = useRecentlyViewedStore(s => s.items);
@@ -104,16 +97,6 @@ export default function ProductDetail({
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notifySubmitted, setNotifySubmitted] = useState<string | null>(null);
   const [showSizeGuide, setShowSizeGuide] = useState(false);
-
-  // Auto-fill reviewer name from auth session
-  useEffect(() => {
-    createClient().auth.getUser().then(({ data }) => {
-      if (data.user) {
-        const name = data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "";
-        if (name) setReviewName(name);
-      }
-    });
-  }, []);
 
   useEffect(() => {
     trackItem({
@@ -154,39 +137,6 @@ export default function ProductDetail({
   const metroFee = settings.metro_shipping_fee || "150";
   const provFee = settings.provincial_shipping_fee || "250";
   const freeThreshold = settings.free_shipping_threshold || "5000";
-
-  async function handleSubmitReview(e: React.FormEvent) {
-    e.preventDefault();
-    if (!reviewName.trim() || !reviewBody.trim()) return;
-    setSubmittingReview(true);
-    try {
-      let image_url: string | null = null;
-      if (reviewImageFile) {
-        const supabase = createClient();
-        const ext = reviewImageFile.name.split(".").pop() ?? "jpg";
-        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("review-photos").upload(path, reviewImageFile, { upsert: false });
-        if (!upErr) {
-          const { data: urlData } = supabase.storage.from("review-photos").getPublicUrl(path);
-          image_url = urlData.publicUrl;
-        }
-      }
-      const res = await fetch("/api/reviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product_id: product.id, author_name: reviewName.trim(), rating: reviewRating, title: reviewTitle.trim(), body: reviewBody.trim(), image_url }),
-      });
-      if (res.ok) {
-        toast.success("Review submitted! It will appear after approval.");
-        setReviewName(""); setReviewTitle(""); setReviewBody(""); setReviewRating(5);
-        setReviewImageFile(null); setReviewImagePreview(null);
-      } else {
-        toast.error("Couldn't submit review. Try again.");
-      }
-    } finally {
-      setSubmittingReview(false);
-    }
-  }
 
   const isPreOrder = product.status === "pre-order";
   const effectivePaymentType = isPreOrder ? paymentType : "full_payment";
@@ -629,10 +579,12 @@ export default function ProductDetail({
                 {activeTab === "reviews" && (
                   <div className="space-y-5">
                     {reviews.length === 0 ? (
-                      <p style={{ color: BRAND.mutedLight }}>No reviews yet. Be the first!</p>
+                      <p style={{ color: BRAND.mutedLight }}>No reviews yet. Purchase this product to leave a review.</p>
                     ) : (
                       reviews.map(r => (
-                        <div key={r.id} className="pb-5" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                        <div key={r.id} className="pb-5 cursor-pointer transition-opacity hover:opacity-80"
+                          style={{ borderBottom: `1px solid ${BRAND.border}` }}
+                          onClick={() => setLightboxReview(r)}>
                           <div className="flex items-center justify-between mb-1">
                             <p className="font-bold text-sm" style={{ color: BRAND.black }}>
                               {r.author_name}
@@ -650,6 +602,12 @@ export default function ProductDetail({
                           </div>
                           {r.title && <p className="font-semibold text-sm mb-1" style={{ color: BRAND.black }}>{r.title}</p>}
                           <p style={{ color: BRAND.muted }}>{r.body}</p>
+                          {r.image_url && (
+                            <div className="mt-2 w-16 h-16 relative rounded overflow-hidden"
+                              style={{ border: `1px solid ${BRAND.border}` }}>
+                              <Image src={r.image_url} alt="Review photo" fill className="object-cover" sizes="64px" />
+                            </div>
+                          )}
                           {r.created_at && (
                             <p className="text-xs mt-1" style={{ color: BRAND.mutedLight }}>
                               {new Date(r.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" })}
@@ -658,65 +616,6 @@ export default function ProductDetail({
                         </div>
                       ))
                     )}
-
-                    {/* Review form */}
-                    <form onSubmit={handleSubmitReview} className="pt-4 space-y-3">
-                      <p className="font-black text-sm uppercase tracking-wide" style={{ color: BRAND.black }}>Write a Review</p>
-                      <div className="flex gap-1">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <button key={i} type="button" onClick={() => setReviewRating(i + 1)}>
-                            <Star className="w-5 h-5 transition-colors"
-                              style={{ color: i < reviewRating ? "#F59E0B" : BRAND.border, fill: i < reviewRating ? "#F59E0B" : "none" }} />
-                          </button>
-                        ))}
-                      </div>
-                      <input value={reviewName} onChange={e => setReviewName(e.target.value)} required
-                        placeholder="Your name"
-                        className="w-full px-3 py-2.5 text-sm focus:outline-none"
-                        style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
-                      <input value={reviewTitle} onChange={e => setReviewTitle(e.target.value)}
-                        placeholder="Review title (optional)"
-                        className="w-full px-3 py-2.5 text-sm focus:outline-none"
-                        style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
-                      <textarea value={reviewBody} onChange={e => setReviewBody(e.target.value)} required rows={3}
-                        placeholder="Share your experience…"
-                        className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none"
-                        style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
-                      {/* Photo upload */}
-                      {reviewImagePreview ? (
-                        <div className="relative w-24 h-24">
-                          <Image src={reviewImagePreview} alt="Review photo" fill className="object-cover rounded-lg" sizes="96px" />
-                          <button type="button" onClick={() => { setReviewImageFile(null); setReviewImagePreview(null); }}
-                            className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
-                            style={{ background: BRAND.black, color: BRAND.bg }}>
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <label className="flex items-center gap-2 cursor-pointer w-fit">
-                          <div className="w-24 h-24 rounded-lg flex flex-col items-center justify-center gap-1 border-2 border-dashed"
-                            style={{ borderColor: BRAND.border, color: BRAND.muted }}>
-                            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.338-2.32 3.75 3.75 0 0 1 3.822 6.77A4.5 4.5 0 0 1 17.25 19.5H6.75Z" />
-                            </svg>
-                            <span className="text-[10px] font-semibold">Add Photo</span>
-                          </div>
-                          <input type="file" accept="image/*" className="hidden"
-                            onChange={e => {
-                              const f = e.target.files?.[0];
-                              if (!f) return;
-                              setReviewImageFile(f);
-                              const url = URL.createObjectURL(f);
-                              setReviewImagePreview(url);
-                            }} />
-                        </label>
-                      )}
-                      <button type="submit" disabled={submittingReview}
-                        className="px-6 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80 disabled:opacity-50"
-                        style={{ background: BRAND.black, color: BRAND.bg }}>
-                        {submittingReview ? "Submitting…" : "Submit Review"}
-                      </button>
-                    </form>
                   </div>
                 )}
               </div>
@@ -767,6 +666,50 @@ export default function ProductDetail({
         </button>
         <div className="relative w-full max-w-2xl aspect-square" onClick={e => e.stopPropagation()}>
           <Image src={images[imageIdx]!} alt={product.name} fill className="object-contain" sizes="100vw" />
+        </div>
+      </div>
+    )}
+
+    {/* Review lightbox */}
+    {lightboxReview && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        style={{ background: "rgba(0,0,0,0.7)" }}
+        onClick={() => setLightboxReview(null)}>
+        <div className="w-full max-w-sm rounded-2xl overflow-hidden"
+          style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}
+          onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-5 py-4"
+            style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.card }}>
+            <div>
+              <p className="font-black text-sm" style={{ color: BRAND.black }}>{lightboxReview.author_name}</p>
+              <div className="flex gap-0.5 mt-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className="w-3 h-3"
+                    style={{ color: i < lightboxReview.rating ? "#F59E0B" : BRAND.border, fill: i < lightboxReview.rating ? "#F59E0B" : "none" }} />
+                ))}
+              </div>
+            </div>
+            <button onClick={() => setLightboxReview(null)} className="p-1 transition-opacity hover:opacity-70">
+              <X className="w-4 h-4" style={{ color: BRAND.muted }} />
+            </button>
+          </div>
+          <div className="p-5 space-y-3">
+            {lightboxReview.title && (
+              <p className="font-bold text-sm" style={{ color: BRAND.black }}>{lightboxReview.title}</p>
+            )}
+            <p className="text-sm leading-relaxed" style={{ color: BRAND.muted }}>{lightboxReview.body}</p>
+            {lightboxReview.image_url && (
+              <div className="relative w-full aspect-square rounded-lg overflow-hidden"
+                style={{ border: `1px solid ${BRAND.border}` }}>
+                <Image src={lightboxReview.image_url} alt="Review photo" fill className="object-cover" sizes="400px" />
+              </div>
+            )}
+            {lightboxReview.created_at && (
+              <p className="text-xs" style={{ color: BRAND.mutedLight }}>
+                {new Date(lightboxReview.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     )}

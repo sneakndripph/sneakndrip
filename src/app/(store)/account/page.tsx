@@ -122,6 +122,9 @@ export default function AccountPage() {
   const [savingEditReturn, setSavingEditReturn] = useState(false);
   const [editReturnError, setEditReturnError] = useState("");
   const [proofModal, setProofModal] = useState<{ url: string; orderNumber: string } | null>(null);
+  const [orderFilter, setOrderFilter] = useState("all");
+  const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
+  const [reviewImagePreview, setReviewImagePreview] = useState<string | null>(null);
 
   // Address state
   const [addressForm, setAddressForm] = useState({ street: "", barangay: "", city: "", province: "", postal: "", regionGroup: "" });
@@ -270,6 +273,20 @@ export default function AccountPage() {
     if (!reviewModalOrder || !reviewForm.body.trim()) return;
     setSubmittingReview(true);
     const firstItem = reviewModalOrder.order_items[0];
+
+    let image_url: string | null = null;
+    if (reviewImageFile) {
+      const supabase = createClient();
+      const ext = reviewImageFile.name.split(".").pop() ?? "jpg";
+      const filePath = `${user?.id ?? "anon"}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { data: uploadData, error: upErr } = await supabase.storage
+        .from("review-photos")
+        .upload(filePath, reviewImageFile, { upsert: false });
+      if (!upErr && uploadData) {
+        image_url = supabase.storage.from("review-photos").getPublicUrl(uploadData.path).data.publicUrl;
+      }
+    }
+
     if (existingReviewId) {
       await fetch("/api/reviews", {
         method: "PATCH",
@@ -279,6 +296,7 @@ export default function AccountPage() {
           rating: reviewForm.rating,
           title: reviewForm.title.trim() || null,
           body: reviewForm.body.trim(),
+          ...(image_url ? { image_url } : {}),
         }),
       });
     } else {
@@ -291,6 +309,7 @@ export default function AccountPage() {
           rating: reviewForm.rating,
           title: reviewForm.title.trim() || null,
           body: reviewForm.body.trim(),
+          image_url,
         }),
       });
     }
@@ -304,6 +323,8 @@ export default function AccountPage() {
       });
     }
     setReviewForm({ rating: 5, title: "", body: "" });
+    setReviewImageFile(null);
+    setReviewImagePreview(null);
     setTimeout(() => {
       setReviewModalOrder(null);
       setReviewSuccess(false);
@@ -475,7 +496,32 @@ export default function AccountPage() {
             {/* Orders tab */}
             {tab === "orders" && (
               <div className="space-y-4">
-                <h2 className="font-black text-lg mb-4" style={{ color: BRAND.black }}>Order History</h2>
+                <h2 className="font-black text-lg mb-3" style={{ color: BRAND.black }}>Order History</h2>
+
+                {/* Order filter tabs */}
+                {!loadingOrders && orders.length > 0 && (
+                  <div className="flex gap-1 flex-wrap mb-2">
+                    {[
+                      { key: "all", label: "All" },
+                      { key: "pending", label: "To Pay" },
+                      { key: "to_ship", label: "To Ship" },
+                      { key: "shipped", label: "To Receive" },
+                      { key: "delivered", label: "Completed" },
+                      { key: "cancelled", label: "Cancelled" },
+                    ].map(f => (
+                      <button key={f.key} onClick={() => setOrderFilter(f.key)}
+                        className="px-3 py-1.5 text-xs font-bold rounded-full transition-all"
+                        style={{
+                          background: orderFilter === f.key ? BRAND.black : BRAND.card,
+                          color: orderFilter === f.key ? BRAND.bg : BRAND.muted,
+                          border: `1px solid ${orderFilter === f.key ? BRAND.black : BRAND.border}`,
+                        }}>
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 {loadingOrders ? (
                   <div className="py-12 text-center text-sm" style={{ color: BRAND.muted }}>Loading orders…</div>
                 ) : orders.length === 0 ? (
@@ -485,7 +531,28 @@ export default function AccountPage() {
                     <a href="/shop" className="inline-block px-8 py-3 font-bold text-sm uppercase tracking-widest"
                       style={{ background: BRAND.black, color: BRAND.bg }}>Shop Now</a>
                   </div>
-                ) : orders.map(order => {
+                ) : orders.filter(order => {
+                    if (orderFilter === "all") return true;
+                    if (orderFilter === "pending") return order.status === "pending";
+                    if (orderFilter === "to_ship") return ["paid", "processing"].includes(order.status);
+                    if (orderFilter === "shipped") return order.status === "shipped";
+                    if (orderFilter === "delivered") return order.status === "delivered";
+                    if (orderFilter === "cancelled") return order.status === "cancelled";
+                    return true;
+                  }).length === 0 ? (
+                  <div className="py-12 text-center">
+                    <p style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.muted, letterSpacing: "0.04em" }}>NO ORDERS</p>
+                    <p className="text-sm mt-2" style={{ color: BRAND.mutedLight }}>No orders in this category.</p>
+                  </div>
+                ) : orders.filter(order => {
+                    if (orderFilter === "all") return true;
+                    if (orderFilter === "pending") return order.status === "pending";
+                    if (orderFilter === "to_ship") return ["paid", "processing"].includes(order.status);
+                    if (orderFilter === "shipped") return order.status === "shipped";
+                    if (orderFilter === "delivered") return order.status === "delivered";
+                    if (orderFilter === "cancelled") return order.status === "cancelled";
+                    return true;
+                  }).map(order => {
                   const isCOD = order.payment_method === "cod";
                   const STEPS = isCOD ? STEPS_COD : STEPS_DEFAULT;
                   const cfg = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
@@ -646,7 +713,8 @@ export default function AccountPage() {
                           </div>
                         )}
 
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-3">
+                          {/* Payment info row */}
                           <div className="flex items-center gap-3 flex-wrap">
                             <p className="text-xs" style={{ color: BRAND.muted }}>
                               {isCOD ? "Cash on Delivery" : order.payment_method?.replace("_", " ")}
@@ -671,83 +739,88 @@ export default function AccountPage() {
                               <MessageCircle className="w-3.5 h-3.5" /> Need help?
                             </button>
                           </div>
-                          <div className="flex items-center gap-3 flex-wrap shrink-0">
-                            {order.status === "pending" && isCOD && (
-                              <button
-                                onClick={() => setCancelModalOrder(order.order_number)}
-                                disabled={cancellingOrder === order.order_number}
-                                className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity disabled:opacity-50"
-                                style={{ border: `1px solid ${BRAND.red}`, color: BRAND.red }}>
-                                {cancellingOrder === order.order_number ? "Cancelling…" : "Cancel Order"}
-                              </button>
-                            )}
-                            {order.status === "delivered" && !returnedOrders.has(order.order_number) && (
-                              <button
-                                onClick={() => {
-                                  setReturnModalOrder(order);
-                                  setReturnReason("");
-                                  setReturnError("");
-                                  setReturnSuccess(false);
-                                  setReturnPhotoFiles([]);
-                                  setReturnPhotoPreviews([]);
-                                }}
-                                className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
-                                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
-                                <RotateCcw className="w-3 h-3" />
-                                Request Return
-                              </button>
-                            )}
-                            {order.status === "delivered" && returnedOrders.has(order.order_number) && (() => {
-                              const ret = returnedOrders.get(order.order_number)!;
-                              return (
+                          {/* Total + action buttons row */}
+                          <div className="flex items-center justify-between gap-3 flex-wrap">
+                            <p className="font-black text-sm" style={{ color: BRAND.black }}>
+                              Total ₱{Number(order.total).toLocaleString()}
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {order.status === "pending" && isCOD && (
                                 <button
-                                  onClick={() => setViewReturnModal({ orderNumber: order.order_number, ...ret })}
-                                  className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
-                                  style={{
-                                    border: `1px solid ${ret.status === "approved" ? "#10B981" : ret.status === "denied" ? BRAND.red : BRAND.border}`,
-                                    color: ret.status === "approved" ? "#10B981" : ret.status === "denied" ? BRAND.red : BRAND.muted,
-                                    background: ret.status === "approved" ? "rgba(16,185,129,0.08)" : ret.status === "denied" ? `${BRAND.red}08` : "transparent",
-                                  }}>
-                                  View Request
+                                  onClick={() => setCancelModalOrder(order.order_number)}
+                                  disabled={cancellingOrder === order.order_number}
+                                  className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity disabled:opacity-50"
+                                  style={{ border: `1px solid ${BRAND.red}`, color: BRAND.red }}>
+                                  {cancellingOrder === order.order_number ? "Cancelling…" : "Cancel Order"}
                                 </button>
-                              );
-                            })()}
-                            {order.status === "delivered" && (
-                              <button
-                                onClick={async () => {
-                                  const isEditing = reviewedOrderIds.has(order.id);
-                                  setReviewForm({ rating: 5, title: "", body: "" });
-                                  setExistingReviewId(null);
-                                  setReviewSuccess(false);
-                                  setReviewModalOrder(order);
-                                  if (isEditing) {
-                                    const firstItem = order.order_items[0];
-                                    const productId = firstItem?.product_id;
-                                    const authorName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Customer";
-                                    if (productId) {
-                                      setLoadingReview(true);
-                                      try {
-                                        const r = await fetch(`/api/reviews?product_id=${encodeURIComponent(productId)}&author_name=${encodeURIComponent(authorName)}`);
-                                        const { review } = await r.json();
-                                        if (review) {
-                                          setReviewForm({ rating: review.rating, title: review.title ?? "", body: review.body });
-                                          setExistingReviewId(review.id);
-                                        }
-                                      } catch {}
-                                      setLoadingReview(false);
+                              )}
+                              {order.status === "delivered" && !returnedOrders.has(order.order_number) && (
+                                <button
+                                  onClick={() => {
+                                    setReturnModalOrder(order);
+                                    setReturnReason("");
+                                    setReturnError("");
+                                    setReturnSuccess(false);
+                                    setReturnPhotoFiles([]);
+                                    setReturnPhotoPreviews([]);
+                                  }}
+                                  className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
+                                  style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                                  <RotateCcw className="w-3 h-3" />
+                                  Request Return
+                                </button>
+                              )}
+                              {order.status === "delivered" && returnedOrders.has(order.order_number) && (() => {
+                                const ret = returnedOrders.get(order.order_number)!;
+                                return (
+                                  <button
+                                    onClick={() => setViewReturnModal({ orderNumber: order.order_number, ...ret })}
+                                    className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
+                                    style={{
+                                      border: `1px solid ${ret.status === "approved" ? "#10B981" : ret.status === "denied" ? BRAND.red : BRAND.border}`,
+                                      color: ret.status === "approved" ? "#10B981" : ret.status === "denied" ? BRAND.red : BRAND.muted,
+                                      background: ret.status === "approved" ? "rgba(16,185,129,0.08)" : ret.status === "denied" ? `${BRAND.red}08` : "transparent",
+                                    }}>
+                                    View Request
+                                  </button>
+                                );
+                              })()}
+                              {order.status === "delivered" && (
+                                <button
+                                  onClick={async () => {
+                                    const isEditing = reviewedOrderIds.has(order.id);
+                                    setReviewForm({ rating: 5, title: "", body: "" });
+                                    setReviewImageFile(null);
+                                    setReviewImagePreview(null);
+                                    setExistingReviewId(null);
+                                    setReviewSuccess(false);
+                                    setReviewModalOrder(order);
+                                    if (isEditing) {
+                                      const firstItem = order.order_items[0];
+                                      const productId = firstItem?.product_id;
+                                      const authorName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Customer";
+                                      if (productId) {
+                                        setLoadingReview(true);
+                                        try {
+                                          const r = await fetch(`/api/reviews?product_id=${encodeURIComponent(productId)}&author_name=${encodeURIComponent(authorName)}`);
+                                          const { review } = await r.json();
+                                          if (review) {
+                                            setReviewForm({ rating: review.rating, title: review.title ?? "", body: review.body });
+                                            setExistingReviewId(review.id);
+                                          }
+                                        } catch {}
+                                        setLoadingReview(false);
+                                      }
                                     }
-                                  }
-                                }}
-                                className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
-                                style={{ border: `1px solid ${BRAND.teal}`, color: BRAND.teal }}>
-                                <Star className="w-3 h-3" />
-                                {reviewedOrderIds.has(order.id) ? "Edit Review" : "Write a Review"}
-                              </button>
-                            )}
+                                  }}
+                                  className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70"
+                                  style={{ border: `1px solid ${BRAND.teal}`, color: BRAND.teal }}>
+                                  <Star className="w-3 h-3" />
+                                  {reviewedOrderIds.has(order.id) ? "Edit Review" : "Write a Review"}
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          <p className="font-black text-sm shrink-0 self-end" style={{ color: BRAND.black }}>
-                            Total ₱{Number(order.total).toLocaleString()}
-                          </p>
                         </div>
                       </div>
                     </div>
@@ -1068,7 +1141,7 @@ export default function AccountPage() {
       {reviewModalOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={e => { if (e.target === e.currentTarget) { setReviewModalOrder(null); setReviewSuccess(false); } }}>
+          onClick={e => { if (e.target === e.currentTarget) { setReviewModalOrder(null); setReviewSuccess(false); setReviewImageFile(null); setReviewImagePreview(null); } }}>
           <div className="w-full max-w-sm rounded-2xl overflow-hidden"
             style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
             <div className="flex items-center justify-between px-5 py-4"
@@ -1076,7 +1149,7 @@ export default function AccountPage() {
               <p className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>
                 {existingReviewId ? "Edit Review" : "Write a Review"}
               </p>
-              <button onClick={() => { setReviewModalOrder(null); setReviewSuccess(false); }} className="p-1 transition-opacity hover:opacity-70">
+              <button onClick={() => { setReviewModalOrder(null); setReviewSuccess(false); setReviewImageFile(null); setReviewImagePreview(null); }} className="p-1 transition-opacity hover:opacity-70">
                 <X className="w-4 h-4" style={{ color: BRAND.muted }} />
               </button>
             </div>
@@ -1127,6 +1200,35 @@ export default function AccountPage() {
                       className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none"
                       style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
                     />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+                      Photo (optional)
+                    </label>
+                    {reviewImagePreview ? (
+                      <div className="relative w-20 h-20">
+                        <Image src={reviewImagePreview} alt="Review" fill className="object-cover rounded-lg" sizes="80px" />
+                        <button type="button"
+                          onClick={() => { setReviewImageFile(null); setReviewImagePreview(null); }}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center"
+                          style={{ background: BRAND.black, color: BRAND.bg }}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center gap-1 w-20 h-20 rounded-lg cursor-pointer"
+                        style={{ border: `2px dashed ${BRAND.border}`, background: BRAND.card }}>
+                        <span className="text-lg">📷</span>
+                        <span className="text-[10px] font-semibold" style={{ color: BRAND.muted }}>Add Photo</span>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                          onChange={e => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            setReviewImageFile(f);
+                            setReviewImagePreview(URL.createObjectURL(f));
+                          }} />
+                      </label>
+                    )}
                   </div>
                   {loadingReview && (
                     <p className="text-xs text-center" style={{ color: BRAND.muted }}>Loading your previous review…</p>

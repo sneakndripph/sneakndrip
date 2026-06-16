@@ -18,7 +18,7 @@ const NAV: { href: string; icon: React.ElementType; label: string; badgeKey: Bad
   { href: "/admin/orders",    icon: ShoppingBag,     label: "Orders",        badgeKey: "pendingOrders" },
   { href: "/admin/customers", icon: Users,           label: "Customers",     badgeKey: null },
   { href: "/admin/sales",     icon: TrendingUp,      label: "Sales",         badgeKey: null },
-  { href: "/admin/coupons",   icon: Tag,             label: "Coupons",       badgeKey: null },
+  { href: "/admin/coupons",   icon: Tag,             label: "Marketing",     badgeKey: null },
   { href: "/admin/inventory", icon: BarChart2,       label: "Inventory Log", badgeKey: null },
   { href: "/admin/reviews",   icon: MessageSquare,   label: "Reviews",       badgeKey: "pendingReviews" },
   { href: "/admin/returns",   icon: RotateCcw,       label: "Returns",       badgeKey: "pendingReturns" as BadgeKey },
@@ -32,6 +32,8 @@ const NAV: { href: string; icon: React.ElementType; label: string; badgeKey: Bad
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+
+  if (pathname === "/admin/login") return <>{children}</>;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifs, setNotifs] = useState<NotifCounts>({ pendingOrders: 0, pendingReviews: 0, pendingReturns: 0 });
 

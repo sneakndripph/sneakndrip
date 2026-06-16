@@ -96,19 +96,29 @@ export async function PATCH(
   const { error } = await admin.from("products").update(product).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  await admin.from("product_sizes").delete().eq("product_id", id);
   if (sizes.length > 0) {
+    await admin.from("product_sizes").delete().eq("product_id", id);
     await admin.from("product_sizes").insert(
       sizes.map(s => ({ product_id: id, size: s.size, stock: s.stock }))
     );
   }
 
-  // Send restock emails for sizes that went from 0 to > 0
-  const restockedSizes = sizes
-    .filter(s => s.stock > 0 && (oldStockMap.get(s.size) ?? 0) === 0)
-    .map(s => s.size);
   const productName = (product as { name?: string }).name ?? "Product";
-  sendRestockEmails(id, restockedSizes, productName).catch(() => {});
+  if (sizes.length > 0) {
+    const restockedSizes = sizes
+      .filter(s => s.stock > 0 && (oldStockMap.get(s.size) ?? 0) === 0)
+      .map(s => s.size);
+    sendRestockEmails(id, restockedSizes, productName).catch(() => {});
+  }
+
+  void admin.from("activity_log").insert({
+    action: "product_updated",
+    entity_type: "product",
+    entity_id: id,
+    entity_name: productName,
+    actor_email: user.email ?? null,
+    details: null,
+  });
 
   return NextResponse.json({ ok: true });
 }
