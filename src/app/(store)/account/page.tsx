@@ -435,8 +435,6 @@ export default function AccountPage() {
 
   if (!user) return null;
 
-  const displayName = user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
-
   const NAV_TABS = [
     { id: "orders" as Tab, icon: Package, label: "My Orders" },
     { id: "account" as Tab, icon: User, label: "Account Details" },
@@ -528,8 +526,8 @@ export default function AccountPage() {
                   <div className="py-12 text-center">
                     <p style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.muted, letterSpacing: "0.04em" }}>NO ORDERS YET</p>
                     <p className="text-sm mt-2 mb-6" style={{ color: BRAND.mutedLight }}>Your orders will show up here after you place one.</p>
-                    <a href="/shop" className="inline-block px-8 py-3 font-bold text-sm uppercase tracking-widest"
-                      style={{ background: BRAND.black, color: BRAND.bg }}>Shop Now</a>
+                    <Link href="/shop" className="inline-block px-8 py-3 font-bold text-sm uppercase tracking-widest"
+                      style={{ background: BRAND.black, color: BRAND.bg }}>Shop Now</Link>
                   </div>
                 ) : orders.filter(order => {
                     if (orderFilter === "all") return true;
@@ -621,14 +619,21 @@ export default function AccountPage() {
 
                       {/* Tracking card — shown when shipped */}
                       {order.tracking_number && order.status === "shipped" && (
-                        <div className="mx-5 my-4 p-4 rounded-lg flex items-center gap-3"
+                        <div className="mx-5 my-4 p-4 rounded-lg"
                           style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}30` }}>
-                          <Truck className="w-5 h-5 shrink-0" style={{ color: BRAND.teal }} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.teal }}>Your order is on its way</p>
-                            <p className="text-sm font-black" style={{ color: BRAND.black }}>{order.tracking_number}</p>
-                            <p className="text-[11px] mt-0.5" style={{ color: BRAND.muted }}>Use this number on your courier&apos;s website to track delivery.</p>
+                          <div className="flex items-center gap-3 mb-2">
+                            <Truck className="w-5 h-5 shrink-0" style={{ color: BRAND.teal }} />
+                            <p className="text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.teal }}>Your order is on its way</p>
                           </div>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Here&apos;s your tracking number:</p>
+                          <p className="text-base font-black mt-1" style={{ color: BRAND.black }}>{order.tracking_number}</p>
+                          <p className="text-[11px] mt-2" style={{ color: BRAND.muted }}>
+                            Copy and paste to{" "}
+                            <a href="https://www.jtexpress.ph/track-and-trace" target="_blank" rel="noopener noreferrer"
+                              className="underline font-semibold" style={{ color: BRAND.teal }}>
+                              https://www.jtexpress.ph/track-and-trace
+                            </a>
+                          </p>
                         </div>
                       )}
 
@@ -1559,11 +1564,14 @@ export default function AccountPage() {
                 <X className="w-4 h-4" style={{ color: BRAND.muted }} />
               </button>
             </div>
-            <div className="p-4">
-              <iframe
+            <div className="p-4 overflow-y-auto" style={{ maxHeight: "75vh" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
                 src={proofModal.url}
-                className="w-full rounded-lg"
-                style={{ height: "60vh", border: `1px solid ${BRAND.border}` }}
+                alt="Proof of payment"
+                style={{ width: "100%", height: "auto", display: "block" }}
+                className="rounded-lg"
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
               />
               <div className="flex gap-3 mt-3">
                 <a href={proofModal.url} target="_blank" rel="noopener noreferrer"

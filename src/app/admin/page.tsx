@@ -1,13 +1,12 @@
+/* eslint-disable react-hooks/purity */
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
-import { Suspense } from "react";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { BRAND, FONTS } from "@/lib/constants";
 import { TrendingUp, ShoppingBag, Package, Eye } from "lucide-react";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import DashboardRecentOrdersTable from "@/components/admin/DashboardRecentOrdersTable";
 import DashboardRefresh from "@/components/admin/DashboardRefresh";
-import DashboardPeriodSelector from "@/components/admin/DashboardPeriodSelector";
 
 export default async function AdminDashboard({
   searchParams,
@@ -35,7 +34,8 @@ export default async function AdminDashboard({
   const [
     { data: allOrders },
     { count: productsCount },
-    { count: customersCount },
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    { count: _customersCount },
     { data: recentOrders },
     { data: lowStockRows },
     { data: weekOrders },
@@ -265,8 +265,7 @@ export default async function AdminDashboard({
           revenueByDay={revenueByDay}
           ordersByStatus={ordersByStatus}
           topProducts={topProducts}
-          period={period}
-          periodSelector={<Suspense fallback={null}><DashboardPeriodSelector current={period} /></Suspense>}
+          initialPeriod={period}
         />
       </div>
     </div>

@@ -530,7 +530,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                 {liveSelected.customer_mobile && (
                   <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{liveSelected.customer_mobile}</p>
                 )}
-                <a href="/admin/chat"
+                <a href={`/admin/chat?email=${encodeURIComponent(liveSelected.customer_email)}`}
                   className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold transition-opacity hover:opacity-70"
                   style={{ color: BRAND.teal }}>
                   <MessageCircle className="w-3.5 h-3.5" /> Chat with Customer
@@ -660,7 +660,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                 <div className="px-5 py-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Truck className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
-                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Tracking Number <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span></p>
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Tracking Number</p>
                   </div>
                   <div className="flex gap-2">
                     <input

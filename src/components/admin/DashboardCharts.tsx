@@ -1,20 +1,17 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { BRAND, FONTS } from "@/lib/constants";
+import DashboardPeriodSelector from "@/components/admin/DashboardPeriodSelector";
 
 type DayData    = { date: string; revenue: number; orders: number };
 type StatusData = { name: string; value: number; color: string };
 type ProductData = { name: string; revenue: number };
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: "#D97706", paid: BRAND.teal, processing: "#6366F1",
-  shipped: "#3B82F6", delivered: "#10B981", cancelled: BRAND.red,
-};
 
 function CardWrap({ title, children, headerRight }: { title: string; children: React.ReactNode; headerRight?: React.ReactNode }) {
   return (
@@ -35,22 +32,44 @@ const tooltipStyle = {
 };
 
 export default function DashboardCharts({
-  revenueByDay, ordersByStatus, topProducts, period = "week", periodSelector,
+  revenueByDay: initialRevenueByDay, ordersByStatus, topProducts, initialPeriod = "week",
 }: {
   revenueByDay: DayData[];
   ordersByStatus: StatusData[];
   topProducts: ProductData[];
-  period?: string;
-  periodSelector?: React.ReactNode;
+  initialPeriod?: string;
 }) {
   const router = useRouter();
+  const [period, setPeriod] = useState(initialPeriod);
+  const [revenueByDay, setRevenueByDay] = useState(initialRevenueByDay);
+  const [loadingRevenue, setLoadingRevenue] = useState(false);
+
+  const fetchRevenue = useCallback(async (p: string) => {
+    setLoadingRevenue(true);
+    try {
+      const res = await fetch(`/api/admin/dashboard/revenue?period=${p}`);
+      const json = await res.json() as { revenueByDay: DayData[] };
+      if (json.revenueByDay) setRevenueByDay(json.revenueByDay);
+    } finally {
+      setLoadingRevenue(false);
+    }
+  }, []);
+
+  function handlePeriodChange(p: string) {
+    setPeriod(p);
+    void fetchRevenue(p);
+  }
+
   const xAxisInterval = period === "month" ? 4 : period === "today" ? 3 : "preserveStartEnd";
 
   return (
     <div className="grid lg:grid-cols-3 gap-5">
       {/* Revenue + Orders line — spans 2 cols */}
       <div className="lg:col-span-2">
-        <CardWrap title="REVENUE CHART" headerRight={periodSelector}>
+        <CardWrap title="REVENUE CHART" headerRight={
+          <DashboardPeriodSelector current={period} onChange={handlePeriodChange} />
+        }>
+          <div style={{ opacity: loadingRevenue ? 0.5 : 1, transition: "opacity 0.2s" }}>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={revenueByDay} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <defs>
@@ -73,6 +92,7 @@ export default function DashboardCharts({
                 fill="none" strokeDasharray="4 2" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
+          </div>
           <div className="flex gap-4 mt-2 justify-end">
             <span className="flex items-center gap-1.5 text-[10px]" style={{ color: BRAND.muted }}>
               <span className="w-6 h-0.5 inline-block" style={{ background: BRAND.teal }} /> Revenue

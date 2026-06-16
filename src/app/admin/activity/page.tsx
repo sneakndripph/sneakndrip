@@ -50,14 +50,20 @@ function DetailsPanel({ details }: { details: Record<string, unknown> | null }) 
 export default function AdminActivityPage() {
   const [log, setLog] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/activity")
       .then(r => r.json())
       .then(data => {
-        if (Array.isArray(data)) setLog(data);
+        if (Array.isArray(data)) {
+          setLog(data);
+        } else if (data && typeof data === "object" && "error" in data) {
+          setFetchError(String((data as { error: string }).error));
+        }
       })
+      .catch(() => setFetchError("Failed to load activity log."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -96,6 +102,11 @@ export default function AdminActivityPage() {
       <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
         {loading ? (
           <div className="py-12 text-center text-sm" style={{ color: BRAND.muted }}>Loading…</div>
+        ) : fetchError ? (
+          <div className="py-12 text-center">
+            <p style={{ fontFamily: FONTS.display, fontSize: "1.3rem", color: BRAND.red }}>ERROR</p>
+            <p className="text-sm mt-1" style={{ color: BRAND.muted }}>{fetchError}</p>
+          </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center">
             <Activity className="w-10 h-10 mx-auto mb-3 opacity-20" style={{ color: BRAND.black }} />
