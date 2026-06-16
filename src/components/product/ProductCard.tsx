@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Product } from "@/lib/types";
 import { BRAND, FONTS } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Heart } from "lucide-react";
 import { useWishlist } from "@/hooks/useWishlist";
 
@@ -22,10 +22,13 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
   const availableSizes = product.sizes.filter(s => s.stock > 0);
   const [selectedSize, setSelectedSize] = useState(availableSizes[0]?.size ?? product.sizes[0]?.size ?? "");
   const isPreOrder = product.status === "pre-order";
-  const now = Date.now();
-  const isOnSale = product.sale_price != null &&
-    (!product.sale_start || new Date(product.sale_start).getTime() <= now) &&
-    (!product.sale_end   || new Date(product.sale_end).getTime()   >= now);
+  const isOnSale = useMemo(() => {
+    if (product.sale_price == null) return false;
+    // eslint-disable-next-line react-hooks/purity
+    const now = Date.now();
+    return (!product.sale_start || new Date(product.sale_start).getTime() <= now) &&
+           (!product.sale_end   || new Date(product.sale_end).getTime()   >= now);
+  }, [product.sale_price, product.sale_start, product.sale_end]);
   const displayPrice = isOnSale ? product.sale_price! : product.full_payment_price;
   const { toggle, isWishlisted } = useWishlist();
   const wishlisted = isWishlisted(product.id);
