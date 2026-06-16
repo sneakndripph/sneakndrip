@@ -6,7 +6,7 @@ import { BRAND, FONTS } from "@/lib/constants";
 import {
   Search, Clock, CheckCircle, Truck, Package, XCircle,
   X, ExternalLink, MapPin, User, CreditCard, ChevronRight, MessageCircle, FileText,
-  ChevronDown, Check,
+  ChevronDown, Check, Download,
 } from "lucide-react";
 
 const STATUSES = ["all", "pending", "paid", "processing", "shipped", "delivered", "cancelled"] as const;
@@ -239,6 +239,29 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
     return `${first.product_name} (${first.size})${rest}`;
   }
 
+  function exportCSV() {
+    const rows = [
+      ["Order #", "Date", "Customer", "Email", "Status", "Payment", "Total", "Items", "Tracking"],
+      ...filtered.map(o => [
+        o.order_number,
+        new Date(o.created_at).toLocaleDateString("en-PH"),
+        o.customer_name,
+        o.customer_email ?? "",
+        o.status,
+        o.payment_method,
+        o.total,
+        itemsSummary(o.order_items),
+        o.tracking_number ?? "",
+      ]),
+    ];
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `orders-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
   const liveSelected = selected ? (orders.find(o => o.id === selected.id) ?? selected) : null;
   const isCODSelected = liveSelected?.payment_method === "cod";
   const nextAction = liveSelected ? getNextAction(liveSelected.status, isCODSelected) : null;
@@ -253,14 +276,21 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Order Management</p>
           <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>ORDERS</h1>
         </div>
-        {totalRevenue > 0 && (
-          <div className="text-right">
-            <p style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.black }}>
-              ₱{totalRevenue.toLocaleString()}
-            </p>
-            <p className="text-xs" style={{ color: BRAND.muted }}>Total Revenue</p>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {totalRevenue > 0 && (
+            <div className="text-right">
+              <p style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.black }}>
+                ₱{totalRevenue.toLocaleString()}
+              </p>
+              <p className="text-xs" style={{ color: BRAND.muted }}>Total Revenue</p>
+            </div>
+          )}
+          <button onClick={exportCSV}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-opacity hover:opacity-70"
+            style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Period filter */}

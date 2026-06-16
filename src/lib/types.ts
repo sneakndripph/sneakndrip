@@ -29,6 +29,9 @@ export interface Product {
   is_featured: boolean;
   is_trending: boolean;
   is_new: boolean;
+  sale_price?: number | null;
+  sale_start?: string | null;
+  sale_end?: string | null;
   created_at?: string;
 }
 

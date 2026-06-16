@@ -22,6 +22,11 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
   const availableSizes = product.sizes.filter(s => s.stock > 0);
   const [selectedSize, setSelectedSize] = useState(availableSizes[0]?.size ?? product.sizes[0]?.size ?? "");
   const isPreOrder = product.status === "pre-order";
+  const now = Date.now();
+  const isOnSale = product.sale_price != null &&
+    (!product.sale_start || new Date(product.sale_start).getTime() <= now) &&
+    (!product.sale_end   || new Date(product.sale_end).getTime()   >= now);
+  const displayPrice = isOnSale ? product.sale_price! : product.full_payment_price;
   const { toggle, isWishlisted } = useWishlist();
   const wishlisted = isWishlisted(product.id);
 
@@ -79,13 +84,18 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
           )}
         </div>
 
-        {/* Below SRP badge */}
-        {product.full_payment_price < product.srp_price && (
+        {/* Sale / Below SRP badge */}
+        {isOnSale ? (
+          <div className="absolute top-3 right-3 z-10">
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 tracking-wide text-white"
+              style={{ background: BRAND.red }}>SALE</span>
+          </div>
+        ) : product.full_payment_price < product.srp_price ? (
           <div className="absolute top-3 right-3 z-10">
             <span className="text-[10px] font-black uppercase px-2 py-0.5 tracking-wide text-white"
               style={{ background: BRAND.red }}>Below SRP</span>
           </div>
-        )}
+        ) : null}
 
         {/* Hover overlay — sizes + quick add */}
         {showQuickAdd && availableSizes.length > 0 && (
@@ -163,14 +173,18 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
 
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-1.5">
-            <span className="font-black text-sm" style={{ color: BRAND.black, fontFamily: FONTS.body }}>
-              ₱{product.full_payment_price.toLocaleString()}
+            <span className="font-black text-sm" style={{ color: isOnSale ? BRAND.red : BRAND.black, fontFamily: FONTS.body }}>
+              ₱{displayPrice.toLocaleString()}
             </span>
-            {product.srp_price !== product.full_payment_price && (
+            {isOnSale ? (
+              <span className="text-xs line-through" style={{ color: BRAND.mutedLight }}>
+                ₱{product.full_payment_price.toLocaleString()}
+              </span>
+            ) : product.srp_price !== product.full_payment_price ? (
               <span className="text-xs line-through" style={{ color: BRAND.mutedLight }}>
                 ₱{product.srp_price.toLocaleString()}
               </span>
-            )}
+            ) : null}
           </div>
 
           <div className="flex gap-1 items-center">

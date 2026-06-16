@@ -190,7 +190,12 @@ export default function ProductDetail({
 
   const isPreOrder = product.status === "pre-order";
   const effectivePaymentType = isPreOrder ? paymentType : "full_payment";
-  const price = effectivePaymentType === "full_payment" ? product.full_payment_price : product.downpayment_price;
+  const now = Date.now();
+  const isOnSale = product.sale_price != null &&
+    (!product.sale_start || new Date(product.sale_start).getTime() <= now) &&
+    (!product.sale_end   || new Date(product.sale_end).getTime()   >= now);
+  const effectiveFullPrice = isOnSale ? product.sale_price! : product.full_payment_price;
+  const price = effectivePaymentType === "full_payment" ? effectiveFullPrice : product.downpayment_price;
   const images = product.images?.length ? product.images : Array(4).fill(null);
 
   function getStock() {
@@ -370,17 +375,30 @@ export default function ProductDetail({
             {/* Pricing */}
             <div className="p-5 rounded-xl mb-6" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
               <div className="mb-4">
-                <p style={{ fontFamily: FONTS.display, fontSize: "2.5rem", color: BRAND.black, letterSpacing: "0.02em" }}>
-                  ₱{price.toLocaleString()}
-                </p>
-                {product.srp_price !== product.full_payment_price && (
+                <div className="flex items-center gap-3">
+                  <p style={{ fontFamily: FONTS.display, fontSize: "2.5rem", color: isOnSale ? BRAND.red : BRAND.black, letterSpacing: "0.02em" }}>
+                    ₱{price.toLocaleString()}
+                  </p>
+                  {isOnSale && (
+                    <span className="text-[11px] font-black uppercase px-2.5 py-1 tracking-wider text-white"
+                      style={{ background: BRAND.red }}>SALE</span>
+                  )}
+                </div>
+                {isOnSale ? (
+                  <p className="text-sm" style={{ color: BRAND.muted }}>
+                    Was: <span className="line-through">₱{product.full_payment_price.toLocaleString()}</span>
+                    <span className="ml-2 font-bold" style={{ color: BRAND.red }}>
+                      Save ₱{(product.full_payment_price - product.sale_price!).toLocaleString()}
+                    </span>
+                  </p>
+                ) : product.srp_price !== product.full_payment_price ? (
                   <p className="text-sm" style={{ color: BRAND.muted }}>
                     SRP: <span className="line-through">₱{product.srp_price.toLocaleString()}</span>
                     <span className="ml-2 font-bold" style={{ color: BRAND.red }}>
                       Save ₱{(product.srp_price - product.full_payment_price).toLocaleString()}
                     </span>
                   </p>
-                )}
+                ) : null}
               </div>
               {isPreOrder ? (
                 <>
