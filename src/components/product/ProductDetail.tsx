@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -190,10 +190,13 @@ export default function ProductDetail({
 
   const isPreOrder = product.status === "pre-order";
   const effectivePaymentType = isPreOrder ? paymentType : "full_payment";
-  const now = Date.now();
-  const isOnSale = product.sale_price != null &&
-    (!product.sale_start || new Date(product.sale_start).getTime() <= now) &&
-    (!product.sale_end   || new Date(product.sale_end).getTime()   >= now);
+  const isOnSale = useMemo(() => {
+    if (product.sale_price == null) return false;
+    // eslint-disable-next-line react-hooks/purity
+    const now = Date.now();
+    return (!product.sale_start || new Date(product.sale_start).getTime() <= now) &&
+           (!product.sale_end   || new Date(product.sale_end).getTime()   >= now);
+  }, [product.sale_price, product.sale_start, product.sale_end]);
   const effectiveFullPrice = isOnSale ? product.sale_price! : product.full_payment_price;
   const price = effectivePaymentType === "full_payment" ? effectiveFullPrice : product.downpayment_price;
   const images = product.images?.length ? product.images : Array(4).fill(null);
