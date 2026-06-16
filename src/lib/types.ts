@@ -100,6 +100,7 @@ export interface Review {
   title?: string;
   body: string;
   is_verified?: boolean;
+  image_url?: string | null;
   created_at?: string;
 }
 

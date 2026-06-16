@@ -39,10 +39,12 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
   const [selected, setSelected] = useState<Customer | null>(null);
   const [banning, setBanning] = useState(false);
   const [banTarget, setBanTarget] = useState<Customer | null>(null);
+  const [banError, setBanError] = useState("");
 
   async function executeBan() {
     if (!banTarget) return;
     setBanning(true);
+    setBanError("");
     const res = await fetch("/api/admin/customers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -53,6 +55,9 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
       setCustomers(prev => prev.map(c => c.id === banTarget.id ? { ...c, banned: newBanned } : c));
       setSelected(prev => prev?.id === banTarget.id ? { ...prev, banned: newBanned } : prev);
       setBanTarget(null);
+    } else {
+      const err = await res.json().catch(() => ({})) as { error?: string };
+      setBanError(err.error ?? "Failed to update ban status. Please try again.");
     }
     setBanning(false);
   }
@@ -274,7 +279,7 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
             </div>
 
             <div className="px-6 py-4 shrink-0 flex gap-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-              <button onClick={() => setBanTarget(selected)}
+              <button onClick={() => { setBanTarget(selected); setBanError(""); }}
                 className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80"
                 style={{ background: selected.banned ? `${BRAND.teal}15` : `${BRAND.red}12`, color: selected.banned ? BRAND.teal : BRAND.red }}>
                 {selected.banned ? <ShieldCheck className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
@@ -304,6 +309,9 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
                   ? `${banTarget.name} will be able to log in again.`
                   : `${banTarget.name} will be blocked from logging in.`}
               </p>
+              {banError && (
+                <p className="text-xs mt-3 font-semibold" style={{ color: BRAND.red }}>{banError}</p>
+              )}
             </div>
             <div className="flex gap-3 px-6 pb-5">
               <button onClick={executeBan} disabled={banning}

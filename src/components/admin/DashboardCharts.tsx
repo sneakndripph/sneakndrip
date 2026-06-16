@@ -16,11 +16,12 @@ const STATUS_COLORS: Record<string, string> = {
   shipped: "#3B82F6", delivered: "#10B981", cancelled: BRAND.red,
 };
 
-function CardWrap({ title, children }: { title: string; children: React.ReactNode }) {
+function CardWrap({ title, children, headerRight }: { title: string; children: React.ReactNode; headerRight?: React.ReactNode }) {
   return (
     <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-      <div className="px-5 py-4" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+      <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
         <h3 style={{ fontFamily: FONTS.display, fontSize: "1rem", letterSpacing: "0.04em", color: BRAND.black }}>{title}</h3>
+        {headerRight}
       </div>
       <div className="p-4">{children}</div>
     </div>
@@ -34,12 +35,13 @@ const tooltipStyle = {
 };
 
 export default function DashboardCharts({
-  revenueByDay, ordersByStatus, topProducts, period = "week",
+  revenueByDay, ordersByStatus, topProducts, period = "week", periodSelector,
 }: {
   revenueByDay: DayData[];
   ordersByStatus: StatusData[];
   topProducts: ProductData[];
   period?: string;
+  periodSelector?: React.ReactNode;
 }) {
   const router = useRouter();
   const xAxisInterval = period === "month" ? 4 : period === "today" ? 3 : "preserveStartEnd";
@@ -48,7 +50,7 @@ export default function DashboardCharts({
     <div className="grid lg:grid-cols-3 gap-5">
       {/* Revenue + Orders line — spans 2 cols */}
       <div className="lg:col-span-2">
-        <CardWrap title="REVENUE CHART">
+        <CardWrap title="REVENUE CHART" headerRight={periodSelector}>
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={revenueByDay} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
               <defs>
