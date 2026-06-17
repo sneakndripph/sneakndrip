@@ -22,8 +22,5 @@ DROP POLICY IF EXISTS "Admins can manage activity log" ON public.activity_log;
 CREATE POLICY "Admins can manage activity log"
   ON public.activity_log FOR ALL
   USING (
-    auth.jwt() ->> 'email' IN (
-      SELECT email FROM auth.users
-      WHERE raw_user_meta_data ->> 'role' = 'admin'
-    )
+    (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
   );
