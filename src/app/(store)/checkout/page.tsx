@@ -556,6 +556,18 @@ export default function CheckoutPage() {
                   <h2 className="mb-4 font-black" style={{ color: BRAND.black }}>
                     Payment: {PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label}
                   </h2>
+                  {isDP && (
+                    <div className="mb-4 rounded-lg overflow-hidden" style={{ border: `1px solid ${BRAND.border}` }}>
+                      <div className="px-4 py-3 flex justify-between text-sm">
+                        <span style={{ color: BRAND.muted }}>Downpayment (due now)</span>
+                        <span className="font-black" style={{ color: BRAND.teal }}>₱{totalDueNow.toLocaleString()}</span>
+                      </div>
+                      <div className="px-4 py-3 flex justify-between text-sm" style={{ borderTop: `1px solid ${BRAND.border}`, background: `${BRAND.bg}` }}>
+                        <span style={{ color: BRAND.muted }}>Balance (paid before shipping)</span>
+                        <span className="font-semibold" style={{ color: BRAND.black }}>₱{dpBalance.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  )}
                   {referenceNumber && (
                     <div className="mt-3 px-4 py-3 rounded-lg" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
                       <p className="text-[11px] font-black uppercase tracking-widest mb-0.5" style={{ color: BRAND.muted }}>Reference Number</p>

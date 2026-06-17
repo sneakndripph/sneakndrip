@@ -97,7 +97,15 @@ function statusEmailContent(
             3. We'll send you a tracking number once it's on the way
           </p>
         </div>
-        <p style="color:#888;font-size:14px">Message us on <a href="https://www.facebook.com/SneakNDrip/" style="color:${BRAND_TEAL}">Facebook</a> or <a href="https://www.instagram.com/sneakndripph/" style="color:${BRAND_TEAL}">Instagram</a> to arrange your balance payment.</p>
+        <div style="text-align:center;margin-bottom:20px">
+          <a href="https://sneakndrip.ph/account?order=${orderNumber}"
+            style="display:inline-block;background:${BRAND_TEAL};color:#ffffff;font-size:14px;font-weight:700;padding:14px 32px;border-radius:4px;text-decoration:none;letter-spacing:0.5px">
+            Pay Balance Now →
+          </a>
+        </div>
+        <p style="color:#888;font-size:13px;text-align:center">
+          Or message us on <a href="https://www.facebook.com/SneakNDrip/" style="color:${BRAND_TEAL}">Facebook</a> or <a href="https://www.instagram.com/sneakndripph/" style="color:${BRAND_TEAL}">Instagram</a>.
+        </p>
       `,
     },
     delivered: {
@@ -139,9 +147,13 @@ function wrapEmail(bodyContent: string, orderNumber: string): string {
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
   <div style="max-width:580px;margin:40px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
     <div style="background:${BRAND_BLACK};padding:28px 40px;text-align:center">
-      <div style="display:inline-block;margin-bottom:12px">
-        <img src="https://sneakndrip.ph/sneakndrip-logo.png" alt="Sneak N' Drip" height="48" style="display:block;height:48px;width:auto" />
-      </div>
+      <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="margin:0 auto 12px">
+        <tr>
+          <td style="background:${BRAND_BG};padding:6px 16px;border-radius:4px;text-align:center">
+            <img src="https://sneakndrip.ph/sneakndrip-logo.png" alt="SNEAK N' DRIP" width="160" height="44" style="display:block;width:160px;height:44px;border:0;max-width:160px" />
+          </td>
+        </tr>
+      </table>
       <p style="color:${BRAND_TEAL};margin:0;font-size:13px;font-weight:600">${orderNumber}</p>
     </div>
     <div style="padding:32px 40px">${bodyContent}</div>

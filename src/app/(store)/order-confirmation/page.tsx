@@ -51,7 +51,7 @@ const STEP_LABELS: Record<OrderStatus, string> = {
   pending:       "Placed",
   paid:          "Confirmed",
   stock_on_hand: "On Hand",
-  processing:    "Processing",
+  processing:    "Packing",
   shipped:       "Shipped",
   delivered:     "Delivered",
   cancelled:     "Cancelled",
