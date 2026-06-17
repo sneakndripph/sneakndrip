@@ -15,10 +15,12 @@ export function useWishlist() {
       .catch(() => setItems([]));
   }, [loaded, setItems]);
 
-  // Auth state change → reset so the load effect re-fires for the new user
+  // Auth state change → reset only on real sign-in/sign-out (not INITIAL_SESSION or token refresh)
   useEffect(() => {
     const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => reset());
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") reset();
+    });
     return () => subscription.unsubscribe();
   }, [reset]);
 

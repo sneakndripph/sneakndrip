@@ -71,9 +71,17 @@ export default function CheckoutPage() {
   const total = sub + shipping - discount;
 
   const isDP = items.some(i => i.payment_type === "downpayment");
+  const hasOnHand = items.some(i => i.payment_type !== "downpayment");
+  const isMixed = isDP && hasOnHand;
   const dpBalance = items
     .filter(i => i.payment_type === "downpayment")
     .reduce((s, i) => s + (i.unit_price - DP_RESERVE_FEE) * i.quantity, 0);
+  const onHandSubtotal = items
+    .filter(i => i.payment_type !== "downpayment")
+    .reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  const dpFeeSubtotal = items
+    .filter(i => i.payment_type === "downpayment")
+    .reduce((s, i) => s + DP_RESERVE_FEE * i.quantity, 0);
   const subNow = items.reduce(
     (s, i) => s + (i.payment_type === "downpayment" ? DP_RESERVE_FEE : i.unit_price) * i.quantity, 0
   );
@@ -277,10 +285,12 @@ export default function CheckoutPage() {
           size: i.size,
           quantity: i.quantity,
           price: i.unit_price * i.quantity,
+          payment_type: i.payment_type,
           image: i.product.images?.[0] ?? null,
           bg: i.product.bg ?? null,
           brand: i.product.brand,
         })),
+        proofUrl,
       }));
 
       removeItems(items.map(i => ({ productId: i.product.id, size: i.size })));
@@ -438,37 +448,53 @@ export default function CheckoutPage() {
                   <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
                     <h3 className="font-black mb-4" style={{ color: BRAND.black }}>Payment Instructions</h3>
                     <div className="p-4 rounded-lg mb-4" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
-                      {paymentMethod === "gcash" && (
-                        <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
-                          <p className="font-bold">GCash Number: {payCfg.gcashNumber}</p>
-                          <p>Account Name: {payCfg.gcashName}</p>
-                          <p>Amount: ₱{(isDP ? totalDueNow : total).toLocaleString()}{isDP && <span className="text-xs ml-1 font-normal" style={{ color: BRAND.muted }}>(downpayment only)</span>}</p>
-                        </div>
-                      )}
-                      {paymentMethod === "maya" && (
-                        <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
-                          <p className="font-bold">Maya Number: {payCfg.mayaNumber}</p>
-                          <p>Account Name: {payCfg.mayaName}</p>
-                          <p>Amount: ₱{(isDP ? totalDueNow : total).toLocaleString()}{isDP && <span className="text-xs ml-1 font-normal" style={{ color: BRAND.muted }}>(downpayment only)</span>}</p>
-                        </div>
-                      )}
-                      {paymentMethod === "bank_transfer" && (
-                        <div className="text-sm space-y-4" style={{ color: BRAND.black }}>
-                          <div className="space-y-1">
-                            <p className="font-bold">{payCfg.bank1Name}</p>
-                            <p>Account Number: {payCfg.bank1Account}</p>
-                            <p>Account Name: {payCfg.bank1AccountName}</p>
+                      {/* Amount breakdown helper */}
+                      {(() => {
+                        const amt = isDP ? totalDueNow : total;
+                        const amountEl = isMixed ? (
+                          <div>
+                            <p>Amount: <span className="font-bold">₱{amt.toLocaleString()}</span></p>
+                            <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>
+                              On hand ₱{onHandSubtotal.toLocaleString()} + ₱{dpFeeSubtotal.toLocaleString()} Downpayment
+                              {shipping > 0 ? ` + ₱${shipping.toLocaleString()} Shipping` : ""}
+                              {discount > 0 ? ` − ₱${discount.toLocaleString()} Discount` : ""}
+                              {" "}= ₱{amt.toLocaleString()}
+                            </p>
                           </div>
-                          <div className="space-y-1" style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>
-                            <p className="font-bold">{payCfg.bank2Name}</p>
-                            <p>Account Number: {payCfg.bank2Account}</p>
-                            <p>Account Name: {payCfg.bank2AccountName}</p>
+                        ) : (
+                          <p>Amount: ₱{amt.toLocaleString()}{isDP && <span className="text-xs ml-1 font-normal" style={{ color: BRAND.muted }}>(downpayment only)</span>}</p>
+                        );
+                        if (paymentMethod === "gcash") return (
+                          <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
+                            <p className="font-bold">GCash Number: {payCfg.gcashNumber}</p>
+                            <p>Account Name: {payCfg.gcashName}</p>
+                            {amountEl}
                           </div>
-                          <p className="font-bold" style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>
-                            Amount: ₱{(isDP ? totalDueNow : total).toLocaleString()}{isDP && <span className="text-xs ml-1 font-normal" style={{ color: BRAND.muted }}>(downpayment only)</span>}
-                          </p>
-                        </div>
-                      )}
+                        );
+                        if (paymentMethod === "maya") return (
+                          <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
+                            <p className="font-bold">Maya Number: {payCfg.mayaNumber}</p>
+                            <p>Account Name: {payCfg.mayaName}</p>
+                            {amountEl}
+                          </div>
+                        );
+                        if (paymentMethod === "bank_transfer") return (
+                          <div className="text-sm space-y-4" style={{ color: BRAND.black }}>
+                            <div className="space-y-1">
+                              <p className="font-bold">{payCfg.bank1Name}</p>
+                              <p>Account Number: {payCfg.bank1Account}</p>
+                              <p>Account Name: {payCfg.bank1AccountName}</p>
+                            </div>
+                            <div className="space-y-1" style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>
+                              <p className="font-bold">{payCfg.bank2Name}</p>
+                              <p>Account Number: {payCfg.bank2Account}</p>
+                              <p>Account Name: {payCfg.bank2AccountName}</p>
+                            </div>
+                            <div style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>{amountEl}</div>
+                          </div>
+                        );
+                        return null;
+                      })()}
                     </div>
 
                     {/* Reference number */}
@@ -558,9 +584,16 @@ export default function CheckoutPage() {
                   </h2>
                   {isDP && (
                     <div className="mb-4 rounded-lg overflow-hidden" style={{ border: `1px solid ${BRAND.border}` }}>
-                      <div className="px-4 py-3 flex justify-between text-sm">
-                        <span style={{ color: BRAND.muted }}>Downpayment (due now)</span>
-                        <span className="font-black" style={{ color: BRAND.teal }}>₱{totalDueNow.toLocaleString()}</span>
+                      <div className="px-4 py-3 text-sm" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <span style={{ color: BRAND.muted }}>Due Now</span>
+                        <div className="text-right">
+                          <span className="font-black" style={{ color: BRAND.teal }}>₱{totalDueNow.toLocaleString()}</span>
+                          {isMixed && (
+                            <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>
+                              On hand ₱{onHandSubtotal.toLocaleString()} + ₱{dpFeeSubtotal.toLocaleString()} Downpayment
+                            </p>
+                          )}
+                        </div>
                       </div>
                       <div className="px-4 py-3 flex justify-between text-sm" style={{ borderTop: `1px solid ${BRAND.border}`, background: `${BRAND.bg}` }}>
                         <span style={{ color: BRAND.muted }}>Balance (paid before shipping)</span>
@@ -609,35 +642,38 @@ export default function CheckoutPage() {
                 ORDER ({items.length})
               </h3>
               <div className="space-y-3 mb-4">
-                {items.map(item => (
-                  <div key={`${item.product.id}-${item.size}`} className="flex gap-2.5 min-w-0">
-                    <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative"
-                      style={{ background: item.product.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}>
-                      {item.product.images?.[0] ? (
-                        <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" sizes="44px" />
-                      ) : (
-                        <span className="absolute inset-0 flex items-center justify-center"
-                          style={{ fontFamily: FONTS.display, color: BRAND.black, opacity: 0.08, fontSize: "0.8rem" }}>
-                          {item.product.brand.charAt(0)}
-                        </span>
-                      )}
+                {items.map(item => {
+                  const isItemDP = item.payment_type === "downpayment";
+                  const displayPrice = isItemDP ? DP_RESERVE_FEE * item.quantity : item.unit_price * item.quantity;
+                  return (
+                    <div key={`${item.product.id}-${item.size}`} className="flex gap-2.5 min-w-0">
+                      <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative"
+                        style={{ background: item.product.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+                        {item.product.images?.[0] ? (
+                          <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" sizes="44px" />
+                        ) : (
+                          <span className="absolute inset-0 flex items-center justify-center"
+                            style={{ fontFamily: FONTS.display, color: BRAND.black, opacity: 0.08, fontSize: "0.8rem" }}>
+                            {item.product.brand.charAt(0)}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <p className="text-xs font-semibold leading-snug truncate" style={{ color: BRAND.black }}>{item.product.name}</p>
+                        <p className="text-xs truncate" style={{ color: BRAND.muted }}>{item.size} · x{item.quantity}</p>
+                      </div>
+                      <div className="shrink-0 pl-1 text-right">
+                        <p className="text-xs font-bold" style={{ color: BRAND.black }}>₱{displayPrice.toLocaleString()}</p>
+                        <p className="text-[10px]" style={{ color: BRAND.muted }}>{isItemDP ? "(down payment)" : "(full price)"}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <p className="text-xs font-semibold leading-snug truncate" style={{ color: BRAND.black }}>{item.product.name}</p>
-                      <p className="text-xs truncate" style={{ color: BRAND.muted }}>{item.size} · {item.payment_type === "full_payment" ? "Full" : "DP"} · x{item.quantity}</p>
-                    </div>
-                    <p className="text-xs font-bold shrink-0 pl-1" style={{ color: BRAND.black }}>₱{(item.unit_price * item.quantity).toLocaleString()}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="space-y-2 pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: BRAND.muted }}>Subtotal</span>
-                  <span style={{ color: BRAND.black }}>₱{sub.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between text-sm">
                   <span style={{ color: BRAND.muted }}>Shipping</span>
-                  <span style={{ color: shipping === 0 ? BRAND.teal : BRAND.black }}>{shipping === 0 ? "FREE" : `₱${shipping}`}</span>
+                  <span style={{ color: shipping === 0 ? BRAND.teal : BRAND.black }}>{shipping === 0 ? "FREE" : `₱${shipping.toLocaleString()}`}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-sm">
@@ -645,22 +681,19 @@ export default function CheckoutPage() {
                     <span style={{ color: BRAND.teal }}>−₱{discount.toLocaleString()}</span>
                   </div>
                 )}
-                {isDP ? (
+                <div className="flex justify-between font-black pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                  <span style={{ color: BRAND.black }}>Subtotal</span>
+                  <span style={{ fontFamily: FONTS.display, fontSize: "1.3rem", color: isDP ? BRAND.teal : BRAND.black }}>
+                    ₱{(isDP ? totalDueNow : total).toLocaleString()}
+                  </span>
+                </div>
+                {isDP && (
                   <>
-                    <div className="flex justify-between font-black pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                      <span style={{ color: BRAND.black }}>Downpayment</span>
-                      <span style={{ fontFamily: FONTS.display, fontSize: "1.3rem", color: BRAND.teal }}>₱{totalDueNow.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-xs pt-1.5" style={{ color: BRAND.muted }}>
-                      <span>Balance</span>
-                      <span>₱{dpBalance.toLocaleString()} (will pay before shipping)</span>
+                    <p className="text-[11px] italic" style={{ color: BRAND.muted }}>will pay upon place order</p>
+                    <div className="mt-2 px-3 py-2 rounded-lg text-xs italic" style={{ color: BRAND.muted, background: `${BRAND.red}06`, border: `1px solid ${BRAND.red}15` }}>
+                      *Balance: ₱{dpBalance.toLocaleString()} — will settle before shipping*
                     </div>
                   </>
-                ) : (
-                  <div className="flex justify-between font-black pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                    <span style={{ color: BRAND.black }}>Total</span>
-                    <span style={{ fontFamily: FONTS.display, fontSize: "1.3rem", color: BRAND.black }}>₱{total.toLocaleString()}</span>
-                  </div>
                 )}
               </div>
             </div>
