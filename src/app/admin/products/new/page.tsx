@@ -245,7 +245,7 @@ export default function NewProductPage() {
               </div>
               <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
                 <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>
-                  Cost Price (internal — used for profit calculation)
+                  Cost Price (internal)
                 </label>
                 <div className="relative max-w-[180px]">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: BRAND.muted }}>₱</span>
@@ -253,6 +253,26 @@ export default function NewProductPage() {
                     placeholder="0"
                     className="w-full pl-7 pr-4 py-3 text-sm focus:outline-none" style={inputStyle} />
                 </div>
+                {Number(form.cost) > 0 && (Number(form.full) > 0 || Number(form.dp) > 0) && (
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    {Number(form.full) > 0 && (
+                      <div className="p-3 rounded-lg" style={{ background: `${BRAND.teal}12`, border: `1px solid ${BRAND.teal}30` }}>
+                        <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>Full Payment Profit</p>
+                        <p className="text-lg font-black" style={{ color: Number(form.full) - Number(form.cost) >= 0 ? BRAND.teal : "#D94F3D" }}>
+                          ₱{(Number(form.full) - Number(form.cost)).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {Number(form.dp) > 0 && (
+                      <div className="p-3 rounded-lg" style={{ background: `${BRAND.teal}12`, border: `1px solid ${BRAND.teal}30` }}>
+                        <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>DP Plan Profit</p>
+                        <p className="text-lg font-black" style={{ color: Number(form.dp) - Number(form.cost) >= 0 ? BRAND.teal : "#D94F3D" }}>
+                          ₱{(Number(form.dp) - Number(form.cost)).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
