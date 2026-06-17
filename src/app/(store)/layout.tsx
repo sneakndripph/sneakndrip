@@ -1,4 +1,3 @@
-import AnnouncementBar from "@/components/layout/AnnouncementBar";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ChatWidget from "@/components/layout/ChatWidget";
@@ -11,7 +10,6 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
     <div style={{ background: BRAND.bg, minHeight: "100vh" }}>
       <VisitorTracker />
       <CartGuard />
-      <AnnouncementBar />
       <Navbar />
       <main>{children}</main>
       <Footer />
