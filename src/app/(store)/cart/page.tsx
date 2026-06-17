@@ -56,7 +56,7 @@ function TopProducts({ products }: { products: Product[] }) {
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, removeItem, updateQuantity, updateSize, updatePaymentType, subtotal } = useCartStore();
+  const { items, removeItem, removeItems, updateQuantity, updateSize, updatePaymentType, subtotal } = useCartStore();
   const [topProducts, setTopProducts] = useState<Product[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const itemKey = (id: string, size: string) => `${id}-${size}`;
@@ -133,22 +133,36 @@ export default function CartPage() {
   return (
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body, minHeight: "80vh" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="flex items-center justify-between mb-8">
+        <div className="mb-8">
           <h1 style={{ fontFamily: FONTS.display, fontSize: "3rem", letterSpacing: "0.04em", color: BRAND.black }}>
             YOUR CART
           </h1>
-          <button
-            onClick={() => setSelected(allSelected ? new Set() : new Set(items.map(i => itemKey(i.product.id, i.size))))}
-            className="flex items-center gap-1.5 text-xs font-bold transition-opacity hover:opacity-70"
-            style={{ color: BRAND.muted }}>
-            {allSelected ? <CheckSquare className="w-4 h-4" style={{ color: BRAND.teal }} /> : <Square className="w-4 h-4" />}
-            {allSelected ? "Deselect All" : "Select All"}
-          </button>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8 items-start">
           {/* Items */}
           <div className="lg:col-span-2 space-y-4">
+            <div className="flex items-center justify-between pb-2">
+              <button
+                onClick={() => setSelected(allSelected ? new Set() : new Set(items.map(i => itemKey(i.product.id, i.size))))}
+                className="flex items-center gap-1.5 text-xs font-bold transition-opacity hover:opacity-70"
+                style={{ color: BRAND.muted }}>
+                {allSelected ? <CheckSquare className="w-4 h-4" style={{ color: BRAND.teal }} /> : <Square className="w-4 h-4" />}
+                {allSelected ? "Deselect All" : "Select All"}
+              </button>
+              {selected.size > 0 && (
+                <button
+                  onClick={() => {
+                    removeItems(items.filter(i => selected.has(itemKey(i.product.id, i.size))).map(i => ({ productId: i.product.id, size: i.size })));
+                    setSelected(new Set());
+                  }}
+                  className="flex items-center gap-1.5 text-xs font-bold transition-opacity hover:opacity-70"
+                  style={{ color: "#EF4444" }}>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete Selected ({selected.size})
+                </button>
+              )}
+            </div>
             {items.map(item => {
               const key = itemKey(item.product.id, item.size);
               const isSelected = selected.has(key);

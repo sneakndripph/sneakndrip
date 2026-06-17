@@ -35,7 +35,7 @@ export default function Footer() {
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1">
             <div className="inline-block mb-5">
-              <Image src="/sneakndrip-logo.png" alt="Sneak N' Drip" width={110} height={44} className="object-contain" />
+              <Image src="/sneakndrip-logo.png" alt="Sneak N' Drip" width={150} height={60} className="object-contain" />
             </div>
             <p className="text-sm leading-relaxed mb-5" style={{ color: "#666" }}>
               Philippines&apos; trusted source for 100% authentic sneakers. On hand and pre-order. Shipped nationwide.

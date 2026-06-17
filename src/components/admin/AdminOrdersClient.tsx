@@ -119,6 +119,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
   const [cancelReason, setCancelReason] = useState("");
   const [showShippingModal, setShowShippingModal] = useState(false);
   const [shippingTrackingInput, setShippingTrackingInput] = useState("");
+  const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
   const bulkRef = useRef<HTMLDivElement>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -161,6 +162,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
     setSelected(o);
     setTrackingInput(o.tracking_number ?? "");
     setNotesInput(o.admin_notes ?? "");
+    setPaymentSectionOpen(false);
   }
 
   function closeModal() { setSelected(null); }
@@ -662,10 +664,25 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
 
               {/* Payment */}
               <div className="px-5 py-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <CreditCard className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
-                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Payment</p>
-                </div>
+                <button type="button" onClick={() => setPaymentSectionOpen(o => !o)}
+                  className="w-full flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Payment</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!paymentSectionOpen && (
+                      <span className="text-xs" style={{ color: liveSelected.payment_type === "downpayment" && !liveSelected.balance_paid_at ? BRAND.red : BRAND.muted }}>
+                        {PAYMENT_LABELS[liveSelected.payment_method] ?? liveSelected.payment_method}
+                        {liveSelected.payment_type === "downpayment"
+                          ? (liveSelected.balance_paid_at ? " · Balance Paid" : " · Balance Pending")
+                          : ""}
+                      </span>
+                    )}
+                    <ChevronDown className="w-3.5 h-3.5 transition-transform" style={{ color: BRAND.muted, transform: paymentSectionOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                  </div>
+                </button>
+                {paymentSectionOpen && (<>
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="text-sm font-semibold" style={{ color: BRAND.black }}>
@@ -763,32 +780,35 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                     )}
                   </div>
                 )}
+                </>)}
               </div>
 
-              {/* Tracking number */}
+              {/* Tracking number — display only; edit via shipping modal */}
               {(liveSelected.status === "processing" || liveSelected.status === "shipped") && (
                 <div className="px-5 py-4">
-                  <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-2">
                     <Truck className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
                     <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Tracking Number</p>
                   </div>
-                  <div className="flex gap-2">
-                    <input
-                      value={trackingInput}
-                      onChange={e => setTrackingInput(e.target.value)}
-                      placeholder="Enter courier tracking number"
-                      className="flex-1 px-3 py-2.5 text-sm focus:outline-none"
-                      style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
-                    <button onClick={() => saveTracking(liveSelected.id)} disabled={saving}
-                      className="px-4 py-2.5 text-xs font-bold transition-opacity disabled:opacity-50"
-                      style={{ background: BRAND.teal, color: "#fff" }}>
-                      Save
+                  {liveSelected.tracking_number ? (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold" style={{ color: BRAND.black }}>{liveSelected.tracking_number}</span>
+                      <button
+                        type="button"
+                        onClick={() => { setShippingTrackingInput(liveSelected.tracking_number ?? ""); setShowShippingModal(true); }}
+                        className="text-xs font-bold transition-opacity hover:opacity-70"
+                        style={{ color: BRAND.teal }}>
+                        Edit
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setShippingTrackingInput(""); setShowShippingModal(true); }}
+                      className="text-xs font-bold px-3 py-1.5 transition-opacity hover:opacity-70"
+                      style={{ background: `${BRAND.teal}15`, color: BRAND.teal, border: `1px solid ${BRAND.teal}40` }}>
+                      + Add Tracking Number
                     </button>
-                  </div>
-                  {liveSelected.tracking_number && (
-                    <p className="text-xs mt-1.5" style={{ color: BRAND.muted }}>
-                      Current: <span style={{ color: BRAND.black, fontWeight: 600 }}>{liveSelected.tracking_number}</span>
-                    </p>
                   )}
                 </div>
               )}
@@ -820,22 +840,27 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
             <div className="px-5 py-4 shrink-0 space-y-2.5"
               style={{ borderTop: `1px solid ${BRAND.border}`, background: BRAND.card }}>
 
-              {nextAction && (
-                <button
-                  onClick={() => {
-                    if (nextAction.next === "shipped") {
-                      setShippingTrackingInput(liveSelected.tracking_number ?? "");
-                      setShowShippingModal(true);
-                    } else {
-                      updateStatus(liveSelected.id, nextAction.next);
-                    }
-                  }}
-                  disabled={saving}
-                  className="w-full py-3.5 font-black text-sm uppercase tracking-widest transition-opacity disabled:opacity-50"
-                  style={{ background: nextAction.color, color: "#fff" }}>
-                  {saving ? "Saving…" : nextAction.label}
-                </button>
-              )}
+              {nextAction && (() => {
+                const balanceLocked = liveSelected.payment_type === "downpayment"
+                  && !liveSelected.balance_paid_at
+                  && (nextAction.next === "shipped" || nextAction.next === "delivered");
+                return (
+                  <button
+                    onClick={() => {
+                      if (nextAction.next === "shipped") {
+                        setShippingTrackingInput(liveSelected.tracking_number ?? "");
+                        setShowShippingModal(true);
+                      } else {
+                        updateStatus(liveSelected.id, nextAction.next);
+                      }
+                    }}
+                    disabled={saving || balanceLocked}
+                    className="w-full py-3.5 font-black text-sm uppercase tracking-widest transition-opacity disabled:opacity-50"
+                    style={{ background: balanceLocked ? BRAND.muted : nextAction.color, color: "#fff" }}>
+                    {balanceLocked ? "Balance Not Yet Paid — Cannot Ship" : saving ? "Saving…" : nextAction.label}
+                  </button>
+                );
+              })()}
 
               <div className="flex gap-2">
                 <div className="relative flex-1" ref={statusDropdownRef}>
@@ -850,9 +875,10 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                       style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
                       {statusOptions.map(([k, v]) => {
                         const needsTracking = (k === "shipped" || k === "delivered") && !liveSelected.tracking_number && !isCODSelected;
+                        const balanceLocked = (k === "shipped" || k === "delivered") && liveSelected.payment_type === "downpayment" && !liveSelected.balance_paid_at;
                         return (
                           <button key={k} type="button"
-                            disabled={needsTracking}
+                            disabled={needsTracking || balanceLocked}
                             onClick={() => {
                               if (k === "shipped" && !liveSelected.tracking_number) {
                                 setShippingTrackingInput("");
@@ -868,6 +894,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                               <span className="w-2 h-2 rounded-full shrink-0" style={{ background: (v as { color: string }).color }} />
                               {k === "delivered" && isCODSelected ? "Delivered / Cash Collected" : (v as { label: string }).label}
                               {needsTracking && <span style={{ color: BRAND.red }}>(add tracking first)</span>}
+                              {balanceLocked && <span style={{ color: BRAND.red }}>(balance unpaid)</span>}
                             </div>
                             {liveSelected.status === k && <Check className="w-3 h-3 shrink-0" />}
                           </button>
