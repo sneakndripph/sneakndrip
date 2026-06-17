@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BRAND, FONTS, DP_RESERVE_FEE } from "@/lib/constants";
 import Image from "next/image";
-import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle, X, Home, Star, RotateCcw } from "lucide-react";
+import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle, X, Home, Star, RotateCcw, Upload } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -131,6 +131,13 @@ export default function AccountPage() {
     try { return JSON.parse(localStorage.getItem("snd_seen_tab_counts") ?? "{}"); } catch { return {}; }
   });
   const [payBalanceModal, setPayBalanceModal] = useState<{ orderNumber: string; balance: number } | null>(null);
+  const [payBalanceMethod, setPayBalanceMethod] = useState<"gcash" | "maya" | "bank_transfer" | null>(null);
+  const [payBalanceRef, setPayBalanceRef] = useState("");
+  const [payBalanceProof, setPayBalanceProof] = useState<File | null>(null);
+  const [payBalanceProofPreview, setPayBalanceProofPreview] = useState<string | null>(null);
+  const [submittingBalance, setSubmittingBalance] = useState(false);
+  const [payBalanceError, setPayBalanceError] = useState("");
+  const [payBalanceSuccess, setPayBalanceSuccess] = useState(false);
   const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
   const [reviewImagePreview, setReviewImagePreview] = useState<string | null>(null);
   const [proofImgLoaded, setProofImgLoaded] = useState(false);
@@ -444,9 +451,43 @@ export default function AccountPage() {
 
   if (!user) return null;
 
+  async function handlePayBalance() {
+    if (!payBalanceModal || !payBalanceMethod || !payBalanceRef.trim()) return;
+    setSubmittingBalance(true);
+    setPayBalanceError("");
+    try {
+      let proofPath = "";
+      if (payBalanceProof) {
+        const form = new FormData();
+        form.append("file", payBalanceProof);
+        form.append("orderNumber", payBalanceModal.orderNumber);
+        form.append("type", "balance_proof");
+        const upRes = await fetch("/api/upload-proof", { method: "POST", body: form });
+        if (upRes.ok) { const d = await upRes.json(); proofPath = d.path ?? ""; }
+      }
+      const res = await fetch("/api/orders/pay-balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderNumber: payBalanceModal.orderNumber,
+          balance: payBalanceModal.balance,
+          paymentMethod: payBalanceMethod,
+          reference: payBalanceRef.trim(),
+          proofPath,
+        }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error ?? "Failed"); }
+      setPayBalanceSuccess(true);
+    } catch (e) {
+      setPayBalanceError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setSubmittingBalance(false);
+    }
+  }
+
   const tabCounts: Record<string, number> = {
-    pending: orders.filter(o => o.status === "pending").length,
-    to_ship: orders.filter(o => ["paid", "stock_on_hand", "processing"].includes(o.status)).length,
+    pending: orders.filter(o => ["pending", "stock_on_hand"].includes(o.status)).length,
+    to_ship: orders.filter(o => ["paid", "processing"].includes(o.status)).length,
     shipped: orders.filter(o => o.status === "shipped").length,
     delivered: orders.filter(o => o.status === "delivered").length,
     returned: orders.filter(o => returnedOrders.get(o.order_number)?.status === "approved").length,
@@ -569,7 +610,7 @@ export default function AccountPage() {
                   </div>
                 ) : orders.filter(order => {
                     if (orderFilter === "all") return true;
-                    if (orderFilter === "pending") return order.status === "pending";
+                    if (orderFilter === "pending") return ["pending", "stock_on_hand"].includes(order.status);
                     if (orderFilter === "to_ship") return ["paid", "processing"].includes(order.status);
                     if (orderFilter === "shipped") return order.status === "shipped";
                     if (orderFilter === "delivered") return order.status === "delivered";
@@ -583,7 +624,7 @@ export default function AccountPage() {
                   </div>
                 ) : orders.filter(order => {
                     if (orderFilter === "all") return true;
-                    if (orderFilter === "pending") return order.status === "pending";
+                    if (orderFilter === "pending") return ["pending", "stock_on_hand"].includes(order.status);
                     if (orderFilter === "to_ship") return ["paid", "processing"].includes(order.status);
                     if (orderFilter === "shipped") return order.status === "shipped";
                     if (orderFilter === "delivered") return order.status === "delivered";
@@ -1722,36 +1763,173 @@ export default function AccountPage() {
 
       {/* Pay Balance modal */}
       {payBalanceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
-          <div className="w-full max-w-sm rounded-xl overflow-hidden" style={{ background: BRAND.card }}>
-            <div className="px-6 pt-6 pb-4">
-              <p className="font-black text-lg mb-0.5" style={{ color: BRAND.black, fontFamily: FONTS.display }}>PAY BALANCE</p>
-              <p className="text-xs mb-5" style={{ color: BRAND.muted }}>{payBalanceModal.orderNumber}</p>
-              <div className="p-4 rounded-lg mb-5" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
-                <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: BRAND.muted }}>Balance Due</p>
-                <p style={{ fontFamily: FONTS.display, fontSize: "2rem", color: BRAND.black }}>₱{payBalanceModal.balance.toLocaleString()}</p>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={e => { if (e.target === e.currentTarget && !submittingBalance) { setPayBalanceModal(null); setPayBalanceMethod(null); setPayBalanceRef(""); setPayBalanceProof(null); setPayBalanceProofPreview(null); setPayBalanceError(""); setPayBalanceSuccess(false); } }}>
+          <div className="w-full sm:max-w-sm max-h-[92dvh] flex flex-col rounded-t-2xl sm:rounded-2xl overflow-hidden" style={{ background: BRAND.card }}>
+
+            {/* Header */}
+            <div className="flex items-start justify-between px-5 pt-5 pb-4 shrink-0" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+              <div>
+                <p className="font-black text-base" style={{ color: BRAND.black, fontFamily: FONTS.display }}>PAY BALANCE</p>
+                <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{payBalanceModal.orderNumber}</p>
               </div>
-              <p className="text-sm leading-relaxed mb-5" style={{ color: BRAND.muted }}>
-                Your pre-order has arrived in the Philippines! Please arrange your balance payment with us.
-              </p>
-              <div className="space-y-2.5">
+              <button onClick={() => { if (!submittingBalance) { setPayBalanceModal(null); setPayBalanceMethod(null); setPayBalanceRef(""); setPayBalanceProof(null); setPayBalanceProofPreview(null); setPayBalanceError(""); setPayBalanceSuccess(false); } }}
+                className="p-1 rounded-lg transition-colors hover:bg-black/10 mt-0.5">
+                <X className="w-4 h-4" style={{ color: BRAND.muted }} />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-5 py-5 space-y-5">
+              {payBalanceSuccess ? (
+                <div className="text-center py-6">
+                  <CheckCircle className="w-12 h-12 mx-auto mb-3" style={{ color: BRAND.teal }} />
+                  <p className="font-black text-base mb-1" style={{ color: BRAND.black, fontFamily: FONTS.display }}>PAYMENT SUBMITTED!</p>
+                  <p className="text-sm leading-relaxed" style={{ color: BRAND.muted }}>
+                    We&apos;ve received your balance payment details. We&apos;ll verify and process your order for shipping right away.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Balance amount */}
+                  <div className="p-4 rounded-lg" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: BRAND.muted }}>Balance Due</p>
+                    <p style={{ fontFamily: FONTS.display, fontSize: "1.75rem", color: BRAND.black }}>₱{payBalanceModal.balance.toLocaleString()}</p>
+                  </div>
+
+                  {/* Message */}
+                  <p className="text-sm leading-relaxed" style={{ color: BRAND.muted }}>
+                    Your pre-order has arrived! Please settle your remaining balance so we can ship your order right away.
+                  </p>
+
+                  {/* Payment method */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-2.5" style={{ color: BRAND.muted }}>Payment Method</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["gcash", "maya", "bank_transfer"] as const).map(m => (
+                        <button key={m} type="button"
+                          onClick={() => setPayBalanceMethod(m)}
+                          className="py-2.5 text-xs font-bold rounded-lg transition-all"
+                          style={{
+                            background: payBalanceMethod === m ? BRAND.teal : BRAND.bg,
+                            color: payBalanceMethod === m ? "#fff" : BRAND.black,
+                            border: `1.5px solid ${payBalanceMethod === m ? BRAND.teal : BRAND.border}`,
+                          }}>
+                          {m === "gcash" ? "GCash" : m === "maya" ? "Maya" : "Bank\nTransfer"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Payment instructions */}
+                  {payBalanceMethod && (
+                    <div className="p-4 rounded-lg text-sm space-y-1" style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+                      {payBalanceMethod === "gcash" && (
+                        <>
+                          <p className="font-bold text-xs mb-1.5" style={{ color: BRAND.black }}>GCash Instructions</p>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Send to: <span className="font-semibold" style={{ color: BRAND.black }}>09XX XXX XXXX</span></p>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Account name: <span className="font-semibold" style={{ color: BRAND.black }}>Sneak N&apos; Drip</span></p>
+                        </>
+                      )}
+                      {payBalanceMethod === "maya" && (
+                        <>
+                          <p className="font-bold text-xs mb-1.5" style={{ color: BRAND.black }}>Maya Instructions</p>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Send to: <span className="font-semibold" style={{ color: BRAND.black }}>09XX XXX XXXX</span></p>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Account name: <span className="font-semibold" style={{ color: BRAND.black }}>Sneak N&apos; Drip</span></p>
+                        </>
+                      )}
+                      {payBalanceMethod === "bank_transfer" && (
+                        <>
+                          <p className="font-bold text-xs mb-1.5" style={{ color: BRAND.black }}>Bank Transfer Instructions</p>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Bank: <span className="font-semibold" style={{ color: BRAND.black }}>BDO / BPI</span></p>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Account #: <span className="font-semibold" style={{ color: BRAND.black }}>XXXX XXXX XXXX</span></p>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Account name: <span className="font-semibold" style={{ color: BRAND.black }}>Sneak N&apos; Drip</span></p>
+                        </>
+                      )}
+                      <p className="text-[10px] mt-2" style={{ color: BRAND.mutedLight }}>
+                        Amount: ₱{payBalanceModal.balance.toLocaleString()} · Include your order number in the remarks.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Reference number */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: BRAND.muted }}>
+                      Reference / Transaction Number
+                    </label>
+                    <input
+                      value={payBalanceRef}
+                      onChange={e => setPayBalanceRef(e.target.value)}
+                      placeholder="e.g. 1234567890"
+                      className="w-full px-3 py-2.5 text-sm focus:outline-none"
+                      style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                    />
+                  </div>
+
+                  {/* Proof upload */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: BRAND.muted }}>
+                      Proof of Payment (optional)
+                    </label>
+                    {payBalanceProofPreview ? (
+                      <div className="relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={payBalanceProofPreview} alt="Proof preview" className="w-full rounded-lg object-cover max-h-36" />
+                        <button type="button"
+                          onClick={() => { setPayBalanceProof(null); setPayBalanceProofPreview(null); }}
+                          className="absolute top-2 right-2 p-1 rounded-full"
+                          style={{ background: BRAND.black, color: "#fff" }}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center gap-2 py-5 cursor-pointer rounded-lg transition-colors"
+                        style={{ border: `1.5px dashed ${BRAND.border}`, background: BRAND.bg }}>
+                        <Upload className="w-5 h-5" style={{ color: BRAND.muted }} />
+                        <span className="text-xs" style={{ color: BRAND.muted }}>Tap to upload screenshot</span>
+                        <input type="file" accept="image/*" className="hidden"
+                          onChange={e => {
+                            const f = e.target.files?.[0];
+                            if (!f) return;
+                            setPayBalanceProof(f);
+                            setPayBalanceProofPreview(URL.createObjectURL(f));
+                          }} />
+                      </label>
+                    )}
+                  </div>
+
+                  {payBalanceError && (
+                    <p className="text-xs px-3 py-2 rounded" style={{ background: `${BRAND.red}10`, color: BRAND.red }}>
+                      {payBalanceError}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 pb-5 pt-3 shrink-0 space-y-2" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+              {payBalanceSuccess ? (
                 <button
-                  onClick={() => { window.dispatchEvent(new CustomEvent("open-chat")); setPayBalanceModal(null); }}
-                  className="w-full py-3 font-black text-sm uppercase tracking-widest"
+                  onClick={() => { setPayBalanceModal(null); setPayBalanceMethod(null); setPayBalanceRef(""); setPayBalanceProof(null); setPayBalanceProofPreview(null); setPayBalanceError(""); setPayBalanceSuccess(false); }}
+                  className="w-full py-3.5 font-black text-sm uppercase tracking-widest"
                   style={{ background: BRAND.teal, color: "#fff" }}>
-                  Chat with Us
+                  Done
                 </button>
-                <a href="https://m.me/sneakndrip" target="_blank" rel="noopener noreferrer"
-                  className="block w-full py-3 font-bold text-sm text-center transition-opacity hover:opacity-70"
-                  style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black }}>
-                  Message on Facebook
-                </a>
-                <button onClick={() => setPayBalanceModal(null)}
-                  className="w-full py-2 text-sm transition-opacity hover:opacity-60"
-                  style={{ color: BRAND.muted }}>
-                  Close
-                </button>
-              </div>
+              ) : (
+                <>
+                  <button
+                    onClick={handlePayBalance}
+                    disabled={submittingBalance || !payBalanceMethod || !payBalanceRef.trim()}
+                    className="w-full py-3.5 font-black text-sm uppercase tracking-widest transition-opacity disabled:opacity-40"
+                    style={{ background: BRAND.teal, color: "#fff" }}>
+                    {submittingBalance ? "Submitting…" : "Submit Payment"}
+                  </button>
+                  <p className="text-[10px] text-center" style={{ color: BRAND.mutedLight }}>
+                    Admin will review and confirm your payment before shipping.
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>

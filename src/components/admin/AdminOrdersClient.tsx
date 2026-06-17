@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS, DP_RESERVE_FEE } from "@/lib/constants";
 import {
   Search, Clock, CheckCircle, Truck, Package, XCircle,
   X, ExternalLink, MapPin, User, CreditCard, ChevronRight, MessageCircle, FileText,
@@ -68,6 +68,9 @@ type Order = {
   tracking_number: string | null;
   proof_of_payment: string | null;
   payment_reference: string | null;
+  balance_reference: string | null;
+  balance_proof_url: string | null;
+  balance_paid_at: string | null;
   admin_notes: string | null;
   created_at: string;
   order_items: OrderItem[];
@@ -594,11 +597,51 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                     );
                   })}
                 </div>
-                <div className="flex justify-between mt-3 pt-3 font-black text-sm"
-                  style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                  <span style={{ color: BRAND.black }}>Total</span>
-                  <span style={{ fontFamily: FONTS.display, color: BRAND.black }}>₱{Number(liveSelected.total).toLocaleString()}</span>
-                </div>
+                {(() => {
+                  const isDP = liveSelected.payment_type === "downpayment";
+                  const dpItems = liveSelected.order_items.filter(i => i.payment_type === "downpayment");
+                  const dpTotal = dpItems.reduce((s, i) => s + Number(i.unit_price) * i.quantity, 0);
+                  const balance = isDP ? dpTotal - DP_RESERVE_FEE * dpItems.reduce((s, i) => s + i.quantity, 0) : 0;
+                  const orderDate = new Date(liveSelected.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+                  const balanceDate = liveSelected.balance_paid_at
+                    ? new Date(liveSelected.balance_paid_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
+                    : null;
+                  if (!isDP) {
+                    return (
+                      <div className="flex justify-between mt-3 pt-3 font-black text-sm"
+                        style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                        <span style={{ color: BRAND.black }}>Total</span>
+                        <span style={{ fontFamily: FONTS.display, color: BRAND.black }}>₱{Number(liveSelected.total).toLocaleString()}</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="mt-3 pt-3 space-y-1.5 text-xs"
+                      style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                      <div className="flex justify-between">
+                        <span style={{ color: BRAND.muted }}>Downpayment Paid</span>
+                        <div className="text-right">
+                          <span className="font-bold" style={{ color: BRAND.teal }}>₱{DP_RESERVE_FEE.toLocaleString()}</span>
+                          <span className="block text-[10px]" style={{ color: BRAND.muted }}>{orderDate}</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between">
+                        <span style={{ color: BRAND.muted }}>Balance Due</span>
+                        <div className="text-right">
+                          <span className="font-bold" style={{ color: balanceDate ? BRAND.teal : BRAND.red }}>₱{balance.toLocaleString()}</span>
+                          <span className="block text-[10px]" style={{ color: BRAND.muted }}>
+                            {balanceDate ? `Paid · ${balanceDate}` : "Pending"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between pt-1.5 font-black text-sm"
+                        style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                        <span style={{ color: BRAND.black }}>Total</span>
+                        <span style={{ fontFamily: FONTS.display, color: BRAND.black }}>₱{Number(liveSelected.total).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Payment */}
@@ -657,6 +700,52 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                     style={{ background: `${BRAND.teal}10`, color: BRAND.muted }}>
                     Cash on Delivery — no proof required
                   </p>
+                )}
+
+                {/* Balance payment section — DP orders only */}
+                {liveSelected.payment_type === "downpayment" && (
+                  <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: BRAND.muted }}>
+                      Balance Payment
+                    </p>
+                    {liveSelected.balance_reference ? (
+                      <div className="space-y-1.5">
+                        <p className="text-xs" style={{ color: BRAND.muted }}>
+                          Ref: <span className="font-semibold" style={{ color: BRAND.black }}>{liveSelected.balance_reference}</span>
+                        </p>
+                        {liveSelected.balance_paid_at && (
+                          <p className="text-xs" style={{ color: BRAND.muted }}>
+                            Submitted: <span style={{ color: BRAND.black }}>{new Date(liveSelected.balance_paid_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}</span>
+                          </p>
+                        )}
+                        {liveSelected.balance_proof_url && (
+                          <div className="mt-2 space-y-1.5">
+                            <a
+                              href={`/api/admin/proof?path=${encodeURIComponent(liveSelected.balance_proof_url)}`}
+                              target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-bold transition-opacity hover:opacity-70"
+                              style={{ color: BRAND.teal }}>
+                              <ExternalLink className="w-3 h-3" /> Open Balance Proof
+                            </a>
+                            <div className="rounded-lg overflow-hidden"
+                              style={{ border: `1px solid ${BRAND.border}`, background: "#F8F7F6" }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={`/api/admin/proof?path=${encodeURIComponent(liveSelected.balance_proof_url)}`}
+                                alt="Balance proof"
+                                className="w-full object-contain max-h-48"
+                                onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs px-3 py-2 rounded" style={{ background: `${BRAND.red}10`, color: BRAND.red }}>
+                        No balance payment submitted yet
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
 
