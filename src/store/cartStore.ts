@@ -12,6 +12,8 @@ interface CartState {
   updateQuantity: (productId: string, size: string, quantity: number) => void;
   updateSize: (productId: string, oldSize: string, newSize: string) => void;
   clearCart: () => void;
+  removeItems: (keys: Array<{ productId: string; size: string }>) => void;
+  updatePaymentType: (productId: string, size: string, paymentType: PaymentType) => void;
   itemCount: () => number;
   subtotal: () => number;
   initForUser: (userId: string | null) => void;
@@ -78,6 +80,22 @@ export const useCartStore = create<CartState>()(
       },
 
       clearCart: () => set({ items: [], cartUserId: null }),
+
+      removeItems: (keys) =>
+        set(state => ({
+          items: state.items.filter(i => !keys.some(k => k.productId === i.product.id && k.size === i.size)),
+        })),
+
+      updatePaymentType: (productId, size, paymentType) =>
+        set(state => ({
+          items: state.items.map(i => {
+            if (i.product.id !== productId || i.size !== size) return i;
+            const unit_price = paymentType === "full_payment"
+              ? i.product.full_payment_price
+              : i.product.downpayment_price;
+            return { ...i, payment_type: paymentType, unit_price };
+          }),
+        })),
 
       itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
 

@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS, SHIPPING_FEE } from "@/lib/constants";
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, LogIn } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, LogIn, CheckSquare, Square } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Product } from "@/lib/types";
 
@@ -56,10 +56,14 @@ function TopProducts({ products }: { products: Product[] }) {
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, removeItem, updateQuantity, updateSize, subtotal } = useCartStore();
+  const { items, removeItem, updateQuantity, updateSize, updatePaymentType, subtotal } = useCartStore();
   const [topProducts, setTopProducts] = useState<Product[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const sub = subtotal();
+  const itemKey = (id: string, size: string) => `${id}-${size}`;
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(items.map(i => itemKey(i.product.id, i.size))));
+  const allSelected = items.length > 0 && items.every(i => selected.has(itemKey(i.product.id, i.size)));
+  const selectedItems = items.filter(i => selected.has(itemKey(i.product.id, i.size)));
+  const sub = selectedItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
 
   useEffect(() => {
     const supabase = createClient();
@@ -129,17 +133,39 @@ export default function CartPage() {
   return (
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body, minHeight: "80vh" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <h1 className="mb-8" style={{ fontFamily: FONTS.display, fontSize: "3rem", letterSpacing: "0.04em", color: BRAND.black }}>
-          YOUR CART
-        </h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 style={{ fontFamily: FONTS.display, fontSize: "3rem", letterSpacing: "0.04em", color: BRAND.black }}>
+            YOUR CART
+          </h1>
+          <button
+            onClick={() => setSelected(allSelected ? new Set() : new Set(items.map(i => itemKey(i.product.id, i.size))))}
+            className="flex items-center gap-1.5 text-xs font-bold transition-opacity hover:opacity-70"
+            style={{ color: BRAND.muted }}>
+            {allSelected ? <CheckSquare className="w-4 h-4" style={{ color: BRAND.teal }} /> : <Square className="w-4 h-4" />}
+            {allSelected ? "Deselect All" : "Select All"}
+          </button>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-8 items-start">
           {/* Items */}
           <div className="lg:col-span-2 space-y-4">
-            {items.map(item => (
-              <div key={`${item.product.id}-${item.size}`}
-                className="p-5 rounded-xl flex gap-5"
-                style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+            {items.map(item => {
+              const key = itemKey(item.product.id, item.size);
+              const isSelected = selected.has(key);
+              const isPreOrder = item.product.status === "pre-order";
+              return (
+              <div key={key}
+                className="p-5 rounded-xl flex gap-5 transition-opacity"
+                style={{ background: BRAND.card, border: `1.5px solid ${isSelected ? BRAND.teal : BRAND.cardBorder}`, opacity: isSelected ? 1 : 0.6 }}>
+                {/* Checkbox */}
+                <button
+                  onClick={() => setSelected(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; })}
+                  className="shrink-0 self-start mt-0.5">
+                  {isSelected
+                    ? <CheckSquare className="w-5 h-5" style={{ color: BRAND.teal }} />
+                    : <Square className="w-5 h-5" style={{ color: BRAND.border }} />}
+                </button>
+
                 {/* Image — clickable */}
                 <Link href={`/shop/${item.product.slug}`} className="w-20 h-20 shrink-0 rounded-lg flex items-center justify-center relative overflow-hidden transition-opacity hover:opacity-80"
                   style={{ background: item.product.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}>
@@ -170,10 +196,27 @@ export default function CartPage() {
                               <option key={s.size} value={s.size}>{s.size}</option>
                             ))}
                         </select>
-                        <span className="text-xs px-2 py-0.5 font-semibold"
-                          style={{ background: item.payment_type === "full_payment" ? `${BRAND.teal}15` : `${BRAND.red}12`, color: item.payment_type === "full_payment" ? BRAND.teal : BRAND.red }}>
-                          {item.payment_type === "full_payment" ? "Full Payment" : "Downpayment"}
-                        </span>
+                        {isPreOrder ? (
+                          <div className="flex gap-1">
+                            {(["full_payment", "downpayment"] as const).map(pt => (
+                              <button key={pt} type="button"
+                                onClick={() => updatePaymentType(item.product.id, item.size, pt)}
+                                className="px-2 py-0.5 text-xs font-bold transition-all"
+                                style={{
+                                  background: item.payment_type === pt ? BRAND.teal : "transparent",
+                                  color: item.payment_type === pt ? "#fff" : BRAND.muted,
+                                  border: `1px solid ${item.payment_type === pt ? BRAND.teal : BRAND.border}`,
+                                }}>
+                                {pt === "full_payment" ? `Full ₱${item.product.full_payment_price.toLocaleString()}` : `DP ₱${item.product.downpayment_price.toLocaleString()}`}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 font-semibold"
+                            style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>
+                            Full Payment
+                          </span>
+                        )}
                       </div>
                     </div>
                     <p className="font-black shrink-0" style={{ fontFamily: FONTS.display, fontSize: "1.3rem", color: BRAND.black }}>
@@ -226,7 +269,8 @@ export default function CartPage() {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
 
           {/* Summary */}
@@ -238,7 +282,9 @@ export default function CartPage() {
               </h2>
               <div className="space-y-3 mb-5">
                 <div className="flex justify-between text-sm">
-                  <span style={{ color: BRAND.muted }}>Subtotal ({items.reduce((s, i) => s + i.quantity, 0)} items)</span>
+                  <span style={{ color: BRAND.muted }}>
+                    Subtotal ({selectedItems.reduce((s, i) => s + i.quantity, 0)} of {items.reduce((s, i) => s + i.quantity, 0)} items)
+                  </span>
                   <span style={{ color: BRAND.black }}>₱{sub.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -256,6 +302,9 @@ export default function CartPage() {
                 <span style={{ color: BRAND.black }}>Subtotal</span>
                 <span style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.black }}>₱{sub.toLocaleString()}</span>
               </div>
+              {selectedItems.length === 0 && (
+                <p className="text-xs text-center mb-3 font-semibold" style={{ color: BRAND.red }}>Select at least one item to checkout</p>
+              )}
               {isLoggedIn === false ? (
                 <button
                   onClick={() => router.push("/login?redirect=/checkout")}
@@ -264,11 +313,17 @@ export default function CartPage() {
                   <LogIn className="w-4 h-4" /> Sign In to Checkout
                 </button>
               ) : (
-                <Link href="/checkout"
-                  className="flex items-center justify-center gap-2 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90"
+                <button
+                  disabled={selectedItems.length === 0}
+                  onClick={() => {
+                    const keys = Array.from(selected);
+                    sessionStorage.setItem("snd_checkout_keys", JSON.stringify(keys));
+                    router.push("/checkout");
+                  }}
+                  className="flex items-center justify-center gap-2 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-40"
                   style={{ background: BRAND.black, color: BRAND.bg }}>
                   Proceed to Checkout <ArrowRight className="w-4 h-4" />
-                </Link>
+                </button>
               )}
               <Link href="/shop"
                 className="flex items-center justify-center mt-3 py-3 text-sm font-semibold transition-opacity hover:opacity-60"

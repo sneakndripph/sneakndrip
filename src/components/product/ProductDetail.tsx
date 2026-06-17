@@ -148,8 +148,11 @@ export default function ProductDetail({
            (!product.sale_end   || new Date(product.sale_end).getTime()   >= now);
   }, [product.sale_price, product.sale_start, product.sale_end]);
   const effectiveFullPrice = isOnSale ? product.sale_price! : product.full_payment_price;
-  // For DP, big price shows the reserve deposit (what customer pays now)
-  const price = effectivePaymentType === "full_payment" ? effectiveFullPrice : DP_RESERVE_FEE;
+  // For DP, big price shows the total DP plan price; ₱1,000 reserve shown in selector button
+  const price = effectivePaymentType === "full_payment" ? effectiveFullPrice : product.downpayment_price;
+  const srpSave = effectivePaymentType === "downpayment"
+    ? product.srp_price - product.downpayment_price
+    : product.srp_price - product.full_payment_price;
   const images = product.images?.length ? product.images : Array(4).fill(null);
 
   function getStock() {
@@ -345,11 +348,11 @@ export default function ProductDetail({
                       Save ₱{(product.full_payment_price - product.sale_price!).toLocaleString()}
                     </span>
                   </p>
-                ) : product.srp_price !== product.full_payment_price ? (
+                ) : product.srp_price !== price ? (
                   <p className="text-sm" style={{ color: BRAND.muted }}>
                     SRP: <span className="line-through">₱{product.srp_price.toLocaleString()}</span>
                     <span className="ml-2 font-bold" style={{ color: BRAND.red }}>
-                      Save ₱{(product.srp_price - product.full_payment_price).toLocaleString()}
+                      Save ₱{srpSave.toLocaleString()}
                     </span>
                   </p>
                 ) : null}
@@ -581,6 +584,9 @@ export default function ProductDetail({
                     <li>• Provincial: 3–7 business days (&#8369;{Number(provFee).toLocaleString()})</li>
                     <li>• Free shipping on orders &#8369;{Number(freeThreshold).toLocaleString()}+</li>
                     <li>• All orders come with tracking number</li>
+                    {isPreOrder && (
+                      <li className="font-semibold" style={{ color: "#D97706" }}>• Pre-orders are final sale — no returns, size changes, or change of mind once the order is placed.</li>
+                    )}
                   </ul>
                 )}
                 {activeTab === "auth" && (

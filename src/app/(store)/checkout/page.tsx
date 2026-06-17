@@ -33,8 +33,10 @@ function calcShipping(
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, subtotal, clearCart } = useCartStore();
-  const sub = subtotal();
+  const { items: allItems, removeItems } = useCartStore();
+  const [checkoutKeys, setCheckoutKeys] = useState<Set<string> | null>(null);
+  const items = checkoutKeys ? allItems.filter(i => checkoutKeys.has(`${i.product.id}-${i.size}`)) : allItems;
+  const sub = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
 
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>("details");
@@ -79,6 +81,11 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     setMounted(true);
+    const keys = sessionStorage.getItem("snd_checkout_keys");
+    if (keys) {
+      try { setCheckoutKeys(new Set(JSON.parse(keys))); } catch { /* ignore */ }
+      sessionStorage.removeItem("snd_checkout_keys");
+    }
     // Fetch active promo codes for display
     fetch("/api/coupons/active").then(r => r.json()).then(data => { if (Array.isArray(data)) setActiveCoupons(data); }).catch(() => {});
     // Fetch dynamic shipping config + COD toggle from admin settings
@@ -256,6 +263,9 @@ export default function CheckoutPage() {
       const preOrderItem = items.find(i => i.product.status === "pre-order");
       sessionStorage.setItem("lastOrder", JSON.stringify({
         orderNumber: num, total, isCOD, paymentMethod, name: form.name,
+        mobile: form.mobile,
+        address: [form.street, form.barangay, form.city, form.province, form.postal].filter(Boolean).join(", "),
+        proofSubmitted: !isCOD,
         shipping, discount, couponCode: couponData?.code ?? null, referenceNumber: referenceNumber.trim() || null,
         isDP,
         dpBalance: isDP ? dpBalance : 0,
@@ -273,7 +283,7 @@ export default function CheckoutPage() {
         })),
       }));
 
-      clearCart();
+      removeItems(items.map(i => ({ productId: i.product.id, size: i.size })));
       router.push("/order-confirmation");
     } catch {
       setOrderError("Something went wrong placing your order. Please try again.");
@@ -685,7 +695,7 @@ export default function CheckoutPage() {
                     <p className="text-xs font-semibold" style={{ color: BRAND.black }}>
                       {fmt(pre.product.eta_start)}{pre.product.eta_end ? ` – ${fmt(pre.product.eta_end)}` : ""}
                     </p>
-                    <p className="text-[10px] mt-1" style={{ color: BRAND.muted }}>Estimated arrival in the Philippines</p>
+                    <p className="text-[10px] mt-1" style={{ color: BRAND.muted }}>Estimated Arrival</p>
                   </div>
                 );
               })()}

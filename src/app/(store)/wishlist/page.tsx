@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BRAND, FONTS } from "@/lib/constants";
-import { createClient } from "@/lib/supabase/client";
 import ProductCard from "@/components/product/ProductCard";
 import { useWishlist } from "@/hooks/useWishlist";
 import { Heart } from "lucide-react";
@@ -13,34 +12,28 @@ export default function WishlistPage() {
   const router = useRouter();
   const { wishlist, loading: wishlistLoading } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
-  const [productsLoading, setProductsLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push("/login?redirect=/wishlist"); return; }
-      setProductsLoading(false);
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      createClient().auth.getUser().then(({ data: { user } }) => {
+        if (!user) { router.push("/login?redirect=/wishlist"); return; }
+        setAuthChecked(true);
+      });
     });
   }, [router]);
 
-  // Fetch product details whenever the wishlist IDs change
   useEffect(() => {
-    if (wishlistLoading || wishlist.length === 0) {
+    if (!authChecked || wishlistLoading || wishlist.length === 0) {
       setProducts([]);
       return;
     }
-    const supabase = createClient();
-    supabase
-      .from("products")
-      .select("*, sizes:product_sizes(size, stock)")
-      .in("id", wishlist)
-      .eq("is_published", true)
-      .then(({ data }) => setProducts((data as unknown as Product[]) ?? []));
-  }, [wishlist, wishlistLoading]);
+    fetch(`/api/wishlist/products?ids=${wishlist.join(",")}`)
+      .then(r => r.ok ? r.json() : { products: [] })
+      .then(d => setProducts(d.products ?? []));
+  }, [wishlist, wishlistLoading, authChecked]);
 
-  const loading = productsLoading || wishlistLoading;
-
-  // Filter products to current wishlist state — removes items in real-time on un-wishlist
+  const loading = !authChecked || wishlistLoading;
   const visibleProducts = products.filter(p => wishlist.includes(p.id));
 
   return (

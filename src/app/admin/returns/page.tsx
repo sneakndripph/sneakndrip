@@ -313,10 +313,25 @@ export default function AdminReturnsPage() {
                 )}
 
                 {selected.status !== "pending" && (
-                  <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: STATUS_COLORS[selected.status] }}>
-                    {selected.status === "approved" ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                    {selected.status === "approved" ? "Return approved" : "Return denied"}
-                  </div>
+                  <>
+                    <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: STATUS_COLORS[selected.status] }}>
+                      {selected.status === "approved" ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                      {selected.status === "approved" ? "Return approved" : "Return denied"}
+                    </div>
+                    {selected.status === "approved" && (
+                      <div className="p-3 rounded-lg" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)" }}>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#10B981" }}>Customer directed to chat</p>
+                        <p className="text-xs mb-2" style={{ color: BRAND.muted }}>
+                          The customer has been instructed to reach you via chat support to arrange the return.
+                        </p>
+                        <a href={`/admin/chat?email=${encodeURIComponent(selected.customer_email)}`}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold transition-opacity hover:opacity-70"
+                          style={{ color: "#10B981" }}>
+                          Open Chat with {selected.customer_name} →
+                        </a>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
