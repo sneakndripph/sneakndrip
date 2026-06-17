@@ -896,7 +896,7 @@ export default function AccountPage() {
                                   {cancellingOrder === order.order_number ? "Cancelling…" : "Cancel Order"}
                                 </button>
                               )}
-                              {order.status === "delivered" && !returnedOrders.has(order.order_number) && (
+                              {order.status === "delivered" && !returnedOrders.has(order.order_number) && order.payment_type !== "downpayment" && (
                                 <button
                                   onClick={() => {
                                     setReturnModalOrder(order);
@@ -1663,6 +1663,26 @@ export default function AccountPage() {
                     <p className="text-xs text-center" style={{ color: BRAND.mutedLight }}>
                       We&apos;ll review your request and get back to you soon.
                     </p>
+                  )}
+                  {viewReturnModal.status === "approved" && (
+                    <div className="p-4 rounded-xl" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)" }}>
+                      <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: "#10B981" }}>Next Step</p>
+                      <p className="text-xs mb-3" style={{ color: BRAND.muted }}>
+                        Your return has been approved. Please reach out to us via chat or Facebook to arrange the return process.
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        <a href="/chat"
+                          className="flex items-center justify-center gap-2 py-2.5 text-xs font-black uppercase tracking-wide"
+                          style={{ background: "#10B981", color: "#fff" }}>
+                          Chat with Us
+                        </a>
+                        <a href="https://m.me/sneakndrip" target="_blank" rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 py-2.5 text-xs font-bold transition-opacity hover:opacity-70"
+                          style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                          Message on Facebook
+                        </a>
+                      </div>
+                    </div>
                   )}
                 </>
               )}

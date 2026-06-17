@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { CheckCircle, Package, MessageCircle, Clock, Truck } from "lucide-react";
+import { CheckCircle, Package, MessageCircle, Clock, Truck, MapPin, User } from "lucide-react";
 import { BRAND, FONTS } from "@/lib/constants";
 
 type OrderItem = { name: string; size: string; quantity: number; price: number; image?: string | null; bg?: string | null; brand?: string };
@@ -23,6 +23,9 @@ type OrderData = {
   totalDueNow?: number;
   eta?: string | null;
   etaEnd?: string | null;
+  mobile?: string | null;
+  address?: string | null;
+  proofSubmitted?: boolean;
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -47,8 +50,8 @@ const STEPS_COD:     OrderStatus[] = ["pending", "processing", "shipped", "deliv
 const STEP_LABELS: Record<OrderStatus, string> = {
   pending:       "Placed",
   paid:          "Confirmed",
-  stock_on_hand: "Stock on Hand",
-  processing:    "Processing",
+  stock_on_hand: "In PH",
+  processing:    "Packing",
   shipped:       "Shipped",
   delivered:     "Delivered",
   cancelled:     "Cancelled",
@@ -223,11 +226,29 @@ export default function OrderConfirmationPage() {
                       {new Date(order.eta).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })}
                       {order.etaEnd ? ` – ${new Date(order.etaEnd).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })}` : ""}
                     </p>
-                    <p className="text-[10px] mt-0.5" style={{ color: BRAND.muted }}>Estimated arrival in the Philippines</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: BRAND.muted }}>Estimated Arrival</p>
                   </div>
                 )}
               </div>
             </div>
+
+            {/* Customer info */}
+            {(order.name || order.mobile || order.address) && (
+              <div className="p-5" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="w-3.5 h-3.5 shrink-0" style={{ color: BRAND.teal }} />
+                  <p className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Delivery Info</p>
+                </div>
+                <p className="text-sm font-semibold" style={{ color: BRAND.black }}>{order.name}</p>
+                {order.mobile && <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{order.mobile}</p>}
+                {order.address && (
+                  <div className="flex items-start gap-1.5 mt-1">
+                    <MapPin className="w-3 h-3 shrink-0 mt-0.5" style={{ color: BRAND.muted }} />
+                    <p className="text-xs" style={{ color: BRAND.muted }}>{order.address}</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Payment info */}
             <div className="p-5">
@@ -239,6 +260,11 @@ export default function OrderConfirmationPage() {
                 <p className="text-xs mb-3" style={{ color: BRAND.muted }}>
                   Reference No: <span className="font-semibold" style={{ color: BRAND.black }}>{order.referenceNumber}</span>
                 </p>
+              )}
+              {order.proofSubmitted && !order.isCOD && (
+                <div className="flex items-center gap-1.5 text-xs font-semibold mb-3" style={{ color: BRAND.teal }}>
+                  <CheckCircle className="w-3.5 h-3.5" /> Proof of payment submitted
+                </div>
               )}
               {order.isCOD ? (
                 <div className="p-3 rounded-lg text-sm leading-relaxed" style={{ background: `${BRAND.teal}10`, color: BRAND.black }}>

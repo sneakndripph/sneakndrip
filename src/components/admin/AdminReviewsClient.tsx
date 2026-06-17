@@ -207,12 +207,23 @@ export default function AdminReviewsClient({ initialReviews }: { initialReviews:
 
               {selected.image_url && (
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.muted }}>Customer Photo</p>
-                  <a href={selected.image_url} target="_blank" rel="noopener noreferrer"
-                    className="block relative w-full h-44 rounded-xl overflow-hidden transition-opacity hover:opacity-80"
-                    style={{ background: BRAND.bg }}>
-                    <Image src={selected.image_url} alt="Review photo" fill className="object-contain" sizes="480px" />
-                  </a>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.muted }}>
+                    Customer {selected.image_url.toLowerCase().endsWith(".mp4") ? "Video" : "Photo"}
+                  </p>
+                  {selected.image_url.toLowerCase().endsWith(".mp4") ? (
+                    <video
+                      src={selected.image_url}
+                      controls
+                      className="w-full rounded-xl max-h-72"
+                      style={{ background: BRAND.bg }}
+                    />
+                  ) : (
+                    <a href={selected.image_url} target="_blank" rel="noopener noreferrer"
+                      className="block relative w-full h-44 rounded-xl overflow-hidden transition-opacity hover:opacity-80"
+                      style={{ background: BRAND.bg }}>
+                      <Image src={selected.image_url} alt="Review photo" fill className="object-contain" sizes="480px" />
+                    </a>
+                  )}
                 </div>
               )}
 

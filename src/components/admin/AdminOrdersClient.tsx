@@ -68,6 +68,7 @@ type Order = {
   tracking_number: string | null;
   proof_of_payment: string | null;
   payment_reference: string | null;
+  shipping_fee: number | null;
   balance_reference: string | null;
   balance_proof_url: string | null;
   balance_paid_at: string | null;
@@ -607,11 +608,20 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                     ? new Date(liveSelected.balance_paid_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
                     : null;
                   if (!isDP) {
+                    const fee = Number(liveSelected.shipping_fee ?? 0);
                     return (
-                      <div className="flex justify-between mt-3 pt-3 font-black text-sm"
+                      <div className="mt-3 pt-3 space-y-1 text-xs"
                         style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                        <span style={{ color: BRAND.black }}>Total</span>
-                        <span style={{ fontFamily: FONTS.display, color: BRAND.black }}>₱{Number(liveSelected.total).toLocaleString()}</span>
+                        {fee > 0 && (
+                          <div className="flex justify-between">
+                            <span style={{ color: BRAND.muted }}>Delivery Fee</span>
+                            <span style={{ color: BRAND.black }}>₱{fee.toLocaleString()}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-black text-sm pt-1">
+                          <span style={{ color: BRAND.black }}>Total</span>
+                          <span style={{ fontFamily: FONTS.display, color: BRAND.black }}>₱{Number(liveSelected.total).toLocaleString()}</span>
+                        </div>
                       </div>
                     );
                   }
@@ -634,6 +644,12 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                           </span>
                         </div>
                       </div>
+                      {Number(liveSelected.shipping_fee ?? 0) > 0 && (
+                        <div className="flex justify-between">
+                          <span style={{ color: BRAND.muted }}>Delivery Fee</span>
+                          <span style={{ color: BRAND.black }}>₱{Number(liveSelected.shipping_fee).toLocaleString()}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between pt-1.5 font-black text-sm"
                         style={{ borderTop: `1px solid ${BRAND.border}` }}>
                         <span style={{ color: BRAND.black }}>Total</span>

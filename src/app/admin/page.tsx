@@ -3,10 +3,11 @@ import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { BRAND, FONTS } from "@/lib/constants";
-import { TrendingUp, ShoppingBag, Package, Eye } from "lucide-react";
+import { TrendingUp, ShoppingBag, Package } from "lucide-react";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import DashboardRecentOrdersTable from "@/components/admin/DashboardRecentOrdersTable";
 import DashboardRefresh from "@/components/admin/DashboardRefresh";
+import DashboardVisitorsCard from "@/components/admin/DashboardVisitorsCard";
 
 export default async function AdminDashboard({
   searchParams,
@@ -140,7 +141,6 @@ export default async function AdminDashboard({
     { label: "Total Revenue",    value: `₱${totalRevenue.toLocaleString()}`, sub: `${ordersCount} orders total`,    icon: TrendingUp,  color: BRAND.teal,  bg: `rgba(91,184,180,0.12)`,  href: "/admin/sales" },
     { label: "Total Orders",     value: String(ordersCount),                  sub: `${pendingCount} pending`,         icon: ShoppingBag, color: BRAND.black, bg: "rgba(13,13,13,0.08)",   href: "/admin/orders" },
     { label: "Products",         value: String(productsCount ?? 0),           sub: "in catalog",                      icon: Package,     color: BRAND.red,   bg: "rgba(217,79,61,0.1)",   href: "/admin/products" },
-    { label: "Visitors Today",   value: String(todayVisitors),                sub: `${weekVisitors} this week`,       icon: Eye,         color: "#6366F1",   bg: "rgba(99,102,241,0.1)",  href: undefined },
   ];
 
   // Group low stock by product
@@ -182,18 +182,15 @@ export default async function AdminDashboard({
               <p className="text-xs mt-1 uppercase tracking-widest font-semibold" style={{ color: BRAND.muted }}>{m.label}</p>
             </>
           );
-          return m.href ? (
+          return (
             <Link key={m.label} href={m.href}
               className="block p-5 rounded-xl transition-opacity hover:opacity-80"
               style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
               {inner}
             </Link>
-          ) : (
-            <div key={m.label} className="p-5 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              {inner}
-            </div>
           );
         })}
+        <DashboardVisitorsCard initialToday={todayVisitors} initialWeek={weekVisitors} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
