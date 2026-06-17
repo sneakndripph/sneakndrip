@@ -125,6 +125,7 @@ export default function AccountPage() {
   const [orderFilter, setOrderFilter] = useState("all");
   const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
   const [reviewImagePreview, setReviewImagePreview] = useState<string | null>(null);
+  const [proofImgLoaded, setProofImgLoaded] = useState(false);
 
   // Address state
   const [addressForm, setAddressForm] = useState({ street: "", barangay: "", city: "", province: "", postal: "", regionGroup: "" });
@@ -435,6 +436,15 @@ export default function AccountPage() {
 
   if (!user) return null;
 
+  const tabCounts: Record<string, number> = {
+    pending: orders.filter(o => o.status === "pending").length,
+    to_ship: orders.filter(o => ["paid", "processing"].includes(o.status)).length,
+    shipped: orders.filter(o => o.status === "shipped").length,
+    delivered: orders.filter(o => o.status === "delivered").length,
+    returned: orders.filter(o => returnedOrders.has(o.order_number)).length,
+    cancelled: orders.filter(o => o.status === "cancelled").length,
+  };
+
   const NAV_TABS = [
     { id: "orders" as Tab, icon: Package, label: "My Orders" },
     { id: "account" as Tab, icon: User, label: "Account Details" },
@@ -505,18 +515,31 @@ export default function AccountPage() {
                       { key: "to_ship", label: "To Ship" },
                       { key: "shipped", label: "To Receive" },
                       { key: "delivered", label: "Completed" },
+                      { key: "returned", label: "Returns" },
                       { key: "cancelled", label: "Cancelled" },
-                    ].map(f => (
+                    ].map(f => {
+                      const cnt = tabCounts[f.key] ?? 0;
+                      return (
                       <button key={f.key} onClick={() => setOrderFilter(f.key)}
-                        className="px-3 py-1.5 text-xs font-bold rounded-full transition-all"
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-full transition-all"
                         style={{
                           background: orderFilter === f.key ? BRAND.black : BRAND.card,
                           color: orderFilter === f.key ? BRAND.bg : BRAND.muted,
                           border: `1px solid ${orderFilter === f.key ? BRAND.black : BRAND.border}`,
                         }}>
                         {f.label}
+                        {cnt > 0 && f.key !== "all" && (
+                          <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-black rounded-full"
+                            style={{
+                              background: orderFilter === f.key ? BRAND.bg : BRAND.teal,
+                              color: orderFilter === f.key ? BRAND.black : "#fff",
+                            }}>
+                            {cnt}
+                          </span>
+                        )}
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
@@ -535,6 +558,7 @@ export default function AccountPage() {
                     if (orderFilter === "to_ship") return ["paid", "processing"].includes(order.status);
                     if (orderFilter === "shipped") return order.status === "shipped";
                     if (orderFilter === "delivered") return order.status === "delivered";
+                    if (orderFilter === "returned") return returnedOrders.has(order.order_number);
                     if (orderFilter === "cancelled") return order.status === "cancelled";
                     return true;
                   }).length === 0 ? (
@@ -548,6 +572,7 @@ export default function AccountPage() {
                     if (orderFilter === "to_ship") return ["paid", "processing"].includes(order.status);
                     if (orderFilter === "shipped") return order.status === "shipped";
                     if (orderFilter === "delivered") return order.status === "delivered";
+                    if (orderFilter === "returned") return returnedOrders.has(order.order_number);
                     if (orderFilter === "cancelled") return order.status === "cancelled";
                     return true;
                   }).map(order => {
@@ -617,8 +642,8 @@ export default function AccountPage() {
                         </div>
                       )}
 
-                      {/* Tracking card — shown when shipped */}
-                      {order.tracking_number && order.status === "shipped" && (
+                      {/* Tracking card — shown when shipped or delivered */}
+                      {order.tracking_number && (order.status === "shipped" || order.status === "delivered") && (
                         <div className="mx-5 my-4 p-4 rounded-lg"
                           style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}30` }}>
                           <div className="flex items-center gap-3 mb-2">
@@ -731,7 +756,7 @@ export default function AccountPage() {
                             )}
                             {!isCOD && order.proof_of_payment && (
                               <button
-                                onClick={() => setProofModal({ url: `/api/proof?orderNumber=${encodeURIComponent(order.order_number)}`, orderNumber: order.order_number })}
+                                onClick={() => { setProofImgLoaded(false); setProofModal({ url: `/api/proof?orderNumber=${encodeURIComponent(order.order_number)}`, orderNumber: order.order_number }); }}
                                 className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70"
                                 style={{ color: BRAND.teal }}>
                                 <Eye className="w-3.5 h-3.5" /> View Proof
@@ -746,9 +771,6 @@ export default function AccountPage() {
                           </div>
                           {/* Total + action buttons row */}
                           <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <p className="font-black text-sm" style={{ color: BRAND.black }}>
-                              Total ₱{Number(order.total).toLocaleString()}
-                            </p>
                             <div className="flex items-center gap-2 flex-wrap">
                               {order.status === "pending" && isCOD && (
                                 <button
@@ -825,6 +847,9 @@ export default function AccountPage() {
                                 </button>
                               )}
                             </div>
+                            <p className="font-black text-sm shrink-0" style={{ color: BRAND.black }}>
+                              Total ₱{Number(order.total).toLocaleString()}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -1565,13 +1590,21 @@ export default function AccountPage() {
               </button>
             </div>
             <div className="p-4 overflow-y-auto" style={{ maxHeight: "75vh" }}>
+              {!proofImgLoaded && (
+                <div className="flex flex-col items-center justify-center py-10 gap-3">
+                  <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+                    style={{ borderColor: BRAND.teal, borderTopColor: "transparent" }} />
+                  <p className="text-xs" style={{ color: BRAND.muted }}>Loading proof…</p>
+                </div>
+              )}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={proofModal.url}
                 alt="Proof of payment"
-                style={{ width: "100%", height: "auto", display: "block" }}
+                style={{ width: "100%", height: "auto", display: proofImgLoaded ? "block" : "none" }}
                 className="rounded-lg"
-                onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                onLoad={() => setProofImgLoaded(true)}
+                onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; setProofImgLoaded(true); }}
               />
               <div className="flex gap-3 mt-3">
                 <a href={proofModal.url} target="_blank" rel="noopener noreferrer"
