@@ -72,6 +72,7 @@ type Order = {
   balance_reference: string | null;
   balance_proof_url: string | null;
   balance_paid_at: string | null;
+  balance_payment_method: string | null;
   admin_notes: string | null;
   created_at: string;
   order_items: OrderItem[];
@@ -119,7 +120,8 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
   const [cancelReason, setCancelReason] = useState("");
   const [showShippingModal, setShowShippingModal] = useState(false);
   const [shippingTrackingInput, setShippingTrackingInput] = useState("");
-  const [paymentSectionOpen, setPaymentSectionOpen] = useState(false);
+  const [dpSectionOpen, setDpSectionOpen] = useState(false);
+  const [balanceSectionOpen, setBalanceSectionOpen] = useState(false);
   const bulkRef = useRef<HTMLDivElement>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -162,7 +164,8 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
     setSelected(o);
     setTrackingInput(o.tracking_number ?? "");
     setNotesInput(o.admin_notes ?? "");
-    setPaymentSectionOpen(false);
+    setDpSectionOpen(false);
+    setBalanceSectionOpen(false);
   }
 
   function closeModal() { setSelected(null); }
@@ -662,125 +665,161 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                 })()}
               </div>
 
-              {/* Payment */}
-              <div className="px-5 py-4">
-                <button type="button" onClick={() => setPaymentSectionOpen(o => !o)}
-                  className="w-full flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <CreditCard className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
-                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Payment</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!paymentSectionOpen && (
-                      <span className="text-xs" style={{ color: liveSelected.payment_type === "downpayment" && !liveSelected.balance_paid_at ? BRAND.red : BRAND.muted }}>
-                        {PAYMENT_LABELS[liveSelected.payment_method] ?? liveSelected.payment_method}
-                        {liveSelected.payment_type === "downpayment"
-                          ? (liveSelected.balance_paid_at ? " · Balance Paid" : " · Balance Pending")
-                          : ""}
-                      </span>
-                    )}
-                    <ChevronDown className="w-3.5 h-3.5 transition-transform" style={{ color: BRAND.muted, transform: paymentSectionOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-                  </div>
-                </button>
-                {paymentSectionOpen && (<>
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: BRAND.black }}>
-                      {PAYMENT_LABELS[liveSelected.payment_method] ?? liveSelected.payment_method}
-                    </p>
-                    <p className="text-xs capitalize" style={{ color: BRAND.muted }}>
-                      {liveSelected.payment_type === "downpayment" ? "Downpayment" : "Full Payment"}
-                    </p>
-                    {liveSelected.payment_reference && (
-                      <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>
-                        Ref: <span className="font-semibold" style={{ color: BRAND.black }}>{liveSelected.payment_reference}</span>
+              {/* Payment/s — two separate collapsibles for DP orders */}
+              <div style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                {/* Downpayment section */}
+                <div className="px-5 py-3">
+                  <button type="button" onClick={() => setDpSectionOpen(o => !o)}
+                    className="w-full flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="w-3.5 h-3.5" style={{ color: BRAND.teal }} />
+                      <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>
+                        {liveSelected.payment_type === "downpayment" ? "Downpayment" : "Payment"}
                       </p>
-                    )}
-                  </div>
-                  {liveSelected.payment_method !== "cod" && (
-                    <a
-                      href={
-                        liveSelected.proof_of_payment
-                          ? `/api/admin/proof?path=${encodeURIComponent(liveSelected.proof_of_payment)}`
-                          : `/api/admin/proof?orderNumber=${encodeURIComponent(liveSelected.order_number)}`
-                      }
-                      target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold"
-                      style={{ background: `${BRAND.teal}15`, color: BRAND.teal, border: `1px solid ${BRAND.teal}40` }}
-                      onClick={e => e.stopPropagation()}>
-                      <ExternalLink className="w-3 h-3" /> Open Full
-                    </a>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {!dpSectionOpen && (
+                        <span className="text-xs" style={{ color: BRAND.muted }}>
+                          {PAYMENT_LABELS[liveSelected.payment_method] ?? liveSelected.payment_method}
+                        </span>
+                      )}
+                      <ChevronDown className="w-3.5 h-3.5 transition-transform" style={{ color: BRAND.muted, transform: dpSectionOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                    </div>
+                  </button>
+                  {dpSectionOpen && (
+                    <div className="mt-3 space-y-3">
+                      <div className="space-y-1 text-xs">
+                        <div className="flex justify-between">
+                          <span style={{ color: BRAND.muted }}>Mode of payment</span>
+                          <span className="font-semibold" style={{ color: BRAND.black }}>{PAYMENT_LABELS[liveSelected.payment_method] ?? liveSelected.payment_method}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ color: BRAND.muted }}>Ref num</span>
+                          <span className="font-semibold" style={{ color: BRAND.black }}>{liveSelected.payment_reference ?? "—"}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span style={{ color: BRAND.muted }}>Submitted</span>
+                          <span style={{ color: BRAND.black }}>
+                            {new Date(liveSelected.created_at).toLocaleString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                      </div>
+                      {liveSelected.payment_method !== "cod" && (
+                        <div>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Proof image</p>
+                            <a
+                              href={
+                                liveSelected.proof_of_payment
+                                  ? `/api/admin/proof?path=${encodeURIComponent(liveSelected.proof_of_payment)}`
+                                  : `/api/admin/proof?orderNumber=${encodeURIComponent(liveSelected.order_number)}`
+                              }
+                              target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[10px] font-bold transition-opacity hover:opacity-70"
+                              style={{ color: BRAND.teal }}
+                              onClick={e => e.stopPropagation()}>
+                              <ExternalLink className="w-3 h-3" /> Open Full
+                            </a>
+                          </div>
+                          <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${BRAND.border}`, background: "#F8F7F6" }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={
+                                liveSelected.proof_of_payment
+                                  ? `/api/admin/proof?path=${encodeURIComponent(liveSelected.proof_of_payment)}`
+                                  : `/api/admin/proof?orderNumber=${encodeURIComponent(liveSelected.order_number)}`
+                              }
+                              alt="Proof of payment"
+                              className="w-full object-contain max-h-64"
+                              onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {liveSelected.payment_method === "cod" && (
+                        <p className="text-xs px-3 py-2 rounded" style={{ background: `${BRAND.teal}10`, color: BRAND.muted }}>
+                          Cash on Delivery — no proof required
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
-                {liveSelected.payment_method !== "cod" && (
-                  <div className="rounded-lg overflow-hidden"
-                    style={{ border: `1px solid ${BRAND.border}`, background: "#F8F7F6" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={
-                        liveSelected.proof_of_payment
-                          ? `/api/admin/proof?path=${encodeURIComponent(liveSelected.proof_of_payment)}`
-                          : `/api/admin/proof?orderNumber=${encodeURIComponent(liveSelected.order_number)}`
-                      }
-                      alt="Proof of payment"
-                      className="w-full object-contain max-h-72"
-                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                    />
-                  </div>
-                )}
-                {liveSelected.payment_method === "cod" && (
-                  <p className="text-xs px-3 py-2 rounded"
-                    style={{ background: `${BRAND.teal}10`, color: BRAND.muted }}>
-                    Cash on Delivery — no proof required
-                  </p>
-                )}
 
                 {/* Balance payment section — DP orders only */}
                 {liveSelected.payment_type === "downpayment" && (
-                  <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: BRAND.muted }}>
-                      Balance Payment
-                    </p>
-                    {liveSelected.balance_reference ? (
-                      <div className="space-y-1.5">
-                        <p className="text-xs" style={{ color: BRAND.muted }}>
-                          Ref: <span className="font-semibold" style={{ color: BRAND.black }}>{liveSelected.balance_reference}</span>
-                        </p>
-                        {liveSelected.balance_paid_at && (
-                          <p className="text-xs" style={{ color: BRAND.muted }}>
-                            Submitted: <span style={{ color: BRAND.black }}>{new Date(liveSelected.balance_paid_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}</span>
+                  <div className="px-5 py-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                    <button type="button" onClick={() => setBalanceSectionOpen(o => !o)}
+                      className="w-full flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="w-3.5 h-3.5" style={{ color: liveSelected.balance_paid_at ? BRAND.teal : BRAND.red }} />
+                        <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Balance Payment</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {!balanceSectionOpen && (
+                          <span className="text-xs font-semibold" style={{ color: liveSelected.balance_paid_at ? BRAND.teal : BRAND.red }}>
+                            {liveSelected.balance_paid_at ? "Paid" : "Pending"}
+                          </span>
+                        )}
+                        <ChevronDown className="w-3.5 h-3.5 transition-transform" style={{ color: BRAND.muted, transform: balanceSectionOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                      </div>
+                    </button>
+                    {balanceSectionOpen && (
+                      <div className="mt-3">
+                        {liveSelected.balance_reference ? (
+                          <div className="space-y-3">
+                            <div className="space-y-1 text-xs">
+                              {liveSelected.balance_payment_method && (
+                                <div className="flex justify-between">
+                                  <span style={{ color: BRAND.muted }}>Mode of payment</span>
+                                  <span className="font-semibold" style={{ color: BRAND.black }}>{PAYMENT_LABELS[liveSelected.balance_payment_method] ?? liveSelected.balance_payment_method}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between">
+                                <span style={{ color: BRAND.muted }}>Ref num</span>
+                                <span className="font-semibold" style={{ color: BRAND.black }}>{liveSelected.balance_reference}</span>
+                              </div>
+                              {liveSelected.balance_paid_at && (
+                                <div className="flex justify-between">
+                                  <span style={{ color: BRAND.muted }}>Submitted</span>
+                                  <span style={{ color: BRAND.black }}>
+                                    {new Date(liveSelected.balance_paid_at).toLocaleString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            {liveSelected.balance_proof_url && (
+                              <div>
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: BRAND.muted }}>Proof image</p>
+                                  <a
+                                    href={`/api/admin/proof?path=${encodeURIComponent(liveSelected.balance_proof_url)}`}
+                                    target="_blank" rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold transition-opacity hover:opacity-70"
+                                    style={{ color: BRAND.teal }}>
+                                    <ExternalLink className="w-3 h-3" /> Open Full
+                                  </a>
+                                </div>
+                                <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${BRAND.border}`, background: "#F8F7F6" }}>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={`/api/admin/proof?path=${encodeURIComponent(liveSelected.balance_proof_url)}`}
+                                    alt="Balance proof"
+                                    className="w-full object-contain max-h-64"
+                                    onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs px-3 py-2 rounded" style={{ background: `${BRAND.red}10`, color: BRAND.red }}>
+                            No balance payment submitted yet
                           </p>
                         )}
-                        {liveSelected.balance_proof_url && (
-                          <div className="mt-2 space-y-1.5">
-                            <a
-                              href={`/api/admin/proof?path=${encodeURIComponent(liveSelected.balance_proof_url)}`}
-                              target="_blank" rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 text-xs font-bold transition-opacity hover:opacity-70"
-                              style={{ color: BRAND.teal }}>
-                              <ExternalLink className="w-3 h-3" /> Open Balance Proof
-                            </a>
-                            <div className="rounded-lg overflow-hidden"
-                              style={{ border: `1px solid ${BRAND.border}`, background: "#F8F7F6" }}>
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={`/api/admin/proof?path=${encodeURIComponent(liveSelected.balance_proof_url)}`}
-                                alt="Balance proof"
-                                className="w-full object-contain max-h-48"
-                                onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                              />
-                            </div>
-                          </div>
-                        )}
                       </div>
-                    ) : (
-                      <p className="text-xs px-3 py-2 rounded" style={{ background: `${BRAND.red}10`, color: BRAND.red }}>
-                        No balance payment submitted yet
-                      </p>
                     )}
                   </div>
                 )}
-                </>)}
               </div>
 
               {/* Tracking number — display only; edit via shipping modal */}

@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
     balance_reference: body.reference,
     balance_proof_url: body.proofPath || null,
     balance_paid_at: new Date().toISOString(),
+    balance_payment_method: body.paymentMethod || null,
   }).eq("id", order.id);
 
   void admin.from("activity_log").insert({
