@@ -78,6 +78,24 @@ function statusEmailContent(
         <p style="color:#888;font-size:14px">Use your tracking number on your courier's website to monitor your delivery.</p>
       `,
     },
+    arrived_ph: {
+      subject: `Your Pre-Order Has Arrived in the Philippines! — ${orderNumber} | Sneak N' Drip`,
+      body: `
+        <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
+        <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
+          Great news! Your pre-order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> has arrived in the Philippines and is now with us. 🇵🇭
+        </p>
+        <div style="background:${BRAND_BG};border-left:4px solid ${BRAND_TEAL};padding:16px 20px;border-radius:4px;margin-bottom:20px">
+          <p style="margin:0;color:${BRAND_BLACK};font-size:14px;font-weight:600">What's next?</p>
+          <p style="margin:6px 0 0;color:#555;font-size:13px;line-height:1.8">
+            1. Please settle your remaining balance before we ship your order<br>
+            2. Once balance is confirmed, we'll pack and ship your pair<br>
+            3. We'll send you a tracking number once it's on the way
+          </p>
+        </div>
+        <p style="color:#888;font-size:14px">Message us on <a href="https://www.facebook.com/SneakNDrip/" style="color:${BRAND_TEAL}">Facebook</a> or <a href="https://www.instagram.com/sneakndripph/" style="color:${BRAND_TEAL}">Instagram</a> to arrange your balance payment.</p>
+      `,
+    },
     delivered: {
       subject: isCOD
         ? `Order Delivered & Payment Collected — ${orderNumber} | Sneak N' Drip`
@@ -215,6 +233,17 @@ export async function PATCH(
         html: wrapEmail(emailContent.body, currentOrder.order_number),
       }).catch(err => console.error("Status email error:", err));
     }
+  }
+
+  // ── Insert in-app notification for arrived_ph ────────────────────────
+  if (body.status === "arrived_ph" && currentOrder?.customer_email) {
+    void admin.from("notifications").insert({
+      user_email: currentOrder.customer_email,
+      title: "Your pre-order has arrived in the Philippines! 🇵🇭",
+      message: `Order ${currentOrder.order_number} is here. Please settle your balance so we can ship it to you.`,
+      order_number: currentOrder.order_number,
+      type: "order",
+    });
   }
 
   // ── Tracking number added/updated on shipped order → notify customer ──

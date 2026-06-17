@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
-import { BRAND, FONTS, PAYMENT_METHODS, SHIPPING_FEE } from "@/lib/constants";
+import { BRAND, FONTS, PAYMENT_METHODS, SHIPPING_FEE, DP_RESERVE_FEE } from "@/lib/constants";
 import Image from "next/image";
 import { Upload, CheckCircle, AlertCircle, ChevronRight } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
@@ -67,6 +67,15 @@ export default function CheckoutPage() {
   const shipping = calcShipping(isCOD, regionGroup, sub, itemCount, shipCfg.freeThreshold, shipCfg.metro, shipCfg.prov);
   const discount = couponData?.discount ?? 0;
   const total = sub + shipping - discount;
+
+  const isDP = items.some(i => i.payment_type === "downpayment");
+  const dpBalance = items
+    .filter(i => i.payment_type === "downpayment")
+    .reduce((s, i) => s + (i.unit_price - DP_RESERVE_FEE) * i.quantity, 0);
+  const subNow = items.reduce(
+    (s, i) => s + (i.payment_type === "downpayment" ? DP_RESERVE_FEE : i.unit_price) * i.quantity, 0
+  );
+  const totalDueNow = subNow + shipping - discount;
 
   useEffect(() => {
     setMounted(true);
@@ -417,14 +426,14 @@ export default function CheckoutPage() {
                         <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
                           <p className="font-bold">GCash Number: {payCfg.gcashNumber}</p>
                           <p>Account Name: {payCfg.gcashName}</p>
-                          <p>Amount: ₱{total.toLocaleString()}</p>
+                          <p>Amount: ₱{(isDP ? totalDueNow : total).toLocaleString()}{isDP && <span className="text-xs ml-1 font-normal" style={{ color: BRAND.muted }}>(downpayment only)</span>}</p>
                         </div>
                       )}
                       {paymentMethod === "maya" && (
                         <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
                           <p className="font-bold">Maya Number: {payCfg.mayaNumber}</p>
                           <p>Account Name: {payCfg.mayaName}</p>
-                          <p>Amount: ₱{total.toLocaleString()}</p>
+                          <p>Amount: ₱{(isDP ? totalDueNow : total).toLocaleString()}{isDP && <span className="text-xs ml-1 font-normal" style={{ color: BRAND.muted }}>(downpayment only)</span>}</p>
                         </div>
                       )}
                       {paymentMethod === "bank_transfer" && (
@@ -439,7 +448,9 @@ export default function CheckoutPage() {
                             <p>Account Number: {payCfg.bank2Account}</p>
                             <p>Account Name: {payCfg.bank2AccountName}</p>
                           </div>
-                          <p className="font-bold" style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>Amount: ₱{total.toLocaleString()}</p>
+                          <p className="font-bold" style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>
+                            Amount: ₱{(isDP ? totalDueNow : total).toLocaleString()}{isDP && <span className="text-xs ml-1 font-normal" style={{ color: BRAND.muted }}>(downpayment only)</span>}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -529,8 +540,14 @@ export default function CheckoutPage() {
                   <h2 className="mb-4 font-black" style={{ color: BRAND.black }}>
                     Payment: {PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label}
                   </h2>
+                  {referenceNumber && (
+                    <div className="mt-3 px-4 py-3 rounded-lg" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
+                      <p className="text-[11px] font-black uppercase tracking-widest mb-0.5" style={{ color: BRAND.muted }}>Reference Number</p>
+                      <p className="text-sm font-bold" style={{ color: BRAND.black }}>{referenceNumber}</p>
+                    </div>
+                  )}
                   {proofFile && (
-                    <div className="mt-2">
+                    <div className="mt-3">
                       {proofPreview ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={proofPreview} alt="Proof of payment" className="rounded-lg max-h-48 object-contain" style={{ border: `1px solid ${BRAND.border}` }} />
@@ -550,7 +567,7 @@ export default function CheckoutPage() {
                 <button onClick={handlePlaceOrder} disabled={placing}
                   className="w-full py-5 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-60"
                   style={{ background: BRAND.teal, color: "#fff" }}>
-                  {placing ? "Placing Order…" : `Place Order — ₱${total.toLocaleString()}`}
+                  {placing ? "Placing Order…" : `Place Order — ₱${(isDP ? totalDueNow : total).toLocaleString()}`}
                 </button>
               </div>
             )}
@@ -600,10 +617,23 @@ export default function CheckoutPage() {
                     <span style={{ color: BRAND.teal }}>−₱{discount.toLocaleString()}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-black pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                  <span style={{ color: BRAND.black }}>Total</span>
-                  <span style={{ fontFamily: FONTS.display, fontSize: "1.3rem", color: BRAND.black }}>₱{total.toLocaleString()}</span>
-                </div>
+                {isDP ? (
+                  <>
+                    <div className="flex justify-between font-black pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                      <span style={{ color: BRAND.black }}>Downpayment</span>
+                      <span style={{ fontFamily: FONTS.display, fontSize: "1.3rem", color: BRAND.teal }}>₱{totalDueNow.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-1.5" style={{ color: BRAND.muted }}>
+                      <span>Balance</span>
+                      <span>₱{dpBalance.toLocaleString()} (will pay before shipping)</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between font-black pt-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                    <span style={{ color: BRAND.black }}>Total</span>
+                    <span style={{ fontFamily: FONTS.display, fontSize: "1.3rem", color: BRAND.black }}>₱{total.toLocaleString()}</span>
+                  </div>
+                )}
               </div>
             </div>
 

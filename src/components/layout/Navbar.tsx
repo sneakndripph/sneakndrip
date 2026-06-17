@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { BRAND, FONTS } from "@/lib/constants";
-import { ShoppingBag, Search, User, Menu, X, Heart } from "lucide-react";
+import { ShoppingBag, Search, User, Menu, X, Heart, Bell } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Shop", href: "/shop" },
@@ -28,15 +28,33 @@ export default function Navbar() {
   const [mounted, setMounted] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; order_number: string | null; is_read: boolean; created_at: string }[]>([]);
+  const [notifOpen, setNotifOpen] = useState(false);
   const itemCount = useCartStore(s => s.itemCount());
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchBoxRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
     const handler = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/notifications")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.notifications) setNotifications(data.notifications); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
   }, []);
 
   useEffect(() => {
@@ -81,6 +99,21 @@ export default function Navbar() {
     setSearchQuery("");
     setSearchResults([]);
     setShowResults(false);
+  }
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  function openNotifications() {
+    setNotifOpen(o => !o);
+    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
+    if (unreadIds.length) {
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: unreadIds }),
+      }).catch(() => {});
+    }
   }
 
   return (
@@ -132,6 +165,47 @@ export default function Navbar() {
             <Link href="/account" className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: BRAND.muted }}>
               <User className="w-4 h-4" />
             </Link>
+            {/* Notification bell */}
+            <div className="relative" ref={notifRef}>
+              <button onClick={openNotifications} className="relative p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: notifOpen ? BRAND.teal : BRAND.muted }}>
+                <Bell className="w-4 h-4" />
+                {mounted && unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 text-white text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-black"
+                    style={{ background: BRAND.red }}>
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+              {notifOpen && (
+                <div className="absolute right-0 top-full mt-2 w-80 rounded-xl shadow-xl z-[60] overflow-hidden"
+                  style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                  <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                    <p className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.black }}>Notifications</p>
+                  </div>
+                  {notifications.length === 0 ? (
+                    <p className="px-4 py-6 text-sm text-center" style={{ color: BRAND.muted }}>No notifications yet</p>
+                  ) : (
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.map(n => (
+                        <div key={n.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${BRAND.border}`, background: n.is_read ? "transparent" : `${BRAND.teal}06` }}>
+                          <p className="text-xs font-bold mb-0.5" style={{ color: BRAND.black }}>{n.title}</p>
+                          <p className="text-xs leading-relaxed" style={{ color: BRAND.muted }}>{n.message}</p>
+                          {n.order_number && (
+                            <p className="text-[10px] mt-1 font-semibold" style={{ color: BRAND.teal }}>{n.order_number}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="px-4 py-2.5" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                    <Link href="/account" onClick={() => setNotifOpen(false)}
+                      className="text-xs font-bold block text-center" style={{ color: BRAND.teal }}>
+                      View Orders →
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
             <Link href="/wishlist" className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: BRAND.muted }}>
               <Heart className="w-4 h-4" />
             </Link>
