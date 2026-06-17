@@ -1,45 +1,45 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useWishlistStore } from "@/store/wishlistStore";
 
 export function useWishlist() {
-  const [wishlist, setWishlist] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items: wishlist, loaded, setItems, addItem, removeItem, reset } = useWishlistStore();
 
-  const load = useCallback(async () => {
-    const res = await fetch("/api/wishlist");
-    if (res.ok) {
-      const json = await res.json();
-      setWishlist(json.wishlist ?? []);
-    }
-    setLoading(false);
-  }, []);
+  // Load once — re-runs when `loaded` flips back to false (e.g. on auth change)
+  useEffect(() => {
+    if (loaded) return;
+    fetch("/api/wishlist")
+      .then(res => res.ok ? res.json() : null)
+      .then(json => setItems(json?.wishlist ?? []))
+      .catch(() => setItems([]));
+  }, [loaded, setItems]);
 
+  // Auth state change → reset so the load effect re-fires for the new user
   useEffect(() => {
     const supabase = createClient();
-    load();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => load());
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => reset());
     return () => subscription.unsubscribe();
-  }, [load]);
+  }, [reset]);
 
   const toggle = useCallback(async (productId: string) => {
     const isIn = wishlist.includes(productId);
-    setWishlist(prev => isIn ? prev.filter(id => id !== productId) : [...prev, productId]);
-
     if (isIn) {
+      removeItem(productId);
       await fetch("/api/wishlist", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId }),
       });
     } else {
+      addItem(productId);
       await fetch("/api/wishlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId }),
       });
     }
-  }, [wishlist]);
+  }, [wishlist, addItem, removeItem]);
 
-  return { wishlist, loading, toggle, isWishlisted: (id: string) => wishlist.includes(id) };
+  return { wishlist, loading: !loaded, toggle, isWishlisted: (id: string) => wishlist.includes(id) };
 }

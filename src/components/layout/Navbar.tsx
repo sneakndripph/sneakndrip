@@ -30,7 +30,6 @@ export default function Navbar() {
   const [showResults, setShowResults] = useState(false);
   const itemCount = useCartStore(s => s.itemCount());
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchBoxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,22 +53,18 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handle);
   }, []);
 
-  // Real-time search with debounce
+  // Real-time search — fires immediately on every keystroke
   useEffect(() => {
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     const q = searchQuery.trim();
     if (!q) { setSearchResults([]); setShowResults(false); return; }
-    searchTimerRef.current = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-        if (res.ok) {
-          const { products } = await res.json() as { products: SearchProduct[] };
-          setSearchResults(products);
-          setShowResults(true);
-        }
-      } catch { /* network error — no-op */ }
-    }, 220);
-    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+    let cancelled = false;
+    fetch(`/api/search?q=${encodeURIComponent(q)}`)
+      .then(res => res.ok ? res.json() as Promise<{ products: SearchProduct[] }> : null)
+      .then(data => {
+        if (!cancelled && data?.products) { setSearchResults(data.products); setShowResults(true); }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [searchQuery]);
 
   function handleSearch(e: React.FormEvent) {

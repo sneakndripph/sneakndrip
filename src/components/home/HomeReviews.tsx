@@ -12,6 +12,7 @@ type Review = {
   body: string;
   is_verified?: boolean;
   product_id?: string | null;
+  image_url?: string | null;
 };
 
 export default function HomeReviews({
@@ -30,7 +31,7 @@ export default function HomeReviews({
           <button key={r.id}
             onClick={() => setSelected(r)}
             className="text-left block p-6 rounded-xl transition-shadow hover:shadow-md cursor-pointer w-full"
-            style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+            style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}`, fontFamily: FONTS.body }}>
             <div className="flex gap-0.5 mb-4">
               {Array(r.rating).fill(0).map((_, i) => (
                 <span key={i} className="text-sm" style={{ color: BRAND.teal }}>★</span>
@@ -39,17 +40,23 @@ export default function HomeReviews({
                 <span key={i} className="text-sm" style={{ color: BRAND.border }}>★</span>
               ))}
             </div>
-            <p className="text-sm leading-relaxed mb-5 italic" style={{ color: BRAND.black, fontFamily: FONTS.body }}>
+            <p className="text-sm leading-relaxed mb-4 italic" style={{ color: BRAND.black }}>
               &ldquo;{r.body.length > 140 ? r.body.slice(0, 140) + "…" : r.body}&rdquo;
             </p>
+            {r.image_url && (
+              <div className="mb-4 rounded-lg overflow-hidden" style={{ height: 100 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={r.image_url} alt="Review photo" className="w-full h-full object-cover" />
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-bold text-sm" style={{ color: BRAND.black, fontFamily: FONTS.body }}>{r.author_name}</p>
-                {r.title && <p className="text-xs" style={{ color: BRAND.muted, fontFamily: FONTS.body }}>{r.title}</p>}
+                <p className="font-bold text-sm" style={{ color: BRAND.black }}>{r.author_name}</p>
+                {r.title && <p className="text-xs" style={{ color: BRAND.muted }}>{r.title}</p>}
               </div>
               {r.is_verified && (
                 <span className="text-[10px] font-semibold px-2.5 py-1"
-                  style={{ background: `${BRAND.teal}15`, color: BRAND.teal, fontFamily: FONTS.body }}>
+                  style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>
                   Verified
                 </span>
               )}
@@ -78,13 +85,19 @@ export default function HomeReviews({
                 <X className="w-4 h-4" style={{ color: BRAND.muted }} />
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-6" style={{ fontFamily: FONTS.body }}>
               {selected.title && (
                 <p className="font-black text-base mb-2" style={{ color: BRAND.black }}>{selected.title}</p>
               )}
-              <p className="text-sm leading-relaxed italic mb-6" style={{ color: BRAND.black, fontFamily: FONTS.body }}>
+              <p className="text-sm leading-relaxed italic mb-4" style={{ color: BRAND.black }}>
                 &ldquo;{selected.body}&rdquo;
               </p>
+              {selected.image_url && (
+                <div className="mb-6 rounded-lg overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={selected.image_url} alt="Review photo" className="w-full object-contain" style={{ maxHeight: 280 }} />
+                </div>
+              )}
               <div className="flex items-center justify-between pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
                 <div>
                   <p className="font-bold text-sm" style={{ color: BRAND.black }}>{selected.author_name}</p>
