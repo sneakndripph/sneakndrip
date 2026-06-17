@@ -50,8 +50,8 @@ const STEPS_COD:     OrderStatus[] = ["pending", "processing", "shipped", "deliv
 const STEP_LABELS: Record<OrderStatus, string> = {
   pending:       "Placed",
   paid:          "Confirmed",
-  stock_on_hand: "In PH",
-  processing:    "Packing",
+  stock_on_hand: "On Hand",
+  processing:    "Processing",
   shipped:       "Shipped",
   delivered:     "Delivered",
   cancelled:     "Cancelled",

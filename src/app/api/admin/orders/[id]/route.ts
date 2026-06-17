@@ -73,17 +73,21 @@ function statusEmailContent(
         ${trackingNumber ? `
         <div style="background:${BRAND_BG};border-radius:8px;padding:20px;margin-bottom:20px;text-align:center">
           <p style="margin:0 0 6px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px">Tracking Number</p>
-          <p style="margin:0;color:${BRAND_BLACK};font-size:20px;font-weight:900;letter-spacing:2px">${trackingNumber}</p>
+          <p style="margin:0 0 12px;color:${BRAND_BLACK};font-size:20px;font-weight:900;letter-spacing:2px">${trackingNumber}</p>
+          <a href="https://www.jtexpress.ph/trajectoryQuery?billCode=${trackingNumber}"
+            style="display:inline-block;background:${BRAND_TEAL};color:#fff;font-size:13px;font-weight:700;padding:10px 22px;border-radius:4px;text-decoration:none;letter-spacing:0.5px">
+            Track via J&amp;T Express →
+          </a>
         </div>` : ""}
-        <p style="color:#888;font-size:14px">Use your tracking number on your courier's website to monitor your delivery.</p>
+        <p style="color:#888;font-size:14px">Track your delivery using the link above or visit <a href="https://www.jtexpress.ph" style="color:${BRAND_TEAL}">J&amp;T Express</a>.</p>
       `,
     },
     stock_on_hand: {
-      subject: `Your Pre-Order Has Arrived in the Philippines! — ${orderNumber} | Sneak N' Drip`,
+      subject: `Your Pre-Order Has Arrived! — ${orderNumber} | Sneak N' Drip`,
       body: `
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
-          Great news! Your pre-order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> has arrived in the Philippines and is now with us. 🇵🇭
+          Great news! Your pre-order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> has arrived and is now with us. 🎉
         </p>
         <div style="background:${BRAND_BG};border-left:4px solid ${BRAND_TEAL};padding:16px 20px;border-radius:4px;margin-bottom:20px">
           <p style="margin:0;color:${BRAND_BLACK};font-size:14px;font-weight:600">What's next?</p>
@@ -99,19 +103,27 @@ function statusEmailContent(
     delivered: {
       subject: isCOD
         ? `Order Delivered & Payment Collected — ${orderNumber} | Sneak N' Drip`
-        : `Order Delivered! — ${orderNumber} | Sneak N' Drip`,
+        : `Your Sneakers Have Landed! — ${orderNumber} | Sneak N' Drip`,
       body: `
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
           ${isCOD
-            ? `Your order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> has been delivered and payment collected. Thank you!`
-            : `Your order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> has been delivered. Enjoy your kicks! 👟`
+            ? `Your order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> has been delivered and payment collected. Thank you for trusting Sneak N' Drip! 🙏`
+            : `Your order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> has been delivered. Your pair is finally home! 👟🔥`
           }
         </p>
+        <div style="background:${BRAND_BG};border-left:4px solid ${BRAND_TEAL};padding:16px 20px;border-radius:4px;margin-bottom:20px">
+          <p style="margin:0;color:${BRAND_BLACK};font-size:14px;font-weight:600">Thank you for trusting us! 🙏</p>
+          <p style="margin:6px 0 0;color:#555;font-size:13px;line-height:1.8">
+            Your support means the world to us. We hope you love your pair as much as we loved getting it to you.<br>
+            Come back soon — more heat dropping soon! 🔥
+          </p>
+        </div>
         <p style="color:#888;font-size:14px">
-          Happy with your purchase? We'd love a review! Message us on
+          Tag us in your fit! Share on
           <a href="https://www.facebook.com/SneakNDrip/" style="color:${BRAND_TEAL}">Facebook</a> or
-          <a href="https://www.instagram.com/sneakndripph/" style="color:${BRAND_TEAL}">Instagram</a>.
+          <a href="https://www.instagram.com/sneakndripph/" style="color:${BRAND_TEAL}">Instagram</a>
+          and we might feature you. 📸
         </p>
       `,
     },
@@ -127,8 +139,8 @@ function wrapEmail(bodyContent: string, orderNumber: string): string {
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
   <div style="max-width:580px;margin:40px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
     <div style="background:${BRAND_BLACK};padding:28px 40px;text-align:center">
-      <div style="background:${BRAND_BG};display:inline-block;padding:8px 18px;border-radius:4px;margin-bottom:12px">
-        <span style="font-size:18px;font-weight:900;letter-spacing:2px;color:${BRAND_BLACK}">SNEAK N' DRIP</span>
+      <div style="display:inline-block;margin-bottom:12px">
+        <img src="https://sneakndrip.ph/sneakndrip-logo.png" alt="Sneak N' Drip" height="48" style="display:block;height:48px;width:auto" />
       </div>
       <p style="color:${BRAND_TEAL};margin:0;font-size:13px;font-weight:600">${orderNumber}</p>
     </div>

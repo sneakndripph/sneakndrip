@@ -5,6 +5,7 @@ import Link from "next/link";
 import { BRAND, FONTS } from "@/lib/constants";
 import ProductCard from "@/components/product/ProductCard";
 import { useWishlist } from "@/hooks/useWishlist";
+import { createClient } from "@/lib/supabase/client";
 import { Heart } from "lucide-react";
 import type { Product } from "@/lib/types";
 
@@ -15,11 +16,9 @@ export default function WishlistPage() {
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    import("@/lib/supabase/client").then(({ createClient }) => {
-      createClient().auth.getUser().then(({ data: { user } }) => {
-        if (!user) { router.push("/login?redirect=/wishlist"); return; }
-        setAuthChecked(true);
-      });
+    createClient().auth.getUser().then(({ data: { user } }) => {
+      if (!user) { router.push("/login?redirect=/wishlist"); return; }
+      setAuthChecked(true);
     });
   }, [router]);
 
