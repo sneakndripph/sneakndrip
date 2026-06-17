@@ -768,12 +768,14 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
                         {liveSelected.balance_reference ? (
                           <div className="space-y-3">
                             <div className="space-y-1 text-xs">
-                              {liveSelected.balance_payment_method && (
-                                <div className="flex justify-between">
-                                  <span style={{ color: BRAND.muted }}>Mode of payment</span>
-                                  <span className="font-semibold" style={{ color: BRAND.black }}>{PAYMENT_LABELS[liveSelected.balance_payment_method] ?? liveSelected.balance_payment_method}</span>
-                                </div>
-                              )}
+                              <div className="flex justify-between">
+                                <span style={{ color: BRAND.muted }}>Mode of payment</span>
+                                <span className="font-semibold" style={{ color: BRAND.black }}>
+                                  {liveSelected.balance_payment_method
+                                    ? (PAYMENT_LABELS[liveSelected.balance_payment_method] ?? liveSelected.balance_payment_method)
+                                    : "—"}
+                                </span>
+                              </div>
                               <div className="flex justify-between">
                                 <span style={{ color: BRAND.muted }}>Ref num</span>
                                 <span className="font-semibold" style={{ color: BRAND.black }}>{liveSelected.balance_reference}</span>

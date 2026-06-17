@@ -5,13 +5,15 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const orderNumber = formData.get("orderNumber") as string | null;
+  const type = formData.get("type") as string | null;
 
   if (!file || !orderNumber) {
     return NextResponse.json({ error: "Missing file or orderNumber" }, { status: 400 });
   }
 
   const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `${orderNumber}.${ext}`;
+  const suffix = type === "balance_proof" ? "_balance" : "";
+  const path = `${orderNumber}${suffix}.${ext}`;
   const arrayBuffer = await file.arrayBuffer();
 
   const admin = createAdminClient();

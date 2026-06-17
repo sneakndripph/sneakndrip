@@ -495,7 +495,7 @@ export default function AccountPage() {
         form.append("file", payBalanceProof);
         form.append("orderNumber", payBalanceModal.orderNumber);
         form.append("type", "balance_proof");
-        const upRes = await fetch("/api/upload-proof", { method: "POST", body: form });
+        const upRes = await fetch("/api/orders/upload-proof", { method: "POST", body: form });
         if (upRes.ok) { const d = await upRes.json(); proofPath = d.path ?? ""; }
       }
       const res = await fetch("/api/orders/pay-balance", {
