@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AnnouncementBar from "@/components/layout/AnnouncementBar";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { BRAND } from "@/lib/constants";
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 export default function RootPage() {
   return (
     <div style={{ background: BRAND.bg, minHeight: "100vh" }}>
+      <AnnouncementBar />
       <Navbar />
       <main>
         <StorePage />
