@@ -123,6 +123,7 @@ export default function AccountPage() {
   const [editReturnError, setEditReturnError] = useState("");
   const [proofModal, setProofModal] = useState<{ url: string; orderNumber: string } | null>(null);
   const [orderFilter, setOrderFilter] = useState("all");
+  const [seenTabs, setSeenTabs] = useState<Set<string>>(new Set<string>());
   const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
   const [reviewImagePreview, setReviewImagePreview] = useState<string | null>(null);
   const [proofImgLoaded, setProofImgLoaded] = useState(false);
@@ -441,7 +442,7 @@ export default function AccountPage() {
     to_ship: orders.filter(o => ["paid", "processing"].includes(o.status)).length,
     shipped: orders.filter(o => o.status === "shipped").length,
     delivered: orders.filter(o => o.status === "delivered").length,
-    returned: orders.filter(o => returnedOrders.has(o.order_number)).length,
+    returned: orders.filter(o => returnedOrders.get(o.order_number)?.status === "approved").length,
     cancelled: orders.filter(o => o.status === "cancelled").length,
   };
 
@@ -520,7 +521,10 @@ export default function AccountPage() {
                     ].map(f => {
                       const cnt = tabCounts[f.key] ?? 0;
                       return (
-                      <button key={f.key} onClick={() => setOrderFilter(f.key)}
+                      <button key={f.key} onClick={() => {
+                          setOrderFilter(f.key);
+                          setSeenTabs(prev => new Set([...prev, f.key]));
+                        }}
                         className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-full transition-all"
                         style={{
                           background: orderFilter === f.key ? BRAND.black : BRAND.card,
@@ -528,7 +532,7 @@ export default function AccountPage() {
                           border: `1px solid ${orderFilter === f.key ? BRAND.black : BRAND.border}`,
                         }}>
                         {f.label}
-                        {cnt > 0 && f.key !== "all" && (
+                        {cnt > 0 && f.key !== "all" && !seenTabs.has(f.key) && (
                           <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-black rounded-full"
                             style={{
                               background: orderFilter === f.key ? BRAND.bg : BRAND.teal,
@@ -558,7 +562,7 @@ export default function AccountPage() {
                     if (orderFilter === "to_ship") return ["paid", "processing"].includes(order.status);
                     if (orderFilter === "shipped") return order.status === "shipped";
                     if (orderFilter === "delivered") return order.status === "delivered";
-                    if (orderFilter === "returned") return returnedOrders.has(order.order_number);
+                    if (orderFilter === "returned") return returnedOrders.get(order.order_number)?.status === "approved";
                     if (orderFilter === "cancelled") return order.status === "cancelled";
                     return true;
                   }).length === 0 ? (
@@ -572,7 +576,7 @@ export default function AccountPage() {
                     if (orderFilter === "to_ship") return ["paid", "processing"].includes(order.status);
                     if (orderFilter === "shipped") return order.status === "shipped";
                     if (orderFilter === "delivered") return order.status === "delivered";
-                    if (orderFilter === "returned") return returnedOrders.has(order.order_number);
+                    if (orderFilter === "returned") return returnedOrders.get(order.order_number)?.status === "approved";
                     if (orderFilter === "cancelled") return order.status === "cancelled";
                     return true;
                   }).map(order => {

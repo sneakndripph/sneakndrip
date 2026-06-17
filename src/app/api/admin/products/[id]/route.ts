@@ -108,7 +108,7 @@ export async function PATCH(
     const restockedSizes = sizes
       .filter(s => s.stock > 0 && (oldStockMap.get(s.size) ?? 0) === 0)
       .map(s => s.size);
-    sendRestockEmails(id, restockedSizes, productName).catch(() => {});
+    await sendRestockEmails(id, restockedSizes, productName);
   }
 
   void admin.from("activity_log").insert({

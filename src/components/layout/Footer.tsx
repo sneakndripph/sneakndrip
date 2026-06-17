@@ -34,8 +34,8 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-12" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1">
-            <div className="rounded-md px-3 py-2 inline-block mb-5" style={{ background: BRAND.bg }}>
-              <Image src="/sneakndrip-logo.gif" alt="Sneak N' Drip" width={110} height={44} className="object-contain" />
+            <div className="inline-block mb-5">
+              <Image src="/sneakndrip-logo.png" alt="Sneak N' Drip" width={110} height={44} className="object-contain" />
             </div>
             <p className="text-sm leading-relaxed mb-5" style={{ color: "#666" }}>
               Philippines&apos; trusted source for 100% authentic sneakers. On hand and pre-order. Shipped nationwide.
