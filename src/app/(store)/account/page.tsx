@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BRAND, FONTS, DP_RESERVE_FEE } from "@/lib/constants";
 import Image from "next/image";
@@ -72,7 +72,6 @@ const STEPS_COD = [
 
 export default function AccountPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>("orders");
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -206,14 +205,15 @@ export default function AccountPage() {
 
   // Auto-open pay balance modal when arriving via email link (?order=SND-XXXX)
   useEffect(() => {
-    const orderParam = searchParams.get("order");
-    if (!orderParam || orders.length === 0) return;
+    if (orders.length === 0) return;
+    const orderParam = new URLSearchParams(window.location.search).get("order");
+    if (!orderParam) return;
     const match = orders.find(o => o.order_number === orderParam && o.status === "stock_on_hand" && o.payment_type === "downpayment");
     if (!match) return;
     const dpItems = match.order_items.filter(i => i.payment_type === "downpayment");
     const dpBalance = dpItems.reduce((s, i) => s + (i.unit_price - DP_RESERVE_FEE) * i.quantity, 0);
     setPayBalanceModal({ orderNumber: match.order_number, balance: dpBalance });
-  }, [orders, searchParams]);
+  }, [orders]);
 
   async function handleSignOut() {
     const supabase = createClient();
