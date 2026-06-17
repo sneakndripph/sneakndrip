@@ -51,6 +51,9 @@ export const PAYMENT_METHODS = [
   { id: "cod", label: "Cash on Delivery", icon: "💵" },
 ] as const;
 
+// Upfront reserve deposit for pre-order downpayment plan
+export const DP_RESERVE_FEE = 1000;
+
 export const SHIPPING_FEE = {
   free_threshold: 5000,
   // Non-COD, 1–2 items
