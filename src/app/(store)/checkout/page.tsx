@@ -253,9 +253,15 @@ export default function CheckoutPage() {
       }).catch(() => {});
 
       // Save order data for confirmation page
+      const preOrderItem = items.find(i => i.product.status === "pre-order");
       sessionStorage.setItem("lastOrder", JSON.stringify({
         orderNumber: num, total, isCOD, paymentMethod, name: form.name,
         shipping, discount, couponCode: couponData?.code ?? null, referenceNumber: referenceNumber.trim() || null,
+        isDP,
+        dpBalance: isDP ? dpBalance : 0,
+        totalDueNow: isDP ? totalDueNow : total,
+        eta: preOrderItem?.product.eta_start ?? null,
+        etaEnd: preOrderItem?.product.eta_end ?? null,
         items: items.map(i => ({
           name: i.product.name,
           size: i.size,
@@ -668,6 +674,21 @@ export default function CheckoutPage() {
                 </div>
               )}
               {couponError && <p className="text-xs mt-1.5 font-semibold" style={{ color: BRAND.red }}>{couponError}</p>}
+              {/* ETA display for pre-order items */}
+              {(() => {
+                const pre = items.find(i => i.product.status === "pre-order");
+                if (!pre?.product.eta_start) return null;
+                const fmt = (d: string) => new Date(d).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+                return (
+                  <div className="mt-3 p-3 rounded-lg" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: BRAND.teal }}>Pre-Order ETA</p>
+                    <p className="text-xs font-semibold" style={{ color: BRAND.black }}>
+                      {fmt(pre.product.eta_start)}{pre.product.eta_end ? ` – ${fmt(pre.product.eta_end)}` : ""}
+                    </p>
+                    <p className="text-[10px] mt-1" style={{ color: BRAND.muted }}>Estimated arrival in the Philippines</p>
+                  </div>
+                );
+              })()}
               {!couponData && activeCoupons.length > 0 && (
                 <div className="mt-3">
                   <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: BRAND.muted }}>Available Promos</p>

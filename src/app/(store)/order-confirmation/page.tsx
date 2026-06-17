@@ -18,33 +18,40 @@ type OrderData = {
   discount?: number;
   couponCode?: string | null;
   referenceNumber?: string | null;
+  isDP?: boolean;
+  dpBalance?: number;
+  totalDueNow?: number;
+  eta?: string | null;
+  etaEnd?: string | null;
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
   gcash: "GCash", maya: "Maya", bank_transfer: "Bank Transfer", cod: "Cash on Delivery",
 };
 
-type OrderStatus = "pending" | "paid" | "processing" | "shipped" | "delivered" | "cancelled";
+type OrderStatus = "pending" | "paid" | "stock_on_hand" | "processing" | "shipped" | "delivered" | "cancelled";
 
 const STATUS_CONFIG: Record<OrderStatus, { icon: React.ElementType; color: string; label: string; desc: string }> = {
-  pending:    { icon: Clock,        color: "#8A8580", label: "Pending",    desc: "Order received, awaiting payment verification." },
-  paid:       { icon: CheckCircle,  color: BRAND.teal, label: "Confirmed", desc: "Payment verified! Your order is being prepared." },
-  processing: { icon: Clock,        color: "#D97706", label: "Processing", desc: "We're packing your order for shipment." },
-  shipped:    { icon: Truck,        color: "#3B82F6", label: "Shipped",    desc: "Your order is on the way!" },
-  delivered:  { icon: CheckCircle,  color: "#10B981", label: "Delivered",  desc: "Delivered. Enjoy your kicks!" },
-  cancelled:  { icon: Clock,        color: BRAND.red,  label: "Cancelled", desc: "This order has been cancelled." },
+  pending:       { icon: Clock,        color: "#8A8580", label: "Pending",          desc: "Order received, awaiting payment verification." },
+  paid:          { icon: CheckCircle,  color: BRAND.teal, label: "Confirmed",       desc: "Payment verified! Your order is being prepared." },
+  stock_on_hand: { icon: CheckCircle,  color: "#8B5CF6", label: "Stock on Hand",   desc: "Your pre-order has arrived in the Philippines! Please settle your balance." },
+  processing:    { icon: Clock,        color: "#D97706", label: "Processing",       desc: "We're packing your order for shipment." },
+  shipped:       { icon: Truck,        color: "#3B82F6", label: "Shipped",          desc: "Your order is on the way!" },
+  delivered:     { icon: CheckCircle,  color: "#10B981", label: "Delivered",        desc: "Delivered. Enjoy your kicks!" },
+  cancelled:     { icon: Clock,        color: BRAND.red,  label: "Cancelled",       desc: "This order has been cancelled." },
 };
 
-const STEPS_DEFAULT: OrderStatus[] = ["pending", "paid", "processing", "shipped", "delivered"];
+const STEPS_DEFAULT: OrderStatus[] = ["pending", "paid", "stock_on_hand", "processing", "shipped", "delivered"];
 const STEPS_COD:     OrderStatus[] = ["pending", "processing", "shipped", "delivered"];
 
 const STEP_LABELS: Record<OrderStatus, string> = {
-  pending:    "Placed",
-  paid:       "Confirmed",
-  processing: "Processing",
-  shipped:    "Shipped",
-  delivered:  "Delivered",
-  cancelled:  "Cancelled",
+  pending:       "Placed",
+  paid:          "Confirmed",
+  stock_on_hand: "Stock on Hand",
+  processing:    "Processing",
+  shipped:       "Shipped",
+  delivered:     "Delivered",
+  cancelled:     "Cancelled",
 };
 
 function StatusTracker({ status, isCOD }: { status: OrderStatus; isCOD: boolean }) {
@@ -187,12 +194,38 @@ export default function OrderConfirmationPage() {
                     <span style={{ color: BRAND.teal }}>−₱{order.discount!.toLocaleString()}</span>
                   </div>
                 )}
-                <div className="flex justify-between font-black pt-1">
-                  <span style={{ color: BRAND.black }}>Total</span>
-                  <span style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: BRAND.black }}>
-                    ₱{order.total.toLocaleString()}
-                  </span>
-                </div>
+                {order.isDP ? (
+                  <>
+                    <div className="flex justify-between font-black pt-1">
+                      <span style={{ color: BRAND.black }}>Downpayment</span>
+                      <span style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: BRAND.teal }}>
+                        ₱{(order.totalDueNow ?? order.total).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs pt-0.5" style={{ color: BRAND.muted }}>
+                      <span>Balance</span>
+                      <span>₱{(order.dpBalance ?? 0).toLocaleString()} (will pay before shipping)</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between font-black pt-1">
+                    <span style={{ color: BRAND.black }}>Total</span>
+                    <span style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: BRAND.black }}>
+                      ₱{order.total.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {/* ETA for pre-orders */}
+                {order.eta && (
+                  <div className="mt-2 pt-2 p-3 rounded-lg" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25`, borderTop: "none" }}>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: BRAND.teal }}>Pre-Order ETA</p>
+                    <p className="text-xs font-semibold" style={{ color: BRAND.black }}>
+                      {new Date(order.eta).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })}
+                      {order.etaEnd ? ` – ${new Date(order.etaEnd).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })}` : ""}
+                    </p>
+                    <p className="text-[10px] mt-0.5" style={{ color: BRAND.muted }}>Estimated arrival in the Philippines</p>
+                  </div>
+                )}
               </div>
             </div>
 

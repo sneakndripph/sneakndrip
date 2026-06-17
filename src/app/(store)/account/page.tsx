@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS, DP_RESERVE_FEE } from "@/lib/constants";
 import Image from "next/image";
 import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle, X, Home, Star, RotateCcw } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
@@ -11,13 +11,13 @@ import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const STATUS_CONFIG = {
-  pending:    { icon: Clock,       color: "#8A8580", label: "Pending",        bg: "rgba(138,133,128,0.12)" },
-  paid:       { icon: CheckCircle, color: "#5BB8B4", label: "Paid",           bg: "rgba(91,184,180,0.12)" },
-  arrived_ph: { icon: CheckCircle, color: "#8B5CF6", label: "Arrived in PH",  bg: "rgba(139,92,246,0.12)" },
-  processing: { icon: Clock,       color: "#D97706", label: "Processing",     bg: "rgba(217,119,6,0.12)" },
-  shipped:    { icon: Truck,       color: "#3B82F6", label: "Shipped",        bg: "rgba(59,130,246,0.12)" },
-  delivered:  { icon: CheckCircle, color: "#10B981", label: "Delivered",      bg: "rgba(16,185,129,0.12)" },
-  cancelled:  { icon: Clock,       color: "#D94F3D", label: "Cancelled",      bg: "rgba(217,79,61,0.12)" },
+  pending:       { icon: Clock,       color: "#8A8580", label: "Pending",        bg: "rgba(138,133,128,0.12)" },
+  paid:          { icon: CheckCircle, color: "#5BB8B4", label: "Paid",           bg: "rgba(91,184,180,0.12)" },
+  stock_on_hand: { icon: CheckCircle, color: "#8B5CF6", label: "Stock on Hand",  bg: "rgba(139,92,246,0.12)" },
+  processing:    { icon: Clock,       color: "#D97706", label: "Processing",     bg: "rgba(217,119,6,0.12)" },
+  shipped:       { icon: Truck,       color: "#3B82F6", label: "Shipped",        bg: "rgba(59,130,246,0.12)" },
+  delivered:     { icon: CheckCircle, color: "#10B981", label: "Delivered",      bg: "rgba(16,185,129,0.12)" },
+  cancelled:     { icon: Clock,       color: "#D94F3D", label: "Cancelled",      bg: "rgba(217,79,61,0.12)" },
 } as const;
 
 type OrderItem = {
@@ -25,6 +25,7 @@ type OrderItem = {
   size: string;
   quantity: number;
   unit_price: number;
+  payment_type?: string | null;
   product_id?: string | null;
   products: { images: string[] | null; bg: string | null; slug: string | null } | null;
 };
@@ -39,6 +40,7 @@ type Order = {
   discount?: number;
   coupon_code?: string | null;
   payment_method: string;
+  payment_type?: string | null;
   payment_reference?: string | null;
   proof_of_payment?: string | null;
   tracking_number?: string;
@@ -54,12 +56,12 @@ type Tab = "orders" | "account" | "address" | "password";
 
 // COD skips the "Confirmed/Paid" step
 const STEPS_DEFAULT = [
-  { key: "pending",    label: "Placed" },
-  { key: "paid",       label: "Confirmed" },
-  { key: "arrived_ph", label: "Arrived in PH" },
-  { key: "processing", label: "Processing" },
-  { key: "shipped",    label: "Shipped" },
-  { key: "delivered",  label: "Delivered" },
+  { key: "pending",       label: "Placed" },
+  { key: "paid",          label: "Confirmed" },
+  { key: "stock_on_hand", label: "Stock on Hand" },
+  { key: "processing",    label: "Processing" },
+  { key: "shipped",       label: "Shipped" },
+  { key: "delivered",     label: "Delivered" },
 ];
 const STEPS_COD = [
   { key: "pending",    label: "Placed" },
@@ -125,7 +127,10 @@ export default function AccountPage() {
   const [editReturnError, setEditReturnError] = useState("");
   const [proofModal, setProofModal] = useState<{ url: string; orderNumber: string } | null>(null);
   const [orderFilter, setOrderFilter] = useState("all");
-  const [seenTabs, setSeenTabs] = useState<Set<string>>(new Set<string>());
+  const [seenCounts, setSeenCounts] = useState<Record<string, number>>(() => {
+    try { return JSON.parse(localStorage.getItem("snd_seen_tab_counts") ?? "{}"); } catch { return {}; }
+  });
+  const [payBalanceModal, setPayBalanceModal] = useState<{ orderNumber: string; balance: number } | null>(null);
   const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
   const [reviewImagePreview, setReviewImagePreview] = useState<string | null>(null);
   const [proofImgLoaded, setProofImgLoaded] = useState(false);
@@ -441,7 +446,7 @@ export default function AccountPage() {
 
   const tabCounts: Record<string, number> = {
     pending: orders.filter(o => o.status === "pending").length,
-    to_ship: orders.filter(o => ["paid", "processing"].includes(o.status)).length,
+    to_ship: orders.filter(o => ["paid", "stock_on_hand", "processing"].includes(o.status)).length,
     shipped: orders.filter(o => o.status === "shipped").length,
     delivered: orders.filter(o => o.status === "delivered").length,
     returned: orders.filter(o => returnedOrders.get(o.order_number)?.status === "approved").length,
@@ -525,7 +530,11 @@ export default function AccountPage() {
                       return (
                       <button key={f.key} onClick={() => {
                           setOrderFilter(f.key);
-                          setSeenTabs(prev => new Set([...prev, f.key]));
+                          setSeenCounts(prev => {
+                            const next = { ...prev, [f.key]: cnt };
+                            try { localStorage.setItem("snd_seen_tab_counts", JSON.stringify(next)); } catch {}
+                            return next;
+                          });
                         }}
                         className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-full transition-all"
                         style={{
@@ -534,7 +543,7 @@ export default function AccountPage() {
                           border: `1px solid ${orderFilter === f.key ? BRAND.black : BRAND.border}`,
                         }}>
                         {f.label}
-                        {cnt > 0 && f.key !== "all" && !seenTabs.has(f.key) && (
+                        {cnt > 0 && f.key !== "all" && cnt > (seenCounts[f.key] ?? 0) && (
                           <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-black rounded-full"
                             style={{
                               background: orderFilter === f.key ? BRAND.bg : BRAND.teal,
@@ -728,26 +737,50 @@ export default function AccountPage() {
                       {/* Order breakdown + actions */}
                       <div className="px-5 py-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
                         {/* Price breakdown */}
-                        {(order.subtotal !== undefined) && (
-                          <div className="space-y-1 mb-3 text-xs" style={{ color: BRAND.muted }}>
-                            <div className="flex justify-between">
-                              <span>Subtotal</span>
-                              <span>₱{Number(order.subtotal).toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Shipping</span>
-                              <span style={{ color: order.shipping_fee === 0 ? BRAND.teal : undefined }}>
-                                {order.shipping_fee === 0 ? "FREE" : `₱${Number(order.shipping_fee).toLocaleString()}`}
-                              </span>
-                            </div>
-                            {(order.discount ?? 0) > 0 && (
-                              <div className="flex justify-between" style={{ color: BRAND.teal }}>
-                                <span>Coupon {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
-                                <span>−₱{Number(order.discount).toLocaleString()}</span>
+                        {(order.subtotal !== undefined) && (() => {
+                          const dpItems = order.order_items.filter(i => i.payment_type === "downpayment");
+                          const isOrderDP = dpItems.length > 0;
+                          const dpItemsBalance = dpItems.reduce((s, i) => s + (i.unit_price - DP_RESERVE_FEE) * i.quantity, 0);
+                          const dpItemsNow = dpItems.reduce((s, i) => s + DP_RESERVE_FEE * i.quantity, 0);
+                          const totalNow = dpItemsNow + (order.shipping_fee ?? 0) - (order.discount ?? 0);
+                          return (
+                            <div className="space-y-1 mb-3 text-xs" style={{ color: BRAND.muted }}>
+                              <div className="flex justify-between">
+                                <span>Subtotal</span>
+                                <span>₱{Number(order.subtotal).toLocaleString()}</span>
                               </div>
-                            )}
-                          </div>
-                        )}
+                              <div className="flex justify-between">
+                                <span>Shipping</span>
+                                <span style={{ color: order.shipping_fee === 0 ? BRAND.teal : undefined }}>
+                                  {order.shipping_fee === 0 ? "FREE" : `₱${Number(order.shipping_fee).toLocaleString()}`}
+                                </span>
+                              </div>
+                              {(order.discount ?? 0) > 0 && (
+                                <div className="flex justify-between" style={{ color: BRAND.teal }}>
+                                  <span>Coupon {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
+                                  <span>−₱{Number(order.discount).toLocaleString()}</span>
+                                </div>
+                              )}
+                              {isOrderDP ? (
+                                <>
+                                  <div className="flex justify-between pt-1 font-bold" style={{ color: BRAND.black }}>
+                                    <span>Downpayment Paid</span>
+                                    <span style={{ color: BRAND.teal }}>₱{totalNow.toLocaleString()}</span>
+                                  </div>
+                                  <div className="flex justify-between" style={{ color: order.status === "stock_on_hand" ? BRAND.red : BRAND.muted }}>
+                                    <span>Balance Due</span>
+                                    <span>₱{dpItemsBalance.toLocaleString()}</span>
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex justify-between pt-1 font-bold" style={{ color: BRAND.black }}>
+                                  <span>Total</span>
+                                  <span>₱{Number(order.total).toLocaleString()}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
 
                         <div className="space-y-3">
                           {/* Payment info row */}
@@ -778,6 +811,20 @@ export default function AccountPage() {
                           {/* Total + action buttons row */}
                           <div className="flex items-center justify-between gap-3 flex-wrap">
                             <div className="flex items-center gap-2 flex-wrap">
+                              {/* Pay Balance button for stock_on_hand DP orders */}
+                              {order.status === "stock_on_hand" && order.order_items.some(i => i.payment_type === "downpayment") && (
+                                <button
+                                  onClick={() => {
+                                    const dpItemsBalance = order.order_items
+                                      .filter(i => i.payment_type === "downpayment")
+                                      .reduce((s, i) => s + (i.unit_price - DP_RESERVE_FEE) * i.quantity, 0);
+                                    setPayBalanceModal({ orderNumber: order.order_number, balance: dpItemsBalance });
+                                  }}
+                                  className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide px-4 py-2 transition-opacity hover:opacity-80"
+                                  style={{ background: BRAND.teal, color: "#fff", borderRadius: "4px" }}>
+                                  Pay Balance
+                                </button>
+                              )}
                               {order.status === "pending" && isCOD && (
                                 <button
                                   onClick={() => setCancelModalOrder(order.order_number)}
@@ -1668,6 +1715,43 @@ export default function AccountPage() {
                 style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
                 Keep Order
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pay Balance modal */}
+      {payBalanceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
+          <div className="w-full max-w-sm rounded-xl overflow-hidden" style={{ background: BRAND.card }}>
+            <div className="px-6 pt-6 pb-4">
+              <p className="font-black text-lg mb-0.5" style={{ color: BRAND.black, fontFamily: FONTS.display }}>PAY BALANCE</p>
+              <p className="text-xs mb-5" style={{ color: BRAND.muted }}>{payBalanceModal.orderNumber}</p>
+              <div className="p-4 rounded-lg mb-5" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
+                <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: BRAND.muted }}>Balance Due</p>
+                <p style={{ fontFamily: FONTS.display, fontSize: "2rem", color: BRAND.black }}>₱{payBalanceModal.balance.toLocaleString()}</p>
+              </div>
+              <p className="text-sm leading-relaxed mb-5" style={{ color: BRAND.muted }}>
+                Your pre-order has arrived in the Philippines! Please arrange your balance payment with us.
+              </p>
+              <div className="space-y-2.5">
+                <button
+                  onClick={() => { window.dispatchEvent(new CustomEvent("open-chat")); setPayBalanceModal(null); }}
+                  className="w-full py-3 font-black text-sm uppercase tracking-widest"
+                  style={{ background: BRAND.teal, color: "#fff" }}>
+                  Chat with Us
+                </button>
+                <a href="https://m.me/sneakndrip" target="_blank" rel="noopener noreferrer"
+                  className="block w-full py-3 font-bold text-sm text-center transition-opacity hover:opacity-70"
+                  style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black }}>
+                  Message on Facebook
+                </a>
+                <button onClick={() => setPayBalanceModal(null)}
+                  className="w-full py-2 text-sm transition-opacity hover:opacity-60"
+                  style={{ color: BRAND.muted }}>
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

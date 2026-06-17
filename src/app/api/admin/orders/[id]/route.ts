@@ -78,7 +78,7 @@ function statusEmailContent(
         <p style="color:#888;font-size:14px">Use your tracking number on your courier's website to monitor your delivery.</p>
       `,
     },
-    arrived_ph: {
+    stock_on_hand: {
       subject: `Your Pre-Order Has Arrived in the Philippines! — ${orderNumber} | Sneak N' Drip`,
       body: `
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
@@ -235,8 +235,8 @@ export async function PATCH(
     }
   }
 
-  // ── Insert in-app notification for arrived_ph ────────────────────────
-  if (body.status === "arrived_ph" && currentOrder?.customer_email) {
+  // ── Insert in-app notification for stock_on_hand ────────────────────────
+  if (body.status === "stock_on_hand" && currentOrder?.customer_email) {
     void admin.from("notifications").insert({
       user_email: currentOrder.customer_email,
       title: "Your pre-order has arrived in the Philippines! 🇵🇭",
