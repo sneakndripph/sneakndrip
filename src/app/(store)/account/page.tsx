@@ -138,6 +138,12 @@ export default function AccountPage() {
   const [submittingBalance, setSubmittingBalance] = useState(false);
   const [payBalanceError, setPayBalanceError] = useState("");
   const [payBalanceSuccess, setPayBalanceSuccess] = useState(false);
+  const [payCfg, setPayCfg] = useState({
+    gcashNumber: "", gcashName: "",
+    mayaNumber: "", mayaName: "",
+    bank1Name: "", bank1Account: "", bank1AccountName: "",
+    bank2Name: "", bank2Account: "", bank2AccountName: "",
+  });
   const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
   const [reviewImagePreview, setReviewImagePreview] = useState<string | null>(null);
   const [proofImgLoaded, setProofImgLoaded] = useState(false);
@@ -170,13 +176,28 @@ export default function AccountPage() {
       Promise.all([
         fetch("/api/orders").then(r => r.json()),
         fetch("/api/returns").then(r => r.json()).catch(() => ({ returns: [] })),
-      ]).then(([ordersData, returnsData]) => {
+        fetch("/api/settings").then(r => r.json()).catch(() => ({})),
+      ]).then(([ordersData, returnsData, settingsData]) => {
         setOrders((ordersData.orders as Order[]) ?? []);
         const returnMap = new Map<string, ReturnInfo>(
           ((returnsData.returns ?? []) as { id: string; order_number: string; status: string; admin_note: string | null; reason: string; photo_url: string | null; photo_urls?: string[] | null }[])
             .map(r => [r.order_number, { id: r.id, status: r.status, admin_note: r.admin_note, reason: r.reason, photo_url: r.photo_url ?? null, photo_urls: r.photo_urls ?? null }])
         );
         setReturnedOrders(returnMap);
+        if (settingsData) {
+          setPayCfg(prev => ({
+            gcashNumber: settingsData.gcash_number || prev.gcashNumber,
+            gcashName: settingsData.gcash_name || prev.gcashName,
+            mayaNumber: settingsData.maya_number || prev.mayaNumber,
+            mayaName: settingsData.maya_name || prev.mayaName,
+            bank1Name: settingsData.bank1_name || prev.bank1Name,
+            bank1Account: settingsData.bank1_account_number || prev.bank1Account,
+            bank1AccountName: settingsData.bank1_account_name || prev.bank1AccountName,
+            bank2Name: settingsData.bank2_name || prev.bank2Name,
+            bank2Account: settingsData.bank2_account_number || prev.bank2Account,
+            bank2AccountName: settingsData.bank2_account_name || prev.bank2AccountName,
+          }));
+        }
         setLoadingOrders(false);
       });
     });
@@ -452,7 +473,7 @@ export default function AccountPage() {
   if (!user) return null;
 
   async function handlePayBalance() {
-    if (!payBalanceModal || !payBalanceMethod || !payBalanceRef.trim()) return;
+    if (!payBalanceModal || !payBalanceMethod || !payBalanceRef.trim() || !payBalanceProof) return;
     setSubmittingBalance(true);
     setPayBalanceError("");
     try {
@@ -1826,24 +1847,35 @@ export default function AccountPage() {
                     <div className="p-4 rounded-lg text-sm space-y-1" style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
                       {payBalanceMethod === "gcash" && (
                         <>
-                          <p className="font-bold text-xs mb-1.5" style={{ color: BRAND.black }}>GCash Instructions</p>
-                          <p className="text-xs" style={{ color: BRAND.muted }}>Send to: <span className="font-semibold" style={{ color: BRAND.black }}>09XX XXX XXXX</span></p>
-                          <p className="text-xs" style={{ color: BRAND.muted }}>Account name: <span className="font-semibold" style={{ color: BRAND.black }}>Sneak N&apos; Drip</span></p>
+                          <p className="font-bold text-xs mb-1.5" style={{ color: BRAND.black }}>GCash</p>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Number: <span className="font-semibold" style={{ color: BRAND.black }}>{payCfg.gcashNumber}</span></p>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Name: <span className="font-semibold" style={{ color: BRAND.black }}>{payCfg.gcashName}</span></p>
                         </>
                       )}
                       {payBalanceMethod === "maya" && (
                         <>
-                          <p className="font-bold text-xs mb-1.5" style={{ color: BRAND.black }}>Maya Instructions</p>
-                          <p className="text-xs" style={{ color: BRAND.muted }}>Send to: <span className="font-semibold" style={{ color: BRAND.black }}>09XX XXX XXXX</span></p>
-                          <p className="text-xs" style={{ color: BRAND.muted }}>Account name: <span className="font-semibold" style={{ color: BRAND.black }}>Sneak N&apos; Drip</span></p>
+                          <p className="font-bold text-xs mb-1.5" style={{ color: BRAND.black }}>Maya</p>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Number: <span className="font-semibold" style={{ color: BRAND.black }}>{payCfg.mayaNumber}</span></p>
+                          <p className="text-xs" style={{ color: BRAND.muted }}>Name: <span className="font-semibold" style={{ color: BRAND.black }}>{payCfg.mayaName}</span></p>
                         </>
                       )}
                       {payBalanceMethod === "bank_transfer" && (
                         <>
-                          <p className="font-bold text-xs mb-1.5" style={{ color: BRAND.black }}>Bank Transfer Instructions</p>
-                          <p className="text-xs" style={{ color: BRAND.muted }}>Bank: <span className="font-semibold" style={{ color: BRAND.black }}>BDO / BPI</span></p>
-                          <p className="text-xs" style={{ color: BRAND.muted }}>Account #: <span className="font-semibold" style={{ color: BRAND.black }}>XXXX XXXX XXXX</span></p>
-                          <p className="text-xs" style={{ color: BRAND.muted }}>Account name: <span className="font-semibold" style={{ color: BRAND.black }}>Sneak N&apos; Drip</span></p>
+                          <p className="font-bold text-xs mb-1.5" style={{ color: BRAND.black }}>Bank Transfer</p>
+                          {payCfg.bank1Name && (
+                            <div className="space-y-0.5 mb-2">
+                              <p className="text-xs font-semibold" style={{ color: BRAND.black }}>{payCfg.bank1Name}</p>
+                              <p className="text-xs" style={{ color: BRAND.muted }}>Account: <span className="font-semibold" style={{ color: BRAND.black }}>{payCfg.bank1Account}</span></p>
+                              <p className="text-xs" style={{ color: BRAND.muted }}>Name: <span className="font-semibold" style={{ color: BRAND.black }}>{payCfg.bank1AccountName}</span></p>
+                            </div>
+                          )}
+                          {payCfg.bank2Name && (
+                            <div className="space-y-0.5 pt-2" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+                              <p className="text-xs font-semibold" style={{ color: BRAND.black }}>{payCfg.bank2Name}</p>
+                              <p className="text-xs" style={{ color: BRAND.muted }}>Account: <span className="font-semibold" style={{ color: BRAND.black }}>{payCfg.bank2Account}</span></p>
+                              <p className="text-xs" style={{ color: BRAND.muted }}>Name: <span className="font-semibold" style={{ color: BRAND.black }}>{payCfg.bank2AccountName}</span></p>
+                            </div>
+                          )}
                         </>
                       )}
                       <p className="text-[10px] mt-2" style={{ color: BRAND.mutedLight }}>
@@ -1869,7 +1901,7 @@ export default function AccountPage() {
                   {/* Proof upload */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: BRAND.muted }}>
-                      Proof of Payment (optional)
+                      Proof of Payment <span style={{ color: BRAND.red }}>*</span>
                     </label>
                     {payBalanceProofPreview ? (
                       <div className="relative">
@@ -1920,7 +1952,7 @@ export default function AccountPage() {
                 <>
                   <button
                     onClick={handlePayBalance}
-                    disabled={submittingBalance || !payBalanceMethod || !payBalanceRef.trim()}
+                    disabled={submittingBalance || !payBalanceMethod || !payBalanceRef.trim() || !payBalanceProof}
                     className="w-full py-3.5 font-black text-sm uppercase tracking-widest transition-opacity disabled:opacity-40"
                     style={{ background: BRAND.teal, color: "#fff" }}>
                     {submittingBalance ? "Submitting…" : "Submit Payment"}
