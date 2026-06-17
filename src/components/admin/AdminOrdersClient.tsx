@@ -6,10 +6,10 @@ import { BRAND, FONTS } from "@/lib/constants";
 import {
   Search, Clock, CheckCircle, Truck, Package, XCircle,
   X, ExternalLink, MapPin, User, CreditCard, ChevronRight, MessageCircle, FileText,
-  ChevronDown, Check, Download,
+  ChevronDown, Check, Download, PlaneLanding,
 } from "lucide-react";
 
-const STATUSES = ["all", "pending", "paid", "processing", "shipped", "delivered", "cancelled"] as const;
+const STATUSES = ["all", "pending", "paid", "arrived_ph", "processing", "shipped", "delivered", "cancelled"] as const;
 type Status = (typeof STATUSES)[number];
 
 type Period = "all" | "today" | "7d" | "30d" | "90d";
@@ -31,6 +31,7 @@ function periodStart(p: Period): Date | null {
 const STATUS_CFG = {
   pending:    { icon: Clock,        color: "#D97706", bg: "rgba(217,119,6,0.1)",    label: "Pending" },
   paid:       { icon: CheckCircle,  color: "#5BB8B4", bg: "rgba(91,184,180,0.1)",   label: "Paid" },
+  arrived_ph: { icon: PlaneLanding, color: "#8B5CF6", bg: "rgba(139,92,246,0.1)",  label: "Arrived in PH" },
   processing: { icon: Package,      color: "#6366F1", bg: "rgba(99,102,241,0.1)",   label: "Processing" },
   shipped:    { icon: Truck,        color: "#3B82F6", bg: "rgba(59,130,246,0.1)",   label: "Shipped" },
   delivered:  { icon: CheckCircle,  color: "#10B981", bg: "rgba(16,185,129,0.1)",   label: "Delivered" },
@@ -72,7 +73,8 @@ type Order = {
   order_items: OrderItem[];
 };
 
-function getNextAction(status: string, isCOD: boolean): { label: string; next: string; color: string } | null {
+function getNextAction(status: string, isCOD: boolean, paymentType?: string): { label: string; next: string; color: string } | null {
+  const isDP = paymentType === "downpayment";
   if (isCOD) {
     const COD_ACTIONS: Record<string, { label: string; next: string; color: string } | null> = {
       pending:    { label: "Mark as Processing",           next: "processing", color: "#6366F1" },
@@ -83,11 +85,14 @@ function getNextAction(status: string, isCOD: boolean): { label: string; next: s
     return COD_ACTIONS[status] ?? null;
   }
   const ACTIONS: Record<string, { label: string; next: string; color: string } | null> = {
-    pending:    { label: "Accept / Process Order", next: "paid",       color: BRAND.teal },
-    paid:       { label: "Mark as Processing",     next: "processing", color: "#6366F1" },
-    processing: { label: "Mark as Shipped",        next: "shipped",    color: "#3B82F6" },
-    shipped:    { label: "Mark as Delivered",      next: "delivered",  color: "#10B981" },
-    delivered:  null, cancelled: null,
+    pending:     { label: "Accept / Process Order",         next: "paid",        color: BRAND.teal },
+    paid:        isDP
+      ? { label: "Arrived in PH — Notify Customer 🇵🇭",  next: "arrived_ph",  color: "#8B5CF6" }
+      : { label: "Mark as Processing",                      next: "processing",  color: "#6366F1" },
+    arrived_ph:  { label: "Mark as Processing",             next: "processing",  color: "#6366F1" },
+    processing:  { label: "Mark as Shipped",                next: "shipped",     color: "#3B82F6" },
+    shipped:     { label: "Mark as Delivered",              next: "delivered",   color: "#10B981" },
+    delivered:   null, cancelled: null,
   };
   return ACTIONS[status] ?? null;
 }
@@ -264,7 +269,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
 
   const liveSelected = selected ? (orders.find(o => o.id === selected.id) ?? selected) : null;
   const isCODSelected = liveSelected?.payment_method === "cod";
-  const nextAction = liveSelected ? getNextAction(liveSelected.status, isCODSelected) : null;
+  const nextAction = liveSelected ? getNextAction(liveSelected.status, isCODSelected, liveSelected.payment_type) : null;
   const selCfg = liveSelected ? (STATUS_CFG[liveSelected.status as keyof typeof STATUS_CFG] ?? STATUS_CFG.pending) : null;
   const statusOptions = Object.entries(STATUS_CFG).filter(([k]) => !(isCODSelected && k === "paid"));
 
