@@ -25,6 +25,6 @@ CREATE POLICY "Admins can manage activity log"
     auth.jwt() ->> 'email' IN (
       SELECT email FROM auth.users
       WHERE raw_user_meta_data ->> 'role' = 'admin'
-        OR app_metadata ->> 'role' = 'admin'
+        OR raw_app_meta_data ->> 'role' = 'admin'
     )
   );
