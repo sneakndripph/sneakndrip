@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Save, ToggleLeft, ToggleRight, Star, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight, Star, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check } from "lucide-react";
 
 type SettingsData = Record<string, string>;
 
@@ -28,7 +28,6 @@ const DEFAULTS: SettingsData = {
   bank2_name: "BPI",
   bank2_account_number: "0596199188",
   bank2_account_name: "Lorenzo Agalo P. Julio",
-  announcement_text: "",
   hero_badge: "New Drops Every Week",
   hero_line1: "STEP INTO",
   hero_line2: "YOUR NEXT",
@@ -73,7 +72,6 @@ function Field({ label, settingsKey, settings, onChange, type = "text", hint, mu
 
 const SECTIONS = [
   { id: "why-shop",      title: "Why Shop With Us",  icon: Star },
-  { id: "announcement",  title: "Announcement Bar",  icon: Bell },
   { id: "hero",          title: "Homepage Hero",     icon: Monitor },
   { id: "store-info",    title: "Store Information", icon: MapPin },
   { id: "shipping",      title: "Shipping & Fees",   icon: Truck },
@@ -207,11 +205,6 @@ export default function AdminSettingsPage() {
                     ))}
                   </div>
                 </>
-              )}
-
-              {activeSection === "announcement" && (
-                <Field label="Announcement Text" settingsKey="announcement_text" settings={settings} onChange={update}
-                  hint="Leave blank to use the auto-generated text (free shipping threshold, accepted payments)" />
               )}
 
               {activeSection === "hero" && (
