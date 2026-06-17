@@ -241,7 +241,7 @@ export default function EditProductForm({ product }: { product: Product }) {
               <div className="grid sm:grid-cols-3 gap-4">
                 {[
                   { label: "SRP Price", key: "srp" },
-                  { label: "Downpayment Price", key: "dp" },
+                  { label: "DP Plan Total", key: "dp" },
                   { label: "Full Payment Price *", key: "full" },
                 ].map(f => (
                   <div key={f.key}>

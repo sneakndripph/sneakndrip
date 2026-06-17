@@ -228,7 +228,7 @@ export default function NewProductPage() {
               <div className="grid sm:grid-cols-3 gap-4">
                 {[
                   { label: "SRP Price", placeholder: "10295", key: "srp" },
-                  { label: "Downpayment Price", placeholder: "9490", key: "dp" },
+                  { label: "DP Plan Total", placeholder: "9490", key: "dp" },
                   { label: "Full Payment Price *", placeholder: "9000", key: "full" },
                 ].map(f => (
                   <div key={f.key}>

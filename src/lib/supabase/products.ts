@@ -1,6 +1,5 @@
 import { createClient } from "./server";
 import { createAdminClient } from "./admin-server";
-import { MOCK_PRODUCTS, MOCK_REVIEWS } from "@/lib/constants";
 import type { Product, Review } from "@/lib/types";
 
 function mapRow(p: Record<string, unknown>): Product {
@@ -42,11 +41,11 @@ export async function getProducts(): Promise<Product[]> {
       .select("*, product_sizes(size, stock)")
       .eq("is_published", true)
       .order("created_at", { ascending: false });
-    if (error) return MOCK_PRODUCTS as unknown as Product[];
+    if (error) return [];
     if (!data?.length) return [];
     return data.map(mapRow);
   } catch {
-    return MOCK_PRODUCTS as unknown as Product[];
+    return [];
   }
 }
 
@@ -59,12 +58,10 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       .eq("slug", slug)
       .eq("is_published", true)
       .single();
-    if (error || !data) {
-      return (MOCK_PRODUCTS as unknown as Product[]).find(p => p.slug === slug) ?? null;
-    }
+    if (error || !data) return null;
     return mapRow(data as Record<string, unknown>);
   } catch {
-    return (MOCK_PRODUCTS as unknown as Product[]).find(p => p.slug === slug) ?? null;
+    return null;
   }
 }
 

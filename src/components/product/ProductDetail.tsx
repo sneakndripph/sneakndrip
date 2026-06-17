@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS, DP_RESERVE_FEE } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
 import { ShoppingBag, Zap, Shield, Truck, Clock, Star, Minus, Plus, Share2, Bell, Heart, X } from "lucide-react";
 import toast from "react-hot-toast";
@@ -148,7 +148,8 @@ export default function ProductDetail({
            (!product.sale_end   || new Date(product.sale_end).getTime()   >= now);
   }, [product.sale_price, product.sale_start, product.sale_end]);
   const effectiveFullPrice = isOnSale ? product.sale_price! : product.full_payment_price;
-  const price = effectivePaymentType === "full_payment" ? effectiveFullPrice : product.downpayment_price;
+  // For DP, big price shows the reserve deposit (what customer pays now)
+  const price = effectivePaymentType === "full_payment" ? effectiveFullPrice : DP_RESERVE_FEE;
   const images = product.images?.length ? product.images : Array(4).fill(null);
 
   function getStock() {
@@ -356,25 +357,39 @@ export default function ProductDetail({
               {isPreOrder ? (
                 <>
                   <div className="grid grid-cols-2 gap-2 mb-1">
-                    {([
-                      { value: "full_payment" as const, label: "Full Payment", price: product.full_payment_price },
-                      { value: "downpayment" as const, label: "Downpayment", price: product.downpayment_price },
-                    ]).map(opt => (
-                      <button key={opt.value} onClick={() => setPaymentType(opt.value)}
-                        className="py-3 px-3 text-center transition-all rounded-sm"
-                        style={{
-                          background: paymentType === opt.value ? BRAND.teal : "transparent",
-                          color: paymentType === opt.value ? "#fff" : BRAND.muted,
-                          border: `1.5px solid ${paymentType === opt.value ? BRAND.teal : BRAND.border}`,
-                        }}>
-                        <p className="text-xs font-bold uppercase tracking-wide">{opt.label}</p>
-                        <p style={{ fontFamily: FONTS.display, fontSize: "1.1rem" }}>&#8369;{opt.price.toLocaleString()}</p>
-                      </button>
-                    ))}
+                    <button onClick={() => setPaymentType("full_payment")}
+                      className="py-3 px-3 text-center transition-all rounded-sm relative"
+                      style={{
+                        background: paymentType === "full_payment" ? BRAND.teal : "transparent",
+                        color: paymentType === "full_payment" ? "#fff" : BRAND.muted,
+                        border: `1.5px solid ${paymentType === "full_payment" ? BRAND.teal : BRAND.border}`,
+                      }}>
+                      <p className="text-xs font-bold uppercase tracking-wide">Full Payment</p>
+                      <p style={{ fontFamily: FONTS.display, fontSize: "1.1rem" }}>&#8369;{product.full_payment_price.toLocaleString()}</p>
+                      {product.downpayment_price > product.full_payment_price && (
+                        <span className="text-[9px] font-black uppercase tracking-wide"
+                          style={{ color: paymentType === "full_payment" ? "rgba(255,255,255,0.8)" : BRAND.teal }}>
+                          Save &#8369;{(product.downpayment_price - product.full_payment_price).toLocaleString()}
+                        </span>
+                      )}
+                    </button>
+                    <button onClick={() => setPaymentType("downpayment")}
+                      className="py-3 px-3 text-center transition-all rounded-sm"
+                      style={{
+                        background: paymentType === "downpayment" ? BRAND.teal : "transparent",
+                        color: paymentType === "downpayment" ? "#fff" : BRAND.muted,
+                        border: `1.5px solid ${paymentType === "downpayment" ? BRAND.teal : BRAND.border}`,
+                      }}>
+                      <p className="text-xs font-bold uppercase tracking-wide">Downpayment</p>
+                      <p style={{ fontFamily: FONTS.display, fontSize: "1.1rem" }}>&#8369;{DP_RESERVE_FEE.toLocaleString()} now</p>
+                      <p className="text-[9px] font-semibold" style={{ opacity: 0.8 }}>
+                        Total &#8369;{product.downpayment_price.toLocaleString()}
+                      </p>
+                    </button>
                   </div>
                   {paymentType === "downpayment" && (
                     <p className="text-xs mt-2 text-center" style={{ color: BRAND.muted }}>
-                      Balance of &#8369;{(product.full_payment_price - product.downpayment_price).toLocaleString()} due upon arrival
+                      &#8369;{DP_RESERVE_FEE.toLocaleString()} reserve now &nbsp;&middot;&nbsp; &#8369;{(product.downpayment_price - DP_RESERVE_FEE).toLocaleString()} balance upon arrival
                     </p>
                   )}
                 </>
