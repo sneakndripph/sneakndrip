@@ -176,7 +176,7 @@ export default function AccountPage() {
       Promise.all([
         fetch("/api/orders").then(r => r.json()),
         fetch("/api/returns").then(r => r.json()).catch(() => ({ returns: [] })),
-        fetch("/api/settings").then(r => r.json()).catch(() => ({})),
+        fetch("/api/admin/settings").then(r => r.json()).catch(() => ({})),
       ]).then(([ordersData, returnsData, settingsData]) => {
         setOrders((ordersData.orders as Order[]) ?? []);
         const returnMap = new Map<string, ReturnInfo>(
@@ -1887,7 +1887,7 @@ export default function AccountPage() {
                   {/* Reference number */}
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5" style={{ color: BRAND.muted }}>
-                      Reference / Transaction Number
+                      Reference / Transaction Number <span style={{ color: BRAND.red }}>*</span>
                     </label>
                     <input
                       value={payBalanceRef}
