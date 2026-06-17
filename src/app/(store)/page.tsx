@@ -140,6 +140,7 @@ export default async function HomePage() {
             </div>
 
             {/* Right — featured product card */}
+            {featured && (
             <div className="hidden lg:block">
               <div className="relative">
                 <div
@@ -186,6 +187,7 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       </section>
