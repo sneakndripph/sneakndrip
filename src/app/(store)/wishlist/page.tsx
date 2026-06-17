@@ -5,34 +5,43 @@ import Link from "next/link";
 import { BRAND, FONTS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import ProductCard from "@/components/product/ProductCard";
+import { useWishlist } from "@/hooks/useWishlist";
 import { Heart } from "lucide-react";
 import type { Product } from "@/lib/types";
 
 export default function WishlistPage() {
   const router = useRouter();
+  const { wishlist, loading: wishlistLoading } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [productsLoading, setProductsLoading] = useState(true);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.push("/login?redirect=/wishlist"); return; }
-
-      const res = await fetch("/api/wishlist");
-      if (!res.ok) { setLoading(false); return; }
-      const { wishlist } = await res.json();
-      if (!wishlist.length) { setLoading(false); return; }
-
-      const { data } = await supabase
-        .from("products")
-        .select("*, sizes:product_sizes(size, stock)")
-        .in("id", wishlist)
-        .eq("is_published", true);
-
-      setProducts((data as unknown as Product[]) ?? []);
-      setLoading(false);
+      setProductsLoading(false);
     });
   }, [router]);
+
+  // Fetch product details whenever the wishlist IDs change
+  useEffect(() => {
+    if (wishlistLoading || wishlist.length === 0) {
+      setProducts([]);
+      return;
+    }
+    const supabase = createClient();
+    supabase
+      .from("products")
+      .select("*, sizes:product_sizes(size, stock)")
+      .in("id", wishlist)
+      .eq("is_published", true)
+      .then(({ data }) => setProducts((data as unknown as Product[]) ?? []));
+  }, [wishlist, wishlistLoading]);
+
+  const loading = productsLoading || wishlistLoading;
+
+  // Filter products to current wishlist state — removes items in real-time on un-wishlist
+  const visibleProducts = products.filter(p => wishlist.includes(p.id));
 
   return (
     <div style={{ background: BRAND.bg, minHeight: "100vh", fontFamily: FONTS.body }}>
@@ -44,7 +53,7 @@ export default function WishlistPage() {
 
         {loading ? (
           <div className="py-24 text-center text-sm" style={{ color: BRAND.muted }}>Loading wishlist…</div>
-        ) : products.length === 0 ? (
+        ) : visibleProducts.length === 0 ? (
           <div className="py-24 text-center">
             <Heart className="w-12 h-12 mx-auto mb-4 opacity-20" style={{ color: BRAND.black }} />
             <p style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.muted, letterSpacing: "0.04em" }}>WISHLIST IS EMPTY</p>
@@ -57,10 +66,10 @@ export default function WishlistPage() {
         ) : (
           <>
             <p className="text-sm mb-6" style={{ color: BRAND.muted }}>
-              {products.length} item{products.length !== 1 ? "s" : ""} saved
+              {visibleProducts.length} item{visibleProducts.length !== 1 ? "s" : ""} saved
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
-              {products.map(p => <ProductCard key={p.id} product={p} />)}
+              {visibleProducts.map(p => <ProductCard key={p.id} product={p} />)}
             </div>
           </>
         )}

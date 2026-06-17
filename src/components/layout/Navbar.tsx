@@ -17,6 +17,8 @@ const NAV_LINKS = [
   { label: "About", href: "/about" },
 ];
 
+type SearchProduct = { id: string; name: string; brand: string; slug: string; images: string[] | null; bg: string | null; full_payment_price: number };
+
 export default function Navbar() {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -24,8 +26,12 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
+  const [showResults, setShowResults] = useState(false);
   const itemCount = useCartStore(s => s.itemCount());
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -36,7 +42,35 @@ export default function Navbar() {
 
   useEffect(() => {
     if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50);
+    if (!searchOpen) { setSearchResults([]); setShowResults(false); setSearchQuery(""); }
   }, [searchOpen]);
+
+  // Close results dropdown on outside click
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) setShowResults(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, []);
+
+  // Real-time search with debounce
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    const q = searchQuery.trim();
+    if (!q) { setSearchResults([]); setShowResults(false); return; }
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+        if (res.ok) {
+          const { products } = await res.json() as { products: SearchProduct[] };
+          setSearchResults(products);
+          setShowResults(true);
+        }
+      } catch { /* network error — no-op */ }
+    }, 220);
+    return () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); };
+  }, [searchQuery]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +78,14 @@ export default function Navbar() {
     router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
     setSearchOpen(false);
     setSearchQuery("");
+    setShowResults(false);
+  }
+
+  function closeSearch() {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    setShowResults(false);
   }
 
   return (
@@ -64,15 +106,15 @@ export default function Navbar() {
             <Image
               src="/sneakndrip-logo.gif"
               alt="Sneak N' Drip"
-              width={130}
-              height={52}
+              width={120}
+              height={48}
               className="object-contain"
               priority
             />
           </Link>
 
-          {/* Desktop Links */}
-          <div className="hidden md:flex items-center gap-7">
+          {/* Desktop Links — only shown on lg+ to avoid overlap */}
+          <div className="hidden lg:flex items-center gap-6">
             {NAV_LINKS.map(l => (
               <Link
                 key={l.href}
@@ -111,7 +153,7 @@ export default function Navbar() {
             </Link>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="md:hidden p-2"
+              className="lg:hidden p-2"
               style={{ color: BRAND.black }}
             >
               {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -120,11 +162,11 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Search overlay */}
+      {/* Search overlay with live suggestions */}
       {searchOpen && (
         <div className="border-t" style={{ background: BRAND.card, borderColor: BRAND.border }}>
           <form onSubmit={handleSearch} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex gap-3">
-            <div className="relative flex-1">
+            <div className="relative flex-1" ref={searchBoxRef}>
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: BRAND.muted }} />
               <input
                 ref={searchInputRef}
@@ -133,7 +175,47 @@ export default function Navbar() {
                 placeholder="Search sneakers, brands…"
                 className="w-full pl-11 pr-4 py-3 text-sm focus:outline-none"
                 style={{ background: BRAND.bg, border: `1px solid ${BRAND.teal}`, color: BRAND.black }}
+                onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
               />
+              {/* Live results dropdown */}
+              {showResults && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-[60] rounded-lg overflow-hidden shadow-xl"
+                  style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                  {searchResults.length === 0 ? (
+                    <p className="px-4 py-3 text-sm" style={{ color: BRAND.muted }}>No results for &ldquo;{searchQuery}&rdquo;</p>
+                  ) : (
+                    <>
+                      {searchResults.map((p, i) => (
+                        <Link
+                          key={p.id}
+                          href={`/shop/${p.slug}`}
+                          onClick={closeSearch}
+                          className="flex items-center gap-3 px-4 py-2.5 transition-opacity hover:opacity-75"
+                          style={{ borderBottom: i < searchResults.length - 1 ? `1px solid ${BRAND.border}` : "none" }}>
+                          <div className="w-10 h-10 shrink-0 rounded-lg overflow-hidden relative"
+                            style={{ background: p.bg || "#EDE9E3" }}>
+                            {p.images?.[0] && (
+                              <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="40px" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate" style={{ color: BRAND.black }}>{p.name}</p>
+                            <p className="text-xs" style={{ color: BRAND.muted }}>
+                              {p.brand} &nbsp;·&nbsp; ₱{p.full_payment_price.toLocaleString()}
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                      <button
+                        type="submit"
+                        className="w-full text-xs font-bold px-4 py-2.5 text-center transition-opacity hover:opacity-70"
+                        style={{ color: BRAND.teal, borderTop: `1px solid ${BRAND.border}` }}>
+                        See all results for &ldquo;{searchQuery}&rdquo; →
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
             <button type="submit"
               className="px-6 py-3 text-sm font-black uppercase tracking-widest"
@@ -147,7 +229,7 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {menuOpen && (
         <div
-          className="md:hidden px-4 py-5 space-y-1"
+          className="lg:hidden px-4 py-5 space-y-1"
           style={{ borderTop: `1px solid ${BRAND.border}`, background: BRAND.bg }}
         >
           {NAV_LINKS.map(l => (
