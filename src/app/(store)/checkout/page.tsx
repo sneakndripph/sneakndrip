@@ -455,7 +455,8 @@ export default function CheckoutPage() {
                           <div>
                             <p>Amount: <span className="font-bold">₱{amt.toLocaleString()}</span></p>
                             <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>
-                              On hand ₱{onHandSubtotal.toLocaleString()} + ₱{dpFeeSubtotal.toLocaleString()} Downpayment
+                              {items.filter(i => i.payment_type !== "downpayment").map(i => `${i.product.name} ₱${(i.unit_price * i.quantity).toLocaleString()}`).join(" + ")}
+                              {" "}+ ₱{dpFeeSubtotal.toLocaleString()} Downpayment
                               {shipping > 0 ? ` + ₱${shipping.toLocaleString()} Shipping` : ""}
                               {discount > 0 ? ` − ₱${discount.toLocaleString()} Discount` : ""}
                               {" "}= ₱{amt.toLocaleString()}
@@ -496,6 +497,13 @@ export default function CheckoutPage() {
                         return null;
                       })()}
                     </div>
+
+                    {/* Balance reminder for mixed orders */}
+                    {isMixed && (
+                      <p className="text-xs italic mb-4" style={{ color: BRAND.muted }}>
+                        *Balance: ₱{dpBalance.toLocaleString()} — to be settled before shipping*
+                      </p>
+                    )}
 
                     {/* Reference number */}
                     <div className="mb-4">
