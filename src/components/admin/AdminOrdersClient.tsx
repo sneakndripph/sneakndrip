@@ -30,9 +30,9 @@ function periodStart(p: Period): Date | null {
 
 const STATUS_CFG = {
   pending:    { icon: Clock,        color: "#D97706", bg: "rgba(217,119,6,0.1)",    label: "Pending" },
-  paid:       { icon: CheckCircle,  color: "#5BB8B4", bg: "rgba(91,184,180,0.1)",   label: "Paid" },
-  stock_on_hand: { icon: PlaneLanding, color: "#8B5CF6", bg: "rgba(139,92,246,0.1)", label: "Stock on Hand" },
-  processing: { icon: Package,      color: "#6366F1", bg: "rgba(99,102,241,0.1)",   label: "Processing" },
+  paid:       { icon: CheckCircle,  color: "#5BB8B4", bg: "rgba(91,184,180,0.1)",   label: "Confirmed" },
+  stock_on_hand: { icon: PlaneLanding, color: "#8B5CF6", bg: "rgba(139,92,246,0.1)", label: "On Hand" },
+  processing: { icon: Package,      color: "#6366F1", bg: "rgba(99,102,241,0.1)",   label: "Packing" },
   shipped:    { icon: Truck,        color: "#3B82F6", bg: "rgba(59,130,246,0.1)",   label: "Shipped" },
   delivered:  { icon: CheckCircle,  color: "#10B981", bg: "rgba(16,185,129,0.1)",   label: "Delivered" },
   cancelled:  { icon: XCircle,      color: "#EF4444", bg: "rgba(239,68,68,0.1)",    label: "Cancelled" },
