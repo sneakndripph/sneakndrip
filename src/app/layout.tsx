@@ -21,12 +21,9 @@ export const metadata: Metadata = {
   description:
     "100% Authentic Sneakers. On Hand & Pre-Order. Shop the latest releases at Sneak N' Drip.",
   icons: {
-    icon: [
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-    ],
-    shortcut: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: "/sneakndrip-logo.png",
+    shortcut: "/sneakndrip-logo.png",
+    apple: "/sneakndrip-logo.png",
   },
 };
 
