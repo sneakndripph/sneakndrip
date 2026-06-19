@@ -11,6 +11,7 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { redirect } from "next/navigation";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
+  let maintenance = false;
   try {
     const admin = createAdminClient();
     const { data } = await admin
@@ -18,10 +19,10 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       .select("value")
       .eq("key", "maintenance_mode")
       .maybeSingle();
-    if (data?.value === "true") {
-      redirect("/maintenance");
-    }
+    maintenance = data?.value === "true";
   } catch { /* fail open */ }
+
+  if (maintenance) redirect("/maintenance");
 
   return (
     <div style={{ background: BRAND.bg, minHeight: "100vh" }}>
