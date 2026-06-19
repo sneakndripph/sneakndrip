@@ -102,6 +102,11 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
+            <div className="flex justify-end">
+              <a href="/forgot-password" className="text-xs font-semibold transition-opacity hover:opacity-60"
+                style={{ color: "#555" }}>Forgot password?</a>
+            </div>
+
             <button
               type="submit" disabled={loading}
               className="w-full py-3.5 font-black text-sm uppercase tracking-widest mt-2 transition-opacity hover:opacity-90 disabled:opacity-50"

@@ -45,7 +45,6 @@ export async function POST(req: NextRequest) {
     <div style="background:${BRAND_BLACK};padding:32px 40px;text-align:center">
       <img src="https://sneakndrip.vercel.app/sneakndrip-logo.png" alt="SNEAK N' DRIP" width="200" style="display:block;margin:0 auto 16px;border:0;max-width:200px" />
       <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:900;letter-spacing:2px">ORDER CONFIRMED!</h1>
-      <p style="color:${BRAND_TEAL};margin:8px 0 0;font-size:14px;font-weight:600">${orderNumber}</p>
     </div>
 
     <!-- Body -->

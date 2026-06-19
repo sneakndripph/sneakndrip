@@ -43,7 +43,7 @@ function LoginForm() {
       <div className="hidden lg:flex flex-col justify-between w-[45%] p-12"
         style={{ background: BRAND.black }}>
         <div className="rounded-md px-3 py-2 inline-block" style={{ background: BRAND.bg }}>
-          <Image src="/sneakndrip-logo.gif" alt="Sneak N' Drip" width={120} height={48} className="object-contain" />
+          <Image src="/sneakndrip-logo.gif" alt="Sneak N' Drip" width={160} height={64} className="object-contain" />
         </div>
         <div>
           <h2 className="text-white mb-4" style={{ fontFamily: FONTS.display, fontSize: "3.5rem", letterSpacing: "0.03em", lineHeight: 1 }}>
@@ -68,8 +68,14 @@ function LoginForm() {
       {/* Right panel */}
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
-          <div className="mb-8 lg:hidden">
-            <Image src="/sneakndrip-logo.gif" alt="Sneak N' Drip" width={120} height={48} className="object-contain" />
+          <div className="flex items-center justify-between mb-8 lg:justify-end">
+            <div className="lg:hidden">
+              <Image src="/sneakndrip-logo.gif" alt="Sneak N' Drip" width={160} height={64} className="object-contain" />
+            </div>
+            <Link href="/" className="text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-60 flex items-center gap-1"
+              style={{ color: BRAND.muted }}>
+              ← Home
+            </Link>
           </div>
 
           <h1 className="mb-2" style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>

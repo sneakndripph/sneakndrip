@@ -54,7 +54,8 @@ const STATUS_CONFIG: Record<OrderStatus, { icon: React.ElementType; color: strin
   cancelled:     { icon: Clock,        color: BRAND.red,  label: "Cancelled",     desc: "This order has been cancelled." },
 };
 
-const STEPS_DEFAULT: OrderStatus[] = ["pending", "paid", "stock_on_hand", "processing", "shipped", "delivered"];
+const STEPS_PREORDER: OrderStatus[] = ["pending", "paid", "stock_on_hand", "processing", "shipped", "delivered"];
+const STEPS_ONHAND:  OrderStatus[] = ["pending", "paid", "processing", "shipped", "delivered"];
 const STEPS_COD:     OrderStatus[] = ["pending", "processing", "shipped", "delivered"];
 
 const STEP_LABELS: Record<OrderStatus, string> = {
@@ -67,8 +68,8 @@ const STEP_LABELS: Record<OrderStatus, string> = {
   cancelled:     "Cancelled",
 };
 
-function StatusTracker({ status, isCOD }: { status: OrderStatus; isCOD: boolean }) {
-  const steps = isCOD ? STEPS_COD : STEPS_DEFAULT;
+function StatusTracker({ status, isCOD, isDP }: { status: OrderStatus; isCOD: boolean; isDP?: boolean }) {
+  const steps = isCOD ? STEPS_COD : isDP ? STEPS_PREORDER : STEPS_ONHAND;
   const currentIdx = steps.indexOf(status);
   const cfg = STATUS_CONFIG[status];
   const Icon = cfg.icon;
@@ -172,7 +173,7 @@ export default function OrderConfirmationPage() {
         </div>
 
         {/* Live status tracker */}
-        {order && <StatusTracker status={displayStatus} isCOD={order.isCOD} />}
+        {order && <StatusTracker status={displayStatus} isCOD={order.isCOD} isDP={order.isDP} />}
 
         {/* Order details */}
         {order && (
