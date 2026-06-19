@@ -7,7 +7,7 @@ export default function MaintenancePage() {
       className="min-h-screen flex flex-col items-center justify-center px-4 text-center"
       style={{ background: BRAND.black, fontFamily: FONTS.body }}
     >
-      <Image src="/sneakndrip-logo.png" alt="Sneak N' Drip" width={160} height={64} className="object-contain mb-10" />
+      <Image src="/sneakndrip-logo.gif" alt="Sneak N' Drip" width={160} height={64} className="object-contain mb-10" />
 
       <h1
         style={{
