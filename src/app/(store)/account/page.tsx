@@ -543,7 +543,7 @@ export default function AccountPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Welcome back</p>
-            <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>
+            <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(1.8rem, 5vw, 2.5rem)", letterSpacing: "0.04em", color: BRAND.black }}>
               MY ACCOUNT
             </h1>
           </div>
@@ -554,9 +554,28 @@ export default function AccountPage() {
           </button>
         </div>
 
+        {/* Mobile tabs — horizontal scroll */}
+        <div className="flex gap-2 overflow-x-auto pb-2 mb-4 lg:hidden" style={{ scrollbarWidth: "none" }}>
+          {NAV_TABS.map(item => {
+            const Icon = item.icon;
+            return (
+              <button key={item.id} onClick={() => setTab(item.id)}
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold whitespace-nowrap rounded-full shrink-0 transition-all"
+                style={{
+                  background: tab === item.id ? BRAND.black : BRAND.card,
+                  color: tab === item.id ? BRAND.bg : BRAND.muted,
+                  border: `1px solid ${tab === item.id ? BRAND.black : BRAND.border}`,
+                }}>
+                <Icon className="w-3.5 h-3.5" />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="grid lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
+          {/* Sidebar — desktop only */}
+          <div className="hidden lg:block lg:col-span-1">
             <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
               {NAV_TABS.map((item, idx) => {
                 const Icon = item.icon;

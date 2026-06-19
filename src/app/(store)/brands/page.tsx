@@ -45,7 +45,7 @@ export default async function BrandsPage() {
         <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal }}>
           Shop by Brand
         </p>
-        <h1 style={{ fontFamily: FONTS.display, fontSize: "3.5rem", letterSpacing: "0.04em", color: BRAND.black }}>
+        <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 7vw, 3.5rem)", letterSpacing: "0.04em", color: BRAND.black }}>
           ALL BRANDS
         </h1>
         <p className="text-sm mt-2" style={{ color: BRAND.muted }}>

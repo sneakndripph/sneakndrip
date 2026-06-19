@@ -40,7 +40,7 @@ export default function WishlistPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-10">
           <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal }}>My Collection</p>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "3rem", letterSpacing: "0.04em", color: BRAND.black }}>WISHLIST</h1>
+          <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 6vw, 3rem)", letterSpacing: "0.04em", color: BRAND.black }}>WISHLIST</h1>
         </div>
 
         {loading ? (

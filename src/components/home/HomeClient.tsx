@@ -35,7 +35,7 @@ export default function HomeClient() {
   return (
     <section className="py-20" style={{ background: BRAND.teal }}>
       <div className="max-w-xl mx-auto px-4 text-center">
-        <h2 style={{ fontFamily: FONTS.display, fontSize: "3.2rem", letterSpacing: "0.04em", color: "#fff", lineHeight: 1 }}>
+        <h2 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 7vw, 3.2rem)", letterSpacing: "0.04em", color: "#fff", lineHeight: 1 }}>
           FIRST TO KNOW
         </h2>
         <p className="mt-3 mb-8 text-sm" style={{ color: "rgba(255,255,255,0.75)", fontFamily: FONTS.body }}>
@@ -47,7 +47,7 @@ export default function HomeClient() {
           </p>
         ) : (
           <>
-            <div className="flex shadow-lg">
+            <div className="flex flex-col sm:flex-row shadow-lg gap-2 sm:gap-0">
               <input
                 value={email}
                 onChange={e => { setEmail(e.target.value); setError(""); }}

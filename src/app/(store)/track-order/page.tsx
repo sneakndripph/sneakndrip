@@ -55,7 +55,7 @@ export default function TrackOrderPage() {
       <div className="max-w-2xl mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal }}>Sneak N&apos; Drip</p>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "3rem", letterSpacing: "0.04em", color: BRAND.black }}>TRACK ORDER</h1>
+          <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 6vw, 3rem)", letterSpacing: "0.04em", color: BRAND.black }}>TRACK ORDER</h1>
           <p className="mt-3 text-sm" style={{ color: BRAND.muted }}>Enter your order number and email to track your delivery.</p>
         </div>
 

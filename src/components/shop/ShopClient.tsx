@@ -88,7 +88,7 @@ export default function ShopClient({
     <div style={{ background: BRAND.bg, minHeight: "100vh", fontFamily: FONTS.body }}>
       <div className="border-b py-10 px-4 text-center" style={{ borderColor: BRAND.border, background: BRAND.card }}>
         <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal }}>Sneak N&apos; Drip</p>
-        <h1 style={{ fontFamily: FONTS.display, fontSize: "3.5rem", letterSpacing: "0.04em", color: BRAND.black }}>ALL SNEAKERS</h1>
+        <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 7vw, 3.5rem)", letterSpacing: "0.04em", color: BRAND.black }}>ALL SNEAKERS</h1>
         <p className="text-sm mt-2" style={{ color: BRAND.muted }}>{filtered.length} pairs available</p>
       </div>
 
