@@ -161,7 +161,7 @@ export default function OrderConfirmationPage() {
             style={{ background: `${BRAND.teal}18` }}>
             <CheckCircle className="w-10 h-10" style={{ color: BRAND.teal }} />
           </div>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "3rem", color: BRAND.black, letterSpacing: "0.04em" }}>
+          <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 8vw, 3rem)", color: BRAND.black, letterSpacing: "0.04em" }}>
             ORDER PLACED!
           </h1>
           {order && (

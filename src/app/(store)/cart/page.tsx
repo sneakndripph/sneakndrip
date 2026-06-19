@@ -134,7 +134,7 @@ export default function CartPage() {
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body, minHeight: "80vh" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-8">
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "3rem", letterSpacing: "0.04em", color: BRAND.black }}>
+          <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 6vw, 3rem)", letterSpacing: "0.04em", color: BRAND.black }}>
             YOUR CART
           </h1>
         </div>
@@ -211,11 +211,11 @@ export default function CartPage() {
                             ))}
                         </select>
                         {isPreOrder ? (
-                          <div className="flex gap-1">
+                          <div className="flex flex-wrap gap-1">
                             {(["full_payment", "downpayment"] as const).map(pt => (
                               <button key={pt} type="button"
                                 onClick={() => updatePaymentType(item.product.id, item.size, pt)}
-                                className="px-2 py-0.5 text-xs font-bold transition-all"
+                                className="px-2 py-0.5 text-xs font-bold transition-all whitespace-nowrap"
                                 style={{
                                   background: item.payment_type === pt ? BRAND.teal : "transparent",
                                   color: item.payment_type === pt ? "#fff" : BRAND.muted,

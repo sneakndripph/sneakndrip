@@ -243,12 +243,12 @@ export default function ProductDetail({
 
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center gap-2 mb-8 text-xs" style={{ color: BRAND.muted }}>
+        <div className="flex items-center gap-2 mb-8 text-xs overflow-hidden" style={{ color: BRAND.muted }}>
           <Link href="/" className="hover:opacity-70">Home</Link>
           <span>/</span>
           <Link href="/shop" className="hover:opacity-70">Shop</Link>
           <span>/</span>
-          <span style={{ color: BRAND.black }}>{product.name}</span>
+          <span className="truncate" style={{ color: BRAND.black }}>{product.name}</span>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12">

@@ -129,7 +129,7 @@ export default async function HomePage() {
               </div>
 
               {/* Stats */}
-              <div className="flex flex-wrap gap-10 mt-14 pt-10" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+              <div className="flex flex-wrap gap-6 sm:gap-10 mt-14 pt-10" style={{ borderTop: `1px solid ${BRAND.border}` }}>
                 {[["2,400+", "Pairs Sold"], ["100%", "Authentic"], ["1,800+", "Happy Buyers"]].map(([v, l]) => (
                   <div key={l}>
                     <p style={{ fontFamily: FONTS.display, fontSize: "2rem", letterSpacing: "0.03em", color: BRAND.black, lineHeight: 1 }}>{v}</p>
@@ -212,7 +212,7 @@ export default async function HomePage() {
             <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal, fontFamily: FONTS.body }}>
               Latest Drops
             </p>
-            <h2 style={{ fontFamily: FONTS.display, fontSize: "3rem", letterSpacing: "0.04em", color: BRAND.black }}>
+            <h2 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 6vw, 3rem)", letterSpacing: "0.04em", color: BRAND.black }}>
               NEW ARRIVALS
             </h2>
           </div>
@@ -239,7 +239,7 @@ export default async function HomePage() {
                 <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal, fontFamily: FONTS.body }}>
                   Ready to Ship
                 </p>
-                <h2 style={{ fontFamily: FONTS.display, fontSize: "3rem", letterSpacing: "0.04em", color: BRAND.black }}>
+                <h2 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 6vw, 3rem)", letterSpacing: "0.04em", color: BRAND.black }}>
                   ON HAND
                 </h2>
               </div>
@@ -266,7 +266,7 @@ export default async function HomePage() {
               <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: BRAND.teal, fontFamily: FONTS.body }}>
                 Flexible Payment
               </p>
-              <h2 style={{ fontFamily: FONTS.display, fontSize: "3.2rem", letterSpacing: "0.03em", color: "#F2F0EF", lineHeight: 1 }}>
+              <h2 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 5vw, 3.2rem)", letterSpacing: "0.03em", color: "#F2F0EF", lineHeight: 1 }}>
                 PRE-ORDER &<br />PAY LATER
               </h2>
               <p className="text-sm leading-relaxed mt-5 mb-8 max-w-sm" style={{ color: "#777", fontFamily: FONTS.body }}>
@@ -274,7 +274,7 @@ export default async function HomePage() {
               </p>
 
               {/* Pricing tiers */}
-              <div className="flex gap-6">
+              <div className="flex flex-wrap gap-4 sm:gap-6">
                 {[
                   { label: "SRP", price: "₱10,295", style: "line-through", color: "#555" },
                   { label: "Downpayment", price: "₱9,490", style: "none", color: BRAND.teal },
@@ -322,7 +322,7 @@ export default async function HomePage() {
             <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.red, fontFamily: FONTS.body }}>
               Most Popular
             </p>
-            <h2 style={{ fontFamily: FONTS.display, fontSize: "3rem", letterSpacing: "0.04em", color: BRAND.black }}>
+            <h2 style={{ fontFamily: FONTS.display, fontSize: "clamp(1.6rem, 5vw, 3rem)", letterSpacing: "0.04em", color: BRAND.black }}>
               TRENDING THIS WEEK
             </h2>
           </div>
@@ -347,7 +347,7 @@ export default async function HomePage() {
             <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal, fontFamily: FONTS.body }}>
               Our Promise
             </p>
-            <h2 style={{ fontFamily: FONTS.display, fontSize: "2.8rem", letterSpacing: "0.04em", color: BRAND.black }}>
+            <h2 style={{ fontFamily: FONTS.display, fontSize: "clamp(1.6rem, 4vw, 2.8rem)", letterSpacing: "0.04em", color: BRAND.black }}>
               WHY SHOP WITH US
             </h2>
           </div>
@@ -371,7 +371,7 @@ export default async function HomePage() {
           <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal, fontFamily: FONTS.body }}>
             Real Buyers
           </p>
-          <h2 style={{ fontFamily: FONTS.display, fontSize: "2.8rem", letterSpacing: "0.04em", color: BRAND.black }}>
+          <h2 style={{ fontFamily: FONTS.display, fontSize: "clamp(1.6rem, 4vw, 2.8rem)", letterSpacing: "0.04em", color: BRAND.black }}>
             WHAT THEY&apos;RE SAYING
           </h2>
         </div>

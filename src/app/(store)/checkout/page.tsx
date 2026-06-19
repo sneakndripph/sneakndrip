@@ -304,7 +304,7 @@ export default function CheckoutPage() {
   return (
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body, minHeight: "100vh" }}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <h1 className="mb-8" style={{ fontFamily: FONTS.display, fontSize: "3rem", letterSpacing: "0.04em", color: BRAND.black }}>
+        <h1 className="mb-8" style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 6vw, 3rem)", letterSpacing: "0.04em", color: BRAND.black }}>
           CHECKOUT
         </h1>
 
