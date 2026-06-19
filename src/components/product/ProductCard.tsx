@@ -74,7 +74,7 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
         )}
 
         {/* Status badge */}
-        <div className="absolute top-3 left-3 z-10">
+        <div className="absolute top-3 left-3 z-10 flex flex-col gap-1">
           {availableSizes.length === 0 ? (
             <span className="text-[10px] font-black uppercase px-2.5 py-1 tracking-wider text-white"
               style={{ background: "#555" }}>Sold Out</span>
@@ -84,6 +84,11 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
           ) : (
             <span className="text-[10px] font-black uppercase px-2.5 py-1 tracking-wider text-white"
               style={{ background: BRAND.teal }}>On Hand</span>
+          )}
+          {product.is_new && (
+            <span className="text-[10px] px-2.5 py-1" style={{ background: `${BRAND.teal}20`, color: BRAND.teal, fontFamily: FONTS.body }}>
+              New
+            </span>
           )}
         </div>
 

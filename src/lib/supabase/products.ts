@@ -2,11 +2,15 @@ import { createClient } from "./server";
 import { createAdminClient } from "./admin-server";
 import type { Product, Review } from "@/lib/types";
 
-function mapRow(p: Record<string, unknown>): Product {
+function mapRow(p: Record<string, unknown>, newArrivalCutoffMs?: number): Product {
   const sizes = ((p.product_sizes as Record<string, unknown>[]) ?? []).map((s) => ({
     size: s.size as string,
     stock: s.stock as number,
   }));
+  const createdAt = (p.created_at as string) ?? "";
+  const isNew = newArrivalCutoffMs && createdAt
+    ? new Date(createdAt).getTime() >= newArrivalCutoffMs
+    : Boolean(p.is_new);
   return {
     id: p.id as string,
     name: p.name as string,
@@ -22,7 +26,7 @@ function mapRow(p: Record<string, unknown>): Product {
     sizes,
     is_featured: Boolean(p.is_featured),
     is_trending: Boolean(p.is_trending),
-    is_new: Boolean(p.is_new),
+    is_new: isNew,
     bg: (p.bg as string) ?? undefined,
     eta_start: (p.eta_start as string) ?? undefined,
     eta_end: (p.eta_end as string) ?? undefined,
@@ -30,20 +34,22 @@ function mapRow(p: Record<string, unknown>): Product {
     sale_price: p.sale_price != null ? Number(p.sale_price) : null,
     sale_start: (p.sale_start as string) ?? null,
     sale_end: (p.sale_end as string) ?? null,
+    created_at: createdAt || undefined,
   };
 }
 
 export async function getProducts(): Promise<Product[]> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("products")
-      .select("*, product_sizes(size, stock)")
-      .eq("is_published", true)
-      .order("created_at", { ascending: false });
-    if (error) return [];
-    if (!data?.length) return [];
-    return data.map(mapRow);
+    const adminClient = createAdminClient();
+    const [{ data, error }, settingRes] = await Promise.all([
+      supabase.from("products").select("*, product_sizes(size, stock)").eq("is_published", true).order("created_at", { ascending: false }),
+      adminClient.from("store_settings").select("value").eq("key", "new_arrivals_days").maybeSingle(),
+    ]);
+    if (error || !data?.length) return [];
+    const days = Number(settingRes.data?.value) || 14;
+    const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
+    return data.map(p => mapRow(p, cutoffMs));
   } catch {
     return [];
   }
