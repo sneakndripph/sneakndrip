@@ -20,11 +20,6 @@ export const metadata: Metadata = {
   title: "Sneak N' Drip — Authentic Sneakers Philippines",
   description:
     "100% Authentic Sneakers. On Hand & Pre-Order. Shop the latest releases at Sneak N' Drip.",
-  icons: {
-    icon: [{ url: "/sneakndrip-logo.png", type: "image/png" }],
-    shortcut: "/sneakndrip-logo.png",
-    apple: "/sneakndrip-logo.png",
-  },
 };
 
 export default function RootLayout({
