@@ -48,6 +48,7 @@ const DEFAULTS: SettingsData = {
   meta_description: "Shop authentic sneakers in the Philippines. On Hand & Pre-Order. Best prices, 100% legit.",
   google_analytics_id: "",
   cod_enabled: "true",
+  maintenance_mode: "false",
 };
 
 function Field({ label, settingsKey, settings, onChange, type = "text", hint, multiline }: {
@@ -73,6 +74,7 @@ function Field({ label, settingsKey, settings, onChange, type = "text", hint, mu
 }
 
 const SECTIONS = [
+  { id: "maintenance",   title: "Maintenance Mode",  icon: ToggleLeft },
   { id: "why-shop",      title: "Why Shop With Us",  icon: Star },
   { id: "announcement",  title: "Announcement Bar",  icon: Bell },
   { id: "hero",          title: "Homepage Hero",     icon: Monitor },
@@ -191,6 +193,42 @@ export default function AdminSettingsPage() {
 
             {/* Section content */}
             <div className="p-6 space-y-4">
+
+              {activeSection === "maintenance" && (
+                <div className="space-y-5">
+                  <div className="p-4 rounded-lg" style={{ background: `${BRAND.red}10`, border: `1px solid ${BRAND.red}30` }}>
+                    <p className="text-xs font-bold mb-1" style={{ color: BRAND.red }}>⚠ Warning</p>
+                    <p className="text-xs leading-relaxed" style={{ color: BRAND.muted }}>
+                      When maintenance mode is ON, all store pages show a &quot;We&apos;ll be back soon&quot; message.
+                      The admin panel stays accessible. Turn it OFF as soon as your updates are done.
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between p-5 rounded-xl" style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+                    <div>
+                      <p className="font-bold text-sm mb-0.5" style={{ color: BRAND.black }}>Maintenance Mode</p>
+                      <p className="text-xs" style={{ color: BRAND.muted }}>
+                        {settings.maintenance_mode === "true"
+                          ? "🔴 Site is currently DOWN for customers"
+                          : "🟢 Site is live and accessible"}
+                      </p>
+                    </div>
+                    <button type="button"
+                      onClick={() => update("maintenance_mode", settings.maintenance_mode === "true" ? "false" : "true")}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-bold transition-all"
+                      style={{
+                        background: settings.maintenance_mode === "true" ? BRAND.red : BRAND.teal,
+                        color: "#fff",
+                      }}>
+                      {settings.maintenance_mode === "true"
+                        ? <><ToggleRight className="w-4 h-4" /> Turn OFF</>
+                        : <><ToggleLeft className="w-4 h-4" /> Turn ON</>}
+                    </button>
+                  </div>
+                  <p className="text-xs" style={{ color: BRAND.muted }}>
+                    After toggling, click <strong>Save</strong> above to apply the change immediately.
+                  </p>
+                </div>
+              )}
 
               {activeSection === "why-shop" && (
                 <>
