@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
+import { createClient } from "@/lib/supabase/server";
 
 type StockItem = { product_id: string; size: string; quantity: number };
 
@@ -23,6 +24,10 @@ async function refundStock(supabase: ReturnType<typeof createAdminClient>, items
 
 export async function POST(req: NextRequest) {
   try {
+    const serverClient = await createClient();
+    const { data: { user } } = await serverClient.auth.getUser();
+    if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
     const body = await req.json();
     const { order, items } = body;
 
