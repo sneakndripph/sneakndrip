@@ -43,6 +43,7 @@ const DEFAULTS: SettingsData = {
   promise_5_icon: "📅", promise_5_title: "Pre-Order ETA", promise_5_desc: "Every pre-order comes with a firm ETA. We update you every step of the way.",
   promise_6_icon: "💬", promise_6_title: "24/7 Support", promise_6_desc: "Message us on Facebook or Instagram anytime. Real, fast, friendly replies — always.",
   preorder_message: "Your order will be reserved upon payment of downpayment. Balance is due before release.",
+  new_arrivals_days: "14",
   meta_title: "Sneak N' Drip | Authentic Sneakers Philippines",
   meta_description: "Shop authentic sneakers in the Philippines. On Hand & Pre-Order. Best prices, 100% legit.",
   google_analytics_id: "",
@@ -290,7 +291,10 @@ export default function AdminSettingsPage() {
               )}
 
               {activeSection === "preorder" && (
-                <Field label="Default Pre-Order Message" settingsKey="preorder_message" settings={settings} onChange={update} multiline />
+                <>
+                  <Field label="Default Pre-Order Message" settingsKey="preorder_message" settings={settings} onChange={update} multiline />
+                  <Field label="New Arrivals Window (days)" settingsKey="new_arrivals_days" settings={settings} onChange={update} type="number" hint="Products added within this many days show as 'New' on the homepage and shop. Default: 14 days." />
+                </>
               )}
 
               {activeSection === "seo" && (
