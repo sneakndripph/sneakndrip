@@ -1,5 +1,4 @@
 import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
 const BYPASS_PATHS = ["/admin", "/api", "/maintenance", "/_next", "/favicon", "/sneakndrip"];
@@ -7,24 +6,30 @@ const BYPASS_PATHS = ["/admin", "/api", "/maintenance", "/_next", "/favicon", "/
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Check maintenance mode (skip for admin, api, maintenance page itself, and static files)
+  // Check maintenance mode using direct REST fetch (works in Edge Runtime)
   const isBypassed = BYPASS_PATHS.some(p => pathname.startsWith(p));
   if (!isBypassed) {
-    try {
-      const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-      if (url && serviceKey) {
-        const supabase = createClient(url, serviceKey, { auth: { persistSession: false } });
-        const { data } = await supabase
-          .from("store_settings")
-          .select("value")
-          .eq("key", "maintenance_mode")
-          .maybeSingle();
-        if (data?.value === "true") {
-          return NextResponse.redirect(new URL("/maintenance", req.url));
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (supabaseUrl && serviceKey) {
+      try {
+        const res = await fetch(
+          `${supabaseUrl}/rest/v1/store_settings?key=eq.maintenance_mode&select=value&limit=1`,
+          {
+            headers: {
+              apikey: serviceKey,
+              Authorization: `Bearer ${serviceKey}`,
+            },
+          }
+        );
+        if (res.ok) {
+          const rows: { value: string }[] = await res.json();
+          if (rows?.[0]?.value === "true") {
+            return NextResponse.redirect(new URL("/maintenance", req.url));
+          }
         }
-      }
-    } catch { /* fail open — don't block users if DB is unreachable */ }
+      } catch { /* fail open — don't block if DB unreachable */ }
+    }
   }
 
   // Admin route protection
