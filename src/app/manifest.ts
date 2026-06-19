@@ -10,7 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#F2F0EF",
     theme_color: "#0D0D0D",
     icons: [
-      { src: "/sneakndrip-logo.png", sizes: "any", type: "image/png" },
+      { src: "/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
+      { src: "/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
     ],
   };
 }
