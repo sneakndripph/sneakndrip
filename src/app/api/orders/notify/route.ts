@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   <div style="max-width:580px;margin:40px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
     <!-- Header -->
     <div style="background:${BRAND_BLACK};padding:32px 40px;text-align:center">
-      <img src="https://sneakndrip.ph/sneakndrip-logo.png" alt="SNEAK N' DRIP" width="200" style="display:block;margin:0 auto 16px;border:0;max-width:200px" />
+      <img src="https://sneakndrip.vercel.app/sneakndrip-logo.png" alt="SNEAK N' DRIP" width="200" style="display:block;margin:0 auto 16px;border:0;max-width:200px" />
       <h1 style="color:#ffffff;margin:0;font-size:28px;font-weight:900;letter-spacing:2px">ORDER CONFIRMED!</h1>
       <p style="color:${BRAND_TEAL};margin:8px 0 0;font-size:14px;font-weight:600">${orderNumber}</p>
     </div>
