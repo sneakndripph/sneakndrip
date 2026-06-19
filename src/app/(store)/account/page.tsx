@@ -12,9 +12,9 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const STATUS_CONFIG = {
   pending:       { icon: Clock,       color: "#8A8580", label: "Pending",        bg: "rgba(138,133,128,0.12)" },
-  paid:          { icon: CheckCircle, color: "#5BB8B4", label: "Paid",           bg: "rgba(91,184,180,0.12)" },
-  stock_on_hand: { icon: CheckCircle, color: "#8B5CF6", label: "Stock on Hand",  bg: "rgba(139,92,246,0.12)" },
-  processing:    { icon: Clock,       color: "#D97706", label: "Processing",     bg: "rgba(217,119,6,0.12)" },
+  paid:          { icon: CheckCircle, color: "#5BB8B4", label: "Confirmed",     bg: "rgba(91,184,180,0.12)" },
+  stock_on_hand: { icon: CheckCircle, color: "#8B5CF6", label: "On Hand",        bg: "rgba(139,92,246,0.12)" },
+  processing:    { icon: Clock,       color: "#D97706", label: "Packing",        bg: "rgba(217,119,6,0.12)" },
   shipped:       { icon: Truck,       color: "#3B82F6", label: "Shipped",        bg: "rgba(59,130,246,0.12)" },
   delivered:     { icon: CheckCircle, color: "#10B981", label: "Delivered",      bg: "rgba(16,185,129,0.12)" },
   cancelled:     { icon: Clock,       color: "#D94F3D", label: "Cancelled",      bg: "rgba(217,79,61,0.12)" },
@@ -58,14 +58,14 @@ type Tab = "orders" | "account" | "address" | "password";
 const STEPS_DEFAULT = [
   { key: "pending",       label: "Placed" },
   { key: "paid",          label: "Confirmed" },
-  { key: "stock_on_hand", label: "Stock on Hand" },
-  { key: "processing",    label: "Processing" },
+  { key: "stock_on_hand", label: "On Hand" },
+  { key: "processing",    label: "Packing" },
   { key: "shipped",       label: "Shipped" },
   { key: "delivered",     label: "Delivered" },
 ];
 const STEPS_COD = [
   { key: "pending",    label: "Placed" },
-  { key: "processing", label: "Processing" },
+  { key: "processing", label: "Packing" },
   { key: "shipped",    label: "Shipped" },
   { key: "delivered",  label: "Collected" },
 ];
