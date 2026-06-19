@@ -7,19 +7,27 @@ import ChatWidget from "@/components/layout/ChatWidget";
 import CartGuard from "@/components/layout/CartGuard";
 import VisitorTracker from "@/components/layout/VisitorTracker";
 import { BRAND } from "@/lib/constants";
-import { createAdminClient } from "@/lib/supabase/admin-server";
 import { redirect } from "next/navigation";
+import { unstable_noStore as noStore } from "next/cache";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
+  noStore();
   let maintenance = false;
   try {
-    const admin = createAdminClient();
-    const { data } = await admin
-      .from("store_settings")
-      .select("value")
-      .eq("key", "maintenance_mode")
-      .maybeSingle();
-    maintenance = data?.value === "true";
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/store_settings?key=eq.maintenance_mode&select=value&limit=1`,
+      {
+        headers: {
+          apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+        },
+        cache: "no-store",
+      }
+    );
+    if (res.ok) {
+      const rows: { value: string }[] = await res.json();
+      maintenance = rows?.[0]?.value === "true";
+    }
   } catch { /* fail open */ }
 
   if (maintenance) redirect("/maintenance");
