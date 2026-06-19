@@ -5,8 +5,22 @@ import ChatWidget from "@/components/layout/ChatWidget";
 import CartGuard from "@/components/layout/CartGuard";
 import VisitorTracker from "@/components/layout/VisitorTracker";
 import { BRAND } from "@/lib/constants";
+import { createAdminClient } from "@/lib/supabase/admin-server";
+import { redirect } from "next/navigation";
 
-export default function StoreLayout({ children }: { children: React.ReactNode }) {
+export default async function StoreLayout({ children }: { children: React.ReactNode }) {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("store_settings")
+      .select("value")
+      .eq("key", "maintenance_mode")
+      .maybeSingle();
+    if (data?.value === "true") {
+      redirect("/maintenance");
+    }
+  } catch { /* fail open */ }
+
   return (
     <div style={{ background: BRAND.bg, minHeight: "100vh" }}>
       <VisitorTracker />
