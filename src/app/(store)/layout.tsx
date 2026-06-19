@@ -1,5 +1,3 @@
-export const dynamic = "force-dynamic";
-
 import AnnouncementBar from "@/components/layout/AnnouncementBar";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -7,13 +5,8 @@ import ChatWidget from "@/components/layout/ChatWidget";
 import CartGuard from "@/components/layout/CartGuard";
 import VisitorTracker from "@/components/layout/VisitorTracker";
 import { BRAND } from "@/lib/constants";
-import { redirect } from "next/navigation";
-import { unstable_noStore as noStore } from "next/cache";
 
-export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  noStore();
-  redirect("/maintenance");
-
+export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ background: BRAND.bg, minHeight: "100vh" }}>
       <VisitorTracker />
