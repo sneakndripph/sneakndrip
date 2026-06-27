@@ -147,7 +147,7 @@ function wrapEmail(bodyContent: string, orderNumber: string): string {
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
   <div style="max-width:580px;margin:40px auto;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08)">
     <div style="background:${BRAND_BLACK};padding:28px 40px;text-align:center">
-      <img src="https://sneakndrip.ph/sneakndrip-logo.png" alt="SNEAK N' DRIP" width="200" style="display:block;margin:0 auto;border:0;max-width:200px" />
+      <img src="https://sneakndrip.ph/sneakndrip-logo.gif" alt="SNEAK N' DRIP" width="200" style="display:block;margin:0 auto;border:0;max-width:200px" />
     </div>
     <div style="padding:32px 40px">${bodyContent}</div>
     <div style="background:${BRAND_BLACK};padding:18px 40px;text-align:center">
