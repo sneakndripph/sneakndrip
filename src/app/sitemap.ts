@@ -1,6 +1,8 @@
 import { MetadataRoute } from "next";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 
+export const dynamic = "force-dynamic";
+
 const BASE = "https://sneakndrip.ph";
 
 const STATIC: MetadataRoute.Sitemap = [
