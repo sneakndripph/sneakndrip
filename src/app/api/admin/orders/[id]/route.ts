@@ -10,6 +10,14 @@ const BRAND_TEAL = "#5BB8B4";
 const BRAND_BLACK = "#0D0D0D";
 const BRAND_BG = "#F2F0EF";
 
+function h(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 async function getRequestingUser() {
   try {
     const cookieStore = await cookies();
@@ -33,7 +41,7 @@ function statusEmailContent(
   trackingNumber: string | null,
   isCOD: boolean,
 ): { subject: string; body: string } | null {
-  const greeting = `Hi <strong>${customerName}</strong>,`;
+  const greeting = `Hi <strong>${h(customerName)}</strong>,`;
 
   const messages: Record<string, { subject: string; body: string }> = {
     paid: {
@@ -41,7 +49,7 @@ function statusEmailContent(
       body: `
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
-          Your payment for order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> has been verified and confirmed!
+          Your payment for order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has been verified and confirmed!
         </p>
         <div style="background:${BRAND_BG};border-left:4px solid ${BRAND_TEAL};padding:16px 20px;border-radius:4px;margin-bottom:20px">
           <p style="margin:0;color:${BRAND_BLACK};font-size:14px;font-weight:600">What happens next?</p>
@@ -58,7 +66,7 @@ function statusEmailContent(
       body: `
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
-          Great news! Your order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> is now being packed and prepared for shipment.
+          Great news! Your order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> is now being packed and prepared for shipment.
         </p>
         <p style="color:#888;font-size:14px">We'll send you another update with your tracking number once your order ships.</p>
       `,
@@ -68,13 +76,13 @@ function statusEmailContent(
       body: `
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
-          Your order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> is on its way! 🚚
+          Your order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> is on its way! 🚚
         </p>
         ${trackingNumber ? `
         <div style="background:${BRAND_BG};border-radius:8px;padding:20px;margin-bottom:20px;text-align:center">
           <p style="margin:0 0 6px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:1px">Tracking Number</p>
-          <p style="margin:0 0 12px;color:${BRAND_BLACK};font-size:20px;font-weight:900;letter-spacing:2px">${trackingNumber}</p>
-          <a href="https://www.jtexpress.ph/trajectoryQuery?billCode=${trackingNumber}"
+          <p style="margin:0 0 12px;color:${BRAND_BLACK};font-size:20px;font-weight:900;letter-spacing:2px">${h(trackingNumber)}</p>
+          <a href="https://www.jtexpress.ph/trajectoryQuery?billCode=${encodeURIComponent(String(trackingNumber ?? ""))}"
             style="display:inline-block;background:${BRAND_TEAL};color:#fff;font-size:13px;font-weight:700;padding:10px 22px;border-radius:4px;text-decoration:none;letter-spacing:0.5px">
             Track via J&amp;T Express →
           </a>
@@ -87,7 +95,7 @@ function statusEmailContent(
       body: `
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
-          Great news! Your pre-order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> has arrived and is now with us. 🎉
+          Great news! Your pre-order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has arrived and is now with us. 🎉
         </p>
         <div style="background:${BRAND_BG};border-left:4px solid ${BRAND_TEAL};padding:16px 20px;border-radius:4px;margin-bottom:20px">
           <p style="margin:0;color:${BRAND_BLACK};font-size:14px;font-weight:600">What's next?</p>
@@ -98,7 +106,7 @@ function statusEmailContent(
           </p>
         </div>
         <div style="text-align:center;margin-bottom:20px">
-          <a href="https://sneakndrip.ph/account?order=${orderNumber}"
+          <a href="https://sneakndrip.ph/account?order=${encodeURIComponent(String(orderNumber ?? ""))}"
             style="display:inline-block;background:${BRAND_TEAL};color:#ffffff;font-size:14px;font-weight:700;padding:14px 32px;border-radius:4px;text-decoration:none;letter-spacing:0.5px">
             Pay Balance Now →
           </a>
@@ -116,8 +124,8 @@ function statusEmailContent(
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
           ${isCOD
-            ? `Your order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> has been delivered and payment collected. Thank you for trusting Sneak N' Drip! 🙏`
-            : `Your order <strong style="color:${BRAND_BLACK}">${orderNumber}</strong> has been delivered. Your pair is finally home! 👟🔥`
+            ? `Your order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has been delivered and payment collected. Thank you for trusting Sneak N' Drip! 🙏`
+            : `Your order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has been delivered. Your pair is finally home! 👟🔥`
           }
         </p>
         <div style="background:${BRAND_BG};border-left:4px solid ${BRAND_TEAL};padding:16px 20px;border-radius:4px;margin-bottom:20px">

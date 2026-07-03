@@ -10,6 +10,14 @@ const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
 const BRAND_TEAL = "#5BB8B4";
 const BRAND_BLACK = "#0D0D0D";
 
+function h(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 async function getRequestingUser() {
   try {
     const cookieStore = await cookies();
@@ -93,10 +101,10 @@ export async function POST(req: NextRequest) {
         <div style="font-family:Arial,sans-serif;max-width:500px;margin:20px auto;padding:20px">
           <h2 style="color:${BRAND_BLACK}">Balance Payment Submitted</h2>
           <table style="width:100%;border-collapse:collapse;font-size:14px">
-            <tr><td style="padding:8px 0;color:#888;width:120px">Order</td><td style="font-weight:bold;color:${BRAND_TEAL}">${body.orderNumber}</td></tr>
-            <tr><td style="padding:8px 0;color:#888">Customer</td><td>${order.customer_name} (${order.customer_email})</td></tr>
-            <tr><td style="padding:8px 0;color:#888">Method</td><td>${PAYMENT_LABELS[body.paymentMethod] ?? body.paymentMethod}</td></tr>
-            <tr><td style="padding:8px 0;color:#888">Reference</td><td style="font-weight:bold">${body.reference}</td></tr>
+            <tr><td style="padding:8px 0;color:#888;width:120px">Order</td><td style="font-weight:bold;color:${BRAND_TEAL}">${h(body.orderNumber)}</td></tr>
+            <tr><td style="padding:8px 0;color:#888">Customer</td><td>${h(order.customer_name)} (${h(order.customer_email)})</td></tr>
+            <tr><td style="padding:8px 0;color:#888">Method</td><td>${h(PAYMENT_LABELS[body.paymentMethod] ?? body.paymentMethod)}</td></tr>
+            <tr><td style="padding:8px 0;color:#888">Reference</td><td style="font-weight:bold">${h(body.reference)}</td></tr>
             <tr><td style="padding:8px 0;color:#888">Balance</td><td style="font-weight:bold;color:${BRAND_TEAL}">₱${Number(body.balance).toLocaleString()}</td></tr>
           </table>
           <p style="font-size:13px;color:#888;margin-top:16px">Please review the balance payment and mark as Processing once verified.</p>

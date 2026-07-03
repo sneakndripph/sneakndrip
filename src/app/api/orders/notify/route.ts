@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/supabase/require-admin";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "donjulio263@gmail.com";
@@ -16,13 +17,21 @@ function h(s: unknown): string {
     .replace(/"/g, "&quot;");
 }
 
+function stripNewlines(s: unknown): string {
+  return String(s ?? "").replace(/[\r\n]/g, "");
+}
+
 export async function POST(req: NextRequest) {
   if (!process.env.RESEND_API_KEY) {
     return NextResponse.json({ ok: true, skipped: "no api key" });
   }
 
+  const caller = await requireUser();
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const body = await req.json();
   const { orderNumber, customer, items, total, shipping, subtotal, paymentMethod, paymentType, shippingAddress, isCOD } = body;
+  const safeOrderNumber = stripNewlines(orderNumber);
 
   const itemRows = items.map((item: { name: string; size: string; quantity: number; price: number; payment_type: string }) => `
     <tr>
@@ -152,13 +161,13 @@ export async function POST(req: NextRequest) {
       resend!.emails.send({
         from: `Sneak N' Drip <${FROM_EMAIL}>`,
         to: customer.email,
-        subject: `Order Confirmed — ${orderNumber} | Sneak N' Drip`,
+        subject: `Order Confirmed — ${safeOrderNumber} | Sneak N' Drip`,
         html: customerHtml,
       }),
       resend!.emails.send({
         from: `Sneak N' Drip Orders <${FROM_EMAIL}>`,
         to: ADMIN_EMAIL,
-        subject: `🛍️ New Order ${orderNumber} — ₱${total.toLocaleString()} (${paymentLabel[paymentMethod] ?? paymentMethod})`,
+        subject: `🛍️ New Order ${safeOrderNumber} — ₱${total.toLocaleString()} (${stripNewlines(paymentLabel[paymentMethod] ?? paymentMethod)})`,
         html: adminHtml,
       }),
     ]);

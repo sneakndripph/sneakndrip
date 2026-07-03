@@ -2,7 +2,16 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/require-admin";
 
-const ALLOWED_EXT = new Set(["jpg", "jpeg", "png", "gif", "webp", "pdf", "heic", "heif"]);
+const EXT_MIME: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  pdf: "application/pdf",
+  heic: "image/heic",
+  heif: "image/heif",
+};
 const MAX_BYTES = 10 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
@@ -19,7 +28,8 @@ export async function POST(req: NextRequest) {
   }
 
   const ext = (file.name.split(".").pop() ?? "").toLowerCase();
-  if (!ALLOWED_EXT.has(ext)) {
+  const contentType = EXT_MIME[ext];
+  if (!contentType) {
     return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
   }
   if (file.size > MAX_BYTES) {
@@ -46,7 +56,7 @@ export async function POST(req: NextRequest) {
 
   const { data, error } = await admin.storage
     .from("payment-proofs")
-    .upload(path, arrayBuffer, { contentType: file.type, upsert: true });
+    .upload(path, arrayBuffer, { contentType, upsert: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ path: data.path });

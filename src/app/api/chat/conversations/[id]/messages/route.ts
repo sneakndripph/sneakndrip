@@ -1,9 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { requireUser } from "@/lib/supabase/require-admin";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const viewer = await requireUser();
+  if (!viewer) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const admin = createAdminClient();
   const { data, error } = await admin
@@ -16,6 +18,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const poster = await requireUser();
+  if (!poster) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const { sender_name, content } = await req.json() as {
     sender_name?: string;
@@ -24,20 +29,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!content?.trim()) return NextResponse.json({ error: "content required" }, { status: 400 });
 
-  // Determine sender_type from server-side auth — never trust the request body
-  let senderType: "customer" | "admin" = "customer";
-  try {
-    const cookieStore = await cookies();
-    const anonKey =
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-      "";
-    const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, anonKey, {
-      cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} },
-    });
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user?.app_metadata?.role === "admin") senderType = "admin";
-  } catch { /* default to customer */ }
+  const senderType: "customer" | "admin" =
+    poster.app_metadata?.role === "admin" ? "admin" : "customer";
 
   const admin = createAdminClient();
 
