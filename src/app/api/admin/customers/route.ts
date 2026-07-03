@@ -13,7 +13,7 @@ async function requireAdmin() {
       { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
     );
     const { data: { user } } = await supabase.auth.getUser();
-    const isAdmin = user?.user_metadata?.role === "admin" || user?.app_metadata?.role === "admin";
+    const isAdmin = user?.app_metadata?.role === "admin";
     if (!user || !isAdmin) return null;
     return user;
   } catch {

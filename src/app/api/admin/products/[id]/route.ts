@@ -61,7 +61,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getRequestingUser();
-  const isAdmin = user?.user_metadata?.role === "admin" || user?.app_metadata?.role === "admin";
+  const isAdmin = user?.app_metadata?.role === "admin";
   if (!user || !isAdmin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

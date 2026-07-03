@@ -2,8 +2,12 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/supabase/require-admin";
 
 export async function GET() {
+  const caller = await requireAdmin();
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const admin = createAdminClient();
   const { data } = await admin
     .from("products")
@@ -43,7 +47,7 @@ async function getRequestingUser() {
 export async function POST(req: NextRequest) {
   try {
     const user = await getRequestingUser();
-    const isAdmin = user?.user_metadata?.role === "admin" || user?.app_metadata?.role === "admin";
+    const isAdmin = user?.app_metadata?.role === "admin";
     if (!user || !isAdmin) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

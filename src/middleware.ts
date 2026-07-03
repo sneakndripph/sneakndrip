@@ -33,7 +33,7 @@ export async function middleware(req: NextRequest) {
         cookies: { getAll: () => req.cookies.getAll(), setAll: () => {} },
       });
       const { data: { user } } = await supabase.auth.getUser();
-      const isAdmin = user?.user_metadata?.role === "admin" || user?.app_metadata?.role === "admin";
+      const isAdmin = user?.app_metadata?.role === "admin";
       if (!user || !isAdmin) {
         return NextResponse.redirect(new URL("/admin/login", req.url));
       }

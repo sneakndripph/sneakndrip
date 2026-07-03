@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
+import { requireAdmin } from "@/lib/supabase/require-admin";
 
 type Params = Promise<{ id: string }>;
 
 export async function PATCH(req: NextRequest, { params }: { params: Params }) {
+  const caller = await requireAdmin();
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const body = await req.json();
   const admin = createAdminClient();
 
-  // Sanitize numeric/nullable fields when doing a full edit
   const update: Record<string, unknown> = { ...body };
   if ("value" in body) update.value = Number(body.value);
   if ("min_order" in body) update.min_order = Number(body.min_order) || 0;
@@ -22,6 +25,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: Params }) {
+  const caller = await requireAdmin();
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await params;
   const admin = createAdminClient();
   const { error } = await admin.from("coupons").delete().eq("id", id);
