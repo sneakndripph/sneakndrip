@@ -1,32 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
-
-async function getRequestingUser() {
-  try {
-    const cookieStore = await cookies();
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      anonKey,
-      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
-  } catch {
-    return null;
-  }
-}
+import { requireAdmin } from "@/lib/supabase/require-admin";
 
 export async function GET() {
+  const caller = await requireAdmin();
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const admin = createAdminClient();
   const { data } = await admin.from("coupons").select("*").order("created_at", { ascending: false });
   return NextResponse.json(data ?? []);
 }
 
 export async function POST(req: NextRequest) {
-  const user = await getRequestingUser();
+  const caller = await requireAdmin();
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const body = await req.json();
   const admin = createAdminClient();
   const { data, error } = await admin.from("coupons").insert({
@@ -45,7 +33,7 @@ export async function POST(req: NextRequest) {
     entity_type: "coupon",
     entity_id: data.id,
     entity_name: data.code,
-    actor_email: user?.email ?? null,
+    actor_email: caller.email ?? null,
     details: null,
   });
 

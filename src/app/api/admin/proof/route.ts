@@ -1,7 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/supabase/require-admin";
 
 export async function GET(req: NextRequest) {
+  const caller = await requireAdmin();
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const path = req.nextUrl.searchParams.get("path");
   const orderNumber = req.nextUrl.searchParams.get("orderNumber");
 

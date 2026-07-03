@@ -1,7 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/supabase/require-admin";
 
 export async function GET() {
+  const caller = await requireAdmin();
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const admin = createAdminClient();
   const [{ count: pendingOrders }, { count: pendingReviews }, { count: pendingReturns }] = await Promise.all([
     admin.from("orders").select("*", { count: "exact", head: true }).eq("status", "pending"),

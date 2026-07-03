@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
+import { requireAdmin } from "@/lib/supabase/require-admin";
 
 export async function PATCH(req: NextRequest) {
+  const caller = await requireAdmin();
+  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { ids, status } = await req.json();
   if (!ids?.length || !status)
     return NextResponse.json({ error: "Missing ids or status" }, { status: 400 });

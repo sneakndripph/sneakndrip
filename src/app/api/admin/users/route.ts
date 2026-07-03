@@ -10,15 +10,10 @@ async function requireAdmin() {
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       anonKey,
-      {
-        cookies: {
-          getAll: () => cookieStore.getAll(),
-          setAll: () => {},
-        },
-      }
+      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
     );
     const { data: { user } } = await supabase.auth.getUser();
-    const isAdmin = user?.user_metadata?.role === "admin" || user?.app_metadata?.role === "admin";
+    const isAdmin = user?.app_metadata?.role === "admin";
     if (!user || !isAdmin) return null;
     return user;
   } catch {
@@ -38,7 +33,7 @@ export async function GET() {
     id: u.id,
     email: u.email,
     full_name: u.user_metadata?.full_name ?? "",
-    role: u.user_metadata?.role ?? "customer",
+    role: u.app_metadata?.role ?? u.user_metadata?.role ?? "customer",
     created_at: u.created_at,
     last_sign_in: u.last_sign_in_at,
   }));
@@ -59,6 +54,7 @@ export async function POST(req: NextRequest) {
     password,
     email_confirm: true,
     user_metadata: { full_name: full_name ?? "", role: role ?? "customer" },
+    app_metadata: { role: role ?? "customer" },
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -75,6 +71,7 @@ export async function PATCH(req: NextRequest) {
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(id, {
     user_metadata: { role, full_name },
+    app_metadata: { role },
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
