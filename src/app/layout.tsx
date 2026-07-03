@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Barlow_Condensed } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import ProgressBar from "@/components/layout/ProgressBar";
 import "./globals.css";
 
 const inter = Inter({
@@ -38,6 +39,7 @@ export default function RootLayout({
       className={`${inter.variable} ${barlowCondensed.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <ProgressBar />
         {children}
         <Toaster
           position="bottom-center"
