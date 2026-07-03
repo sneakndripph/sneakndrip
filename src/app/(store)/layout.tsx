@@ -13,7 +13,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       <CartGuard />
       <AnnouncementBar />
       <Navbar />
-      <main>{children}</main>
+      <main className="page-transition">{children}</main>
       <Footer />
       <ChatWidget />
     </div>
