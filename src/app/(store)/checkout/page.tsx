@@ -294,6 +294,7 @@ export default function CheckoutPage() {
       }));
 
       removeItems(items.map(i => ({ productId: i.product.id, size: i.size })));
+      fetch("/api/cart/sync", { method: "DELETE" }).catch(() => {});
       router.push("/order-confirmation");
     } catch {
       setOrderError("Something went wrong placing your order. Please try again.");
