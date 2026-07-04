@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, getIP } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -21,9 +22,14 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const { allowed } = rateLimit(getIP(req), 10, 60_000);
+  if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   const { id, rating, title, body, image_url } = await req.json() as { id?: string; rating?: number; title?: string; body?: string; image_url?: string | null };
   if (!id || !body?.trim()) return NextResponse.json({ error: "Missing id or body" }, { status: 400 });
   if (typeof rating !== "number" || rating < 1 || rating > 5) return NextResponse.json({ error: "rating must be 1–5" }, { status: 400 });
+  if (body.length > 2000) return NextResponse.json({ error: "Review too long" }, { status: 400 });
+  if (title && title.length > 200) return NextResponse.json({ error: "Title too long" }, { status: 400 });
 
   const admin = createAdminClient();
   const { error } = await admin.from("reviews").update({ rating, title: title?.trim() ?? null, body: body.trim(), image_url: image_url ?? null }).eq("id", id);
@@ -47,6 +53,9 @@ export async function POST(req: NextRequest) {
   if (typeof body.rating !== "number" || body.rating < 1 || body.rating > 5) {
     return NextResponse.json({ error: "rating must be 1–5" }, { status: 400 });
   }
+  if (body.author_name.length > 100) return NextResponse.json({ error: "Name too long" }, { status: 400 });
+  if (body.body.length > 2000) return NextResponse.json({ error: "Review too long" }, { status: 400 });
+  if (body.title && body.title.length > 200) return NextResponse.json({ error: "Title too long" }, { status: 400 });
 
   const admin = createAdminClient();
   const { error } = await admin.from("reviews").insert({
