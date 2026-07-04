@@ -643,9 +643,11 @@ export default function ProductDetail({
                           {r.title && <p className="font-semibold text-sm mb-1" style={{ color: BRAND.black }}>{r.title}</p>}
                           <p style={{ color: BRAND.muted }}>{r.body}</p>
                           {r.image_url && (
-                            <div className="mt-2 w-16 h-16 relative rounded overflow-hidden"
-                              style={{ border: `1px solid ${BRAND.border}` }}>
-                              <Image src={r.image_url} alt="Review photo" fill className="object-cover" sizes="64px" />
+                            <div className="mt-3 relative rounded-lg overflow-hidden"
+                              style={{ width: 120, height: 120, border: `1px solid ${BRAND.border}` }}>
+                              <Image src={r.image_url} alt="Review photo" fill className="object-cover" sizes="120px" />
+                              <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold"
+                                style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>📷 Photo</div>
                             </div>
                           )}
                           {r.created_at && (
