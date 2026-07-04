@@ -66,10 +66,10 @@ export default function RegisterPage() {
     return "";
   }
 
-  async function handleSocialLogin(provider: "google" | "facebook") {
+  async function handleGoogleLogin() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
-      provider,
+      provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
@@ -83,16 +83,29 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({
+    const { data: signUpData, error: authError } = await supabase.auth.signUp({
       email: form.email.trim(),
       password: form.password,
       options: {
-        data: { full_name: form.name.trim(), mobile: form.mobile.replace(/\s/g, "") },
+        data: { full_name: form.name.trim(), mobile: form.mobile },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (authError) {
-      setError(authError.message);
+      // Surface a friendly message for the most common errors
+      if (authError.message.toLowerCase().includes("already registered") ||
+          authError.message.toLowerCase().includes("already been registered")) {
+        setError("This email is already registered. Sign in instead, or use a different email.");
+      } else {
+        setError(authError.message);
+      }
+      setLoading(false);
+      return;
+    }
+    // Supabase returns success even for duplicate unconfirmed emails —
+    // detect it by checking if the user has an identity (new accounts do, dupes don't)
+    if (signUpData.user && signUpData.user.identities?.length === 0) {
+      setError("This email is already registered. Sign in instead, or use a different email.");
       setLoading(false);
       return;
     }
@@ -329,18 +342,12 @@ export default function RegisterPage() {
           <div className="flex-1 h-px" style={{ background: BRAND.border }} />
         </div>
 
-        <div className="space-y-3">
-          <button onClick={() => handleSocialLogin("google")}
+        <div>
+          <button onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center gap-3 py-3.5 text-sm font-semibold transition-opacity hover:opacity-80"
             style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black, background: BRAND.card }}>
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" /><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" /><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" /><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" /></svg>
             Continue with Google
-          </button>
-          <button onClick={() => handleSocialLogin("facebook")}
-            className="w-full flex items-center justify-center gap-3 py-3.5 text-sm font-semibold transition-opacity hover:opacity-80"
-            style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black, background: BRAND.card }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
-            Continue with Facebook
           </button>
         </div>
       </div>
