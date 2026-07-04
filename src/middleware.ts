@@ -8,20 +8,25 @@ export async function middleware(req: NextRequest) {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 
-  // Maintenance mode check (anon key + public RLS policy — works in Edge Runtime)
+  // Maintenance mode — direct REST fetch (more reliable in Edge Runtime than @supabase/ssr)
   const shouldCheck = !MAINTENANCE_BYPASS.some(p => pathname.startsWith(p));
   if (shouldCheck) {
     try {
-      const supabase = createServerClient(supabaseUrl, anonKey, {
-        cookies: { getAll: () => req.cookies.getAll(), setAll: () => {} },
-      });
-      const { data } = await supabase
-        .from("store_settings")
-        .select("value")
-        .eq("key", "maintenance_mode")
-        .maybeSingle();
-      if (data?.value === "true") {
-        return NextResponse.redirect(new URL("/maintenance", req.url));
+      const res = await fetch(
+        `${supabaseUrl}/rest/v1/store_settings?key=eq.maintenance_mode&select=value&limit=1`,
+        {
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${anonKey}`,
+          },
+          cache: "no-store",
+        }
+      );
+      if (res.ok) {
+        const rows = await res.json() as Array<{ value: string }>;
+        if (rows[0]?.value === "true") {
+          return NextResponse.redirect(new URL("/maintenance", req.url));
+        }
       }
     } catch { /* fail open */ }
   }
