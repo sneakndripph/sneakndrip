@@ -20,8 +20,8 @@ export const BRAND = {
 } as const;
 
 export const FONTS = {
-  display: "var(--font-barlow), sans-serif",
-  body: "var(--font-inter), sans-serif",
+  display: "var(--font-bebas), sans-serif",
+  body: "var(--font-bebas), sans-serif",
 } as const;
 
 export const SNEAKER_SIZES = [
