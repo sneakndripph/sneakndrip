@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit, getIP } from "@/lib/rate-limit";
 
 type StockItem = { product_id: string; size: string; quantity: number };
 
@@ -23,6 +24,9 @@ async function refundStock(supabase: ReturnType<typeof createAdminClient>, items
 }
 
 export async function POST(req: NextRequest) {
+  const { allowed } = rateLimit(getIP(req), 10, 60_000); // 10 orders/min per IP
+  if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   try {
     const serverClient = await createClient();
     const { data: { user } } = await serverClient.auth.getUser();
