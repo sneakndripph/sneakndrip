@@ -74,11 +74,14 @@ export default function ShopClient({
     if (selectedGenders.length) list = list.filter(p => selectedGenders.map(g => g.toLowerCase()).includes((p.gender ?? "").toLowerCase()));
     if (selectedSizes.length) list = list.filter(p => p.sizes.some(s => selectedSizes.includes(s.size) && s.stock > 0));
     if (availability !== "all") list = list.filter(p => p.status === availability);
-    if (showNewOnly) list = list.filter(p => p.is_new);
+    if (showNewOnly) {
+      const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      list = list.filter(p => new Date(p.created_at ?? 0).getTime() >= cutoff);
+    }
     list = list.filter(p => p.full_payment_price <= maxPrice);
     if (sort === "price-asc") list.sort((a, b) => a.full_payment_price - b.full_payment_price);
     if (sort === "price-desc") list.sort((a, b) => b.full_payment_price - a.full_payment_price);
-    if (sort === "newest") list.sort((a, b) => (b.is_new ? 1 : 0) - (a.is_new ? 1 : 0));
+    if (sort === "newest") list.sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
     return list;
   }, [products, search, selectedBrands, selectedSizes, availability, showNewOnly, maxPrice, sort]);
 
