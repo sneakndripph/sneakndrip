@@ -9,6 +9,8 @@ import { BRAND } from "@/lib/constants";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   const admin = createAdminClient();
   const { data } = await admin.from("store_settings").select("value").eq("key", "maintenance_mode").maybeSingle();
