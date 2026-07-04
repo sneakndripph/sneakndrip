@@ -3,7 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 
 export async function POST(req: NextRequest) {
   const { code, orderTotal } = await req.json();
-  if (!code) return NextResponse.json({ error: "Missing code" }, { status: 400 });
+  if (!code || typeof code !== "string" || code.length > 50)
+    return NextResponse.json({ error: "Missing code" }, { status: 400 });
 
   const admin = createAdminClient();
   const { data: coupon } = await admin

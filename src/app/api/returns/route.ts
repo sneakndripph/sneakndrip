@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
     if (!order_id || !order_number || !reason?.trim()) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
+    if (reason.length > 1000) return NextResponse.json({ error: "Reason too long" }, { status: 400 });
     const finalPhotoUrls: string[] = photo_urls?.length ? photo_urls : (photo_url ? [photo_url] : []);
 
     const admin = createAdminClient();
@@ -91,6 +92,7 @@ export async function PATCH(req: NextRequest) {
 
     const { id, reason, photo_url, photo_urls } = await req.json() as { id: string; reason: string; photo_url?: string | null; photo_urls?: string[] };
     if (!id || !reason?.trim()) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    if (reason.length > 1000) return NextResponse.json({ error: "Reason too long" }, { status: 400 });
     const finalPhotoUrls: string[] = photo_urls?.length ? photo_urls : (photo_url ? [photo_url] : []);
 
     const admin = createAdminClient();

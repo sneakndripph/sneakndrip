@@ -39,6 +39,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing order data" }, { status: 400 });
     }
 
+    // Validate and sanitize customer-supplied string fields
+    const ALLOWED_PAYMENT_METHODS = ["gcash", "maya", "bank_transfer", "cod"];
+    const o = order as Record<string, unknown>;
+    const name = String(o.customer_name ?? "").trim();
+    const email = String(o.customer_email ?? "").trim();
+    const mobile = String(o.customer_mobile ?? "").trim();
+    if (!name || name.length > 200) return NextResponse.json({ error: "Invalid name" }, { status: 400 });
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return NextResponse.json({ error: "Invalid email" }, { status: 400 });
+    if (!mobile || !/^09\d{9}$/.test(mobile)) return NextResponse.json({ error: "Invalid mobile" }, { status: 400 });
+    if (String(o.shipping_street ?? "").trim().length > 300) return NextResponse.json({ error: "Street too long" }, { status: 400 });
+    if (!ALLOWED_PAYMENT_METHODS.includes(String(o.payment_method ?? ""))) return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
+    const total = Number(o.total);
+    if (!Number.isFinite(total) || total < 0 || total > 1_000_000) return NextResponse.json({ error: "Invalid total" }, { status: 400 });
+
     const supabase = createAdminClient();
 
     // Atomically check + deduct stock for all items in one DB transaction.

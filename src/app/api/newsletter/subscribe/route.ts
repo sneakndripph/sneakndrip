@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const { email } = await req.json();
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email || typeof email !== "string" || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Invalid email" }, { status: 400 });
   }
 

@@ -9,6 +9,10 @@ export async function POST(req: NextRequest) {
   const { productId, size, email } = await req.json();
   if (!productId || !size || !email)
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  if (String(productId).length > 36 || String(size).length > 20 || String(email).length > 254)
+    return NextResponse.json({ error: "Invalid fields" }, { status: 400 });
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email)))
+    return NextResponse.json({ error: "Invalid email" }, { status: 400 });
 
   const admin = createAdminClient();
   const { error } = await admin
