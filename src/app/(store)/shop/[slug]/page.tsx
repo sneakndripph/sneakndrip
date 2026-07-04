@@ -52,6 +52,42 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           ? "https://schema.org/PreOrder"
           : "https://schema.org/InStock",
       seller: { "@type": "Organization", name: "Sneak N' Drip" },
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingRate: {
+          "@type": "MonetaryAmount",
+          currency: "PHP",
+          minValue: 0,
+          maxValue: 200,
+        },
+        shippingDestination: {
+          "@type": "DefinedRegion",
+          addressCountry: "PH",
+        },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: {
+            "@type": "QuantitativeValue",
+            minValue: 1,
+            maxValue: 3,
+            unitCode: "DAY",
+          },
+          transitTime: {
+            "@type": "QuantitativeValue",
+            minValue: 2,
+            maxValue: 7,
+            unitCode: "DAY",
+          },
+        },
+      },
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        applicableCountry: "PH",
+        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+        merchantReturnDays: 7,
+        returnMethod: "https://schema.org/ReturnByMail",
+        returnFees: "https://schema.org/FreeReturn",
+      },
     },
     ...(productReviews.length > 0 && {
       aggregateRating: {
