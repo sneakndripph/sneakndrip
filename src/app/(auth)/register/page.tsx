@@ -5,16 +5,66 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Eye, EyeOff, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, CheckCircle, Check, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+const PW_RULES = [
+  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+  { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+  { label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
+  { label: "One number", test: (p: string) => /[0-9]/.test(p) },
+  { label: "One special character (!@#$…)", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+];
+
+function validate(form: { name: string; email: string; mobile: string; password: string; confirm: string }) {
+  if (!form.name.trim()) return "Full name is required.";
+  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s.'-]+$/.test(form.name)) return "Full name must contain letters only.";
+  if (!form.email.trim()) return "Email address is required.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return "Please enter a valid email address.";
+  if (!form.mobile.trim()) return "Mobile number is required.";
+  if (!/^(09|\+639)\d{9}$/.test(form.mobile.replace(/\s/g, "")))
+    return "Enter a valid PH mobile number (e.g. 09171234567).";
+  if (PW_RULES.some(r => !r.test(form.password))) return "Password does not meet all requirements.";
+  if (form.password !== form.confirm) return "Passwords do not match.";
+  return null;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", mobile: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", mobile: "", password: "", confirm: "" });
   const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  function field(key: keyof typeof form, value: string) {
+    setForm(v => ({ ...v, [key]: value }));
+  }
+  function touch(key: string) {
+    setTouched(t => ({ ...t, [key]: true }));
+  }
+
+  // Per-field inline error (only shown after blur)
+  function fieldError(key: keyof typeof form): string {
+    if (!touched[key]) return "";
+    if (key === "name") {
+      if (!form.name.trim()) return "Required.";
+      if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s.'-]+$/.test(form.name)) return "Letters only — no numbers.";
+    }
+    if (key === "email") {
+      if (!form.email.trim()) return "Required.";
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return "Invalid email address.";
+    }
+    if (key === "mobile") {
+      if (!form.mobile.trim()) return "Required.";
+      if (!/^(09|\+639)\d{9}$/.test(form.mobile.replace(/\s/g, "")))
+        return "Must be 11 digits starting with 09 (e.g. 09171234567).";
+    }
+    if (key === "confirm" && form.confirm && form.password !== form.confirm) return "Passwords do not match.";
+    return "";
+  }
 
   async function handleSocialLogin(provider: "google" | "facebook") {
     const supabase = createClient();
@@ -26,15 +76,19 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Touch all fields to show any remaining errors
+    setTouched({ name: true, email: true, mobile: true, password: true, confirm: true });
+    const err = validate(form);
+    if (err) { setError(err); return; }
     setError("");
-    if (form.password.length < 8) { setError("Password must be at least 8 characters."); return; }
     setLoading(true);
     const supabase = createClient();
     const { error: authError } = await supabase.auth.signUp({
-      email: form.email,
+      email: form.email.trim(),
       password: form.password,
       options: {
-        data: { full_name: form.name, mobile: form.mobile },
+        data: { full_name: form.name.trim(), mobile: form.mobile.replace(/\s/g, "") },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (authError) {
@@ -45,6 +99,16 @@ export default function RegisterPage() {
     setSuccess(true);
     setLoading(false);
   }
+
+  // Mobile: only allow digits and +, cap at 13 chars (+639XXXXXXXXX) or 11 (09XXXXXXXXX)
+  function handleMobile(val: string) {
+    const cleaned = val.replace(/[^\d+]/g, "");
+    field("mobile", cleaned.slice(0, 13));
+  }
+
+  const pwStrength = PW_RULES.filter(r => r.test(form.password)).length;
+  const strengthColor = pwStrength <= 2 ? BRAND.red : pwStrength <= 3 ? "#D97706" : BRAND.teal;
+  const strengthLabel = pwStrength <= 2 ? "Weak" : pwStrength <= 3 ? "Fair" : pwStrength === 4 ? "Good" : "Strong";
 
   if (success) {
     return (
@@ -58,9 +122,12 @@ export default function RegisterPage() {
           <h1 className="mb-3" style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>
             CHECK YOUR EMAIL
           </h1>
-          <p className="text-sm mb-6 leading-relaxed" style={{ color: BRAND.muted }}>
-            We sent a confirmation link to <strong style={{ color: BRAND.black }}>{form.email}</strong>.
-            Click the link to activate your account, then sign in.
+          <p className="text-sm mb-2 leading-relaxed" style={{ color: BRAND.muted }}>
+            We sent a confirmation link to
+          </p>
+          <p className="font-black text-base mb-6" style={{ color: BRAND.black }}>{form.email}</p>
+          <p className="text-sm mb-8 leading-relaxed" style={{ color: BRAND.muted }}>
+            Click the link in the email to activate your account. Check your spam folder if you don&apos;t see it.
           </p>
           <button onClick={() => router.push("/login")}
             className="w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90"
@@ -97,43 +164,156 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          {[
-            { key: "name", label: "Full Name", type: "text", placeholder: "Juan Dela Cruz" },
-            { key: "email", label: "Email Address", type: "email", placeholder: "juan@email.com" },
-            { key: "mobile", label: "Mobile Number", type: "tel", placeholder: "09XX XXX XXXX" },
-          ].map(f => (
-            <div key={f.key}>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                {f.label}
-              </label>
-              <input type={f.type} value={form[f.key as keyof typeof form]}
-                onChange={e => setForm(v => ({ ...v, [f.key]: e.target.value }))}
-                placeholder={f.placeholder} required
-                className="w-full px-4 py-3.5 text-sm focus:outline-none transition-colors"
-                style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
-                onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)} />
-            </div>
-          ))}
+        <form className="space-y-4" onSubmit={handleSubmit} noValidate>
 
+          {/* Full Name */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+              Full Name
+            </label>
+            <input
+              type="text" value={form.name} placeholder="Juan Dela Cruz" required
+              onChange={e => field("name", e.target.value)}
+              onBlur={() => touch("name")}
+              className="w-full px-4 py-3.5 text-sm focus:outline-none transition-colors"
+              style={{
+                background: BRAND.card,
+                border: `1px solid ${fieldError("name") ? BRAND.red : BRAND.border}`,
+                color: BRAND.black,
+              }}
+              onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+            />
+            {fieldError("name") && (
+              <p className="text-xs mt-1 font-medium" style={{ color: BRAND.red }}>{fieldError("name")}</p>
+            )}
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+              Email Address
+            </label>
+            <input
+              type="email" value={form.email} placeholder="juan@email.com" required
+              onChange={e => field("email", e.target.value)}
+              onBlur={() => touch("email")}
+              className="w-full px-4 py-3.5 text-sm focus:outline-none transition-colors"
+              style={{
+                background: BRAND.card,
+                border: `1px solid ${fieldError("email") ? BRAND.red : BRAND.border}`,
+                color: BRAND.black,
+              }}
+              onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+            />
+            {fieldError("email") && (
+              <p className="text-xs mt-1 font-medium" style={{ color: BRAND.red }}>{fieldError("email")}</p>
+            )}
+          </div>
+
+          {/* Mobile */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+              Mobile Number
+            </label>
+            <input
+              type="tel" value={form.mobile} placeholder="09171234567" required
+              onChange={e => handleMobile(e.target.value)}
+              onBlur={() => touch("mobile")}
+              inputMode="numeric"
+              className="w-full px-4 py-3.5 text-sm focus:outline-none transition-colors"
+              style={{
+                background: BRAND.card,
+                border: `1px solid ${fieldError("mobile") ? BRAND.red : BRAND.border}`,
+                color: BRAND.black,
+              }}
+              onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+            />
+            {fieldError("mobile") ? (
+              <p className="text-xs mt-1 font-medium" style={{ color: BRAND.red }}>{fieldError("mobile")}</p>
+            ) : (
+              <p className="text-xs mt-1" style={{ color: BRAND.mutedLight }}>PH numbers only · 11 digits · starts with 09</p>
+            )}
+          </div>
+
+          {/* Password */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
               Password
             </label>
             <div className="relative">
-              <input type={showPw ? "text" : "password"} value={form.password}
-                onChange={e => setForm(v => ({ ...v, password: e.target.value }))}
-                placeholder="Min. 8 characters" required
+              <input
+                type={showPw ? "text" : "password"} value={form.password}
+                placeholder="Create a strong password" required
+                onChange={e => field("password", e.target.value)}
+                onBlur={() => touch("password")}
                 className="w-full px-4 py-3.5 pr-12 text-sm focus:outline-none transition-colors"
-                style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                style={{
+                  background: BRAND.card,
+                  border: `1px solid ${BRAND.border}`,
+                  color: BRAND.black,
+                }}
                 onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)} />
+              />
               <button type="button" onClick={() => setShowPw(!showPw)}
                 className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+
+            {/* Strength bar */}
+            {form.password && (
+              <div className="mt-2 space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex gap-1">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <div key={i} className="flex-1 h-1 rounded-full transition-all"
+                        style={{ background: i <= pwStrength ? strengthColor : BRAND.border }} />
+                    ))}
+                  </div>
+                  <span className="text-xs font-bold" style={{ color: strengthColor }}>{strengthLabel}</span>
+                </div>
+                <ul className="space-y-0.5">
+                  {PW_RULES.map(r => (
+                    <li key={r.label} className="flex items-center gap-1.5 text-xs"
+                      style={{ color: r.test(form.password) ? BRAND.teal : BRAND.mutedLight }}>
+                      {r.test(form.password)
+                        ? <Check className="w-3 h-3 shrink-0" />
+                        : <X className="w-3 h-3 shrink-0" />}
+                      {r.label}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Confirm Password */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+              Confirm Password
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirm ? "text" : "password"} value={form.confirm}
+                placeholder="Re-enter your password" required
+                onChange={e => field("confirm", e.target.value)}
+                onBlur={() => touch("confirm")}
+                className="w-full px-4 py-3.5 pr-12 text-sm focus:outline-none transition-colors"
+                style={{
+                  background: BRAND.card,
+                  border: `1px solid ${fieldError("confirm") ? BRAND.red : BRAND.border}`,
+                  color: BRAND.black,
+                }}
+                onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+              />
+              <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
+                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {fieldError("confirm") && (
+              <p className="text-xs mt-1 font-medium" style={{ color: BRAND.red }}>{fieldError("confirm")}</p>
+            )}
           </div>
 
           <button type="submit" disabled={loading}
@@ -153,16 +333,16 @@ export default function RegisterPage() {
           <button onClick={() => handleSocialLogin("google")}
             className="w-full flex items-center justify-center gap-3 py-3.5 text-sm font-semibold transition-opacity hover:opacity-80"
             style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black, background: BRAND.card }}>
-            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.4 30.3 0 24 0 14.8 0 6.9 5.4 3 13.3l7.9 6.2C12.8 13.3 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 6.1-9.9 7.1-17z"/><path fill="#FBBC05" d="M10.9 28.5A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.1.8-4.5L2.4 13.3A24 24 0 0 0 0 24c0 3.8.9 7.4 2.4 10.7l8.5-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.2-8.4 2.2-6.1 0-11.2-3.8-13.1-9.1l-8.5 6.2C6.9 42.6 14.8 48 24 48z"/></svg>
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" /><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" /><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" /><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" /></svg>
             Continue with Google
           </button>
+          <button onClick={() => handleSocialLogin("facebook")}
+            className="w-full flex items-center justify-center gap-3 py-3.5 text-sm font-semibold transition-opacity hover:opacity-80"
+            style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black, background: BRAND.card }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" /></svg>
+            Continue with Facebook
+          </button>
         </div>
-
-        <p className="text-xs text-center mt-5" style={{ color: BRAND.mutedLight }}>
-          By creating an account, you agree to our{" "}
-          <a href="#" className="underline">Terms of Service</a> and{" "}
-          <a href="#" className="underline">Privacy Policy</a>.
-        </p>
       </div>
     </div>
   );
