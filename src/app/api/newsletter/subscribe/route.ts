@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { Resend } from "resend";
+import { rateLimit, getIP } from "@/lib/rate-limit";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = "donjulio263@gmail.com";
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
 
 export async function POST(req: NextRequest) {
+  const { allowed } = rateLimit(getIP(req), 5, 60_000); // 5 signups/min per IP
+  if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   const { email } = await req.json();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Invalid email" }, { status: 400 });
