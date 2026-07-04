@@ -17,6 +17,7 @@ interface ProductCardProps {
 export default function ProductCard({ product, showQuickAdd = true }: ProductCardProps) {
   const [hovered, setHovered] = useState(false);
   const [added, setAdded] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const addItem = useCartStore(s => s.addItem);
 
   const availableSizes = product.sizes.filter(s => s.stock > 0);
@@ -60,10 +61,11 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
           transition: "border-color 0.25s",
         }}>
 
-        {product.images?.[0] ? (
+        {product.images?.[0] && !imgError ? (
           <Image src={product.images[0]} alt={product.name} fill
             className="object-cover object-center transition-transform duration-300 group-hover:scale-105"
-            sizes="(max-width: 768px) 50vw, 25vw" />
+            sizes="(max-width: 768px) 50vw, 25vw"
+            onError={() => setImgError(true)} />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <span className="font-black select-none"
