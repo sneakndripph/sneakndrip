@@ -1,13 +1,27 @@
 "use client";
 import { useState } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
-import { Search, Truck } from "lucide-react";
+import { Search, Truck, ShoppingBag, CreditCard, Settings, PackageCheck, CheckCircle2 } from "lucide-react";
 
 const STEPS_DEFAULT = ["pending", "paid", "processing", "shipped", "delivered"];
-const STEPS_COD = ["pending", "processing", "shipped", "delivered"];
-const STEP_LABELS: Record<string, string> = {
-  pending: "Placed", paid: "Confirmed", processing: "Processing", shipped: "Shipped", delivered: "Delivered"
+const STEPS_COD     = ["pending", "processing", "shipped", "delivered"];
+
+const STEP_META: Record<string, { label: string; desc: string; icon: React.ElementType }> = {
+  pending:    { label: "Order Placed",   desc: "We've received your order.",              icon: ShoppingBag   },
+  paid:       { label: "Confirmed",      desc: "Payment verified. We're on it!",          icon: CreditCard    },
+  processing: { label: "Processing",     desc: "Your pair is being prepared for pickup.", icon: Settings      },
+  shipped:    { label: "Shipped",        desc: "On its way — check your tracking number.",icon: Truck         },
+  delivered:  { label: "Delivered",      desc: "Enjoy your new kicks! 🔥",               icon: CheckCircle2  },
 };
+
+const NEXT_MSG: Record<string, string> = {
+  pending:    "We'll confirm your order shortly.",
+  paid:       "We're packing your order now.",
+  processing: "Your order will ship soon.",
+  shipped:    "Your package is on its way to you.",
+  delivered:  "Your order is complete. Thank you!",
+};
+
 const STATUS_CFG: Record<string, { color: string; label: string }> = {
   pending:    { color: "#D97706", label: "Pending" },
   paid:       { color: "#5BB8B4", label: "Confirmed" },
@@ -112,29 +126,51 @@ export default function TrackOrderPage() {
             </div>
 
             {status !== "cancelled" && (
-              <div className="px-6 py-6" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                <div className="flex items-center">
-                  {steps.map((step, i) => (
-                    <div key={step} className="flex items-center flex-1 min-w-0">
-                      <div className="flex flex-col items-center flex-1">
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black mb-2 transition-all"
-                          style={{
-                            background: i === activeIdx ? BRAND.teal : i < activeIdx ? `${BRAND.teal}55` : BRAND.border,
-                            color: i <= activeIdx ? "#fff" : BRAND.mutedLight,
-                            boxShadow: i === activeIdx ? `0 0 0 3px ${BRAND.teal}25` : "none",
-                          }}>
-                          {i < activeIdx ? "✓" : i + 1}
+              <div className="px-6 pt-6 pb-2" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+                {/* Progress bar */}
+                <div className="relative mb-6">
+                  <div className="absolute top-5 left-0 right-0 h-1 rounded-full" style={{ background: BRAND.border }} />
+                  <div
+                    className="absolute top-5 left-0 h-1 rounded-full transition-all duration-700"
+                    style={{
+                      background: BRAND.teal,
+                      width: activeIdx < 0 ? "0%" : `${(activeIdx / (steps.length - 1)) * 100}%`,
+                    }}
+                  />
+                  <div className="relative flex justify-between">
+                    {steps.map((step, i) => {
+                      const Icon = STEP_META[step]?.icon ?? PackageCheck;
+                      const done = i < activeIdx;
+                      const active = i === activeIdx;
+                      return (
+                        <div key={step} className="flex flex-col items-center gap-2" style={{ width: `${100 / steps.length}%` }}>
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center transition-all"
+                            style={{
+                              background: active ? BRAND.teal : done ? BRAND.teal : BRAND.card,
+                              border: `2px solid ${active || done ? BRAND.teal : BRAND.border}`,
+                              boxShadow: active ? `0 0 0 4px ${BRAND.teal}22` : "none",
+                              zIndex: 1,
+                            }}>
+                            <Icon className="w-4 h-4" style={{ color: active || done ? "#fff" : BRAND.mutedLight }} />
+                          </div>
+                          <p className="text-[10px] font-bold text-center leading-tight"
+                            style={{ color: active ? BRAND.teal : done ? BRAND.black : BRAND.mutedLight }}>
+                            {STEP_META[step]?.label}
+                          </p>
                         </div>
-                        <p className="text-[9px] font-bold text-center whitespace-nowrap"
-                          style={{ color: i === activeIdx ? BRAND.teal : i < activeIdx ? `${BRAND.teal}90` : BRAND.mutedLight }}>
-                          {STEP_LABELS[step]}
-                        </p>
-                      </div>
-                      {i < steps.length - 1 && (
-                        <div className="h-0.5 flex-1 mx-0.5 mb-5" style={{ background: i < activeIdx ? BRAND.teal : BRAND.border }} />
-                      )}
-                    </div>
-                  ))}
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* What's next */}
+                <div className="flex items-center gap-3 px-4 py-3 rounded-lg mb-4"
+                  style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
+                  <div className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ background: BRAND.teal }} />
+                  <p className="text-xs font-semibold" style={{ color: BRAND.teal }}>
+                    {NEXT_MSG[status] ?? "Your order is being processed."}
+                  </p>
                 </div>
               </div>
             )}
