@@ -6,10 +6,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { BRAND, FONTS, DP_RESERVE_FEE } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
-import { ShoppingBag, Zap, Shield, Truck, Clock, Star, Minus, Plus, Share2, Bell, Heart, X } from "lucide-react";
+import { ShoppingBag, Zap, Shield, Truck, Clock, Star, Minus, Plus, Share2, Bell, BellRing, Heart, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useRecentlyViewed, useRecentlyViewedStore } from "@/hooks/useRecentlyViewed";
 import { useWishlist } from "@/hooks/useWishlist";
+import { createClient } from "@/lib/supabase/client";
 import type { Product, Review } from "@/lib/types";
 
 type SizeGuide = { label: string; note: string; rows: string[][] };
@@ -95,8 +96,14 @@ export default function ProductDetail({
   const tabsRef = useRef<HTMLDivElement>(null);
   const [notifySize, setNotifySize] = useState<string | null>(null);
   const [notifyEmail, setNotifyEmail] = useState("");
-  const [notifySubmitted, setNotifySubmitted] = useState<string | null>(null);
+  const [notifiedSizes, setNotifiedSizes] = useState<Set<string>>(new Set());
   const [showSizeGuide, setShowSizeGuide] = useState(false);
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      if (data.user?.email) setNotifyEmail(data.user.email);
+    });
+  }, []);
 
   useEffect(() => {
     trackItem({
@@ -130,8 +137,8 @@ export default function ProductDetail({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ productId: product.id, size: notifySize, email: notifyEmail }),
     });
-    setNotifySubmitted(notifySize);
-    setNotifyEmail("");
+    setNotifiedSizes(prev => new Set(prev).add(notifySize!));
+    setNotifySize(null);
   }
 
   const metroFee = settings.metro_shipping_fee || "150";
@@ -419,21 +426,28 @@ export default function ProductDetail({
                   const outOfStock = s.stock === 0;
                   const isSelected = selectedSize === s.size;
                   const isNotify = notifySize === s.size;
+                  const isNotified = notifiedSizes.has(s.size);
                   return (
                     <button key={s.size}
                       onClick={() => {
-                        if (outOfStock) { setNotifySize(s.size); setNotifySubmitted(null); }
-                        else { setSelectedSize(s.size); setQuantity(1); setNotifySize(null); }
+                        if (outOfStock && !isNotified) { setNotifySize(isNotify ? null : s.size); }
+                        else if (!outOfStock) { setSelectedSize(s.size); setQuantity(1); setNotifySize(null); }
                       }}
-                      className="py-2.5 text-sm font-semibold transition-all relative"
+                      className="py-2.5 text-sm font-semibold transition-all relative flex flex-col items-center justify-center gap-0.5"
                       style={{
-                        background: isSelected ? BRAND.black : isNotify ? `${BRAND.teal}15` : "transparent",
+                        background: isSelected ? BRAND.black : isNotify ? `${BRAND.teal}15` : isNotified ? `${BRAND.teal}10` : "transparent",
                         color: isSelected ? BRAND.bg : outOfStock ? BRAND.mutedLight : BRAND.black,
-                        border: `1.5px solid ${isSelected ? BRAND.black : isNotify ? BRAND.teal : BRAND.border}`,
-                        opacity: outOfStock ? 0.55 : 1,
-                        textDecoration: outOfStock ? "line-through" : "none",
+                        border: `1.5px solid ${isSelected ? BRAND.black : isNotify || isNotified ? BRAND.teal : BRAND.border}`,
+                        opacity: outOfStock && !isNotified ? 0.6 : 1,
                       }}>
-                      {s.size.replace("US ", "")}
+                      <span style={{ textDecoration: outOfStock && !isNotified ? "line-through" : "none" }}>
+                        {s.size.replace("US ", "")}
+                      </span>
+                      {outOfStock && (
+                        isNotified
+                          ? <BellRing className="w-2.5 h-2.5" style={{ color: BRAND.teal }} />
+                          : <Bell className="w-2.5 h-2.5" style={{ color: BRAND.mutedLight }} />
+                      )}
                       {s.stock > 0 && s.stock <= 2 && (
                         <span className="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full text-[7px] font-black text-white flex items-center justify-center"
                           style={{ background: BRAND.red }}>{s.stock}</span>
@@ -445,29 +459,34 @@ export default function ProductDetail({
               {/* Notify-me form for OOS size */}
               {notifySize && product.sizes.find(s => s.size === notifySize)?.stock === 0 && (
                 <div className="mt-3 p-4 rounded-xl" style={{ background: `${BRAND.teal}08`, border: `1px solid ${BRAND.teal}25` }}>
-                  {notifySubmitted === notifySize ? (
-                    <p className="text-sm font-semibold flex items-center gap-2" style={{ color: BRAND.teal }}>
-                      <Bell className="w-4 h-4" /> We&apos;ll notify you when {notifySize} is back in stock!
-                    </p>
-                  ) : (
-                    <form onSubmit={handleNotify} className="flex gap-2">
-                      <input
-                        type="email"
-                        value={notifyEmail}
-                        onChange={e => setNotifyEmail(e.target.value)}
-                        placeholder="Your email for restock alerts"
-                        required
-                        className="flex-1 px-3 py-2 text-sm focus:outline-none"
-                        style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
-                      />
-                      <button type="submit"
-                        className="px-4 py-2 text-xs font-black uppercase tracking-wide whitespace-nowrap"
-                        style={{ background: BRAND.teal, color: "#fff" }}>
-                        Notify Me
-                      </button>
-                    </form>
-                  )}
+                  <p className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: BRAND.teal }}>
+                    <Bell className="w-3.5 h-3.5" />
+                    Notify me when {notifySize} is back in stock
+                  </p>
+                  <form onSubmit={handleNotify} className="flex gap-2">
+                    <input
+                      type="email"
+                      value={notifyEmail}
+                      onChange={e => setNotifyEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      required
+                      className="flex-1 px-3 py-2 text-sm focus:outline-none"
+                      style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                    />
+                    <button type="submit"
+                      className="px-4 py-2 text-xs font-black uppercase tracking-wide whitespace-nowrap"
+                      style={{ background: BRAND.teal, color: "#fff" }}>
+                      Notify Me
+                    </button>
+                  </form>
                 </div>
+              )}
+              {/* Confirmed subscriptions */}
+              {notifiedSizes.size > 0 && (
+                <p className="mt-2 text-xs flex items-center gap-1.5" style={{ color: BRAND.teal }}>
+                  <BellRing className="w-3 h-3" />
+                  Watching: {Array.from(notifiedSizes).join(", ")} — we&apos;ll email you when they&apos;re back.
+                </p>
               )}
 
               <div className="flex items-center justify-between mt-2">
