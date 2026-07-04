@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
-import { Bebas_Neue } from "next/font/google";
+import { Inter, Barlow_Condensed } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import ProgressBar from "@/components/layout/ProgressBar";
 import "./globals.css";
 
-const bebasNeue = Bebas_Neue({
-  variable: "--font-bebas",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  weight: "400",
+  display: "swap",
+});
+
+const barlowCondensed = Barlow_Condensed({
+  variable: "--font-barlow",
+  subsets: ["latin"],
+  weight: ["600", "700", "800", "900"],
   display: "swap",
 });
 
@@ -30,7 +36,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bebasNeue.variable} h-full antialiased`}
+      className={`${inter.variable} ${barlowCondensed.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <ProgressBar />
@@ -39,7 +45,7 @@ export default function RootLayout({
           position="bottom-center"
           toastOptions={{
             duration: 3000,
-            style: { fontFamily: "var(--font-bebas), sans-serif", fontSize: "0.875rem" },
+            style: { fontFamily: "var(--font-inter), sans-serif", fontSize: "0.875rem" },
             success: { iconTheme: { primary: "#5BB8B4", secondary: "#fff" } },
           }}
         />
