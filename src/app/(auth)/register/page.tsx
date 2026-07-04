@@ -22,7 +22,7 @@ function validate(form: { name: string; email: string; mobile: string; password:
   if (!form.email.trim()) return "Email address is required.";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return "Please enter a valid email address.";
   if (!form.mobile.trim()) return "Mobile number is required.";
-  if (!/^(09|\+639)\d{9}$/.test(form.mobile.replace(/\s/g, "")))
+  if (!/^09\d{9}$/.test(form.mobile))
     return "Enter a valid PH mobile number (e.g. 09171234567).";
   if (PW_RULES.some(r => !r.test(form.password))) return "Password does not meet all requirements.";
   if (form.password !== form.confirm) return "Passwords do not match.";
@@ -59,7 +59,7 @@ export default function RegisterPage() {
     }
     if (key === "mobile") {
       if (!form.mobile.trim()) return "Required.";
-      if (!/^(09|\+639)\d{9}$/.test(form.mobile.replace(/\s/g, "")))
+      if (!/^09\d{9}$/.test(form.mobile))
         return "Must be 11 digits starting with 09 (e.g. 09171234567).";
     }
     if (key === "confirm" && form.confirm && form.password !== form.confirm) return "Passwords do not match.";
@@ -102,8 +102,8 @@ export default function RegisterPage() {
 
   // Mobile: only allow digits and +, cap at 13 chars (+639XXXXXXXXX) or 11 (09XXXXXXXXX)
   function handleMobile(val: string) {
-    const cleaned = val.replace(/[^\d+]/g, "");
-    field("mobile", cleaned.slice(0, 13));
+    const cleaned = val.replace(/\D/g, "");
+    field("mobile", cleaned.slice(0, 11));
   }
 
   const pwStrength = PW_RULES.filter(r => r.test(form.password)).length;
@@ -231,7 +231,7 @@ export default function RegisterPage() {
             {fieldError("mobile") ? (
               <p className="text-xs mt-1 font-medium" style={{ color: BRAND.red }}>{fieldError("mobile")}</p>
             ) : (
-              <p className="text-xs mt-1" style={{ color: BRAND.mutedLight }}>PH numbers only · 11 digits · starts with 09</p>
+              <p className="text-xs mt-1" style={{ color: BRAND.mutedLight }}>11 digits · starts with 09 · numbers only</p>
             )}
           </div>
 
