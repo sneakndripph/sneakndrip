@@ -9,8 +9,8 @@ import { LayoutDashboard, Package, ShoppingBag, Users, Settings, ChevronRight, M
 import { BRAND, FONTS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
-type NotifCounts = { pendingOrders: number; pendingReviews: number; pendingReturns: number };
-type BadgeKey = "pendingOrders" | "pendingReviews" | "pendingReturns";
+type NotifCounts = { pendingOrders: number; pendingReviews: number; pendingReturns: number; lowStock: number };
+type BadgeKey = "pendingOrders" | "pendingReviews" | "pendingReturns" | "lowStock";
 
 const NAV: { href: string; icon: React.ElementType; label: string; badgeKey: BadgeKey | null }[] = [
   { href: "/admin",           icon: LayoutDashboard, label: "Dashboard",     badgeKey: null },
@@ -19,7 +19,7 @@ const NAV: { href: string; icon: React.ElementType; label: string; badgeKey: Bad
   { href: "/admin/customers", icon: Users,           label: "Customers",     badgeKey: null },
   { href: "/admin/sales",     icon: TrendingUp,      label: "Sales",         badgeKey: null },
   { href: "/admin/coupons",   icon: Tag,             label: "Marketing",     badgeKey: null },
-  { href: "/admin/inventory", icon: BarChart2,       label: "Inventory Log", badgeKey: null },
+  { href: "/admin/inventory", icon: BarChart2,       label: "Inventory Log", badgeKey: "lowStock" as BadgeKey },
   { href: "/admin/reviews",   icon: MessageSquare,   label: "Reviews",       badgeKey: "pendingReviews" },
   { href: "/admin/returns",   icon: RotateCcw,       label: "Returns",       badgeKey: "pendingReturns" as BadgeKey },
   { href: "/admin/chat",      icon: MessageCircle,   label: "Chat",          badgeKey: null },
@@ -35,13 +35,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (pathname === "/admin/login") return <>{children}</>;
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifs, setNotifs] = useState<NotifCounts>({ pendingOrders: 0, pendingReviews: 0, pendingReturns: 0 });
+  const [notifs, setNotifs] = useState<NotifCounts>({ pendingOrders: 0, pendingReviews: 0, pendingReturns: 0, lowStock: 0 });
 
   useEffect(() => {
     function load() {
       fetch("/api/admin/notifications")
         .then(r => r.json())
-        .then(d => setNotifs({ pendingOrders: d.pendingOrders ?? 0, pendingReviews: d.pendingReviews ?? 0, pendingReturns: d.pendingReturns ?? 0 }))
+        .then(d => setNotifs({ pendingOrders: d.pendingOrders ?? 0, pendingReviews: d.pendingReviews ?? 0, pendingReturns: d.pendingReturns ?? 0, lowStock: d.lowStock ?? 0 }))
         .catch(() => {});
     }
     load();
@@ -94,7 +94,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div className="flex items-center gap-1.5">
                 {count > 0 && (
                   <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center"
-                    style={{ background: BRAND.red, color: "#fff" }}>
+                    style={{ background: item.badgeKey === "lowStock" ? "#D97706" : BRAND.red, color: "#fff" }}>
                     {count > 99 ? "99+" : count}
                   </span>
                 )}
