@@ -20,11 +20,12 @@ async function getRequestingUser() {
   }
 }
 
-async function sendRestockEmails(productId: string, restockedSizes: string[], productName: string) {
+async function sendRestockEmails(productId: string, restockedSizes: string[], productName: string, productSlug: string) {
   if (!process.env.RESEND_API_KEY || restockedSizes.length === 0) return;
   const admin = createAdminClient();
   const resend = new Resend(process.env.RESEND_API_KEY);
   const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
+  const productUrl = `https://sneakndrip.ph/shop/${productSlug}`;
 
   for (const size of restockedSizes) {
     const { data: notifs } = await admin
@@ -40,12 +41,12 @@ async function sendRestockEmails(productId: string, restockedSizes: string[], pr
       await resend.emails.send({
         from: `Sneak N' Drip <${FROM_EMAIL}>`,
         to: email,
-        subject: `${productName} (${size}) is back in stock!`,
+        subject: `${productName} (${size}) is back in stock! 🔥`,
         html: `
           <div style="max-width:500px;margin:0 auto;font-family:Arial,sans-serif;padding:24px">
             <h2 style="color:#0D0D0D">Back In Stock!</h2>
             <p style="color:#555;font-size:15px">Good news! <strong>${productName}</strong> in size <strong>${size}</strong> is now available.</p>
-            <a href="https://sneakndrip.ph/shop" style="display:inline-block;background:#5BB8B4;color:#fff;padding:12px 24px;text-decoration:none;font-weight:bold;margin-top:12px">Shop Now</a>
+            <a href="${productUrl}" style="display:inline-block;background:#5BB8B4;color:#fff;padding:12px 24px;text-decoration:none;font-weight:bold;margin-top:12px">Grab It Now →</a>
             <p style="color:#aaa;font-size:12px;margin-top:24px">You requested to be notified when this item restocked. Reply to unsubscribe.</p>
           </div>`,
       }).catch(() => {});
@@ -104,11 +105,12 @@ export async function PATCH(
   }
 
   const productName = (product as { name?: string }).name ?? "Product";
+  const productSlug = (product as { slug?: string }).slug ?? id;
   if (sizes.length > 0) {
     const restockedSizes = sizes
       .filter(s => s.stock > 0 && (oldStockMap.get(s.size) ?? 0) === 0)
       .map(s => s.size);
-    await sendRestockEmails(id, restockedSizes, productName);
+    await sendRestockEmails(id, restockedSizes, productName, productSlug);
   }
 
   void admin.from("activity_log").insert({
@@ -128,7 +130,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getRequestingUser();
-  const isAdminDel = user?.user_metadata?.role === "admin" || user?.app_metadata?.role === "admin";
+  const isAdminDel = user?.app_metadata?.role === "admin";
   if (!user || !isAdminDel) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

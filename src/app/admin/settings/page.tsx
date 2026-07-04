@@ -112,6 +112,16 @@ export default function AdminSettingsPage() {
     setSettings(prev => ({ ...prev, [key]: val }));
   }
 
+  async function toggleMaintenance() {
+    const newVal = settings.maintenance_mode === "true" ? "false" : "true";
+    setSettings(prev => ({ ...prev, maintenance_mode: newVal }));
+    await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maintenance_mode: newVal }),
+    });
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
@@ -213,7 +223,7 @@ export default function AdminSettingsPage() {
                       </p>
                     </div>
                     <button type="button"
-                      onClick={() => update("maintenance_mode", settings.maintenance_mode === "true" ? "false" : "true")}
+                      onClick={toggleMaintenance}
                       className="flex items-center gap-2 px-4 py-2 text-sm font-bold transition-all"
                       style={{
                         background: settings.maintenance_mode === "true" ? BRAND.red : BRAND.teal,
@@ -225,7 +235,7 @@ export default function AdminSettingsPage() {
                     </button>
                   </div>
                   <p className="text-xs" style={{ color: BRAND.muted }}>
-                    After toggling, click <strong>Save</strong> above to apply the change immediately.
+                    The toggle saves instantly — no need to click Save.
                   </p>
                 </div>
               )}
