@@ -41,7 +41,9 @@ const PROMISE_DEFAULTS = [
 
 export default async function HomePage() {
   const [products, reviews, settings] = await Promise.all([getProducts(), getReviews(), getSettings()]);
-  const newArrivals = products.filter(p => p.is_new).slice(0, 6);
+  const newArrivals = [...products]
+    .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
+    .slice(0, 5);
   const onHand = products.filter(p => p.status === "on-hand").slice(0, 6);
   const trending = products.filter(p => p.is_trending).slice(0, 4);
   const featured = products.find(p => p.is_featured && p.status === "on-hand") ?? products[0];
@@ -216,7 +218,7 @@ export default async function HomePage() {
               NEW ARRIVALS
             </h2>
           </div>
-          <Link href="/shop?filter=new"
+          <Link href="/shop?sort=newest"
             className="text-sm font-semibold flex items-center gap-1 transition-opacity hover:opacity-60"
             style={{ color: BRAND.black, fontFamily: FONTS.body }}>
             View All →
