@@ -7,6 +7,8 @@ import StorePage from "./(store)/page";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Sneak N' Drip — Authentic Sneakers Philippines",
   description: "100% Authentic Sneakers. On Hand & Pre-Order. Shop the latest releases at Sneak N' Drip.",
