@@ -97,7 +97,7 @@ export default function CheckoutPage() {
     // Fetch active promo codes for display
     fetch("/api/coupons/active").then(r => r.json()).then(data => { if (Array.isArray(data)) setActiveCoupons(data); }).catch(() => {});
     // Fetch dynamic shipping config + COD toggle from admin settings
-    fetch("/api/admin/settings")
+    fetch("/api/settings")
       .then(r => r.json())
       .then((data: Record<string, string>) => {
         setShipCfg({
