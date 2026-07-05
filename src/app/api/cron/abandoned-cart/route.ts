@@ -53,7 +53,7 @@ function buildEmail(items: CartItem[], subtotal: number, isReminder: boolean): s
     </div>
     <div style="padding:32px 36px">
       <h1 style="margin:0 0 8px;font-size:22px;font-weight:900;color:${BRAND_BLACK};letter-spacing:0.5px">
-        ${isReminder ? "Still thinking about it?" : "You left something behind 👟"}
+        ${isReminder ? "Still thinking about it?" : "You left something behind"}
       </h1>
       <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6">
         ${isReminder
@@ -137,7 +137,7 @@ export async function GET(req: NextRequest) {
       await resend.emails.send({
         from: `Sneak N' Drip <${FROM_EMAIL}>`,
         to: cart.email,
-        subject: "You left something in your cart 👟",
+        subject: "You left something in your cart",
         html: buildEmail(cart.cart_items as CartItem[], cart.subtotal, false),
       });
       await admin
@@ -153,7 +153,7 @@ export async function GET(req: NextRequest) {
       await resend.emails.send({
         from: `Sneak N' Drip <${FROM_EMAIL}>`,
         to: cart.email,
-        subject: "Still thinking about it? Your cart is waiting 🔥",
+        subject: "Still thinking about it? Your cart is waiting",
         html: buildEmail(cart.cart_items as CartItem[], cart.subtotal, true),
       });
       await admin

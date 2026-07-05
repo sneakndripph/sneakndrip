@@ -647,7 +647,7 @@ export default function ProductDetail({
                               style={{ width: 120, height: 120, border: `1px solid ${BRAND.border}` }}>
                               <Image src={r.image_url} alt="Review photo" fill className="object-cover" sizes="120px" />
                               <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold"
-                                style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>📷 Photo</div>
+                                style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>Photo</div>
                             </div>
                           )}
                           {r.created_at && (

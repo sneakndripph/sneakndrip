@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
     resend.emails.send({
       from: `Sneak N' Drip <${FROM_EMAIL}>`,
       to: ADMIN_EMAIL,
-      subject: `💳 Balance Payment Submitted — ${body.orderNumber}`,
+      subject: `Balance Payment Submitted — ${body.orderNumber}`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:500px;margin:20px auto;padding:20px">
           <h2 style="color:${BRAND_BLACK}">Balance Payment Submitted</h2>

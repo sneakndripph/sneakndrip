@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
           <p style="margin:0;color:#555;font-size:14px;line-height:1.6">
             ${h(shippingAddress.street)}, ${h(shippingAddress.barangay)}<br>
             ${h(shippingAddress.city)}, ${h(shippingAddress.province)} ${h(shippingAddress.postal)}<br>
-            📱 ${h(customer.mobile)}
+            ${h(customer.mobile)}
           </p>
         </div>
         <div style="border:1px solid #eee;border-radius:8px;padding:20px">
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
 <!DOCTYPE html>
 <html>
 <body style="font-family:Arial,sans-serif;max-width:500px;margin:20px auto;padding:20px">
-  <h2 style="color:${BRAND_BLACK}">🛍️ New Order: ${h(orderNumber)}</h2>
+  <h2 style="color:${BRAND_BLACK}">New Order: ${h(orderNumber)}</h2>
   <table style="width:100%;border-collapse:collapse;font-size:14px">
     <tr><td style="padding:8px 0;color:#888;width:120px">Customer</td><td style="font-weight:bold">${h(customer.name)}</td></tr>
     <tr><td style="padding:8px 0;color:#888">Email</td><td>${h(customer.email)}</td></tr>
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
       resend!.emails.send({
         from: `Sneak N' Drip Orders <${FROM_EMAIL}>`,
         to: ADMIN_EMAIL,
-        subject: `🛍️ New Order ${safeOrderNumber} — ₱${total.toLocaleString()} (${stripNewlines(paymentLabel[paymentMethod] ?? paymentMethod)})`,
+        subject: `New Order ${safeOrderNumber} — ₱${total.toLocaleString()} (${stripNewlines(paymentLabel[paymentMethod] ?? paymentMethod)})`,
         html: adminHtml,
       }),
     ]);

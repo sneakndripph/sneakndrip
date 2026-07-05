@@ -54,10 +54,10 @@ export default async function ContactPage() {
       <section className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
         <div className="grid sm:grid-cols-2 gap-4 mb-10">
           {[
-            { icon: "💬", label: "Messenger", val: "m.me/SneakNDrip", href: "https://m.me/SneakNDrip" },
-            { icon: "📘", label: "Facebook", val: "SneakNDrip", href: "https://www.facebook.com/SneakNDrip/" },
-            { icon: "📸", label: "Instagram", val: "@sneakndripph", href: "https://www.instagram.com/sneakndripph/" },
-            { icon: "📞", label: "Mobile", val: "0961 177 4119", href: "tel:+639611774119" },
+            { icon: "", label: "Messenger", val: "m.me/SneakNDrip", href: "https://m.me/SneakNDrip" },
+            { icon: "", label: "Facebook", val: "SneakNDrip", href: "https://www.facebook.com/SneakNDrip/" },
+            { icon: "", label: "Instagram", val: "@sneakndripph", href: "https://www.instagram.com/sneakndripph/" },
+            { icon: "", label: "Mobile", val: "0961 177 4119", href: "tel:+639611774119" },
           ].map(c => (
             <a key={c.label} href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined}
               rel="noopener noreferrer"

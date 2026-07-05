@@ -47,10 +47,10 @@ export const ORDER_STATUSES = [
 ] as const;
 
 export const PAYMENT_METHODS = [
-  { id: "gcash", label: "GCash", icon: "💙" },
-  { id: "maya", label: "Maya", icon: "💜" },
-  { id: "bank_transfer", label: "Bank Transfer", icon: "🏦" },
-  { id: "cod", label: "Cash on Delivery", icon: "💵" },
+  { id: "gcash", label: "GCash" },
+  { id: "maya", label: "Maya" },
+  { id: "bank_transfer", label: "Bank Transfer" },
+  { id: "cod", label: "Cash on Delivery" },
 ] as const;
 
 // Upfront reserve deposit for pre-order downpayment plan

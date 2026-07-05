@@ -90,17 +90,17 @@ export default function AboutPage() {
           <div className="grid sm:grid-cols-3 gap-6">
             {[
               {
-                icon: "🔐",
+                icon: "",
                 title: "100% Authentic",
                 desc: "Every pair is verified authentic. Sourced from trusted local and international suppliers. No fakes, no reps — ever. We stake our reputation on it.",
               },
               {
-                icon: "💰",
+                icon: "",
                 title: "Below SRP Prices",
                 desc: "We believe you shouldn't have to pay above retail for authentic sneakers. Most of our pairs are priced below SRP — good kicks at fair prices.",
               },
               {
-                icon: "⚡",
+                icon: "",
                 title: "Fast & Reliable",
                 desc: "On-hand orders ship within 1–3 business days for Metro Manila, 3–7 days provincial. Pre-orders come with a firm ETA and regular updates.",
               },

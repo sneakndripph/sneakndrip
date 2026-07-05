@@ -41,7 +41,7 @@ async function sendRestockEmails(productId: string, restockedSizes: string[], pr
       await resend.emails.send({
         from: `Sneak N' Drip <${FROM_EMAIL}>`,
         to: email,
-        subject: `${productName} (${size}) is back in stock! 🔥`,
+        subject: `${productName} (${size}) is back in stock!`,
         html: `
           <div style="max-width:500px;margin:0 auto;font-family:Arial,sans-serif;padding:24px">
             <h2 style="color:#0D0D0D">Back In Stock!</h2>

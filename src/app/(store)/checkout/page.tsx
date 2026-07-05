@@ -435,7 +435,6 @@ export default function CheckoutPage() {
                           border: `2px solid ${paymentMethod === pm.id ? BRAND.teal : BRAND.border}`,
                           background: paymentMethod === pm.id ? `${BRAND.teal}08` : "transparent",
                         }}>
-                        <span className="text-2xl">{pm.icon}</span>
                         <span className="font-bold text-sm" style={{ color: BRAND.black }}>{pm.label}</span>
                         {paymentMethod === pm.id && (
                           <div className="ml-auto w-5 h-5 rounded-full flex items-center justify-center"

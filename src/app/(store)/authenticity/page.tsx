@@ -49,9 +49,9 @@ export default async function AuthenticityPage() {
       <section className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid sm:grid-cols-3 gap-4 mb-12">
           {[
-            { icon: "🔐", label: "Verified Sources" },
-            { icon: "🧐", label: "Legit Checked" },
-            { icon: "💯", label: "Full Refund Guarantee" },
+            { icon: "", label: "Verified Sources" },
+            { icon: "", label: "Legit Checked" },
+            { icon: "", label: "Full Refund Guarantee" },
           ].map(f => (
             <div key={f.label} className="flex flex-col items-center gap-2 p-6 rounded-xl text-center"
               style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
