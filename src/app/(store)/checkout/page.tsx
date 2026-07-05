@@ -61,7 +61,7 @@ export default function CheckoutPage() {
     gcashNumber: "0961 177 4119", gcashName: "Lorenzo Agalo P. Julio", gcashQr: "",
     mayaNumber: "0961 177 4119", mayaName: "Lorenzo Agalo P. Julio", mayaQr: "",
     bank1Name: "Maribank", bank1Account: "14156569205", bank1AccountName: "Lorenzo Agalo P. Julio",
-    bank2Name: "BPI", bank2Account: "0596199188", bank2AccountName: "Lorenzo Agalo P. Julio", bankQr: "",
+    bank2Name: "BPI", bank2Account: "0596199188", bank2AccountName: "Lorenzo Agalo P. Julio", bank1Qr: "", bank2Qr: "",
   });
 
   const isCOD = paymentMethod === "cod";
@@ -119,7 +119,8 @@ export default function CheckoutPage() {
           bank2Name: data.bank2_name || prev.bank2Name,
           bank2Account: data.bank2_account_number || prev.bank2Account,
           bank2AccountName: data.bank2_account_name || prev.bank2AccountName,
-          bankQr: data.bank_qr_url || prev.bankQr,
+          bank1Qr: data.bank1_qr_url || prev.bank1Qr,
+          bank2Qr: data.bank2_qr_url || prev.bank2Qr,
         }));
       })
       .catch(() => {});
@@ -495,17 +496,22 @@ export default function CheckoutPage() {
                         );
                         if (paymentMethod === "bank_transfer") return (
                           <div className="text-sm space-y-4" style={{ color: BRAND.black }}>
-                            {payCfg.bankQr && (
-                              <div className="flex justify-center pb-1">
-                                <img src={payCfg.bankQr} alt="Bank QR Code" style={{ width: 180, height: 180, objectFit: "contain" }} />
-                              </div>
-                            )}
-                            <div className="space-y-1">
+                            <div className="space-y-2">
+                              {payCfg.bank1Qr && (
+                                <div className="flex justify-center pb-1">
+                                  <img src={payCfg.bank1Qr} alt={`${payCfg.bank1Name} QR Code`} style={{ width: 180, height: 180, objectFit: "contain" }} />
+                                </div>
+                              )}
                               <p className="font-bold">{payCfg.bank1Name}</p>
                               <p>Account Number: {payCfg.bank1Account}</p>
                               <p>Account Name: {payCfg.bank1AccountName}</p>
                             </div>
-                            <div className="space-y-1" style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>
+                            <div className="space-y-2" style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "0.75rem" }}>
+                              {payCfg.bank2Qr && (
+                                <div className="flex justify-center pb-1">
+                                  <img src={payCfg.bank2Qr} alt={`${payCfg.bank2Name} QR Code`} style={{ width: 180, height: 180, objectFit: "contain" }} />
+                                </div>
+                              )}
                               <p className="font-bold">{payCfg.bank2Name}</p>
                               <p>Account Number: {payCfg.bank2Account}</p>
                               <p>Account Name: {payCfg.bank2AccountName}</p>

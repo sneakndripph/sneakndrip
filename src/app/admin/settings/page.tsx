@@ -31,7 +31,8 @@ const DEFAULTS: SettingsData = {
   bank2_name: "BPI",
   bank2_account_number: "0596199188",
   bank2_account_name: "Lorenzo Agalo P. Julio",
-  bank_qr_url: "",
+  bank1_qr_url: "",
+  bank2_qr_url: "",
   announcement_text: "",
   hero_badge: "New Drops Every Week",
   hero_line1: "STEP INTO",
@@ -368,6 +369,7 @@ export default function AdminSettingsPage() {
                         <Field label="Account Number"  settingsKey="bank1_account_number" settings={settings} onChange={update} />
                         <Field label="Account Name"    settingsKey="bank1_account_name"   settings={settings} onChange={update} />
                       </div>
+                      <QRUploadField label="Bank 1 QR Code" value={settings.bank1_qr_url ?? ""} onChange={url => update("bank1_qr_url", url)} />
                       <div style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "1rem" }}>
                         <p className="text-xs font-bold uppercase tracking-wide mb-4" style={{ color: BRAND.muted }}>Bank 2</p>
                         <div className="grid grid-cols-3 gap-4">
@@ -376,9 +378,7 @@ export default function AdminSettingsPage() {
                           <Field label="Account Name"    settingsKey="bank2_account_name"   settings={settings} onChange={update} />
                         </div>
                       </div>
-                      <div style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "1rem" }}>
-                        <QRUploadField label="QR Code" value={settings.bank_qr_url ?? ""} onChange={url => update("bank_qr_url", url)} />
-                      </div>
+                      <QRUploadField label="Bank 2 QR Code" value={settings.bank2_qr_url ?? ""} onChange={url => update("bank2_qr_url", url)} />
                     </div>
                   </div>
                 </div>
