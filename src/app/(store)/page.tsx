@@ -31,12 +31,12 @@ const HERO_DEFAULTS = {
 };
 
 const PROMISE_DEFAULTS = [
-  { icon: "🔐", title: "100% Authentic", desc: "Every pair is verified authentic. Sourced directly from trusted local and international suppliers. No reps, no fakes — ever." },
-  { icon: "✅", title: "Verified Supplier", desc: "We work only with verified and trusted sneaker suppliers. Our reputation is built on authenticity." },
-  { icon: "🛡️", title: "Secure Checkout", desc: "GCash, Maya, Bank Transfer, and Cash on Delivery. All payments are safe, fast, and easy." },
-  { icon: "📦", title: "Fast Shipping", desc: "Metro Manila: 1–3 days. Provincial: 3–7 days. All orders come with tracking." },
-  { icon: "📅", title: "Pre-Order ETA", desc: "Every pre-order comes with a firm ETA. We update you every step of the way." },
-  { icon: "💬", title: "24/7 Support", desc: "Message us on Facebook or Instagram anytime. Real, fast, friendly replies — always." },
+  { icon: "", title: "100% Authentic", desc: "Every pair is verified authentic. Sourced directly from trusted local and international suppliers. No reps, no fakes — ever." },
+  { icon: "", title: "Verified Supplier", desc: "We work only with verified and trusted sneaker suppliers. Our reputation is built on authenticity." },
+  { icon: "", title: "Secure Checkout", desc: "GCash, Maya, Bank Transfer, and Cash on Delivery. All payments are safe, fast, and easy." },
+  { icon: "", title: "Fast Shipping", desc: "Metro Manila: 1–3 days. Provincial: 3–7 days. All orders come with tracking." },
+  { icon: "", title: "Pre-Order ETA", desc: "Every pre-order comes with a firm ETA. We update you every step of the way." },
+  { icon: "", title: "24/7 Support", desc: "Message us on Facebook or Instagram anytime. Real, fast, friendly replies — always." },
 ];
 
 export default async function HomePage() {

@@ -43,7 +43,7 @@ export default function HomeClient() {
         </p>
         {subscribed ? (
           <p className="text-lg font-bold text-white" style={{ fontFamily: FONTS.body }}>
-            You&apos;re in! Welcome to the family 🤙
+            You&apos;re in! Welcome to the family.
           </p>
         ) : (
           <>

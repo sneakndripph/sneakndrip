@@ -1394,7 +1394,6 @@ export default function AccountPage() {
                     ) : (
                       <label className="flex flex-col items-center justify-center gap-1 w-20 h-20 rounded-lg cursor-pointer"
                         style={{ border: `2px dashed ${BRAND.border}`, background: BRAND.card }}>
-                        <span className="text-lg">📷</span>
                         <span className="text-[10px] font-semibold" style={{ color: BRAND.muted }}>Add Photo</span>
                         <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
                           onChange={e => {
@@ -1511,7 +1510,6 @@ export default function AccountPage() {
                     ) : (
                       <label className="flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-lg cursor-pointer transition-colors"
                         style={{ border: `2px dashed ${BRAND.border}`, background: BRAND.card }}>
-                        <span className="text-2xl">📷</span>
                         <span className="text-xs font-semibold text-center" style={{ color: BRAND.muted }}>
                           Click to upload up to 5 photos<br />
                           <span style={{ color: BRAND.mutedLight }}>JPG, PNG, WEBP · max 10MB each</span>

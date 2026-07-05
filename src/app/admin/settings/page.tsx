@@ -41,12 +41,12 @@ const DEFAULTS: SettingsData = {
   hero_subtitle: "100% Authentic Sneakers · On Hand & Pre-Order\nShips Philippines-wide. GCash, Maya, Bank Transfer & COD accepted.",
   hero_cta_primary: "Shop Now",
   hero_cta_secondary: "Pre-Orders",
-  promise_1_icon: "🔐", promise_1_title: "100% Authentic", promise_1_desc: "Every pair is verified authentic. Sourced directly from trusted local and international suppliers. No reps, no fakes — ever.",
-  promise_2_icon: "✅", promise_2_title: "Verified Supplier", promise_2_desc: "We work only with verified and trusted sneaker suppliers. Our reputation is built on authenticity.",
-  promise_3_icon: "🛡️", promise_3_title: "Secure Checkout", promise_3_desc: "GCash, Maya, Bank Transfer, and Cash on Delivery. All payments are safe, fast, and easy.",
-  promise_4_icon: "📦", promise_4_title: "Fast Shipping", promise_4_desc: "Metro Manila: 1–3 days. Provincial: 3–7 days. All orders come with tracking.",
-  promise_5_icon: "📅", promise_5_title: "Pre-Order ETA", promise_5_desc: "Every pre-order comes with a firm ETA. We update you every step of the way.",
-  promise_6_icon: "💬", promise_6_title: "24/7 Support", promise_6_desc: "Message us on Facebook or Instagram anytime. Real, fast, friendly replies — always.",
+  promise_1_icon: "", promise_1_title: "100% Authentic", promise_1_desc: "Every pair is verified authentic. Sourced directly from trusted local and international suppliers. No reps, no fakes — ever.",
+  promise_2_icon: "", promise_2_title: "Verified Supplier", promise_2_desc: "We work only with verified and trusted sneaker suppliers. Our reputation is built on authenticity.",
+  promise_3_icon: "", promise_3_title: "Secure Checkout", promise_3_desc: "GCash, Maya, Bank Transfer, and Cash on Delivery. All payments are safe, fast, and easy.",
+  promise_4_icon: "", promise_4_title: "Fast Shipping", promise_4_desc: "Metro Manila: 1–3 days. Provincial: 3–7 days. All orders come with tracking.",
+  promise_5_icon: "", promise_5_title: "Pre-Order ETA", promise_5_desc: "Every pre-order comes with a firm ETA. We update you every step of the way.",
+  promise_6_icon: "", promise_6_title: "24/7 Support", promise_6_desc: "Message us on Facebook or Instagram anytime. Real, fast, friendly replies — always.",
   preorder_message: "Your order will be reserved upon payment of downpayment. Balance is due before release.",
   new_arrivals_days: "14",
   meta_title: "Sneak N' Drip | Authentic Sneakers Philippines",
@@ -224,8 +224,8 @@ export default function AdminSettingsPage() {
                       <p className="font-bold text-sm mb-0.5" style={{ color: BRAND.black }}>Maintenance Mode</p>
                       <p className="text-xs" style={{ color: BRAND.muted }}>
                         {settings.maintenance_mode === "true"
-                          ? "🔴 Site is currently DOWN for customers"
-                          : "🟢 Site is live and accessible"}
+                          ? "OFFLINE — Site is currently DOWN for customers"
+                          : "LIVE — Site is accessible to customers"}
                       </p>
                     </div>
                     <button type="button"
@@ -328,8 +328,7 @@ export default function AdminSettingsPage() {
                 <div className="space-y-6">
                   {/* GCash */}
                   <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${BRAND.border}` }}>
-                    <div className="px-5 py-3 flex items-center gap-2" style={{ background: BRAND.bg, borderBottom: `1px solid ${BRAND.border}` }}>
-                      <span className="text-base">💙</span>
+                    <div className="px-5 py-3" style={{ background: BRAND.bg, borderBottom: `1px solid ${BRAND.border}` }}>
                       <span className="font-black text-sm tracking-wide" style={{ color: BRAND.black }}>GCash</span>
                     </div>
                     <div className="p-5 space-y-4">
@@ -343,8 +342,7 @@ export default function AdminSettingsPage() {
 
                   {/* Maya */}
                   <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${BRAND.border}` }}>
-                    <div className="px-5 py-3 flex items-center gap-2" style={{ background: BRAND.bg, borderBottom: `1px solid ${BRAND.border}` }}>
-                      <span className="text-base">💜</span>
+                    <div className="px-5 py-3" style={{ background: BRAND.bg, borderBottom: `1px solid ${BRAND.border}` }}>
                       <span className="font-black text-sm tracking-wide" style={{ color: BRAND.black }}>Maya</span>
                     </div>
                     <div className="p-5 space-y-4">
@@ -358,8 +356,7 @@ export default function AdminSettingsPage() {
 
                   {/* Bank Transfer */}
                   <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${BRAND.border}` }}>
-                    <div className="px-5 py-3 flex items-center gap-2" style={{ background: BRAND.bg, borderBottom: `1px solid ${BRAND.border}` }}>
-                      <span className="text-base">🏦</span>
+                    <div className="px-5 py-3" style={{ background: BRAND.bg, borderBottom: `1px solid ${BRAND.border}` }}>
                       <span className="font-black text-sm tracking-wide" style={{ color: BRAND.black }}>Bank Transfer</span>
                     </div>
                     <div className="p-5 space-y-4">

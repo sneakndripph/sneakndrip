@@ -11,7 +11,7 @@ const STEP_META: Record<string, { label: string; desc: string; icon: React.Eleme
   paid:       { label: "Confirmed",      desc: "Payment verified. We're on it!",          icon: CreditCard    },
   processing: { label: "Processing",     desc: "Your pair is being prepared for pickup.", icon: Settings      },
   shipped:    { label: "Shipped",        desc: "On its way — check your tracking number.",icon: Truck         },
-  delivered:  { label: "Delivered",      desc: "Enjoy your new kicks! 🔥",               icon: CheckCircle2  },
+  delivered:  { label: "Delivered",      desc: "Your order has been delivered.",          icon: CheckCircle2  },
 };
 
 const NEXT_MSG: Record<string, string> = {

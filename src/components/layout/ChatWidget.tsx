@@ -156,7 +156,7 @@ export default function ChatWidget() {
             <form onSubmit={handleStart} className="flex flex-col flex-1 p-4 gap-3 overflow-y-auto">
               <div className="p-3 rounded-xl text-sm leading-relaxed"
                 style={{ background: `${BRAND.teal}12`, color: BRAND.black }}>
-                Hi! 👋 We&apos;re here to help. Send us a message and we&apos;ll reply ASAP!
+                Hi! We&apos;re here to help. Send us a message and we&apos;ll reply ASAP!
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: BRAND.muted }}>

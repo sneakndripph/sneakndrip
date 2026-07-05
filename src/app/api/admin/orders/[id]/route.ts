@@ -76,7 +76,7 @@ function statusEmailContent(
       body: `
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
-          Your order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> is on its way! 🚚
+          Your order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> is on its way.
         </p>
         ${trackingNumber ? `
         <div style="background:${BRAND_BG};border-radius:8px;padding:20px;margin-bottom:20px;text-align:center">
@@ -95,7 +95,7 @@ function statusEmailContent(
       body: `
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
-          Great news! Your pre-order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has arrived and is now with us. 🎉
+          Great news! Your pre-order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has arrived and is now with us.
         </p>
         <div style="background:${BRAND_BG};border-left:4px solid ${BRAND_TEAL};padding:16px 20px;border-radius:4px;margin-bottom:20px">
           <p style="margin:0;color:${BRAND_BLACK};font-size:14px;font-weight:600">What's next?</p>
@@ -124,22 +124,22 @@ function statusEmailContent(
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
         <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
           ${isCOD
-            ? `Your order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has been delivered and payment collected. Thank you for trusting Sneak N' Drip! 🙏`
-            : `Your order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has been delivered. Your pair is finally home! 👟🔥`
+            ? `Your order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has been delivered and payment collected. Thank you for trusting Sneak N' Drip.`
+            : `Your order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has been delivered. Your pair is finally home.`
           }
         </p>
         <div style="background:${BRAND_BG};border-left:4px solid ${BRAND_TEAL};padding:16px 20px;border-radius:4px;margin-bottom:20px">
-          <p style="margin:0;color:${BRAND_BLACK};font-size:14px;font-weight:600">Thank you for trusting us! 🙏</p>
+          <p style="margin:0;color:${BRAND_BLACK};font-size:14px;font-weight:600">Thank you for trusting us.</p>
           <p style="margin:6px 0 0;color:#555;font-size:13px;line-height:1.8">
             Your support means the world to us. We hope you love your pair as much as we loved getting it to you.<br>
-            Come back soon — more heat dropping soon! 🔥
+            Come back soon — more drops on the way.
           </p>
         </div>
         <p style="color:#888;font-size:14px">
           Tag us in your fit! Share on
           <a href="https://www.facebook.com/SneakNDrip/" style="color:${BRAND_TEAL}">Facebook</a> or
           <a href="https://www.instagram.com/sneakndripph/" style="color:${BRAND_TEAL}">Instagram</a>
-          and we might feature you. 📸
+          and we might feature you.
         </p>
       `,
     },
@@ -264,7 +264,7 @@ export async function PATCH(
   if (body.status === "stock_on_hand" && currentOrder?.customer_email) {
     void admin.from("notifications").insert({
       user_email: currentOrder.customer_email,
-      title: "Your pre-order has arrived in the Philippines! 🇵🇭",
+      title: "Your pre-order has arrived in the Philippines!",
       message: `Order ${currentOrder.order_number} is here. Please settle your balance so we can ship it to you.`,
       order_number: currentOrder.order_number,
       type: "order",
