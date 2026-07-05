@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS, SITE_URL } from "@/lib/constants";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -22,7 +22,7 @@ function LoginForm() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}` },
+      options: { redirectTo: `${SITE_URL}/auth/callback?next=${encodeURIComponent(redirectTo)}` },
     });
   }
 

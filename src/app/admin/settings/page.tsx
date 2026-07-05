@@ -20,14 +20,17 @@ const DEFAULTS: SettingsData = {
   cod_areas: "Metro Manila, Cebu City, Davao City",
   gcash_number: "0961 177 4119",
   gcash_name: "Lorenzo Agalo P. Julio",
+  gcash_qr_url: "",
   maya_number: "0961 177 4119",
   maya_name: "Lorenzo Agalo P. Julio",
+  maya_qr_url: "",
   bank1_name: "Maribank",
   bank1_account_number: "14156569205",
   bank1_account_name: "Lorenzo Agalo P. Julio",
   bank2_name: "BPI",
   bank2_account_number: "0596199188",
   bank2_account_name: "Lorenzo Agalo P. Julio",
+  bank_qr_url: "",
   announcement_text: "",
   hero_badge: "New Drops Every Week",
   hero_line1: "STEP INTO",
@@ -51,9 +54,9 @@ const DEFAULTS: SettingsData = {
   maintenance_mode: "false",
 };
 
-function Field({ label, settingsKey, settings, onChange, type = "text", hint, multiline }: {
+function Field({ label, settingsKey, settings, onChange, type = "text", hint, multiline, placeholder }: {
   label: string; settingsKey: string; settings: SettingsData; onChange: (key: string, val: string) => void;
-  type?: string; hint?: string; multiline?: boolean;
+  type?: string; hint?: string; multiline?: boolean; placeholder?: string;
 }) {
   const value = settings[settingsKey] ?? DEFAULTS[settingsKey] ?? "";
   return (
@@ -61,10 +64,12 @@ function Field({ label, settingsKey, settings, onChange, type = "text", hint, mu
       <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>{label}</label>
       {multiline ? (
         <textarea rows={3} value={value} onChange={e => onChange(settingsKey, e.target.value)}
+          placeholder={placeholder}
           className="w-full px-4 py-3 text-sm focus:outline-none resize-none"
           style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
       ) : (
         <input type={type} value={value} onChange={e => onChange(settingsKey, e.target.value)}
+          placeholder={placeholder}
           className="w-full px-4 py-3 text-sm focus:outline-none"
           style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
       )}
@@ -320,10 +325,12 @@ export default function AdminSettingsPage() {
 
               {activeSection === "gcash-maya" && (
                 <>
-                  <Field label="GCash Number"       settingsKey="gcash_number" settings={settings} onChange={update} />
-                  <Field label="GCash Account Name" settingsKey="gcash_name"   settings={settings} onChange={update} />
-                  <Field label="Maya Number"        settingsKey="maya_number"  settings={settings} onChange={update} />
-                  <Field label="Maya Account Name"  settingsKey="maya_name"    settings={settings} onChange={update} />
+                  <Field label="GCash Number"       settingsKey="gcash_number"  settings={settings} onChange={update} />
+                  <Field label="GCash Account Name" settingsKey="gcash_name"    settings={settings} onChange={update} />
+                  <Field label="GCash QR Code URL"  settingsKey="gcash_qr_url"  settings={settings} onChange={update} placeholder="Paste Supabase storage URL of your GCash QR image" />
+                  <Field label="Maya Number"        settingsKey="maya_number"   settings={settings} onChange={update} />
+                  <Field label="Maya Account Name"  settingsKey="maya_name"     settings={settings} onChange={update} />
+                  <Field label="Maya QR Code URL"   settingsKey="maya_qr_url"   settings={settings} onChange={update} placeholder="Paste Supabase storage URL of your Maya QR image" />
                 </>
               )}
 
@@ -335,6 +342,7 @@ export default function AdminSettingsPage() {
                   <Field label="Bank 2 Name"           settingsKey="bank2_name"           settings={settings} onChange={update} />
                   <Field label="Bank 2 Account Number" settingsKey="bank2_account_number" settings={settings} onChange={update} />
                   <Field label="Bank 2 Account Name"   settingsKey="bank2_account_name"   settings={settings} onChange={update} />
+                  <Field label="Bank QR Code URL"      settingsKey="bank_qr_url"          settings={settings} onChange={update} placeholder="Paste Supabase storage URL of your bank QR image" />
                 </>
               )}
 
