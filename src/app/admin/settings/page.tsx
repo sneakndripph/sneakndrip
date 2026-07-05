@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/constants";
 import { Save, ToggleLeft, ToggleRight, Star, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check } from "lucide-react";
+import QRUploadField from "@/components/admin/QRUploadField";
 
 type SettingsData = Record<string, string>;
 
@@ -327,10 +328,10 @@ export default function AdminSettingsPage() {
                 <>
                   <Field label="GCash Number"       settingsKey="gcash_number"  settings={settings} onChange={update} />
                   <Field label="GCash Account Name" settingsKey="gcash_name"    settings={settings} onChange={update} />
-                  <Field label="GCash QR Code URL"  settingsKey="gcash_qr_url"  settings={settings} onChange={update} placeholder="Paste Supabase storage URL of your GCash QR image" />
+                  <QRUploadField label="GCash QR Code" value={settings.gcash_qr_url ?? ""} onChange={url => update("gcash_qr_url", url)} />
                   <Field label="Maya Number"        settingsKey="maya_number"   settings={settings} onChange={update} />
                   <Field label="Maya Account Name"  settingsKey="maya_name"     settings={settings} onChange={update} />
-                  <Field label="Maya QR Code URL"   settingsKey="maya_qr_url"   settings={settings} onChange={update} placeholder="Paste Supabase storage URL of your Maya QR image" />
+                  <QRUploadField label="Maya QR Code"  value={settings.maya_qr_url ?? ""}  onChange={url => update("maya_qr_url", url)} />
                 </>
               )}
 
@@ -342,7 +343,7 @@ export default function AdminSettingsPage() {
                   <Field label="Bank 2 Name"           settingsKey="bank2_name"           settings={settings} onChange={update} />
                   <Field label="Bank 2 Account Number" settingsKey="bank2_account_number" settings={settings} onChange={update} />
                   <Field label="Bank 2 Account Name"   settingsKey="bank2_account_name"   settings={settings} onChange={update} />
-                  <Field label="Bank QR Code URL"      settingsKey="bank_qr_url"          settings={settings} onChange={update} placeholder="Paste Supabase storage URL of your bank QR image" />
+                  <QRUploadField label="Bank QR Code" value={settings.bank_qr_url ?? ""} onChange={url => update("bank_qr_url", url)} />
                 </>
               )}
 
