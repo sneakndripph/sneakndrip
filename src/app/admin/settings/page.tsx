@@ -86,8 +86,7 @@ const SECTIONS = [
   { id: "hero",          title: "Homepage Hero",     icon: Monitor },
   { id: "store-info",    title: "Store Information", icon: MapPin },
   { id: "shipping",      title: "Shipping & Fees",   icon: Truck },
-  { id: "gcash-maya",    title: "GCash & Maya",      icon: CreditCard },
-  { id: "bank-transfer", title: "Bank Transfer",     icon: CreditCard },
+  { id: "payments",      title: "Payment Methods",   icon: CreditCard },
   { id: "preorder",      title: "Pre-Order & Misc",  icon: Clock },
   { id: "seo",           title: "SEO & Meta",        icon: Search },
 ];
@@ -324,27 +323,65 @@ export default function AdminSettingsPage() {
                 </>
               )}
 
-              {activeSection === "gcash-maya" && (
-                <>
-                  <Field label="GCash Number"       settingsKey="gcash_number"  settings={settings} onChange={update} />
-                  <Field label="GCash Account Name" settingsKey="gcash_name"    settings={settings} onChange={update} />
-                  <QRUploadField label="GCash QR Code" value={settings.gcash_qr_url ?? ""} onChange={url => update("gcash_qr_url", url)} />
-                  <Field label="Maya Number"        settingsKey="maya_number"   settings={settings} onChange={update} />
-                  <Field label="Maya Account Name"  settingsKey="maya_name"     settings={settings} onChange={update} />
-                  <QRUploadField label="Maya QR Code"  value={settings.maya_qr_url ?? ""}  onChange={url => update("maya_qr_url", url)} />
-                </>
-              )}
+              {activeSection === "payments" && (
+                <div className="space-y-6">
+                  {/* GCash */}
+                  <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${BRAND.border}` }}>
+                    <div className="px-5 py-3 flex items-center gap-2" style={{ background: BRAND.bg, borderBottom: `1px solid ${BRAND.border}` }}>
+                      <span className="text-base">💙</span>
+                      <span className="font-black text-sm tracking-wide" style={{ color: BRAND.black }}>GCash</span>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <Field label="Number"       settingsKey="gcash_number" settings={settings} onChange={update} />
+                        <Field label="Account Name" settingsKey="gcash_name"   settings={settings} onChange={update} />
+                      </div>
+                      <QRUploadField label="QR Code" value={settings.gcash_qr_url ?? ""} onChange={url => update("gcash_qr_url", url)} />
+                    </div>
+                  </div>
 
-              {activeSection === "bank-transfer" && (
-                <>
-                  <Field label="Bank 1 Name"           settingsKey="bank1_name"           settings={settings} onChange={update} />
-                  <Field label="Bank 1 Account Number" settingsKey="bank1_account_number" settings={settings} onChange={update} />
-                  <Field label="Bank 1 Account Name"   settingsKey="bank1_account_name"   settings={settings} onChange={update} />
-                  <Field label="Bank 2 Name"           settingsKey="bank2_name"           settings={settings} onChange={update} />
-                  <Field label="Bank 2 Account Number" settingsKey="bank2_account_number" settings={settings} onChange={update} />
-                  <Field label="Bank 2 Account Name"   settingsKey="bank2_account_name"   settings={settings} onChange={update} />
-                  <QRUploadField label="Bank QR Code" value={settings.bank_qr_url ?? ""} onChange={url => update("bank_qr_url", url)} />
-                </>
+                  {/* Maya */}
+                  <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${BRAND.border}` }}>
+                    <div className="px-5 py-3 flex items-center gap-2" style={{ background: BRAND.bg, borderBottom: `1px solid ${BRAND.border}` }}>
+                      <span className="text-base">💜</span>
+                      <span className="font-black text-sm tracking-wide" style={{ color: BRAND.black }}>Maya</span>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <Field label="Number"       settingsKey="maya_number" settings={settings} onChange={update} />
+                        <Field label="Account Name" settingsKey="maya_name"   settings={settings} onChange={update} />
+                      </div>
+                      <QRUploadField label="QR Code" value={settings.maya_qr_url ?? ""} onChange={url => update("maya_qr_url", url)} />
+                    </div>
+                  </div>
+
+                  {/* Bank Transfer */}
+                  <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${BRAND.border}` }}>
+                    <div className="px-5 py-3 flex items-center gap-2" style={{ background: BRAND.bg, borderBottom: `1px solid ${BRAND.border}` }}>
+                      <span className="text-base">🏦</span>
+                      <span className="font-black text-sm tracking-wide" style={{ color: BRAND.black }}>Bank Transfer</span>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <p className="text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>Bank 1</p>
+                      <div className="grid grid-cols-3 gap-4">
+                        <Field label="Bank Name"       settingsKey="bank1_name"           settings={settings} onChange={update} />
+                        <Field label="Account Number"  settingsKey="bank1_account_number" settings={settings} onChange={update} />
+                        <Field label="Account Name"    settingsKey="bank1_account_name"   settings={settings} onChange={update} />
+                      </div>
+                      <div style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "1rem" }}>
+                        <p className="text-xs font-bold uppercase tracking-wide mb-4" style={{ color: BRAND.muted }}>Bank 2</p>
+                        <div className="grid grid-cols-3 gap-4">
+                          <Field label="Bank Name"       settingsKey="bank2_name"           settings={settings} onChange={update} />
+                          <Field label="Account Number"  settingsKey="bank2_account_number" settings={settings} onChange={update} />
+                          <Field label="Account Name"    settingsKey="bank2_account_name"   settings={settings} onChange={update} />
+                        </div>
+                      </div>
+                      <div style={{ borderTop: `1px solid ${BRAND.border}`, paddingTop: "1rem" }}>
+                        <QRUploadField label="QR Code" value={settings.bank_qr_url ?? ""} onChange={url => update("bank_qr_url", url)} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {activeSection === "preorder" && (
