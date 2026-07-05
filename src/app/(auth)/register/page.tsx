@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS, SITE_URL } from "@/lib/constants";
 import { Eye, EyeOff, CheckCircle, Check, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -70,7 +70,7 @@ export default function RegisterPage() {
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: `${SITE_URL}/auth/callback` },
     });
   }
 
@@ -88,7 +88,7 @@ export default function RegisterPage() {
       password: form.password,
       options: {
         data: { full_name: form.name.trim(), mobile: form.mobile },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${SITE_URL}/auth/callback`,
       },
     });
     if (authError) {

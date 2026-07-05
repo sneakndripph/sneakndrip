@@ -6,6 +6,8 @@
    Cream #F2F0EF  →  logo text fill + specified BG
    ─────────────────────────────────────────────────────────────────────── */
 
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sneakndrip.ph";
+
 export const BRAND = {
   bg: "#F2F0EF",
   card: "#FFFFFF",

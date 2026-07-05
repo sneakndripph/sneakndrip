@@ -58,10 +58,10 @@ export default function CheckoutPage() {
   const [shipCfg, setShipCfg] = useState<{ freeThreshold: number; metro: number; prov: number }>({ freeThreshold: SHIPPING_FEE.free_threshold, metro: SHIPPING_FEE.metro_sm, prov: SHIPPING_FEE.provincial_sm });
   const [codEnabled, setCodEnabled] = useState(true);
   const [payCfg, setPayCfg] = useState({
-    gcashNumber: "0961 177 4119", gcashName: "Lorenzo Agalo P. Julio",
-    mayaNumber: "0961 177 4119", mayaName: "Lorenzo Agalo P. Julio",
+    gcashNumber: "0961 177 4119", gcashName: "Lorenzo Agalo P. Julio", gcashQr: "",
+    mayaNumber: "0961 177 4119", mayaName: "Lorenzo Agalo P. Julio", mayaQr: "",
     bank1Name: "Maribank", bank1Account: "14156569205", bank1AccountName: "Lorenzo Agalo P. Julio",
-    bank2Name: "BPI", bank2Account: "0596199188", bank2AccountName: "Lorenzo Agalo P. Julio",
+    bank2Name: "BPI", bank2Account: "0596199188", bank2AccountName: "Lorenzo Agalo P. Julio", bankQr: "",
   });
 
   const isCOD = paymentMethod === "cod";
@@ -109,14 +109,17 @@ export default function CheckoutPage() {
         setPayCfg(prev => ({
           gcashNumber: data.gcash_number || prev.gcashNumber,
           gcashName: data.gcash_name || prev.gcashName,
+          gcashQr: data.gcash_qr_url || prev.gcashQr,
           mayaNumber: data.maya_number || prev.mayaNumber,
           mayaName: data.maya_name || prev.mayaName,
+          mayaQr: data.maya_qr_url || prev.mayaQr,
           bank1Name: data.bank1_name || prev.bank1Name,
           bank1Account: data.bank1_account_number || prev.bank1Account,
           bank1AccountName: data.bank1_account_name || prev.bank1AccountName,
           bank2Name: data.bank2_name || prev.bank2Name,
           bank2Account: data.bank2_account_number || prev.bank2Account,
           bank2AccountName: data.bank2_account_name || prev.bank2AccountName,
+          bankQr: data.bank_qr_url || prev.bankQr,
         }));
       })
       .catch(() => {});
@@ -467,14 +470,24 @@ export default function CheckoutPage() {
                           <p>Amount: ₱{amt.toLocaleString()}{isDP && <span className="text-xs ml-1 font-normal" style={{ color: BRAND.muted }}>(downpayment only)</span>}</p>
                         );
                         if (paymentMethod === "gcash") return (
-                          <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
+                          <div className="text-sm space-y-2" style={{ color: BRAND.black }}>
+                            {payCfg.gcashQr && (
+                              <div className="flex justify-center pb-1">
+                                <img src={payCfg.gcashQr} alt="GCash QR Code" style={{ width: 180, height: 180, objectFit: "contain" }} />
+                              </div>
+                            )}
                             <p className="font-bold">GCash Number: {payCfg.gcashNumber}</p>
                             <p>Account Name: {payCfg.gcashName}</p>
                             {amountEl}
                           </div>
                         );
                         if (paymentMethod === "maya") return (
-                          <div className="text-sm space-y-1" style={{ color: BRAND.black }}>
+                          <div className="text-sm space-y-2" style={{ color: BRAND.black }}>
+                            {payCfg.mayaQr && (
+                              <div className="flex justify-center pb-1">
+                                <img src={payCfg.mayaQr} alt="Maya QR Code" style={{ width: 180, height: 180, objectFit: "contain" }} />
+                              </div>
+                            )}
                             <p className="font-bold">Maya Number: {payCfg.mayaNumber}</p>
                             <p>Account Name: {payCfg.mayaName}</p>
                             {amountEl}
@@ -482,6 +495,11 @@ export default function CheckoutPage() {
                         );
                         if (paymentMethod === "bank_transfer") return (
                           <div className="text-sm space-y-4" style={{ color: BRAND.black }}>
+                            {payCfg.bankQr && (
+                              <div className="flex justify-center pb-1">
+                                <img src={payCfg.bankQr} alt="Bank QR Code" style={{ width: 180, height: 180, objectFit: "contain" }} />
+                              </div>
+                            )}
                             <div className="space-y-1">
                               <p className="font-bold">{payCfg.bank1Name}</p>
                               <p>Account Number: {payCfg.bank1Account}</p>

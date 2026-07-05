@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { BRAND, FONTS, BRANDS } from "@/lib/constants";
 import ProductCard from "@/components/product/ProductCard";
 import HomeClient from "@/components/home/HomeClient";
 import HomeReviews from "@/components/home/HomeReviews";
 import HeroAddToCart from "@/components/product/HeroAddToCart";
+import HeroProductImage from "@/components/product/HeroProductImage";
 
 export const dynamic = "force-dynamic";
 import { getProducts, getReviews, getSettings } from "@/lib/supabase/products";
@@ -161,21 +161,7 @@ export default async function HomePage() {
                   {/* Product visual */}
                   <div className="aspect-square mx-6 rounded-xl overflow-hidden relative"
                     style={{ background: featured.bg || BRAND.bg }}>
-                    {featured.images?.[0] ? (
-                      <Image
-                        src={featured.images[0]}
-                        alt={featured.name}
-                        fill
-                        className="object-contain p-3"
-                        sizes="(max-width: 1023px) 0px, 420px"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span style={{ fontFamily: FONTS.display, fontSize: "5rem", color: BRAND.black, opacity: 0.05 }}>
-                          {featured.brand.toUpperCase()}
-                        </span>
-                      </div>
-                    )}
+                    <HeroProductImage product={featured} />
                   </div>
 
                   {/* Info + Add to Cart */}
