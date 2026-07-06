@@ -89,13 +89,23 @@ export default function ShopClient({
 
   return (
     <div style={{ background: BRAND.bg, minHeight: "100vh", fontFamily: FONTS.body }}>
-      <div className="border-b py-10 px-4 text-center" style={{ borderColor: BRAND.border, background: BRAND.card }}>
-        <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal }}>Sneak N&apos; Drip</p>
-        <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 7vw, 3.5rem)", letterSpacing: "0.04em", color: BRAND.black }}>ALL SNEAKERS</h1>
-        <p className="text-sm mt-2" style={{ color: BRAND.muted }}>{filtered.length} pairs available</p>
+      <div className="py-12 pb-8" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="snd-label mb-3" style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}>Catalog</p>
+              <h1 style={{ fontFamily: FONTS.display, fontSize: "var(--text-display-md)", letterSpacing: "0.04em", color: BRAND.black, lineHeight: 1 }}>
+                ALL SNEAKERS
+              </h1>
+            </div>
+            <p className="snd-label pb-1" style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}>
+              {filtered.length} available
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-8">
         <div className="flex items-center gap-3 mb-8 flex-wrap">
           <div className="flex-1 min-w-[200px] relative">
             <input value={search} onChange={e => {
@@ -158,7 +168,7 @@ export default function ShopClient({
         </div>
 
         {filtersOpen && (
-          <div className="p-6 mb-8 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+          <div className="p-6 mb-8" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
             <div className="grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
               <div>
                 <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Brand</p>

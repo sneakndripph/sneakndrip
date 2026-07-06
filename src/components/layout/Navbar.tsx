@@ -9,31 +9,38 @@ import { BRAND, FONTS } from "@/lib/constants";
 import { ShoppingBag, Search, User, Menu, X, Heart, Bell } from "lucide-react";
 
 const NAV_LINKS = [
-  { label: "Shop", href: "/shop" },
+  { label: "Shop",        href: "/shop" },
   { label: "New Arrivals", href: "/shop?filter=new" },
-  { label: "On Hand", href: "/shop?filter=on-hand" },
-  { label: "Pre-Orders", href: "/shop?filter=pre-order" },
-  { label: "Brands", href: "/brands" },
-  { label: "About", href: "/about" },
+  { label: "On Hand",     href: "/shop?filter=on-hand" },
+  { label: "Pre-Orders",  href: "/shop?filter=pre-order" },
+  { label: "Brands",      href: "/brands" },
+  { label: "About",       href: "/about" },
 ];
 
-type SearchProduct = { id: string; name: string; brand: string; slug: string; images: string[] | null; bg: string | null; full_payment_price: number };
+type SearchProduct = {
+  id: string; name: string; brand: string; slug: string;
+  images: string[] | null; bg: string | null; full_payment_price: number;
+};
 
 export default function Navbar() {
   const router = useRouter();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuOpen, setMenuOpen]     = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [scrolled, setScrolled] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [scrolled, setScrolled]     = useState(false);
+  const [mounted, setMounted]       = useState(false);
   const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
-  const [showResults, setShowResults] = useState(false);
-  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; order_number: string | null; is_read: boolean; created_at: string }[]>([]);
+  const [showResults, setShowResults]     = useState(false);
+  const [notifications, setNotifications] = useState<{
+    id: string; title: string; message: string;
+    order_number: string | null; is_read: boolean; created_at: string;
+  }[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
-  const itemCount = useCartStore(s => s.itemCount());
+
+  const itemCount    = useCartStore(s => s.itemCount());
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchBoxRef = useRef<HTMLDivElement>(null);
-  const notifRef = useRef<HTMLDivElement>(null);
+  const searchBoxRef   = useRef<HTMLDivElement>(null);
+  const notifRef       = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -62,7 +69,6 @@ export default function Navbar() {
     if (!searchOpen) { setSearchResults([]); setShowResults(false); setSearchQuery(""); }
   }, [searchOpen]);
 
-  // Close results dropdown on outside click
   useEffect(() => {
     function handle(e: MouseEvent) {
       if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) setShowResults(false);
@@ -71,7 +77,6 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handle);
   }, []);
 
-  // Real-time search — fires immediately on every keystroke
   useEffect(() => {
     const q = searchQuery.trim();
     if (!q) { setSearchResults([]); setShowResults(false); return; }
@@ -118,17 +123,19 @@ export default function Navbar() {
 
   return (
     <nav
-      className="sticky top-0 z-50 transition-shadow duration-300"
+      className="sticky top-0 z-50"
       style={{
-        background: "rgba(242,240,239,0.96)",
-        backdropFilter: "blur(12px)",
+        background: scrolled ? "rgba(242,240,239,0.97)" : "rgba(242,240,239,0.96)",
+        backdropFilter: "blur(16px)",
         borderBottom: `1px solid ${BRAND.border}`,
-        boxShadow: scrolled ? "0 2px 20px rgba(13,13,13,0.06)" : "none",
+        boxShadow: scrolled ? "var(--shadow-sm)" : "none",
         fontFamily: FONTS.body,
+        transition: "box-shadow 0.3s var(--ease-out)",
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="flex items-center justify-between h-16">
+
           {/* Logo */}
           <Link href="/" prefetch={false} className="shrink-0">
             <Image
@@ -141,15 +148,15 @@ export default function Navbar() {
             />
           </Link>
 
-          {/* Desktop Links — only shown on lg+ to avoid overlap */}
-          <div className="hidden lg:flex items-center gap-6">
+          {/* Desktop Links */}
+          <div className="hidden lg:flex items-center gap-7">
             {NAV_LINKS.map(l => (
               <Link
                 key={l.href}
                 href={l.href}
-                className="text-sm font-medium transition-colors hover:opacity-100"
+                className="text-sm font-medium transition-colors"
                 style={{ color: BRAND.muted }}
-                onMouseEnter={e => (e.currentTarget.style.color = BRAND.teal)}
+                onMouseEnter={e => (e.currentTarget.style.color = BRAND.black)}
                 onMouseLeave={e => (e.currentTarget.style.color = BRAND.muted)}
               >
                 {l.label}
@@ -157,73 +164,160 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Icons */}
-          <div className="flex items-center gap-3">
-            <button onClick={() => setSearchOpen(o => !o)} className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: searchOpen ? BRAND.teal : BRAND.muted }}>
+          {/* Action icons */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setSearchOpen(o => !o)}
+              className="p-2.5 transition-opacity hover:opacity-60"
+              style={{ color: searchOpen ? BRAND.teal : BRAND.muted }}
+              aria-label="Search"
+            >
               {searchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
             </button>
-            <Link href="/account" className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: BRAND.muted }}>
+
+            <Link
+              href="/account"
+              className="p-2.5 transition-opacity hover:opacity-60"
+              style={{ color: BRAND.muted }}
+              aria-label="Account"
+            >
               <User className="w-4 h-4" />
             </Link>
-            {/* Notification bell */}
+
+            {/* Notifications */}
             <div className="relative" ref={notifRef}>
-              <button onClick={openNotifications} className="relative p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: notifOpen ? BRAND.teal : BRAND.muted }}>
+              <button
+                onClick={openNotifications}
+                className="relative p-2.5 transition-opacity hover:opacity-60"
+                style={{ color: notifOpen ? BRAND.teal : BRAND.muted }}
+                aria-label="Notifications"
+              >
                 <Bell className="w-4 h-4" />
                 {mounted && unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 text-white text-[9px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-black"
-                    style={{ background: BRAND.red }}>
+                  <span
+                    className="absolute top-1 right-1 text-white flex items-center justify-center font-black"
+                    style={{
+                      background: BRAND.red,
+                      fontSize: "9px",
+                      width: "14px",
+                      height: "14px",
+                      lineHeight: 1,
+                    }}
+                  >
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </button>
+
               {notifOpen && (
-                <div className="absolute right-0 top-full mt-2 w-80 rounded-xl shadow-xl z-[60] overflow-hidden"
-                  style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-                  <div className="px-4 py-3" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                    <p className="text-xs font-black uppercase tracking-widest" style={{ color: BRAND.black }}>Notifications</p>
+                <div
+                  className="absolute right-0 top-full mt-2 w-80 z-[60] overflow-hidden animate-slide-down"
+                  style={{
+                    background: BRAND.card,
+                    border: `1px solid ${BRAND.border}`,
+                    boxShadow: "var(--shadow-lg)",
+                  }}
+                >
+                  <div
+                    className="px-5 py-3.5"
+                    style={{ borderBottom: `1px solid ${BRAND.border}` }}
+                  >
+                    <p
+                      className="snd-label"
+                      style={{ color: BRAND.black }}
+                    >
+                      Notifications
+                    </p>
                   </div>
+
                   {notifications.length === 0 ? (
-                    <p className="px-4 py-6 text-sm text-center" style={{ color: BRAND.muted }}>No notifications yet</p>
+                    <p className="px-5 py-8 text-sm text-center" style={{ color: BRAND.muted }}>
+                      No notifications yet
+                    </p>
                   ) : (
                     <div className="max-h-80 overflow-y-auto">
-                      {notifications.map(n => (
-                        <div key={n.id} className="px-4 py-3" style={{ borderBottom: `1px solid ${BRAND.border}`, background: n.is_read ? "transparent" : `${BRAND.teal}06` }}>
-                          <p className="text-xs font-bold mb-0.5" style={{ color: BRAND.black }}>{n.title}</p>
-                          <p className="text-xs leading-relaxed" style={{ color: BRAND.muted }}>{n.message}</p>
+                      {notifications.map((n, i) => (
+                        <div
+                          key={n.id}
+                          className="px-5 py-3.5"
+                          style={{
+                            borderBottom: i < notifications.length - 1 ? `1px solid ${BRAND.border}` : "none",
+                            background: n.is_read ? "transparent" : `${BRAND.teal}06`,
+                          }}
+                        >
+                          <p className="text-xs font-bold mb-0.5" style={{ color: BRAND.black }}>
+                            {n.title}
+                          </p>
+                          <p className="text-xs leading-relaxed" style={{ color: BRAND.muted }}>
+                            {n.message}
+                          </p>
                           {n.order_number && (
-                            <p className="text-[10px] mt-1 font-semibold" style={{ color: BRAND.teal }}>{n.order_number}</p>
+                            <p
+                              className="snd-label mt-1.5"
+                              style={{ color: BRAND.teal, fontFamily: FONTS.body }}
+                            >
+                              {n.order_number}
+                            </p>
                           )}
                         </div>
                       ))}
                     </div>
                   )}
-                  <div className="px-4 py-2.5" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                    <Link href="/account" onClick={() => setNotifOpen(false)}
-                      className="text-xs font-bold block text-center" style={{ color: BRAND.teal }}>
+
+                  <div
+                    className="px-5 py-3"
+                    style={{ borderTop: `1px solid ${BRAND.border}` }}
+                  >
+                    <Link
+                      href="/account"
+                      onClick={() => setNotifOpen(false)}
+                      className="text-xs font-bold block text-center transition-opacity hover:opacity-70"
+                      style={{ color: BRAND.teal }}
+                    >
                       View Orders →
                     </Link>
                   </div>
                 </div>
               )}
             </div>
-            <Link href="/wishlist" className="p-2 rounded-sm transition-opacity hover:opacity-60" style={{ color: BRAND.muted }}>
+
+            <Link
+              href="/wishlist"
+              className="p-2.5 transition-opacity hover:opacity-60"
+              style={{ color: BRAND.muted }}
+              aria-label="Wishlist"
+            >
               <Heart className="w-4 h-4" />
             </Link>
-            <Link href="/cart" className="relative p-2 rounded-sm transition-opacity hover:opacity-80" style={{ color: BRAND.black }}>
+
+            <Link
+              href="/cart"
+              className="relative p-2.5 transition-opacity hover:opacity-70"
+              style={{ color: BRAND.black }}
+              aria-label="Cart"
+            >
               <ShoppingBag className="w-5 h-5" />
               {mounted && itemCount > 0 && (
                 <span
-                  className="absolute -top-0.5 -right-0.5 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-black"
-                  style={{ background: BRAND.teal }}
+                  className="absolute top-1 right-0.5 text-white flex items-center justify-center font-black"
+                  style={{
+                    background: BRAND.teal,
+                    fontSize: "9px",
+                    width: "14px",
+                    height: "14px",
+                    lineHeight: 1,
+                  }}
                 >
                   {itemCount > 9 ? "9+" : itemCount}
                 </span>
               )}
             </Link>
+
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="lg:hidden p-2"
+              className="lg:hidden p-2.5 ml-1"
               style={{ color: BRAND.black }}
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
             >
               {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -231,27 +325,53 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Search overlay with live suggestions */}
+      {/* Search bar */}
       {searchOpen && (
-        <div className="border-t" style={{ background: BRAND.card, borderColor: BRAND.border }}>
-          <form onSubmit={handleSearch} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex gap-3">
+        <div
+          className="animate-slide-down"
+          style={{
+            borderTop: `1px solid ${BRAND.border}`,
+            background: BRAND.bg,
+          }}
+        >
+          <form
+            onSubmit={handleSearch}
+            className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-4 flex gap-3"
+          >
             <div className="relative flex-1" ref={searchBoxRef}>
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: BRAND.muted }} />
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4"
+                style={{ color: BRAND.muted }}
+              />
               <input
                 ref={searchInputRef}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search sneakers, brands…"
                 className="w-full pl-11 pr-4 py-3 text-sm focus:outline-none"
-                style={{ background: BRAND.bg, border: `1px solid ${BRAND.teal}`, color: BRAND.black }}
+                style={{
+                  background: BRAND.card,
+                  border: `1px solid ${BRAND.border}`,
+                  color: BRAND.black,
+                  fontFamily: FONTS.body,
+                }}
                 onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
               />
-              {/* Live results dropdown */}
+
+              {/* Live results */}
               {showResults && (
-                <div className="absolute top-full left-0 right-0 mt-1 z-[60] rounded-lg overflow-hidden shadow-xl"
-                  style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                <div
+                  className="absolute top-full left-0 right-0 mt-1 z-[60] overflow-hidden animate-slide-down"
+                  style={{
+                    background: BRAND.card,
+                    border: `1px solid ${BRAND.border}`,
+                    boxShadow: "var(--shadow-lg)",
+                  }}
+                >
                   {searchResults.length === 0 ? (
-                    <p className="px-4 py-3 text-sm" style={{ color: BRAND.muted }}>No results for &ldquo;{searchQuery}&rdquo;</p>
+                    <p className="px-5 py-3.5 text-sm" style={{ color: BRAND.muted }}>
+                      No results for &ldquo;{searchQuery}&rdquo;
+                    </p>
                   ) : (
                     <>
                       {searchResults.map((p, i) => (
@@ -259,16 +379,32 @@ export default function Navbar() {
                           key={p.id}
                           href={`/shop/${p.slug}`}
                           onClick={closeSearch}
-                          className="flex items-center gap-3 px-4 py-2.5 transition-opacity hover:opacity-75"
-                          style={{ borderBottom: i < searchResults.length - 1 ? `1px solid ${BRAND.border}` : "none" }}>
-                          <div className="w-10 h-10 shrink-0 rounded-lg overflow-hidden relative"
-                            style={{ background: p.bg || "#EDE9E3" }}>
+                          className="flex items-center gap-3.5 px-5 py-3 transition-opacity hover:opacity-75"
+                          style={{
+                            borderBottom: i < searchResults.length - 1 ? `1px solid ${BRAND.border}` : "none",
+                          }}
+                        >
+                          <div
+                            className="w-10 h-10 shrink-0 overflow-hidden relative"
+                            style={{ background: p.bg || "#EDE9E3" }}
+                          >
                             {p.images?.[0] && (
-                              <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="40px" />
+                              <Image
+                                src={p.images[0]}
+                                alt={p.name}
+                                fill
+                                className="object-cover"
+                                sizes="40px"
+                              />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate" style={{ color: BRAND.black }}>{p.name}</p>
+                            <p
+                              className="text-sm font-semibold truncate"
+                              style={{ color: BRAND.black }}
+                            >
+                              {p.name}
+                            </p>
                             <p className="text-xs" style={{ color: BRAND.muted }}>
                               {p.brand} &nbsp;·&nbsp; ₱{p.full_payment_price.toLocaleString()}
                             </p>
@@ -277,8 +413,12 @@ export default function Navbar() {
                       ))}
                       <button
                         type="submit"
-                        className="w-full text-xs font-bold px-4 py-2.5 text-center transition-opacity hover:opacity-70"
-                        style={{ color: BRAND.teal, borderTop: `1px solid ${BRAND.border}` }}>
+                        className="w-full text-xs font-bold px-5 py-3 text-center transition-opacity hover:opacity-70"
+                        style={{
+                          color: BRAND.teal,
+                          borderTop: `1px solid ${BRAND.border}`,
+                        }}
+                      >
                         See all results for &ldquo;{searchQuery}&rdquo; →
                       </button>
                     </>
@@ -286,43 +426,63 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-            <button type="submit"
-              className="px-6 py-3 text-sm font-black uppercase tracking-widest"
-              style={{ background: BRAND.black, color: BRAND.bg }}>
+
+            <button
+              type="submit"
+              className="px-7 py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-80"
+              style={{ background: BRAND.black, color: BRAND.bg }}
+            >
               Search
             </button>
           </form>
         </div>
       )}
 
-      {/* Mobile Menu */}
+      {/* Mobile menu */}
       {menuOpen && (
         <div
-          className="lg:hidden px-4 py-5 space-y-1"
-          style={{ borderTop: `1px solid ${BRAND.border}`, background: BRAND.bg }}
+          className="lg:hidden animate-slide-down"
+          style={{
+            borderTop: `1px solid ${BRAND.border}`,
+            background: BRAND.bg,
+          }}
         >
-          {NAV_LINKS.map(l => (
-            <Link
-              key={l.href}
-              href={l.href}
-              onClick={() => setMenuOpen(false)}
-              className="block py-3 text-sm font-medium border-b"
-              style={{ color: BRAND.muted, borderColor: BRAND.border }}
-            >
-              {l.label}
-            </Link>
-          ))}
-          <div className="flex gap-3 pt-4">
-            <Link href="/account" onClick={() => setMenuOpen(false)}
-              className="flex-1 py-3 text-center text-sm font-bold uppercase tracking-wider rounded-sm"
-              style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black }}>
-              Account
-            </Link>
-            <Link href="/cart" onClick={() => setMenuOpen(false)}
-              className="flex-1 py-3 text-center text-sm font-bold uppercase tracking-wider rounded-sm text-white"
-              style={{ background: BRAND.teal }}>
-              Cart {mounted && itemCount > 0 && `(${itemCount})`}
-            </Link>
+          <div className="px-6 py-5">
+            {NAV_LINKS.map((l, i) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setMenuOpen(false)}
+                className="block py-3.5 text-sm font-medium"
+                style={{
+                  color: BRAND.muted,
+                  borderBottom: i < NAV_LINKS.length - 1 ? `1px solid ${BRAND.border}` : "none",
+                }}
+              >
+                {l.label}
+              </Link>
+            ))}
+            <div className="flex gap-3 pt-6">
+              <Link
+                href="/account"
+                onClick={() => setMenuOpen(false)}
+                className="flex-1 py-3.5 text-center text-sm font-bold uppercase tracking-wider transition-opacity hover:opacity-80"
+                style={{
+                  border: `1.5px solid ${BRAND.border}`,
+                  color: BRAND.black,
+                }}
+              >
+                Account
+              </Link>
+              <Link
+                href="/cart"
+                onClick={() => setMenuOpen(false)}
+                className="flex-1 py-3.5 text-center text-sm font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
+                style={{ background: BRAND.teal }}
+              >
+                Cart {mounted && itemCount > 0 && `(${itemCount})`}
+              </Link>
+            </div>
           </div>
         </div>
       )}
