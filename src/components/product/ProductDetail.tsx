@@ -210,7 +210,7 @@ export default function ProductDetail({
     {showSizeGuide && (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
         onClick={() => setShowSizeGuide(false)}>
-        <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, maxHeight: "85vh" }}
+        <div className="w-full max-w-lg overflow-hidden flex flex-col" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, maxHeight: "85vh" }}
           onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 shrink-0" style={{ background: BRAND.black }}>
             <div>
@@ -249,8 +249,8 @@ export default function ProductDetail({
     )}
 
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex items-center gap-2 mb-8 text-xs overflow-hidden" style={{ color: BRAND.muted }}>
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-10">
+        <div className="flex items-center gap-2 mb-10 text-xs overflow-hidden" style={{ color: BRAND.muted }}>
           <Link href="/" className="hover:opacity-70">Home</Link>
           <span>/</span>
           <Link href="/shop" className="hover:opacity-70">Shop</Link>
@@ -261,8 +261,8 @@ export default function ProductDetail({
         <div className="grid lg:grid-cols-2 gap-12">
           {/* Gallery */}
           <div>
-            <div className="relative aspect-square mb-3 rounded-xl overflow-hidden flex items-center justify-center cursor-zoom-in"
-              style={{ background: product.bg || BRAND.bg, border: `1px solid ${BRAND.cardBorder}` }}
+            <div className="relative aspect-square mb-3 overflow-hidden flex items-center justify-center cursor-zoom-in"
+              style={{ background: product.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}
               onClick={() => images[imageIdx] && setLightboxOpen(true)}>
               {images[imageIdx] ? (
                 <Image src={images[imageIdx]!} alt={product.name} fill className="object-cover object-center" sizes="(max-width: 768px) 100vw, 50vw" />
@@ -279,16 +279,15 @@ export default function ProductDetail({
                 )}
               </div>
               {product.full_payment_price < product.srp_price && (
-                <div className="absolute top-4 right-4 w-16 h-16 rounded-full flex flex-col items-center justify-center"
-                  style={{ background: BRAND.red }}>
-                  <span className="text-white text-[9px] font-black uppercase text-center leading-tight">Below<br />SRP</span>
+                <div className="absolute top-4 right-4">
+                  <span className="text-white text-[9px] font-black uppercase px-2 py-1 tracking-wider" style={{ background: BRAND.red }}>Below SRP</span>
                 </div>
               )}
             </div>
             <div className="grid grid-cols-4 gap-2">
               {images.map((img, i) => (
                 <button key={i} onClick={() => setImageIdx(i)}
-                  className="aspect-square rounded-lg flex items-center justify-center transition-all overflow-hidden relative"
+                  className="aspect-square flex items-center justify-center transition-all overflow-hidden relative"
                   style={{ background: product.bg || BRAND.bg, border: `2px solid ${imageIdx === i ? BRAND.teal : BRAND.border}` }}>
                   {img ? (
                     <Image src={img} alt="" fill className="object-cover object-center" sizes="80px" />
@@ -337,7 +336,7 @@ export default function ProductDetail({
             )}
 
             {/* Pricing */}
-            <div className="p-5 rounded-xl mb-6" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+            <div className="py-5 mb-6" style={{ borderTop: `1px solid ${BRAND.border}`, borderBottom: `1px solid ${BRAND.border}` }}>
               <div className="mb-4">
                 <div className="flex items-center gap-3">
                   <p style={{ fontFamily: FONTS.display, fontSize: "2.5rem", color: isOnSale ? BRAND.red : BRAND.black, letterSpacing: "0.02em" }}>
@@ -458,7 +457,7 @@ export default function ProductDetail({
               </div>
               {/* Notify-me form for OOS size */}
               {notifySize && product.sizes.find(s => s.size === notifySize)?.stock === 0 && (
-                <div className="mt-3 p-4 rounded-xl" style={{ background: `${BRAND.teal}08`, border: `1px solid ${BRAND.teal}25` }}>
+                <div className="mt-3 p-4" style={{ background: `${BRAND.teal}08`, border: `1px solid ${BRAND.teal}25` }}>
                   <p className="text-xs font-bold mb-2 flex items-center gap-1.5" style={{ color: BRAND.teal }}>
                     <Bell className="w-3.5 h-3.5" />
                     Notify me when {notifySize} is back in stock
@@ -643,7 +642,7 @@ export default function ProductDetail({
                           {r.title && <p className="font-semibold text-sm mb-1" style={{ color: BRAND.black }}>{r.title}</p>}
                           <p style={{ color: BRAND.muted }}>{r.body}</p>
                           {r.image_url && (
-                            <div className="mt-3 relative rounded-lg overflow-hidden"
+                            <div className="mt-3 relative overflow-hidden"
                               style={{ width: 120, height: 120, border: `1px solid ${BRAND.border}` }}>
                               <Image src={r.image_url} alt="Review photo" fill className="object-cover" sizes="120px" />
                               <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-[9px] font-bold"
@@ -672,8 +671,8 @@ export default function ProductDetail({
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {recentItems.filter(i => i.id !== product.id).slice(0, 4).map(item => (
                 <Link key={item.id} href={`/shop/${item.slug}`} className="group block">
-                  <div className="relative aspect-square mb-2 overflow-hidden rounded-lg"
-                    style={{ background: item.bg || BRAND.bg, border: `1px solid ${BRAND.cardBorder}` }}>
+                  <div className="relative aspect-square mb-2 overflow-hidden"
+                    style={{ background: item.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}>
                     {item.images[0] ? (
                       <Image src={item.images[0]} alt={item.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 50vw, 25vw" />
                     ) : (
@@ -701,7 +700,7 @@ export default function ProductDetail({
         style={{ background: "rgba(0,0,0,0.85)" }}
         onClick={() => setLightboxOpen(false)}>
         <button
-          className="absolute top-4 right-4 p-2 rounded-full transition-opacity hover:opacity-70"
+          className="absolute top-4 right-4 p-2 transition-opacity hover:opacity-70"
           style={{ background: "rgba(255,255,255,0.15)", color: "#fff" }}
           onClick={() => setLightboxOpen(false)}>
           <X className="w-6 h-6" />
@@ -717,7 +716,7 @@ export default function ProductDetail({
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
         style={{ background: "rgba(0,0,0,0.7)" }}
         onClick={() => setLightboxReview(null)}>
-        <div className="w-full max-w-sm rounded-2xl overflow-hidden"
+        <div className="w-full max-w-sm overflow-hidden"
           style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}
           onClick={e => e.stopPropagation()}>
           <div className="flex items-center justify-between px-5 py-4"
@@ -741,7 +740,7 @@ export default function ProductDetail({
             )}
             <p className="text-sm leading-relaxed" style={{ color: BRAND.muted }}>{lightboxReview.body}</p>
             {lightboxReview.image_url && (
-              <div className="relative w-full aspect-square rounded-lg overflow-hidden"
+              <div className="relative w-full aspect-square overflow-hidden"
                 style={{ border: `1px solid ${BRAND.border}` }}>
                 <Image src={lightboxReview.image_url} alt="Review photo" fill className="object-cover" sizes="400px" />
               </div>

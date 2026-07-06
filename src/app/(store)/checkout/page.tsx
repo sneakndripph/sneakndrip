@@ -318,7 +318,7 @@ export default function CheckoutPage() {
           {(["details", "payment", "confirm"] as Step[]).map((s, i) => (
             <div key={s} className="flex items-center gap-2">
               <div className="flex items-center gap-2 cursor-pointer" onClick={() => step !== "confirm" && i < ["details","payment","confirm"].indexOf(step) + 1 && setStep(s)}>
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black"
+                <div className="w-6 h-6 flex items-center justify-center text-xs font-black"
                   style={{ background: step === s ? BRAND.black : i < ["details","payment","confirm"].indexOf(step) ? BRAND.teal : BRAND.border, color: step === s || i < ["details","payment","confirm"].indexOf(step) ? "#fff" : BRAND.muted }}>
                   {i < ["details","payment","confirm"].indexOf(step) ? "✓" : i + 1}
                 </div>
@@ -337,7 +337,7 @@ export default function CheckoutPage() {
           <div className="lg:col-span-2">
             {/* Step 1: Details */}
             {step === "details" && (
-              <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+              <div className="p-6" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="font-black text-lg" style={{ color: BRAND.black }}>Delivery Information</h2>
                   <span className="text-xs" style={{ color: BRAND.muted }}>
@@ -425,19 +425,19 @@ export default function CheckoutPage() {
             {/* Step 2: Payment */}
             {step === "payment" && (
               <div className="space-y-4">
-                <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+                <div className="p-6" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
                   <h2 className="mb-5 font-black text-lg" style={{ color: BRAND.black }}>Payment Method</h2>
                   <div className="grid sm:grid-cols-2 gap-3">
                     {PAYMENT_METHODS.filter(pm => pm.id !== "cod" || codEnabled).map(pm => (
                       <button key={pm.id} onClick={() => setPaymentMethod(pm.id)}
-                        className="flex items-center gap-3 p-4 rounded-xl text-left transition-all"
+                        className="flex items-center gap-3 p-4 text-left transition-all"
                         style={{
                           border: `2px solid ${paymentMethod === pm.id ? BRAND.teal : BRAND.border}`,
                           background: paymentMethod === pm.id ? `${BRAND.teal}08` : "transparent",
                         }}>
                         <span className="font-bold text-sm" style={{ color: BRAND.black }}>{pm.label}</span>
                         {paymentMethod === pm.id && (
-                          <div className="ml-auto w-5 h-5 rounded-full flex items-center justify-center"
+                          <div className="ml-auto w-5 h-5 flex items-center justify-center"
                             style={{ background: BRAND.teal }}>
                             <span className="text-white text-xs">✓</span>
                           </div>
@@ -449,7 +449,7 @@ export default function CheckoutPage() {
 
                 {/* Payment instructions */}
                 {!isCOD && (
-                  <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+                  <div className="p-6" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
                     <h3 className="font-black mb-4" style={{ color: BRAND.black }}>Payment Instructions</h3>
                     <div className="p-4 rounded-lg mb-4" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
                       {/* Amount breakdown helper */}
@@ -547,7 +547,7 @@ export default function CheckoutPage() {
                     {/* Proof upload */}
                     <div>
                       <p className="text-sm font-bold mb-2" style={{ color: BRAND.black }}>Upload Proof of Payment</p>
-                      <div className={`border-2 border-dashed rounded-xl p-4 sm:p-8 text-center cursor-pointer transition-colors`}
+                      <div className={`border-2 border-dashed p-4 sm:p-8 text-center cursor-pointer transition-colors`}
                         style={{ borderColor: proofFile ? BRAND.teal : BRAND.border, background: proofFile ? `${BRAND.teal}05` : "transparent" }}>
                         <input type="file" accept="image/*,.pdf" className="hidden" id="proof"
                           onChange={e => setProofFile(e.target.files?.[0] || null)} />
@@ -577,7 +577,7 @@ export default function CheckoutPage() {
                 )}
 
                 {isCOD && (
-                  <div className="flex items-start gap-3 p-4 rounded-xl"
+                  <div className="flex items-start gap-3 p-4"
                     style={{ background: `${BRAND.red}08`, border: `1px solid ${BRAND.red}20` }}>
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: BRAND.red }} />
                     <div className="text-sm leading-relaxed" style={{ color: BRAND.black }}>
@@ -602,7 +602,7 @@ export default function CheckoutPage() {
             {/* Step 3: Confirm */}
             {step === "confirm" && (
               <div className="space-y-4">
-                <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+                <div className="p-6" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
                   <h2 className="mb-4 font-black" style={{ color: BRAND.black }}>Delivery To</h2>
                   <p className="font-semibold text-sm" style={{ color: BRAND.black }}>{form.name}</p>
                   <p className="text-sm" style={{ color: BRAND.muted }}>{form.mobile} · {form.email}</p>
@@ -610,7 +610,7 @@ export default function CheckoutPage() {
                     {form.street}, {form.barangay}, {form.city}, {form.province} {form.postal}
                   </p>
                 </div>
-                <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+                <div className="p-6" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
                   <h2 className="mb-4 font-black" style={{ color: BRAND.black }}>
                     Payment: {PAYMENT_METHODS.find(p => p.id === paymentMethod)?.label}
                   </h2>
@@ -667,7 +667,7 @@ export default function CheckoutPage() {
           </div>
 
           {/* Order summary */}
-          <div className="lg:order-2 rounded-xl overflow-hidden lg:sticky lg:top-24 w-full min-w-0"
+          <div className="lg:order-2 overflow-hidden lg:sticky lg:top-24 w-full min-w-0"
             style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
             <div className="p-4 sm:p-5">
               <h3 className="font-black mb-4" style={{ color: BRAND.black, fontFamily: FONTS.display, fontSize: "1.2rem", letterSpacing: "0.03em" }}>

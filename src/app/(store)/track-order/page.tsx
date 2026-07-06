@@ -66,14 +66,14 @@ export default function TrackOrderPage() {
 
   return (
     <div style={{ background: BRAND.bg, minHeight: "100vh", fontFamily: FONTS.body }}>
-      <div className="max-w-2xl mx-auto px-4 py-16">
-        <div className="text-center mb-12">
-          <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal }}>Sneak N&apos; Drip</p>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 6vw, 3rem)", letterSpacing: "0.04em", color: BRAND.black }}>TRACK ORDER</h1>
-          <p className="mt-3 text-sm" style={{ color: BRAND.muted }}>Enter your order number and email to track your delivery.</p>
+      <div className="max-w-2xl mx-auto px-6 py-20">
+        <div className="mb-12">
+          <p className="snd-label mb-4" style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}>Order Status</p>
+          <h1 style={{ fontFamily: FONTS.display, fontSize: "var(--text-display-sm)", letterSpacing: "0.04em", color: BRAND.black, lineHeight: 1 }}>TRACK ORDER</h1>
+          <p className="mt-4 text-sm" style={{ color: BRAND.muted }}>Enter your order number and email to track your delivery.</p>
         </div>
 
-        <form onSubmit={handleSearch} className="p-6 rounded-xl mb-8" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+        <form onSubmit={handleSearch} className="p-6 mb-6" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Order Number</label>
@@ -94,8 +94,8 @@ export default function TrackOrderPage() {
                 onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)} />
             </div>
             {error && (
-              <p className="text-sm font-semibold px-4 py-3 rounded"
-                style={{ background: `${BRAND.red}12`, color: BRAND.red, border: `1px solid ${BRAND.red}25` }}>
+              <p className="text-sm font-semibold px-4 py-3"
+                style={{ background: `${BRAND.red}10`, color: BRAND.red, border: `1px solid ${BRAND.red}20` }}>
                 {error}
               </p>
             )}
@@ -109,7 +109,7 @@ export default function TrackOrderPage() {
         </form>
 
         {order && (
-          <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+          <div style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
             <div className="px-6 py-5" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
               <div className="flex items-center justify-between">
                 <div>
@@ -118,7 +118,7 @@ export default function TrackOrderPage() {
                     {new Date(order.created_at).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })}
                   </p>
                 </div>
-                <span className="text-sm font-black px-4 py-2 rounded-full"
+                <span className="text-[11px] font-black px-3 py-1.5 uppercase tracking-wider"
                   style={{ background: `${cfg.color}15`, color: cfg.color }}>
                   {cfg.label}
                 </span>
@@ -129,9 +129,9 @@ export default function TrackOrderPage() {
               <div className="px-6 pt-6 pb-2" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
                 {/* Progress bar */}
                 <div className="relative mb-6">
-                  <div className="absolute top-5 left-0 right-0 h-1 rounded-full" style={{ background: BRAND.border }} />
+                  <div className="absolute top-5 left-0 right-0 h-0.5" style={{ background: BRAND.border }} />
                   <div
-                    className="absolute top-5 left-0 h-1 rounded-full transition-all duration-700"
+                    className="absolute top-5 left-0 h-0.5 transition-all duration-700"
                     style={{
                       background: BRAND.teal,
                       width: activeIdx < 0 ? "0%" : `${(activeIdx / (steps.length - 1)) * 100}%`,
@@ -145,12 +145,13 @@ export default function TrackOrderPage() {
                       return (
                         <div key={step} className="flex flex-col items-center gap-2" style={{ width: `${100 / steps.length}%` }}>
                           <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center transition-all"
+                            className="w-9 h-9 flex items-center justify-center transition-all"
                             style={{
                               background: active ? BRAND.teal : done ? BRAND.teal : BRAND.card,
                               border: `2px solid ${active || done ? BRAND.teal : BRAND.border}`,
                               boxShadow: active ? `0 0 0 4px ${BRAND.teal}22` : "none",
                               zIndex: 1,
+                              borderRadius: "50%",
                             }}>
                             <Icon className="w-4 h-4" style={{ color: active || done ? "#fff" : BRAND.mutedLight }} />
                           </div>
@@ -165,9 +166,9 @@ export default function TrackOrderPage() {
                 </div>
 
                 {/* What's next */}
-                <div className="flex items-center gap-3 px-4 py-3 rounded-lg mb-4"
+                <div className="flex items-center gap-3 px-4 py-3 mb-4"
                   style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
-                  <div className="w-1.5 h-1.5 rounded-full shrink-0 animate-pulse" style={{ background: BRAND.teal }} />
+                  <div className="w-1.5 h-1.5 shrink-0 animate-pulse" style={{ background: BRAND.teal, borderRadius: "50%" }} />
                   <p className="text-xs font-semibold" style={{ color: BRAND.teal }}>
                     {NEXT_MSG[status] ?? "Your order is being processed."}
                   </p>
@@ -192,7 +193,7 @@ export default function TrackOrderPage() {
                 <div className="space-y-3">
                   {(order.order_items as TrackItem[]).map((item, i) => (
                     <div key={i} className="flex items-center gap-3">
-                      <div className="w-12 h-12 shrink-0 rounded-lg overflow-hidden relative"
+                      <div className="w-12 h-12 shrink-0 overflow-hidden relative"
                         style={{ background: item.products?.bg || "#EDE9E3", border: `1px solid ${BRAND.border}` }}>
                         {item.products?.images?.[0] ? (
                           // eslint-disable-next-line @next/next/no-img-element

@@ -41,20 +41,24 @@ export default async function BrandsPage() {
   return (
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body, minHeight: "80vh" }}>
       {/* Header */}
-      <div className="py-12 px-4 text-center" style={{ background: BRAND.card, borderBottom: `1px solid ${BRAND.border}` }}>
-        <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal }}>
-          Shop by Brand
-        </p>
-        <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 7vw, 3.5rem)", letterSpacing: "0.04em", color: BRAND.black }}>
-          ALL BRANDS
-        </h1>
-        <p className="text-sm mt-2" style={{ color: BRAND.muted }}>
-          {brandsWithProducts.length} brands available
-        </p>
+      <div className="py-14" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <p className="snd-label mb-4" style={{ color: BRAND.teal, fontFamily: FONTS.body }}>
+            Shop by Brand
+          </p>
+          <div className="flex items-end justify-between">
+            <h1 style={{ fontFamily: FONTS.display, fontSize: "var(--text-display-md)", letterSpacing: "0.04em", color: BRAND.black, lineHeight: 1 }}>
+              ALL BRANDS
+            </h1>
+            <p className="snd-label pb-1" style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}>
+              {brandsWithProducts.length} brands
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-14">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
           {sortedBrands.map(b => {
             const count = brandCounts[b];
             const isEmpty = count === 0;
@@ -63,20 +67,21 @@ export default async function BrandsPage() {
               <Link
                 key={b}
                 href={`/shop?brand=${encodeURIComponent(b)}`}
-                className={`group flex flex-col items-center justify-center p-8 rounded-xl text-center transition-all ${isEmpty ? "pointer-events-none opacity-40" : "hover:shadow-lg"}`}
+                className={`group flex flex-col items-center justify-center p-8 text-center transition-all ${isEmpty ? "pointer-events-none opacity-30" : ""}`}
                 style={{
                   background: BRAND.card,
-                  border: `1.5px solid ${BRAND.cardBorder}`,
+                  border: `1px solid ${BRAND.border}`,
                 }}
+                onMouseEnter={e => { if (!isEmpty) e.currentTarget.style.boxShadow = "var(--shadow-md)"; }}
+                onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
               >
                 {/* Logo area */}
                 <div
-                  className="flex items-center justify-center mb-5 transition-transform group-hover:scale-105"
+                  className="flex items-center justify-center mb-5"
                   style={{
                     width: 80,
-                    height: 60,
-                    borderRadius: 12,
-                    background: isEmpty ? `${BRAND.border}` : `${brandColor}10`,
+                    height: 56,
+                    background: isEmpty ? "rgba(13,13,13,0.04)" : `${brandColor}10`,
                     color: isEmpty ? BRAND.muted : brandColor,
                   }}
                 >

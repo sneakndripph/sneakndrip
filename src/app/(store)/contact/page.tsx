@@ -30,55 +30,101 @@ Closed on major public holidays.
 ## For Order Inquiries
 Have your order number ready when messaging us. This helps us assist you faster. You can also track your order from your account page.`;
 
+const CONTACTS = [
+  { label: "Messenger", val: "m.me/SneakNDrip",  href: "https://m.me/SneakNDrip" },
+  { label: "Facebook",  val: "SneakNDrip",         href: "https://www.facebook.com/SneakNDrip/" },
+  { label: "Instagram", val: "@sneakndripph",       href: "https://www.instagram.com/sneakndripph/" },
+  { label: "Mobile",    val: "0961 177 4119",       href: "tel:+639611774119" },
+];
+
 export default async function ContactPage() {
   const content = await getPageContent("contact", FALLBACK);
 
   return (
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
-      <section className="relative py-20 px-4 text-center overflow-hidden" style={{ background: BRAND.black }}>
-        <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
-          style={{
-            backgroundImage: `linear-gradient(${BRAND.teal} 1px, transparent 1px), linear-gradient(90deg, ${BRAND.teal} 1px, transparent 1px)`,
-            backgroundSize: "60px 60px",
-          }} />
-        <div className="relative max-w-3xl mx-auto">
-          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: BRAND.teal }}>We&apos;re Here</p>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2.5rem, 7vw, 5rem)", letterSpacing: "0.04em", color: "#F2F0EF", lineHeight: 1 }}>
-            CONTACT US
+
+      {/* Hero */}
+      <section style={{ background: BRAND.black }}>
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-24">
+          <p
+            className="snd-label mb-8"
+            style={{ color: BRAND.teal, fontFamily: FONTS.body }}
+          >
+            We&apos;re Here
+          </p>
+          <h1
+            style={{
+              fontFamily: FONTS.display,
+              fontSize: "var(--text-display-lg)",
+              letterSpacing: "0.03em",
+              color: "#F2F0EF",
+              lineHeight: 0.9,
+            }}
+          >
+            CONTACT<br />US
           </h1>
-          <p className="mt-5 text-sm leading-relaxed max-w-md mx-auto" style={{ color: "#888" }}>
+          <p
+            className="mt-8 text-sm leading-relaxed max-w-xs"
+            style={{ color: "rgba(255,255,255,0.35)" }}
+          >
             Have a question? We&apos;d love to hear from you.
           </p>
         </div>
       </section>
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
-        <div className="grid sm:grid-cols-2 gap-4 mb-10">
-          {[
-            { icon: "", label: "Messenger", val: "m.me/SneakNDrip", href: "https://m.me/SneakNDrip" },
-            { icon: "", label: "Facebook", val: "SneakNDrip", href: "https://www.facebook.com/SneakNDrip/" },
-            { icon: "", label: "Instagram", val: "@sneakndripph", href: "https://www.instagram.com/sneakndripph/" },
-            { icon: "", label: "Mobile", val: "0961 177 4119", href: "tel:+639611774119" },
-          ].map(c => (
-            <a key={c.label} href={c.href} target={c.href.startsWith("http") ? "_blank" : undefined}
-              rel="noopener noreferrer"
-              className="flex items-center gap-4 p-5 rounded-xl transition-opacity hover:opacity-80"
-              style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <span className="text-2xl shrink-0">{c.icon}</span>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest mb-0.5"
-                  style={{ color: BRAND.mutedLight }}>{c.label}</p>
-                <p className="text-sm" style={{ color: BRAND.black, fontWeight: 400 }}>{c.val}</p>
-              </div>
-            </a>
-          ))}
-        </div>
-        <div className="p-8 rounded-2xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-          <PageContent text={content} />
-        </div>
-        <div className="mt-8 p-4 rounded-xl text-center" style={{ background: `${BRAND.teal}10`, border: `1px solid ${BRAND.teal}25` }}>
-          <p className="text-sm" style={{ color: BRAND.muted, fontWeight: 400 }}>
-            You can also use the chat widget in the bottom-right corner of our site to message us directly.
-          </p>
+
+      <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
+        <div className="grid lg:grid-cols-3 gap-16">
+
+          {/* Left — contact methods */}
+          <div>
+            <p
+              className="snd-label mb-6"
+              style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}
+            >
+              Reach Us
+            </p>
+
+            <div>
+              {CONTACTS.map((c, i) => (
+                <a
+                  key={c.label}
+                  href={c.href}
+                  target={c.href.startsWith("http") ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between py-4 transition-opacity hover:opacity-70"
+                  style={{ borderBottom: `1px solid ${BRAND.border}` }}
+                >
+                  <p
+                    className="snd-label"
+                    style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}
+                  >
+                    {c.label}
+                  </p>
+                  <p
+                    className="text-sm font-semibold"
+                    style={{ color: BRAND.black }}
+                  >
+                    {c.val}
+                  </p>
+                </a>
+              ))}
+            </div>
+
+            <div className="mt-8 pt-6" style={{ borderTop: `2px solid ${BRAND.teal}` }}>
+              <p
+                className="text-xs leading-relaxed"
+                style={{ color: BRAND.muted }}
+              >
+                Use the chat widget at the bottom-right of any page to message us directly.
+              </p>
+            </div>
+          </div>
+
+          {/* Right — content */}
+          <div className="lg:col-span-2">
+            <PageContent text={content} />
+          </div>
+
         </div>
       </section>
     </div>

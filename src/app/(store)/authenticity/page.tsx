@@ -25,45 +25,116 @@ In the extremely unlikely event that an item is proven non-authentic, we will is
 ## Pricing
 Most of our pairs are priced at or below SRP. Being authentic does not mean being overpriced — we believe everyone deserves access to real sneakers at fair prices.`;
 
+const PILLARS = [
+  { n: "01", title: "Verified Sources",     desc: "Only from vetted local & international suppliers" },
+  { n: "02", title: "Legit Checked",         desc: "Every pair passes our internal authentication process" },
+  { n: "03", title: "Full Refund Guarantee", desc: "Proven fake? Full refund, no questions asked" },
+];
+
 export default async function AuthenticityPage() {
   const content = await getPageContent("authenticity", FALLBACK);
 
   return (
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
-      <section className="relative py-20 px-4 text-center overflow-hidden" style={{ background: BRAND.black }}>
-        <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
-          style={{
-            backgroundImage: `linear-gradient(${BRAND.teal} 1px, transparent 1px), linear-gradient(90deg, ${BRAND.teal} 1px, transparent 1px)`,
-            backgroundSize: "60px 60px",
-          }} />
-        <div className="relative max-w-3xl mx-auto">
-          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: BRAND.teal }}>Our Guarantee</p>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2.5rem, 7vw, 5rem)", letterSpacing: "0.04em", color: "#F2F0EF", lineHeight: 1 }}>
-            100% AUTHENTIC
-          </h1>
-          <p className="mt-5 text-sm leading-relaxed max-w-md mx-auto" style={{ color: "#888" }}>
-            Every pair we sell is verified authentic. Here&apos;s how we back that up.
-          </p>
-        </div>
-      </section>
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
-        <div className="grid sm:grid-cols-3 gap-4 mb-12">
-          {[
-            { icon: "", label: "Verified Sources" },
-            { icon: "", label: "Legit Checked" },
-            { icon: "", label: "Full Refund Guarantee" },
-          ].map(f => (
-            <div key={f.label} className="flex flex-col items-center gap-2 p-6 rounded-xl text-center"
-              style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <span className="text-3xl">{f.icon}</span>
-              <span className="text-sm" style={{ color: BRAND.black, fontWeight: 500 }}>{f.label}</span>
+
+      {/* Hero */}
+      <section style={{ background: BRAND.black }}>
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-28">
+          <div className="grid lg:grid-cols-2 gap-16 items-end">
+            <div>
+              <p
+                className="snd-label mb-8"
+                style={{ color: BRAND.teal, fontFamily: FONTS.body }}
+              >
+                Our Guarantee
+              </p>
+              <h1
+                style={{
+                  fontFamily: FONTS.display,
+                  fontSize: "var(--text-display-lg)",
+                  letterSpacing: "0.03em",
+                  color: "#F2F0EF",
+                  lineHeight: 0.9,
+                }}
+              >
+                100%<br />AUTHENTIC.<br />ALWAYS.
+              </h1>
             </div>
-          ))}
-        </div>
-        <div className="p-8 rounded-2xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-          <PageContent text={content} />
+            <div>
+              <p
+                className="text-sm leading-relaxed max-w-sm"
+                style={{ color: "rgba(255,255,255,0.4)" }}
+              >
+                Every pair we sell is verified authentic. Not sometimes. Not usually. Every single time.
+                Here&apos;s exactly how we back that up.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* Pillars — clean columns, no patchwork */}
+      <section style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="grid md:grid-cols-3" style={{ borderLeft: `1px solid ${BRAND.border}` }}>
+            {PILLARS.map((p, i) => (
+              <div
+                key={p.n}
+                className="px-8 py-10"
+                style={{ borderRight: `1px solid ${BRAND.border}` }}
+              >
+                <span
+                  className="snd-label block mb-4"
+                  style={{ color: BRAND.teal, fontFamily: FONTS.body }}
+                >
+                  {p.n}
+                </span>
+                <p
+                  className="text-sm font-bold mb-2"
+                  style={{ color: BRAND.black }}
+                >
+                  {p.title}
+                </p>
+                <p
+                  className="text-sm leading-relaxed"
+                  style={{ color: BRAND.muted }}
+                >
+                  {p.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Content */}
+      <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
+        <div className="grid lg:grid-cols-3 gap-16">
+          <div className="lg:sticky lg:top-24 lg:col-span-1">
+            <p
+              className="snd-label mb-5"
+              style={{ color: BRAND.teal, fontFamily: FONTS.body }}
+            >
+              Process
+            </p>
+            <h2
+              style={{
+                fontFamily: FONTS.display,
+                fontSize: "var(--text-display-sm)",
+                letterSpacing: "0.03em",
+                color: BRAND.black,
+                lineHeight: 0.92,
+              }}
+            >
+              HOW WE<br />CHECK EVERY<br />PAIR
+            </h2>
+          </div>
+          <div className="lg:col-span-2">
+            <PageContent text={content} />
+          </div>
+        </div>
+      </section>
+
     </div>
   );
 }

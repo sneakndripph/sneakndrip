@@ -31,7 +31,7 @@ export default function HomeReviews({
           <button key={r.id}
             onClick={() => setSelected(r)}
             className="text-left block p-6 rounded-xl transition-shadow hover:shadow-md cursor-pointer w-full"
-            style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}`, fontFamily: FONTS.body }}>
+            style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, fontFamily: FONTS.body }}>
             <div className="flex gap-0.5 mb-4">
               {Array(r.rating).fill(0).map((_, i) => (
                 <span key={i} className="text-sm" style={{ color: BRAND.teal }}>★</span>

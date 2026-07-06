@@ -26,8 +26,8 @@ function TopProducts({ products }: { products: Product[] }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {products.map(p => (
           <Link key={p.id} href={`/shop/${p.slug}`} className="group block">
-            <div className="aspect-square rounded-xl overflow-hidden mb-3 relative flex items-center justify-center transition-transform group-hover:scale-[1.02]"
-              style={{ background: p.bg || BRAND.bg, border: `1px solid ${BRAND.cardBorder}` }}>
+            <div className="aspect-square overflow-hidden mb-3 relative flex items-center justify-center transition-transform group-hover:scale-[1.02]"
+              style={{ background: p.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}>
               {p.images?.[0] ? (
                 <Image src={p.images[0]} alt={p.name} fill className="object-cover object-center" sizes="300px" />
               ) : (
@@ -111,7 +111,7 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div style={{ background: BRAND.bg, fontFamily: FONTS.body, minHeight: "80vh" }}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-24">
           <div className="flex flex-col items-center justify-center mb-16">
             <ShoppingBag className="w-16 h-16 mb-5" style={{ color: BRAND.mutedLight }} />
             <h2 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", color: BRAND.black, letterSpacing: "0.04em" }}>
@@ -132,9 +132,10 @@ export default function CartPage() {
 
   return (
     <div style={{ background: BRAND.bg, fontFamily: FONTS.body, minHeight: "80vh" }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="mb-8">
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2rem, 6vw, 3rem)", letterSpacing: "0.04em", color: BRAND.black }}>
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12">
+        <div className="mb-10">
+          <p className="snd-label mb-3" style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}>Checkout</p>
+          <h1 style={{ fontFamily: FONTS.display, fontSize: "var(--text-display-sm)", letterSpacing: "0.04em", color: BRAND.black, lineHeight: 1 }}>
             YOUR CART
           </h1>
         </div>
@@ -169,8 +170,8 @@ export default function CartPage() {
               const isPreOrder = item.product.status === "pre-order";
               return (
               <div key={key}
-                className="p-5 rounded-xl flex gap-5 transition-opacity"
-                style={{ background: BRAND.card, border: `1.5px solid ${isSelected ? BRAND.teal : BRAND.cardBorder}`, opacity: isSelected ? 1 : 0.6 }}>
+                className="p-5 flex gap-5 transition-opacity"
+                style={{ background: BRAND.card, border: `1.5px solid ${isSelected ? BRAND.teal : BRAND.border}`, opacity: isSelected ? 1 : 0.6 }}>
                 {/* Checkbox */}
                 <button
                   onClick={() => setSelected(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; })}
@@ -181,7 +182,7 @@ export default function CartPage() {
                 </button>
 
                 {/* Image — clickable */}
-                <Link href={`/shop/${item.product.slug}`} className="w-20 h-20 shrink-0 rounded-lg flex items-center justify-center relative overflow-hidden transition-opacity hover:opacity-80"
+                <Link href={`/shop/${item.product.slug}`} className="w-20 h-20 shrink-0 flex items-center justify-center relative overflow-hidden transition-opacity hover:opacity-80"
                   style={{ background: item.product.bg || BRAND.bg, border: `1px solid ${BRAND.border}` }}>
                   {item.product.images?.[0] ? (
                     <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover object-center" sizes="80px" />
@@ -288,8 +289,8 @@ export default function CartPage() {
           </div>
 
           {/* Summary */}
-          <div className="rounded-xl overflow-hidden sticky top-24"
-            style={{ background: BRAND.card, border: `1px solid ${BRAND.cardBorder}` }}>
+          <div className="overflow-hidden sticky top-24"
+            style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
             <div className="p-6">
               <h2 className="mb-5" style={{ fontFamily: FONTS.display, fontSize: "1.5rem", letterSpacing: "0.04em", color: BRAND.black }}>
                 ORDER SUMMARY
