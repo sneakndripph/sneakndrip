@@ -67,13 +67,11 @@ export default async function BrandsPage() {
               <Link
                 key={b}
                 href={`/shop?brand=${encodeURIComponent(b)}`}
-                className={`group flex flex-col items-center justify-center p-8 text-center transition-all ${isEmpty ? "pointer-events-none opacity-30" : ""}`}
+                className={`brand-card-hover flex flex-col items-center justify-center p-8 text-center ${isEmpty ? "pointer-events-none opacity-30" : ""}`}
                 style={{
                   background: BRAND.card,
                   border: `1px solid ${BRAND.border}`,
                 }}
-                onMouseEnter={e => { if (!isEmpty) e.currentTarget.style.boxShadow = "var(--shadow-md)"; }}
-                onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}
               >
                 {/* Logo area */}
                 <div

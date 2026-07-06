@@ -421,13 +421,11 @@ export default async function AdminDashboard({
                   <Link
                     key={a.label}
                     href={a.href}
-                    className="flex items-center gap-3 px-5 py-3.5 text-sm font-medium transition-all"
+                    className="flex items-center gap-3 px-5 py-3.5 text-sm font-medium transition-all hover:bg-[#FAFAF8]"
                     style={{
                       color: BRAND.black,
                       borderBottom: i < arr.length - 1 ? `1px solid ${BRAND.border}` : "none",
                     }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#FAFAF8")}
-                    onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                   >
                     <Icon className="w-3.5 h-3.5 shrink-0" style={{ color: BRAND.mutedLight }} />
                     <span className="flex-1">{a.label}</span>

@@ -257,3 +257,18 @@
 .admin-stat-card:hover {
   background: #FAFAF9;
 }
+
+.brand-strip-link {
+  color: #B0ABA5;
+  transition: color 0.2s ease;
+}
+.brand-strip-link:hover {
+  color: #0D0D0D;
+}
+
+.brand-card-hover {
+  transition: box-shadow 0.2s ease;
+}
+.brand-card-hover:hover {
+  box-shadow: var(--shadow-md);
+}

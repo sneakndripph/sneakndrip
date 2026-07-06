@@ -252,14 +252,8 @@ export default async function HomePage() {
               <Link
                 key={b}
                 href={`/shop?brand=${b}`}
-                className="snd-label whitespace-nowrap transition-all hover:opacity-100"
-                style={{
-                  color: BRAND.mutedLight,
-                  fontFamily: FONTS.body,
-                  letterSpacing: "0.14em",
-                }}
-                onMouseEnter={e => (e.currentTarget.style.color = BRAND.black)}
-                onMouseLeave={e => (e.currentTarget.style.color = BRAND.mutedLight)}
+                className="brand-strip-link snd-label whitespace-nowrap"
+                style={{ fontFamily: FONTS.body, letterSpacing: "0.14em" }}
               >
                 {b}
               </Link>
