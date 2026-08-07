@@ -1,4 +1,3 @@
-import { BRAND, FONTS } from "@/lib/constants";
 import { getPageContent } from "@/lib/page-content";
 import { PageContent } from "@/components/ui/PageContent";
 import type { Metadata } from "next";
@@ -36,16 +35,16 @@ export default async function ShippingPage() {
   const content = await getPageContent("shipping", FALLBACK);
 
   return (
-    <div style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
-      <section className="relative py-20 px-4 text-center overflow-hidden" style={{ background: BRAND.black }}>
+    <div className="bg-snd-bg font-body">
+      <section className="relative py-20 px-4 text-center overflow-hidden bg-snd-black">
         <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
           style={{
-            backgroundImage: `linear-gradient(${BRAND.teal} 1px, transparent 1px), linear-gradient(90deg, ${BRAND.teal} 1px, transparent 1px)`,
+            backgroundImage: `linear-gradient(#5BB8B4 1px, transparent 1px), linear-gradient(90deg, #5BB8B4 1px, transparent 1px)`,
             backgroundSize: "60px 60px",
           }} />
         <div className="relative max-w-3xl mx-auto">
-          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: BRAND.teal }}>Help</p>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "clamp(2.5rem, 7vw, 5rem)", letterSpacing: "0.04em", color: "#F2F0EF", lineHeight: 1 }}>
+          <p className="text-xs font-bold uppercase tracking-widest mb-4 text-snd-teal">Help</p>
+          <h1 className="font-heading" style={{ fontSize: "clamp(2.5rem, 7vw, 5rem)", letterSpacing: "0.04em", color: "#F2F0EF", lineHeight: 1 }}>
             SHIPPING INFO
           </h1>
           <p className="mt-5 text-sm leading-relaxed max-w-md mx-auto" style={{ color: "#888" }}>
@@ -54,7 +53,7 @@ export default async function ShippingPage() {
         </div>
       </section>
       <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-        <div className="p-8 rounded-2xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+        <div className="p-8 rounded-2xl bg-snd-card border border-snd-border">
           <PageContent text={content} />
         </div>
       </section>

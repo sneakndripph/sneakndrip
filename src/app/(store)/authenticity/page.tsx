@@ -1,4 +1,3 @@
-import { BRAND, FONTS } from "@/lib/constants";
 import { getPageContent } from "@/lib/page-content";
 import { PageContent } from "@/components/ui/PageContent";
 import type { Metadata } from "next";
@@ -35,22 +34,21 @@ export default async function AuthenticityPage() {
   const content = await getPageContent("authenticity", FALLBACK);
 
   return (
-    <div style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
+    <div className="bg-snd-bg font-body">
 
       {/* Hero */}
-      <section style={{ background: BRAND.black }}>
+      <section className="bg-snd-black">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-28">
           <div className="grid lg:grid-cols-2 gap-16 items-end">
             <div>
               <p
-                className="snd-label mb-8"
-                style={{ color: BRAND.teal, fontFamily: FONTS.body }}
+                className="snd-label mb-8 text-snd-teal font-body"
               >
                 Our Guarantee
               </p>
               <h1
+                className="font-heading"
                 style={{
-                  fontFamily: FONTS.display,
                   fontSize: "var(--text-display-lg)",
                   letterSpacing: "0.03em",
                   color: "#F2F0EF",
@@ -74,30 +72,26 @@ export default async function AuthenticityPage() {
       </section>
 
       {/* Pillars — clean columns, no patchwork */}
-      <section style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+      <section className="border-b border-snd-border">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="grid md:grid-cols-3" style={{ borderLeft: `1px solid ${BRAND.border}` }}>
+          <div className="grid md:grid-cols-3 border-l border-snd-border">
             {PILLARS.map((p, i) => (
               <div
                 key={p.n}
-                className="px-8 py-10"
-                style={{ borderRight: `1px solid ${BRAND.border}` }}
+                className="px-8 py-10 border-r border-snd-border"
               >
                 <span
-                  className="snd-label block mb-4"
-                  style={{ color: BRAND.teal, fontFamily: FONTS.body }}
+                  className="snd-label block mb-4 text-snd-teal font-body"
                 >
                   {p.n}
                 </span>
                 <p
-                  className="text-sm font-bold mb-2"
-                  style={{ color: BRAND.black }}
+                  className="text-sm font-bold mb-2 text-snd-black"
                 >
                   {p.title}
                 </p>
                 <p
-                  className="text-sm leading-relaxed"
-                  style={{ color: BRAND.muted }}
+                  className="text-sm leading-relaxed text-snd-muted"
                 >
                   {p.desc}
                 </p>
@@ -112,17 +106,15 @@ export default async function AuthenticityPage() {
         <div className="grid lg:grid-cols-3 gap-16">
           <div className="lg:sticky lg:top-24 lg:col-span-1">
             <p
-              className="snd-label mb-5"
-              style={{ color: BRAND.teal, fontFamily: FONTS.body }}
+              className="snd-label mb-5 text-snd-teal font-body"
             >
               Process
             </p>
             <h2
+              className="font-heading text-snd-black"
               style={{
-                fontFamily: FONTS.display,
                 fontSize: "var(--text-display-sm)",
                 letterSpacing: "0.03em",
-                color: BRAND.black,
                 lineHeight: 0.92,
               }}
             >

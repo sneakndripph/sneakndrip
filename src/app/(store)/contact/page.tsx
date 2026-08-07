@@ -1,4 +1,3 @@
-import { BRAND, FONTS } from "@/lib/constants";
 import { getPageContent } from "@/lib/page-content";
 import { PageContent } from "@/components/ui/PageContent";
 import type { Metadata } from "next";
@@ -41,20 +40,19 @@ export default async function ContactPage() {
   const content = await getPageContent("contact", FALLBACK);
 
   return (
-    <div style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
+    <div className="bg-snd-bg font-body">
 
       {/* Hero */}
-      <section style={{ background: BRAND.black }}>
+      <section className="bg-snd-black">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-24">
           <p
-            className="snd-label mb-8"
-            style={{ color: BRAND.teal, fontFamily: FONTS.body }}
+            className="snd-label mb-8 text-snd-teal font-body"
           >
             We&apos;re Here
           </p>
           <h1
+            className="font-heading"
             style={{
-              fontFamily: FONTS.display,
               fontSize: "var(--text-display-lg)",
               letterSpacing: "0.03em",
               color: "#F2F0EF",
@@ -78,8 +76,7 @@ export default async function ContactPage() {
           {/* Left — contact methods */}
           <div>
             <p
-              className="snd-label mb-6"
-              style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}
+              className="snd-label mb-6 text-snd-muted-lt font-body"
             >
               Reach Us
             </p>
@@ -91,18 +88,15 @@ export default async function ContactPage() {
                   href={c.href}
                   target={c.href.startsWith("http") ? "_blank" : undefined}
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between py-4 transition-opacity hover:opacity-70"
-                  style={{ borderBottom: `1px solid ${BRAND.border}` }}
+                  className="flex items-center justify-between py-4 transition-opacity hover:opacity-70 border-b border-snd-border"
                 >
                   <p
-                    className="snd-label"
-                    style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}
+                    className="snd-label text-snd-muted-lt font-body"
                   >
                     {c.label}
                   </p>
                   <p
-                    className="text-sm font-semibold"
-                    style={{ color: BRAND.black }}
+                    className="text-sm font-semibold text-snd-black"
                   >
                     {c.val}
                   </p>
@@ -110,10 +104,9 @@ export default async function ContactPage() {
               ))}
             </div>
 
-            <div className="mt-8 pt-6" style={{ borderTop: `2px solid ${BRAND.teal}` }}>
+            <div className="mt-8 pt-6 border-t-2 border-snd-teal">
               <p
-                className="text-xs leading-relaxed"
-                style={{ color: BRAND.muted }}
+                className="text-xs leading-relaxed text-snd-muted"
               >
                 Use the chat widget at the bottom-right of any page to message us directly.
               </p>

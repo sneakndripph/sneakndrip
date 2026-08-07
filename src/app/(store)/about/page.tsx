@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BRAND, FONTS } from "@/lib/constants";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -31,21 +30,20 @@ const STATS = [
 
 export default function AboutPage() {
   return (
-    <div style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
+    <div className="bg-snd-bg font-body">
 
       {/* Hero */}
-      <section style={{ background: BRAND.black }}>
+      <section className="bg-snd-black">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-28">
           <div className="max-w-2xl">
             <p
-              className="snd-label mb-8"
-              style={{ color: BRAND.teal, fontFamily: FONTS.body }}
+              className="snd-label mb-8 text-snd-teal font-body"
             >
               Our Story
             </p>
             <h1
+              className="font-heading"
               style={{
-                fontFamily: FONTS.display,
                 fontSize: "var(--text-display-lg)",
                 letterSpacing: "0.03em",
                 color: "#F2F0EF",
@@ -72,26 +70,23 @@ export default function AboutPage() {
           {/* Left — copy */}
           <div>
             <h2
+              className="font-heading text-snd-black"
               style={{
-                fontFamily: FONTS.display,
                 fontSize: "var(--text-display-md)",
                 letterSpacing: "0.03em",
-                color: BRAND.black,
                 lineHeight: 0.92,
               }}
             >
-              BUILT FOR<br /><span style={{ color: BRAND.teal }}>SNEAKER<br />LOVERS.</span>
+              BUILT FOR<br /><span className="text-snd-teal">SNEAKER<br />LOVERS.</span>
             </h2>
             <p
-              className="mt-8 text-sm leading-relaxed max-w-md"
-              style={{ color: BRAND.muted }}
+              className="mt-8 text-sm leading-relaxed max-w-md text-snd-muted"
             >
               Sneak N&apos; Drip was born out of a simple frustration: finding authentic sneakers
               in the Philippines at fair prices was too hard. So we built the solution.
             </p>
             <p
-              className="mt-5 text-sm leading-relaxed max-w-md"
-              style={{ color: BRAND.muted }}
+              className="mt-5 text-sm leading-relaxed max-w-md text-snd-muted"
             >
               We source directly from trusted and verified suppliers — locally and internationally —
               so every pair that leaves our hands is 100% legit. No reps. No fakes. Ever.
@@ -100,16 +95,14 @@ export default function AboutPage() {
 
           {/* Right — stats, editorial row */}
           <div
-            className="grid grid-cols-2 gap-8 pt-4"
-            style={{ borderTop: `2px solid ${BRAND.black}` }}
+            className="grid grid-cols-2 gap-8 pt-4 border-t-2 border-snd-black"
           >
             {STATS.map(stat => (
               <div key={stat.label} className="py-4">
                 <p
+                  className="font-heading text-snd-black"
                   style={{
-                    fontFamily: FONTS.display,
                     fontSize: "clamp(2rem, 5vw, 3rem)",
-                    color: BRAND.black,
                     letterSpacing: "0.02em",
                     lineHeight: 1,
                   }}
@@ -117,8 +110,7 @@ export default function AboutPage() {
                   {stat.n}
                 </p>
                 <p
-                  className="snd-label mt-2"
-                  style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}
+                  className="snd-label mt-2 text-snd-muted-lt font-body"
                 >
                   {stat.label}
                 </p>
@@ -130,7 +122,7 @@ export default function AboutPage() {
       </section>
 
       {/* Divider */}
-      <div style={{ height: "1px", background: BRAND.border }} />
+      <div className="bg-snd-border" style={{ height: "1px" }} />
 
       {/* Values */}
       <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
@@ -138,17 +130,15 @@ export default function AboutPage() {
 
           <div className="lg:sticky lg:top-24">
             <p
-              className="snd-label mb-5"
-              style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}
+              className="snd-label mb-5 text-snd-muted-lt font-body"
             >
               Philosophy
             </p>
             <h2
+              className="font-heading text-snd-black"
               style={{
-                fontFamily: FONTS.display,
                 fontSize: "var(--text-display-md)",
                 letterSpacing: "0.03em",
-                color: BRAND.black,
                 lineHeight: 0.92,
               }}
             >
@@ -160,27 +150,22 @@ export default function AboutPage() {
             {VALUES.map((v, i) => (
               <div
                 key={v.title}
-                className="flex items-start gap-6 py-7"
-                style={{
-                  borderBottom: i < VALUES.length - 1 ? `1px solid ${BRAND.border}` : "none",
-                }}
+                className={`flex items-start gap-6 py-7 ${i < VALUES.length - 1 ? "border-b border-snd-border" : ""}`}
               >
                 <span
-                  className="snd-label shrink-0 pt-0.5"
-                  style={{ color: BRAND.mutedLight, fontFamily: FONTS.body, width: "1.5rem" }}
+                  className="snd-label shrink-0 pt-0.5 text-snd-muted-lt font-body"
+                  style={{ width: "1.5rem" }}
                 >
                   {String(i + 1).padStart(2, "0")}
                 </span>
                 <div>
                   <p
-                    className="text-sm font-bold mb-2"
-                    style={{ color: BRAND.black }}
+                    className="text-sm font-bold mb-2 text-snd-black"
                   >
                     {v.title}
                   </p>
                   <p
-                    className="text-sm leading-relaxed"
-                    style={{ color: BRAND.muted }}
+                    className="text-sm leading-relaxed text-snd-muted"
                   >
                     {v.desc}
                   </p>
@@ -193,26 +178,24 @@ export default function AboutPage() {
       </section>
 
       {/* Divider */}
-      <div style={{ height: "1px", background: BRAND.border }} />
+      <div className="bg-snd-border" style={{ height: "1px" }} />
 
       {/* CTA */}
       <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
         <div className="grid md:grid-cols-2 gap-16 items-center">
           <div>
             <h2
+              className="font-heading text-snd-black"
               style={{
-                fontFamily: FONTS.display,
                 fontSize: "var(--text-display-md)",
                 letterSpacing: "0.03em",
-                color: BRAND.black,
                 lineHeight: 0.92,
               }}
             >
               GET IN TOUCH
             </h2>
             <p
-              className="text-sm mt-6 leading-relaxed max-w-sm"
-              style={{ color: BRAND.muted }}
+              className="text-sm mt-6 leading-relaxed max-w-sm text-snd-muted"
             >
               Have a question about a pair, want to check availability, or just want to connect?
               Hit us up anytime on Facebook, Instagram, or TikTok.
@@ -223,8 +206,7 @@ export default function AboutPage() {
               href="https://www.facebook.com/SneakNDrip/"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-7 py-3.5 font-bold text-sm uppercase tracking-wider transition-opacity hover:opacity-80"
-              style={{ background: BRAND.black, color: BRAND.bg }}
+              className="px-7 py-3.5 font-bold text-sm uppercase tracking-wider transition-opacity hover:opacity-80 bg-snd-black text-snd-bg"
             >
               Facebook
             </a>
@@ -232,15 +214,13 @@ export default function AboutPage() {
               href="https://www.instagram.com/sneakndripph/"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-7 py-3.5 font-bold text-sm uppercase tracking-wider transition-opacity hover:opacity-80"
-              style={{ border: `1.5px solid ${BRAND.black}`, color: BRAND.black }}
+              className="px-7 py-3.5 font-bold text-sm uppercase tracking-wider transition-opacity hover:opacity-80 border-[1.5px] border-snd-black text-snd-black"
             >
               Instagram
             </a>
             <Link
               href="/shop"
-              className="px-7 py-3.5 font-bold text-sm uppercase tracking-wider transition-opacity hover:opacity-80 text-white"
-              style={{ background: BRAND.teal }}
+              className="px-7 py-3.5 font-bold text-sm uppercase tracking-wider transition-opacity hover:opacity-80 text-white bg-snd-teal"
             >
               Shop Now
             </Link>
