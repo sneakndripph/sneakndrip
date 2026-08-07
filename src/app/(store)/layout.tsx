@@ -5,7 +5,6 @@ import ChatWidget from "@/components/layout/ChatWidget";
 import CartGuard from "@/components/layout/CartGuard";
 import CartSyncer from "@/components/layout/CartSyncer";
 import VisitorTracker from "@/components/layout/VisitorTracker";
-import { BRAND } from "@/lib/constants";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { redirect } from "next/navigation";
 
@@ -17,7 +16,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   if (data?.value === "true") redirect("/maintenance");
 
   return (
-    <div style={{ background: BRAND.bg, minHeight: "100vh" }}>
+    <div className="bg-snd-bg min-h-screen">
       <VisitorTracker />
       <CartGuard />
       <CartSyncer />

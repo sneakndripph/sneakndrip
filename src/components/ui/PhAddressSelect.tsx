@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { BRAND } from "@/lib/constants";
 
 type Loc = { code: string; name: string };
 type Step = "region" | "province" | "city" | "barangay";
@@ -110,49 +109,45 @@ export default function PhAddressSelect({
 
   const opts: Loc[] = step === "province" ? provinces : step === "city" ? cities : step === "barangay" ? barangays : [];
 
-  const errStyle: React.CSSProperties = { color: BRAND.red, fontSize: "0.7rem", marginTop: 4, fontWeight: 600 };
+  const errStyle: React.CSSProperties = { fontSize: "0.7rem", marginTop: 4, fontWeight: 600 };
   const labelStyle: React.CSSProperties = {
     display: "block", fontSize: "0.7rem", fontWeight: 700,
     textTransform: "uppercase" as const, letterSpacing: "0.05em",
-    marginBottom: 6, color: BRAND.black,
+    marginBottom: 6,
   };
 
   return (
     <div className="sm:col-span-2">
-      <label style={labelStyle}>
-        Region / Province / City / Barangay <span style={{ color: BRAND.red }}>*</span>
+      <label className="text-snd-black" style={labelStyle}>
+        Region / Province / City / Barangay <span className="text-snd-red">*</span>
       </label>
 
       {/* Summary */}
-      <div style={{
-        background: "#F8F7F6",
-        border: `1px solid ${BRAND.border}`,
-        padding: "10px 16px",
-        fontSize: "0.875rem",
-        color: group ? BRAND.black : BRAND.muted,
-        marginBottom: 2,
-      }}>
+      <div className={`bg-snd-input border border-snd-border ${group ? "text-snd-black" : "text-snd-muted"}`}
+        style={{
+          padding: "10px 16px",
+          fontSize: "0.875rem",
+          marginBottom: 2,
+        }}>
         {summary}
       </div>
 
       {/* Picker panel */}
-      <div style={{ border: `1px solid ${BRAND.border}`, borderTop: "none", background: BRAND.card }}>
+      <div className="border border-snd-border border-t-0 bg-snd-card">
         {/* Tabs */}
-        <div style={{ display: "flex", borderBottom: `1px solid ${BRAND.border}` }}>
+        <div className="flex border-b border-snd-border">
           {tabs.map(t => (
             <button key={t.key} type="button"
               onClick={() => (t.value || t.key === "region") ? setStep(t.key) : undefined}
+              className={`flex-1 bg-transparent border-0 border-b-2 ${
+                step === t.key ? "border-snd-teal text-snd-teal" : t.value ? "border-transparent text-snd-black" : "border-transparent text-snd-muted"
+              }`}
               style={{
-                flex: 1,
                 padding: "9px 6px",
                 fontSize: "0.7rem",
                 fontWeight: 700,
                 textTransform: "uppercase" as const,
                 letterSpacing: "0.04em",
-                background: "transparent",
-                border: "none",
-                borderBottom: `2px solid ${step === t.key ? BRAND.teal : "transparent"}`,
-                color: step === t.key ? BRAND.teal : t.value ? BRAND.black : BRAND.muted,
                 cursor: (t.value || t.key === "region") ? "pointer" : "default",
               }}>
               {t.label}
@@ -163,7 +158,7 @@ export default function PhAddressSelect({
         {/* Options */}
         <div style={{ padding: "12px 14px", maxHeight: 170, overflowY: "auto" }}>
           {loading && (
-            <p style={{ fontSize: "0.8rem", color: BRAND.muted }}>Loading…</p>
+            <p className="text-snd-muted" style={{ fontSize: "0.8rem" }}>Loading…</p>
           )}
 
           {/* Region chips */}
@@ -171,13 +166,11 @@ export default function PhAddressSelect({
             <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 8 }}>
               {GROUPS.map(g => (
                 <button key={g.name} type="button" onClick={() => pickGroup(g)}
+                  className={`border ${group?.name === g.name ? "border-snd-teal bg-snd-teal text-white" : "border-snd-border bg-transparent text-snd-black"}`}
                   style={{
                     padding: "7px 16px",
                     fontSize: "0.8rem",
                     fontWeight: 600,
-                    border: `1px solid ${group?.name === g.name ? BRAND.teal : BRAND.border}`,
-                    background: group?.name === g.name ? BRAND.teal : "transparent",
-                    color: group?.name === g.name ? "#fff" : BRAND.black,
                     cursor: "pointer",
                   }}>
                   {g.name}
@@ -201,13 +194,11 @@ export default function PhAddressSelect({
                       step === "city"     ? pickCity(loc) :
                                            pickBarangay(loc)
                     }
+                    className={`border ${isSelected ? "border-snd-teal bg-snd-teal text-white" : "border-snd-border bg-transparent text-snd-black"}`}
                     style={{
                       padding: "5px 11px",
                       fontSize: "0.75rem",
                       fontWeight: 600,
-                      border: `1px solid ${isSelected ? BRAND.teal : BRAND.border}`,
-                      background: isSelected ? BRAND.teal : "transparent",
-                      color: isSelected ? "#fff" : BRAND.black,
                       cursor: "pointer",
                     }}>
                     {loc.name}
@@ -218,7 +209,7 @@ export default function PhAddressSelect({
           )}
 
           {!loading && step !== "region" && opts.length === 0 && (
-            <p style={{ fontSize: "0.8rem", color: BRAND.muted }}>
+            <p className="text-snd-muted" style={{ fontSize: "0.8rem" }}>
               {step === "province" ? "No provinces found." :
                step === "city"     ? "No cities found." :
                                      "No barangays found."}
@@ -227,9 +218,9 @@ export default function PhAddressSelect({
         </div>
       </div>
 
-      {showErrors && !province && <p style={errStyle}>Province is required</p>}
-      {showErrors && !city    && <p style={errStyle}>City / Municipality is required</p>}
-      {showErrors && !barangay && <p style={errStyle}>Barangay is required</p>}
+      {showErrors && !province && <p className="text-snd-red" style={errStyle}>Province is required</p>}
+      {showErrors && !city    && <p className="text-snd-red" style={errStyle}>City / Municipality is required</p>}
+      {showErrors && !barangay && <p className="text-snd-red" style={errStyle}>Barangay is required</p>}
     </div>
   );
 }

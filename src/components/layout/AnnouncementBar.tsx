@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { BRAND } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 
 const STORAGE_KEY = "snd-announcement-dismissed";
@@ -42,8 +41,7 @@ export default function AnnouncementBar() {
 
   return (
     <div
-      className="relative flex items-center justify-center py-2.5 px-10 text-xs font-semibold tracking-widest uppercase"
-      style={{ background: BRAND.teal, color: "#fff" }}
+      className="relative flex items-center justify-center py-2.5 px-10 text-xs font-semibold tracking-widest uppercase bg-snd-teal text-white"
     >
       <span>{text}</span>
       <button
