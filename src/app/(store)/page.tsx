@@ -377,7 +377,7 @@ export default async function HomePage() {
                 href="/authenticity"
                 className="inline-block mt-10 snd-label text-snd-teal border-b border-snd-teal pb-1 hover:opacity-60 transition-opacity"
               >
-                Our Process →
+                Our verification process →
               </Link>
             </div>
           </div>
