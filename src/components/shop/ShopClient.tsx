@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { BRAND, FONTS, BRANDS, SNEAKER_SIZES } from "@/lib/constants";
+import { BRANDS, SNEAKER_SIZES } from "@/lib/constants";
 import ProductCard from "@/components/product/ProductCard";
 import { SlidersHorizontal, X, ChevronDown, Check } from "lucide-react";
 import type { Product } from "@/lib/types";
@@ -88,17 +88,17 @@ export default function ShopClient({
   const activeFilters = selectedBrands.length + selectedSizes.length + selectedGenders.length + (availability !== "all" ? 1 : 0) + (showNewOnly ? 1 : 0);
 
   return (
-    <div style={{ background: BRAND.bg, minHeight: "100vh", fontFamily: FONTS.body }}>
-      <div className="py-12 pb-8" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+    <div className="bg-snd-bg min-h-screen font-body">
+      <div className="py-12 pb-8 border-b border-snd-border">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
           <div className="flex items-end justify-between">
             <div>
-              <p className="snd-label mb-3" style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}>Catalog</p>
-              <h1 style={{ fontFamily: FONTS.display, fontSize: "var(--text-display-md)", letterSpacing: "0.04em", color: BRAND.black, lineHeight: 1 }}>
+              <p className="snd-label mb-3 text-snd-muted-lt">Catalog</p>
+              <h1 className="font-heading tracking-[0.04em] leading-none text-snd-black text-[length:var(--text-display-md)]">
                 ALL SNEAKERS
               </h1>
             </div>
-            <p className="snd-label pb-1" style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}>
+            <p className="snd-label pb-1 text-snd-muted-lt">
               {filtered.length} available
             </p>
           </div>
@@ -116,48 +116,38 @@ export default function ShopClient({
               router.replace(`/shop${v ? `?${params.toString()}` : ""}`, { scroll: false });
             }}
               placeholder="Search sneakers, brands…"
-              className="w-full px-4 py-3 pr-10 text-sm focus:outline-none"
-              style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+              className="w-full px-4 py-3 pr-10 text-sm focus:outline-none bg-snd-card border border-snd-border text-snd-black" />
             {search && (
               <button onClick={() => {
                 setSearch("");
                 router.replace("/shop", { scroll: false });
-              }} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
+              }} className="absolute right-3 top-1/2 -translate-y-1/2 text-snd-muted">
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
           <button onClick={() => setFiltersOpen(!filtersOpen)}
-            className="flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors"
-            style={{
-              background: activeFilters > 0 ? BRAND.teal : BRAND.card,
-              color: activeFilters > 0 ? "#fff" : BRAND.black,
-              border: `1px solid ${activeFilters > 0 ? BRAND.teal : BRAND.border}`,
-            }}>
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors border ${
+              activeFilters > 0 ? "bg-snd-teal text-white border-snd-teal" : "bg-snd-card text-snd-black border-snd-border"
+            }`}>
             <SlidersHorizontal className="w-4 h-4" />
             Filters {activeFilters > 0 && `(${activeFilters})`}
           </button>
           <div className="relative" ref={sortRef}>
             <button
               onClick={() => setSortOpen(o => !o)}
-              className="flex items-center gap-2 px-4 py-3 text-sm font-semibold min-w-[170px] justify-between"
-              style={{ background: BRAND.card, border: `1px solid ${sortOpen ? BRAND.teal : BRAND.border}`, color: BRAND.black }}>
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold min-w-[170px] justify-between bg-snd-card border text-snd-black ${sortOpen ? "border-snd-teal" : "border-snd-border"}`}>
               <span>{SORT_OPTIONS.find(o => o.value === sort)?.label}</span>
-              <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: sortOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+              <ChevronDown className={`w-4 h-4 shrink-0 transition-transform text-snd-muted ${sortOpen ? "rotate-180" : "rotate-0"}`} />
             </button>
             {sortOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 min-w-[170px] overflow-hidden shadow-lg"
-                style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+              <div className="absolute right-0 top-full mt-1 z-50 min-w-[170px] overflow-hidden shadow-lg bg-snd-card border border-snd-border">
                 {SORT_OPTIONS.map(o => (
                   <button key={o.value}
                     onClick={() => { setSort(o.value); setSortOpen(false); }}
-                    className="w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors hover:opacity-80"
-                    style={{
-                      background: sort === o.value ? `${BRAND.teal}10` : "transparent",
-                      color: sort === o.value ? BRAND.teal : BRAND.black,
-                      borderBottom: `1px solid ${BRAND.border}`,
-                      fontWeight: sort === o.value ? 700 : 500,
-                    }}>
+                    className={`w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors hover:opacity-80 border-b border-snd-border ${
+                      sort === o.value ? "bg-snd-teal/[6%] text-snd-teal font-bold" : "bg-transparent text-snd-black font-medium"
+                    }`}>
                     {o.label}
                     {sort === o.value && <Check className="w-3.5 h-3.5 shrink-0" />}
                   </button>
@@ -168,82 +158,69 @@ export default function ShopClient({
         </div>
 
         {filtersOpen && (
-          <div className="p-6 mb-8" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+          <div className="p-6 mb-8 bg-snd-card border border-snd-border">
             <div className="grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
               <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Brand</p>
+                <p className="text-xs font-black uppercase tracking-widest mb-3 text-snd-black">Brand</p>
                 <div className="flex flex-wrap gap-1.5">
                   {BRANDS.map(b => (
                     <button key={b} onClick={() => setSelectedBrands(arr => toggleArr(arr, b))}
-                      className="text-xs font-semibold px-3 py-1.5 transition-all"
-                      style={{
-                        background: selectedBrands.includes(b) ? BRAND.teal : "transparent",
-                        color: selectedBrands.includes(b) ? "#fff" : BRAND.muted,
-                        border: `1px solid ${selectedBrands.includes(b) ? BRAND.teal : BRAND.border}`,
-                      }}>{b}</button>
+                      className={`text-xs font-semibold px-3 py-1.5 transition-all border ${
+                        selectedBrands.includes(b) ? "bg-snd-teal text-white border-snd-teal" : "bg-transparent text-snd-muted border-snd-border"
+                      }`}>{b}</button>
                   ))}
                 </div>
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Gender</p>
+                <p className="text-xs font-black uppercase tracking-widest mb-3 text-snd-black">Gender</p>
                 <div className="flex flex-wrap gap-1.5">
                   {GENDERS.map(g => (
                     <button key={g} onClick={() => setSelectedGenders(arr => toggleArr(arr, g))}
-                      className="text-xs font-semibold px-3 py-1.5 transition-all"
-                      style={{
-                        background: selectedGenders.includes(g) ? BRAND.teal : "transparent",
-                        color: selectedGenders.includes(g) ? "#fff" : BRAND.muted,
-                        border: `1px solid ${selectedGenders.includes(g) ? BRAND.teal : BRAND.border}`,
-                      }}>{g}</button>
+                      className={`text-xs font-semibold px-3 py-1.5 transition-all border ${
+                        selectedGenders.includes(g) ? "bg-snd-teal text-white border-snd-teal" : "bg-transparent text-snd-muted border-snd-border"
+                      }`}>{g}</button>
                   ))}
                 </div>
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Size</p>
+                <p className="text-xs font-black uppercase tracking-widest mb-3 text-snd-black">Size</p>
                 <div className="flex flex-wrap gap-1.5">
                   {SNEAKER_SIZES.map(s => (
                     <button key={s} onClick={() => setSelectedSizes(arr => toggleArr(arr, s))}
-                      className="text-xs font-semibold px-2.5 py-1.5 transition-all"
-                      style={{
-                        background: selectedSizes.includes(s) ? BRAND.teal : "transparent",
-                        color: selectedSizes.includes(s) ? "#fff" : BRAND.muted,
-                        border: `1px solid ${selectedSizes.includes(s) ? BRAND.teal : BRAND.border}`,
-                      }}>{s}</button>
+                      className={`text-xs font-semibold px-2.5 py-1.5 transition-all border ${
+                        selectedSizes.includes(s) ? "bg-snd-teal text-white border-snd-teal" : "bg-transparent text-snd-muted border-snd-border"
+                      }`}>{s}</button>
                   ))}
                 </div>
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Availability</p>
+                <p className="text-xs font-black uppercase tracking-widest mb-3 text-snd-black">Availability</p>
                 <div className="flex flex-col gap-2">
                   {[["all", "All"], ["on-hand", "On Hand"], ["pre-order", "Pre-Order"]].map(([v, l]) => (
                     <button key={v} onClick={() => setAvailability(v)}
-                      className="text-xs font-semibold px-3 py-2 text-left transition-all"
-                      style={{
-                        background: availability === v ? BRAND.teal : "transparent",
-                        color: availability === v ? "#fff" : BRAND.muted,
-                        border: `1px solid ${availability === v ? BRAND.teal : BRAND.border}`,
-                      }}>{l}</button>
+                      className={`text-xs font-semibold px-3 py-2 text-left transition-all border ${
+                        availability === v ? "bg-snd-teal text-white border-snd-teal" : "bg-transparent text-snd-muted border-snd-border"
+                      }`}>{l}</button>
                   ))}
                 </div>
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>
-                  Max Price: <span style={{ color: BRAND.teal }}>₱{maxPrice.toLocaleString()}</span>
+                <p className="text-xs font-black uppercase tracking-widest mb-3 text-snd-black">
+                  Max Price: <span className="text-snd-teal">₱{maxPrice.toLocaleString()}</span>
                 </p>
                 <input type="range" min={1000} max={25000} step={500} value={maxPrice}
                   onChange={e => setMaxPrice(Number(e.target.value))}
-                  className="w-full" style={{ accentColor: BRAND.teal }} />
+                  className="w-full accent-snd-teal" />
                 <div className="flex justify-between mt-1">
-                  <span className="text-xs" style={{ color: BRAND.muted }}>₱1,000</span>
-                  <span className="text-xs" style={{ color: BRAND.muted }}>₱25,000</span>
+                  <span className="text-xs text-snd-muted">₱1,000</span>
+                  <span className="text-xs text-snd-muted">₱25,000</span>
                 </div>
               </div>
             </div>
             {activeFilters > 0 && (
-              <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
+              <div className="mt-5 pt-4 border-t border-snd-border">
                 <button onClick={() => { setSelectedBrands([]); setSelectedSizes([]); setSelectedGenders([]); setAvailability("all"); setShowNewOnly(false); setMaxPrice(20000); }}
-                  className="text-xs font-bold uppercase tracking-wider flex items-center gap-1"
-                  style={{ color: BRAND.red }}>
+                  className="text-xs font-bold uppercase tracking-wider flex items-center gap-1 text-snd-red">
                   <X className="w-3 h-3" /> Clear all filters
                 </button>
               </div>
@@ -257,8 +234,8 @@ export default function ShopClient({
           </div>
         ) : (
           <div className="text-center py-24">
-            <p style={{ fontFamily: FONTS.display, fontSize: "2rem", color: BRAND.muted, letterSpacing: "0.04em" }}>NO RESULTS</p>
-            <p className="text-sm mt-2" style={{ color: BRAND.mutedLight }}>Try adjusting your filters.</p>
+            <p className="font-heading tracking-[0.04em] text-[2rem] text-snd-muted">NO RESULTS</p>
+            <p className="text-sm mt-2 text-snd-muted-lt">Try adjusting your filters.</p>
           </div>
         )}
       </div>
