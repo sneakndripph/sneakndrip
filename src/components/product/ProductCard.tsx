@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Product } from "@/lib/types";
-import { BRAND, FONTS } from "@/lib/constants";
 import { useCartStore } from "@/store/cartStore";
 import { useState, useMemo } from "react";
 import { Heart } from "lucide-react";
@@ -15,7 +14,6 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, showQuickAdd = true }: ProductCardProps) {
-  const [hovered, setHovered] = useState(false);
   const [added, setAdded] = useState(false);
   const [imgError, setImgError] = useState(false);
   const addItem = useCartStore(s => s.addItem);
@@ -49,24 +47,11 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
   const soldOut = availableSizes.length === 0;
 
   return (
-    <Link
-      href={`/shop/${product.slug}`}
-      className="group block"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
+    <Link href={`/shop/${product.slug}`} className="group block">
       {/* Image container */}
       <div
-        className="relative overflow-hidden"
-        style={{
-          aspectRatio: "1",
-          background: product.bg || "#EDE9E3",
-          transition: "box-shadow 0.3s ease, transform 0.3s ease",
-          transform: hovered ? "translateY(-3px)" : "translateY(0)",
-          boxShadow: hovered
-            ? "0 16px 40px rgba(13,13,13,0.13)"
-            : "0 1px 4px rgba(13,13,13,0.06)",
-        }}
+        className="relative overflow-hidden aspect-square shadow-sm group-hover:shadow-lg group-hover:-translate-y-1 transition-all duration-300 ease-out"
+        style={{ background: product.bg || "#EDE9E3" }}
       >
         {/* Product image */}
         {product.images?.[0] && !imgError ? (
@@ -80,16 +65,7 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span
-              className="font-black select-none"
-              style={{
-                fontFamily: FONTS.display,
-                fontSize: "clamp(2.5rem,8vw,5rem)",
-                color: BRAND.black,
-                opacity: 0.04,
-                letterSpacing: "0.06em",
-              }}
-            >
+            <span className="font-heading font-black select-none text-snd-black opacity-[0.04] tracking-[0.06em] text-[clamp(2.5rem,8vw,5rem)]">
               {product.brand.toUpperCase()}
             </span>
           </div>
@@ -105,25 +81,16 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
               Sold Out
             </span>
           ) : isPreOrder ? (
-            <span
-              className="text-[9px] font-black uppercase tracking-[0.12em] px-2 py-0.5"
-              style={{ background: BRAND.red, color: "#fff" }}
-            >
+            <span className="text-[9px] font-black uppercase tracking-[0.12em] px-2 py-0.5 bg-snd-red text-white">
               Pre-Order
             </span>
           ) : (
-            <span
-              className="text-[9px] font-black uppercase tracking-[0.12em] px-2 py-0.5"
-              style={{ background: BRAND.teal, color: "#fff" }}
-            >
+            <span className="text-[9px] font-black uppercase tracking-[0.12em] px-2 py-0.5 bg-snd-teal text-white">
               On Hand
             </span>
           )}
           {product.is_new && (
-            <span
-              className="text-[9px] font-black uppercase tracking-[0.12em] px-2 py-0.5"
-              style={{ background: `${BRAND.teal}22`, color: BRAND.teal }}
-            >
+            <span className="text-[9px] font-black uppercase tracking-[0.12em] px-2 py-0.5 bg-snd-teal/15 text-snd-teal">
               New
             </span>
           )}
@@ -132,42 +99,29 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
         {/* Discount badge — top right */}
         {(isOnSale || product.full_payment_price < product.srp_price) && (
           <div className="absolute top-2.5 right-2.5 z-10">
-            <span
-              className="text-[9px] font-black uppercase tracking-[0.12em] px-2 py-0.5"
-              style={{ background: BRAND.red, color: "#fff" }}
-            >
+            <span className="text-[9px] font-black uppercase tracking-[0.12em] px-2 py-0.5 bg-snd-red text-white">
               {isOnSale ? "Sale" : "Below SRP"}
             </span>
           </div>
         )}
 
-        {/* Wishlist — visible on hover */}
+        {/* Wishlist — visible on hover (desktop); always visible on mobile */}
         <button
           type="button"
           onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(product.id); }}
-          className="absolute bottom-14 right-2.5 z-30 w-7 h-7 flex items-center justify-center transition-all duration-200"
-          style={{
-            opacity: hovered || wishlisted ? 1 : 0,
-            background: wishlisted ? BRAND.teal : "rgba(255,255,255,0.85)",
-            backdropFilter: "blur(4px)",
-            pointerEvents: hovered || wishlisted ? "auto" : "none",
-          }}
+          className={`absolute bottom-14 right-2.5 z-30 w-7 h-7 flex items-center justify-center transition-all duration-200 opacity-100 pointer-events-auto ${
+            wishlisted
+              ? "bg-snd-teal text-white"
+              : "md:opacity-0 md:pointer-events-none md:group-hover:opacity-100 md:group-hover:pointer-events-auto bg-white/85 backdrop-blur-sm text-snd-black"
+          }`}
         >
-          <Heart
-            className="w-3.5 h-3.5"
-            fill={wishlisted ? "#fff" : "none"}
-            stroke={wishlisted ? "#fff" : BRAND.black}
-            strokeWidth={2}
-          />
+          <Heart className="w-3.5 h-3.5" fill={wishlisted ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2} />
         </button>
 
-        {/* Quick-add — slides up from bottom */}
+        {/* Quick-add — slides up from bottom (desktop); always visible on mobile */}
         {showQuickAdd && !soldOut && (
-          <div
-            className="absolute inset-x-0 bottom-0 z-20 transition-transform duration-250 ease-out"
-            style={{ transform: hovered ? "translateY(0)" : "translateY(100%)" }}
-          >
-            <div style={{ background: "rgba(13,13,13,0.88)", backdropFilter: "blur(8px)" }}>
+          <div className="absolute inset-x-0 bottom-0 z-20 translate-y-0 md:translate-y-full md:group-hover:translate-y-0 transition-transform duration-[250ms] ease-out">
+            <div className="bg-snd-black/88 backdrop-blur">
               {/* Size strip */}
               <div className="flex flex-wrap gap-1 px-3 pt-2.5 pb-1.5">
                 {availableSizes.slice(0, 8).map(s => (
@@ -175,17 +129,15 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
                     key={s.size}
                     type="button"
                     onClick={e => handleSizeClick(e, s.size)}
-                    className="text-[9px] font-black px-1.5 py-0.5 transition-colors"
-                    style={{
-                      background: selectedSize === s.size ? BRAND.teal : "rgba(255,255,255,0.1)",
-                      color: "#fff",
-                    }}
+                    className={`text-[9px] font-black px-1.5 py-0.5 transition-colors text-white ${
+                      selectedSize === s.size ? "bg-snd-teal" : "bg-white/10"
+                    }`}
                   >
                     {s.size.replace("US ", "")}
                   </button>
                 ))}
                 {availableSizes.length > 8 && (
-                  <span className="text-[9px] self-center" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  <span className="text-[9px] self-center text-white/40">
                     +{availableSizes.length - 8}
                   </span>
                 )}
@@ -195,11 +147,9 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
               <button
                 onClick={handleQuickAdd}
                 disabled={!selectedSize}
-                className="w-full py-2.5 text-[11px] font-black uppercase tracking-[0.12em] transition-colors disabled:opacity-40"
-                style={{
-                  background: added ? BRAND.teal : BRAND.bg,
-                  color: added ? "#fff" : BRAND.black,
-                }}
+                className={`w-full py-2.5 text-[11px] font-black uppercase tracking-[0.12em] transition-colors disabled:opacity-40 ${
+                  added ? "bg-snd-teal text-white" : "bg-snd-bg text-snd-black"
+                }`}
               >
                 {added ? "Added" : selectedSize ? `Add US ${selectedSize.replace("US ", "")}` : "Select Size"}
               </button>
@@ -210,34 +160,25 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
 
       {/* Info below image */}
       <div className="pt-3">
-        <p
-          className="text-[10px] font-bold uppercase tracking-[0.15em] mb-0.5"
-          style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}
-        >
+        <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-0.5 text-snd-muted-lt">
           {product.brand}
         </p>
 
         <div className="flex items-start justify-between gap-2">
-          <h3
-            className="text-sm font-semibold leading-snug flex-1 min-w-0"
-            style={{ color: BRAND.black, fontFamily: FONTS.body }}
-          >
+          <h3 className="text-sm font-semibold leading-snug flex-1 min-w-0 text-snd-black">
             {product.name}
           </h3>
 
           <div className="shrink-0 text-right">
-            <span
-              className="text-sm font-black block"
-              style={{ color: isOnSale ? BRAND.red : BRAND.black, fontFamily: FONTS.body }}
-            >
+            <span className={`text-sm font-black block ${isOnSale ? "text-snd-red" : "text-snd-black"}`}>
               ₱{displayPrice.toLocaleString()}
             </span>
             {isOnSale ? (
-              <span className="text-[10px] line-through block" style={{ color: BRAND.mutedLight }}>
+              <span className="text-[10px] line-through block text-snd-muted-lt">
                 ₱{product.full_payment_price.toLocaleString()}
               </span>
             ) : product.srp_price !== product.full_payment_price ? (
-              <span className="text-[10px] line-through block" style={{ color: BRAND.mutedLight }}>
+              <span className="text-[10px] line-through block text-snd-muted-lt">
                 ₱{product.srp_price.toLocaleString()}
               </span>
             ) : null}
@@ -245,7 +186,7 @@ export default function ProductCard({ product, showQuickAdd = true }: ProductCar
         </div>
 
         {isPreOrder && product.eta_start && product.eta_end && (
-          <p className="text-[11px] font-semibold mt-1" style={{ color: BRAND.red, fontFamily: FONTS.body }}>
+          <p className="text-[11px] font-semibold mt-1 text-snd-red">
             ETA {formatETA(product.eta_start, product.eta_end)}
           </p>
         )}
