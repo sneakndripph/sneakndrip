@@ -3,7 +3,6 @@
 import Image from "next/image";
 import { useState } from "react";
 import { Product } from "@/lib/types";
-import { BRAND, FONTS } from "@/lib/constants";
 
 export default function HeroProductImage({ product }: { product: Product }) {
   const [imgError, setImgError] = useState(false);
@@ -24,7 +23,7 @@ export default function HeroProductImage({ product }: { product: Product }) {
 
   return (
     <div className="absolute inset-0 flex items-center justify-center">
-      <span style={{ fontFamily: FONTS.display, fontSize: "5rem", color: BRAND.black, opacity: 0.05 }}>
+      <span className="font-heading text-snd-black opacity-5 text-[5rem]">
         {product.brand.toUpperCase()}
       </span>
     </div>
