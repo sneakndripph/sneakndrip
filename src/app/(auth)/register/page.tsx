@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { BRAND, FONTS, SITE_URL } from "@/lib/constants";
+import { SITE_URL } from "@/lib/constants";
 import { Eye, EyeOff, CheckCircle, Check, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -120,31 +120,29 @@ export default function RegisterPage() {
   }
 
   const pwStrength = PW_RULES.filter(r => r.test(form.password)).length;
-  const strengthColor = pwStrength <= 2 ? BRAND.red : pwStrength <= 3 ? "#D97706" : BRAND.teal;
+  const strengthBgClass = pwStrength <= 2 ? "bg-snd-red" : pwStrength <= 3 ? "bg-[#D97706]" : "bg-snd-teal";
+  const strengthTextClass = pwStrength <= 2 ? "text-snd-red" : pwStrength <= 3 ? "text-[#D97706]" : "text-snd-teal";
   const strengthLabel = pwStrength <= 2 ? "Weak" : pwStrength <= 3 ? "Fair" : pwStrength === 4 ? "Good" : "Strong";
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4"
-        style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
+      <div className="min-h-screen flex items-center justify-center px-4 bg-snd-bg font-body">
         <div className="w-full max-w-md text-center">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6"
-            style={{ background: `${BRAND.teal}18` }}>
-            <CheckCircle className="w-8 h-8" style={{ color: BRAND.teal }} />
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 bg-snd-teal/[9%]">
+            <CheckCircle className="w-8 h-8 text-snd-teal" />
           </div>
-          <h1 className="mb-3" style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>
+          <h1 className="mb-3 font-heading text-snd-black" style={{ fontSize: "2.5rem", letterSpacing: "0.04em" }}>
             CHECK YOUR EMAIL
           </h1>
-          <p className="text-sm mb-2 leading-relaxed" style={{ color: BRAND.muted }}>
+          <p className="text-sm mb-2 leading-relaxed text-snd-muted">
             We sent a confirmation link to
           </p>
-          <p className="font-black text-base mb-6" style={{ color: BRAND.black }}>{form.email}</p>
-          <p className="text-sm mb-8 leading-relaxed" style={{ color: BRAND.muted }}>
+          <p className="font-black text-base mb-6 text-snd-black">{form.email}</p>
+          <p className="text-sm mb-8 leading-relaxed text-snd-muted">
             Click the link in the email to activate your account. Check your spam folder if you don&apos;t see it.
           </p>
           <button onClick={() => router.push("/login")}
-            className="w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90"
-            style={{ background: BRAND.black, color: BRAND.bg }}>
+            className="w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 bg-snd-black text-snd-bg">
             Go to Sign In
           </button>
         </div>
@@ -153,26 +151,24 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12"
-      style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-snd-bg font-body">
       <div className="w-full max-w-md">
         <div className="mb-8">
           <Image src="/sneakndrip-logo.gif" alt="Sneak N' Drip" width={120} height={48} className="object-contain" />
         </div>
 
-        <h1 className="mb-2" style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>
+        <h1 className="mb-2 font-heading text-snd-black" style={{ fontSize: "2.5rem", letterSpacing: "0.04em" }}>
           CREATE ACCOUNT
         </h1>
-        <p className="text-sm mb-8" style={{ color: BRAND.muted }}>
+        <p className="text-sm mb-8 text-snd-muted">
           Already have one?{" "}
-          <Link href="/login" className="font-bold transition-colors hover:opacity-70" style={{ color: BRAND.teal }}>
+          <Link href="/login" className="font-bold transition-colors hover:opacity-70 text-snd-teal">
             Sign in →
           </Link>
         </p>
 
         {error && (
-          <div className="mb-4 px-4 py-3 rounded text-sm font-medium"
-            style={{ background: `${BRAND.red}12`, color: BRAND.red, border: `1px solid ${BRAND.red}30` }}>
+          <div className="mb-4 px-4 py-3 rounded text-sm font-medium bg-snd-red/[7%] text-snd-red border border-snd-red/[19%]">
             {error}
           </div>
         )}
@@ -181,51 +177,39 @@ export default function RegisterPage() {
 
           {/* Full Name */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
               Full Name
             </label>
             <input
               type="text" value={form.name} placeholder="Juan Dela Cruz" required
               onChange={e => field("name", e.target.value)}
               onBlur={() => touch("name")}
-              className="w-full px-4 py-3.5 text-sm focus:outline-none transition-colors"
-              style={{
-                background: BRAND.card,
-                border: `1px solid ${fieldError("name") ? BRAND.red : BRAND.border}`,
-                color: BRAND.black,
-              }}
-              onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+              className={`w-full px-4 py-3.5 text-sm focus:outline-none transition-colors bg-snd-card text-snd-black border focus:border-snd-teal ${fieldError("name") ? "border-snd-red" : "border-snd-border"}`}
             />
             {fieldError("name") && (
-              <p className="text-xs mt-1 font-medium" style={{ color: BRAND.red }}>{fieldError("name")}</p>
+              <p className="text-xs mt-1 font-medium text-snd-red">{fieldError("name")}</p>
             )}
           </div>
 
           {/* Email */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
               Email Address
             </label>
             <input
               type="email" value={form.email} placeholder="juan@email.com" required
               onChange={e => field("email", e.target.value)}
               onBlur={() => touch("email")}
-              className="w-full px-4 py-3.5 text-sm focus:outline-none transition-colors"
-              style={{
-                background: BRAND.card,
-                border: `1px solid ${fieldError("email") ? BRAND.red : BRAND.border}`,
-                color: BRAND.black,
-              }}
-              onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+              className={`w-full px-4 py-3.5 text-sm focus:outline-none transition-colors bg-snd-card text-snd-black border focus:border-snd-teal ${fieldError("email") ? "border-snd-red" : "border-snd-border"}`}
             />
             {fieldError("email") && (
-              <p className="text-xs mt-1 font-medium" style={{ color: BRAND.red }}>{fieldError("email")}</p>
+              <p className="text-xs mt-1 font-medium text-snd-red">{fieldError("email")}</p>
             )}
           </div>
 
           {/* Mobile */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
               Mobile Number
             </label>
             <input
@@ -233,24 +217,18 @@ export default function RegisterPage() {
               onChange={e => handleMobile(e.target.value)}
               onBlur={() => touch("mobile")}
               inputMode="numeric"
-              className="w-full px-4 py-3.5 text-sm focus:outline-none transition-colors"
-              style={{
-                background: BRAND.card,
-                border: `1px solid ${fieldError("mobile") ? BRAND.red : BRAND.border}`,
-                color: BRAND.black,
-              }}
-              onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+              className={`w-full px-4 py-3.5 text-sm focus:outline-none transition-colors bg-snd-card text-snd-black border focus:border-snd-teal ${fieldError("mobile") ? "border-snd-red" : "border-snd-border"}`}
             />
             {fieldError("mobile") ? (
-              <p className="text-xs mt-1 font-medium" style={{ color: BRAND.red }}>{fieldError("mobile")}</p>
+              <p className="text-xs mt-1 font-medium text-snd-red">{fieldError("mobile")}</p>
             ) : (
-              <p className="text-xs mt-1" style={{ color: BRAND.mutedLight }}>11 digits · starts with 09 · numbers only</p>
+              <p className="text-xs mt-1 text-snd-muted-lt">11 digits · starts with 09 · numbers only</p>
             )}
           </div>
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
               Password
             </label>
             <div className="relative">
@@ -259,16 +237,10 @@ export default function RegisterPage() {
                 placeholder="Create a strong password" required
                 onChange={e => field("password", e.target.value)}
                 onBlur={() => touch("password")}
-                className="w-full px-4 py-3.5 pr-12 text-sm focus:outline-none transition-colors"
-                style={{
-                  background: BRAND.card,
-                  border: `1px solid ${BRAND.border}`,
-                  color: BRAND.black,
-                }}
-                onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+                className="w-full px-4 py-3.5 pr-12 text-sm focus:outline-none transition-colors bg-snd-card border border-snd-border text-snd-black focus:border-snd-teal"
               />
               <button type="button" onClick={() => setShowPw(!showPw)}
-                className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-snd-muted">
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
@@ -279,16 +251,14 @@ export default function RegisterPage() {
                 <div className="flex items-center gap-2">
                   <div className="flex-1 flex gap-1">
                     {[1, 2, 3, 4, 5].map(i => (
-                      <div key={i} className="flex-1 h-1 rounded-full transition-all"
-                        style={{ background: i <= pwStrength ? strengthColor : BRAND.border }} />
+                      <div key={i} className={`flex-1 h-1 rounded-full transition-all ${i <= pwStrength ? strengthBgClass : "bg-snd-border"}`} />
                     ))}
                   </div>
-                  <span className="text-xs font-bold" style={{ color: strengthColor }}>{strengthLabel}</span>
+                  <span className={`text-xs font-bold ${strengthTextClass}`}>{strengthLabel}</span>
                 </div>
                 <ul className="space-y-0.5">
                   {PW_RULES.map(r => (
-                    <li key={r.label} className="flex items-center gap-1.5 text-xs"
-                      style={{ color: r.test(form.password) ? BRAND.teal : BRAND.mutedLight }}>
+                    <li key={r.label} className={`flex items-center gap-1.5 text-xs ${r.test(form.password) ? "text-snd-teal" : "text-snd-muted-lt"}`}>
                       {r.test(form.password)
                         ? <Check className="w-3 h-3 shrink-0" />
                         : <X className="w-3 h-3 shrink-0" />}
@@ -302,7 +272,7 @@ export default function RegisterPage() {
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+            <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
               Confirm Password
             </label>
             <div className="relative">
@@ -311,41 +281,33 @@ export default function RegisterPage() {
                 placeholder="Re-enter your password" required
                 onChange={e => field("confirm", e.target.value)}
                 onBlur={() => touch("confirm")}
-                className="w-full px-4 py-3.5 pr-12 text-sm focus:outline-none transition-colors"
-                style={{
-                  background: BRAND.card,
-                  border: `1px solid ${fieldError("confirm") ? BRAND.red : BRAND.border}`,
-                  color: BRAND.black,
-                }}
-                onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
+                className={`w-full px-4 py-3.5 pr-12 text-sm focus:outline-none transition-colors bg-snd-card text-snd-black border focus:border-snd-teal ${fieldError("confirm") ? "border-snd-red" : "border-snd-border"}`}
               />
               <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-snd-muted">
                 {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {fieldError("confirm") && (
-              <p className="text-xs mt-1 font-medium" style={{ color: BRAND.red }}>{fieldError("confirm")}</p>
+              <p className="text-xs mt-1 font-medium text-snd-red">{fieldError("confirm")}</p>
             )}
           </div>
 
           <button type="submit" disabled={loading}
-            className="w-full py-4 font-black text-sm uppercase tracking-widest mt-2 transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ background: BRAND.black, color: BRAND.bg }}>
+            className="w-full py-4 font-black text-sm uppercase tracking-widest mt-2 transition-opacity hover:opacity-90 disabled:opacity-50 bg-snd-black text-snd-bg">
             {loading ? "Creating Account…" : "Create Account"}
           </button>
         </form>
 
         <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px" style={{ background: BRAND.border }} />
-          <span className="text-xs" style={{ color: BRAND.mutedLight }}>or sign up with</span>
-          <div className="flex-1 h-px" style={{ background: BRAND.border }} />
+          <div className="flex-1 h-px bg-snd-border" />
+          <span className="text-xs text-snd-muted-lt">or sign up with</span>
+          <div className="flex-1 h-px bg-snd-border" />
         </div>
 
         <div>
           <button onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 py-3.5 text-sm font-semibold transition-opacity hover:opacity-80"
-            style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black, background: BRAND.card }}>
+            className="w-full flex items-center justify-center gap-3 py-3.5 text-sm font-semibold transition-opacity hover:opacity-80 border-[1.5px] border-snd-border text-snd-black bg-snd-card">
             <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" /><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" /><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" /><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" /></svg>
             Continue with Google
           </button>

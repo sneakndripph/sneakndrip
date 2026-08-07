@@ -4,7 +4,7 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BRAND, FONTS, SITE_URL } from "@/lib/constants";
+import { SITE_URL } from "@/lib/constants";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -46,17 +46,16 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex" style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
+    <div className="min-h-screen flex bg-snd-bg font-body">
       {/* Left panel */}
-      <div className="hidden lg:flex flex-col justify-between w-[45%] p-12"
-        style={{ background: BRAND.black }}>
-        <div className="rounded-md px-3 py-2 inline-block" style={{ background: BRAND.bg }}>
+      <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 bg-snd-black">
+        <div className="rounded-md px-3 py-2 inline-block bg-snd-bg">
           <Image src="/sneakndrip-logo.gif" alt="Sneak N' Drip" width={160} height={64} className="object-contain" />
         </div>
         <div>
-          <h2 className="text-white mb-4" style={{ fontFamily: FONTS.display, fontSize: "3.5rem", letterSpacing: "0.03em", lineHeight: 1 }}>
+          <h2 className="text-white mb-4 font-heading" style={{ fontSize: "3.5rem", letterSpacing: "0.03em", lineHeight: 1 }}>
             AUTHENTIC<br />
-            <span style={{ color: BRAND.teal }}>SNEAKERS</span><br />
+            <span className="text-snd-teal">SNEAKERS</span><br />
             PHILIPPINES
           </h2>
           <p className="text-sm leading-relaxed" style={{ color: "#666" }}>
@@ -80,95 +79,82 @@ function LoginForm() {
             <div className="lg:hidden">
               <Image src="/sneakndrip-logo.gif" alt="Sneak N' Drip" width={160} height={64} className="object-contain" />
             </div>
-            <Link href="/" className="text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-60 flex items-center gap-1"
-              style={{ color: BRAND.muted }}>
+            <Link href="/" className="text-xs font-bold uppercase tracking-widest transition-opacity hover:opacity-60 flex items-center gap-1 text-snd-muted">
               ← Home
             </Link>
           </div>
 
-          <h1 className="mb-2" style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>
+          <h1 className="mb-2 font-heading text-snd-black" style={{ fontSize: "2.5rem", letterSpacing: "0.04em" }}>
             SIGN IN
           </h1>
-          <p className="text-sm mb-8" style={{ color: BRAND.muted }}>
+          <p className="text-sm mb-8 text-snd-muted">
             Welcome back.{" "}
-            <Link href="/register" className="font-bold transition-colors hover:opacity-70"
-              style={{ color: BRAND.teal }}>Create account →</Link>
+            <Link href="/register" className="font-bold transition-colors hover:opacity-70 text-snd-teal">Create account →</Link>
           </p>
 
           {error && (
-            <div className="mb-4 px-4 py-3 rounded text-sm font-medium"
-              style={{ background: `${BRAND.red}12`, color: BRAND.red, border: `1px solid ${BRAND.red}30` }}>
+            <div className="mb-4 px-4 py-3 rounded text-sm font-medium bg-snd-red/[7%] text-snd-red border border-snd-red/[19%]">
               {error}
             </div>
           )}
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
                 Email Address
               </label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="juan@email.com" required
-                className="w-full px-4 py-3.5 text-sm focus:outline-none transition-colors"
-                style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
-                onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)} />
+                className="w-full px-4 py-3.5 text-sm focus:outline-none transition-colors bg-snd-card border border-snd-border text-snd-black focus:border-snd-teal" />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
                 Password
               </label>
               <div className="relative">
                 <input type={showPw ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••" required
-                  className="w-full px-4 py-3.5 pr-12 text-sm focus:outline-none transition-colors"
-                  style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
-                  onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                  onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)} />
+                  className="w-full px-4 py-3.5 pr-12 text-sm focus:outline-none transition-colors bg-snd-card border border-snd-border text-snd-black focus:border-snd-teal" />
                 <button type="button" onClick={() => setShowPw(!showPw)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-snd-muted">
                   {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
             <div className="flex justify-end">
-              <a href="/forgot-password" className="text-xs font-semibold transition-opacity hover:opacity-60"
-                style={{ color: BRAND.muted }}>Forgot password?</a>
+              <a href="/forgot-password" className="text-xs font-semibold transition-opacity hover:opacity-60 text-snd-muted">Forgot password?</a>
             </div>
 
             <button type="submit" disabled={loading}
-              className="w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ background: BRAND.black, color: BRAND.bg }}>
+              className="w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-snd-black text-snd-bg">
               {loading ? "Signing In…" : "Sign In"}
             </button>
           </form>
 
           <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px" style={{ background: BRAND.border }} />
-            <span className="text-xs" style={{ color: BRAND.mutedLight }}>or sign in with</span>
-            <div className="flex-1 h-px" style={{ background: BRAND.border }} />
+            <div className="flex-1 h-px bg-snd-border" />
+            <span className="text-xs text-snd-muted-lt">or sign in with</span>
+            <div className="flex-1 h-px bg-snd-border" />
           </div>
 
           <div className="space-y-3">
             <button onClick={() => handleSocialLogin("google")}
-              className="w-full flex items-center justify-center gap-3 py-3.5 text-sm font-semibold transition-opacity hover:opacity-80"
-              style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black, background: BRAND.card }}>
+              className="w-full flex items-center justify-center gap-3 py-3.5 text-sm font-semibold transition-opacity hover:opacity-80 border-[1.5px] border-snd-border text-snd-black bg-snd-card">
               <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.2l6.8-6.8C35.8 2.4 30.3 0 24 0 14.8 0 6.9 5.4 3 13.3l7.9 6.2C12.8 13.3 17.9 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4 6.1-9.9 7.1-17z"/><path fill="#FBBC05" d="M10.9 28.5A14.5 14.5 0 0 1 9.5 24c0-1.6.3-3.1.8-4.5L2.4 13.3A24 24 0 0 0 0 24c0 3.8.9 7.4 2.4 10.7l8.5-6.2z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.8 2.2-8.4 2.2-6.1 0-11.2-3.8-13.1-9.1l-8.5 6.2C6.9 42.6 14.8 48 24 48z"/></svg>
               Continue with Google
             </button>
           </div>
 
           <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-px" style={{ background: BRAND.border }} />
-            <span className="text-xs" style={{ color: BRAND.mutedLight }}>or</span>
-            <div className="flex-1 h-px" style={{ background: BRAND.border }} />
+            <div className="flex-1 h-px bg-snd-border" />
+            <span className="text-xs text-snd-muted-lt">or</span>
+            <div className="flex-1 h-px bg-snd-border" />
           </div>
 
           <Link href="/register"
-            className="w-full flex items-center justify-center py-4 font-bold text-sm uppercase tracking-widest transition-opacity hover:opacity-70"
-            style={{ border: `1.5px solid ${BRAND.black}`, color: BRAND.black }}>
+            className="w-full flex items-center justify-center py-4 font-bold text-sm uppercase tracking-widest transition-opacity hover:opacity-70 border-[1.5px] border-snd-black text-snd-black">
             Create New Account
           </Link>
         </div>
