@@ -32,6 +32,12 @@
   --ease-out:     cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out:  cubic-bezier(0.45, 0, 0.55, 1);
 
+  /* Motion durations */
+  --dur-fast: 150ms;
+  --dur-base: 250ms;
+  --dur-slow: 400ms;
+  --dur-hero: 600ms;
+
   /* Elevation */
   --shadow-xs:  0 1px 3px rgba(13,13,13,0.05);
   --shadow-sm:  0 2px 8px rgba(13,13,13,0.06);
@@ -148,6 +154,17 @@
   --radius-lg: 0;
   --radius-xl: 0;
   --radius-2xl: 0;
+
+  /* Sneak N' Drip tokens exposed to Tailwind v4 utilities */
+  --color-snd-bg:       var(--snd-bg);
+  --color-snd-card:     var(--snd-card);
+  --color-snd-black:    var(--snd-black);
+  --color-snd-teal:     var(--snd-teal);
+  --color-snd-red:      var(--snd-red);
+  --color-snd-muted:    var(--snd-muted);
+  --color-snd-muted-lt: var(--snd-muted-lt);
+  --color-snd-border:   var(--snd-border);
+  --color-snd-input:    var(--snd-input-bg);
 }
 
 /* ─── Animations ──────────────────────────────────────────────────────── */
@@ -193,7 +210,6 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    border-radius: 0 !important;
   }
 
   body {
@@ -211,15 +227,6 @@
   ::selection {
     background: rgba(91, 184, 180, 0.25);
     color: #0D0D0D;
-  }
-
-  /* Remove default button/input chrome */
-  button, input, textarea, select {
-    border-radius: 0 !important;
-  }
-
-  img {
-    border-radius: 0 !important;
   }
 }
 
@@ -271,4 +278,17 @@
 }
 .brand-card-hover:hover {
   box-shadow: var(--shadow-md);
+}
+
+/* ─── Accessibility ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .page-transition,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-slide-down {
+    animation: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
