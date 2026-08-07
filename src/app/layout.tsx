@@ -62,11 +62,28 @@ export default function RootLayout({
         <ProgressBar />
         {children}
         <Toaster
-          position="bottom-center"
+          position="top-right"
+          gutter={8}
+          containerStyle={{ top: 80, right: 16 }}
+          containerClassName="!left-4 md:!left-auto"
           toastOptions={{
-            duration: 3000,
-            style: { fontFamily: "var(--font-inter), sans-serif", fontSize: "0.875rem" },
-            success: { iconTheme: { primary: "#5BB8B4", secondary: "#fff" } },
+            duration: 3200,
+            style: {
+              background: "var(--snd-black)",
+              color: "var(--snd-bg)",
+              fontFamily: "var(--font-inter), sans-serif",
+              fontSize: "13px",
+              padding: "12px 16px",
+              borderRadius: "0",
+              boxShadow: "var(--shadow-md)",
+              maxWidth: "340px",
+            },
+            success: {
+              iconTheme: { primary: "var(--snd-teal)", secondary: "var(--snd-bg)" },
+            },
+            error: {
+              iconTheme: { primary: "var(--snd-red)", secondary: "var(--snd-bg)" },
+            },
           }}
         />
       </body>

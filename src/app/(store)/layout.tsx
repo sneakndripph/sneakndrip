@@ -5,6 +5,7 @@ import ChatWidget from "@/components/layout/ChatWidget";
 import CartGuard from "@/components/layout/CartGuard";
 import CartSyncer from "@/components/layout/CartSyncer";
 import VisitorTracker from "@/components/layout/VisitorTracker";
+import RouteTransition from "@/components/layout/RouteTransition";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { redirect } from "next/navigation";
 
@@ -22,7 +23,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <CartSyncer />
       <AnnouncementBar />
       <Navbar />
-      <main className="page-transition">{children}</main>
+      <RouteTransition>{children}</RouteTransition>
       <Footer />
       <ChatWidget />
     </div>
