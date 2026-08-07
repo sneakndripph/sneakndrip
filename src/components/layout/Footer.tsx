@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { BRAND, BRANDS, FONTS } from "@/lib/constants";
+import { BRANDS } from "@/lib/constants";
 
 const FOOTER_LINKS = {
   Shop: [
@@ -51,21 +51,17 @@ function TikTokIcon() {
 
 export default function Footer() {
   return (
-    <footer style={{ background: BRAND.black, fontFamily: FONTS.body }}>
+    <footer className="bg-snd-black">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-16 pb-8">
 
         {/* Brands marquee strip */}
-        <div
-          className="overflow-x-auto pb-8 mb-8"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-        >
+        <div className="overflow-x-auto pb-8 mb-8 border-b border-white/6">
           <div className="flex items-center gap-8 min-w-max">
             {BRANDS.map(b => (
               <Link
                 key={b}
                 href={`/shop?brand=${b}`}
-                className="snd-label whitespace-nowrap transition-opacity hover:opacity-60"
-                style={{ color: "rgba(255,255,255,0.15)", fontFamily: FONTS.body }}
+                className="snd-label whitespace-nowrap transition-opacity hover:opacity-60 text-white/15"
               >
                 {b}
               </Link>
@@ -74,8 +70,7 @@ export default function Footer() {
         </div>
 
         {/* Main grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-12"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-12 border-b border-white/6">
 
           {/* Brand column */}
           <div className="col-span-2 md:col-span-1">
@@ -88,10 +83,7 @@ export default function Footer() {
                 className="object-contain"
               />
             </div>
-            <p
-              className="text-sm leading-relaxed mb-6"
-              style={{ color: "rgba(255,255,255,0.3)" }}
-            >
+            <p className="text-sm leading-relaxed mb-6 text-white/30">
               Philippines&apos; trusted source for 100% authentic sneakers. On hand and pre-order.
             </p>
             <div className="flex gap-3">
@@ -105,14 +97,8 @@ export default function Footer() {
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-9 h-9 flex items-center justify-center transition-all hover:opacity-80"
-                  style={{
-                    background: "rgba(255,255,255,0.07)",
-                    color: "rgba(255,255,255,0.5)",
-                  }}
+                  className="w-9 h-9 flex items-center justify-center transition-all hover:opacity-80 bg-white/7 hover:bg-white/12 text-white/50"
                   aria-label={name}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
                 >
                   <Icon />
                 </a>
@@ -123,10 +109,7 @@ export default function Footer() {
           {/* Link columns */}
           {Object.entries(FOOTER_LINKS).map(([heading, links]) => (
             <div key={heading}>
-              <h4
-                className="snd-label mb-5"
-                style={{ color: "rgba(255,255,255,0.5)" }}
-              >
+              <h4 className="snd-label mb-5 text-white/50">
                 {heading}
               </h4>
               <ul className="space-y-3">
@@ -134,10 +117,7 @@ export default function Footer() {
                   <li key={l.href}>
                     <Link
                       href={l.href}
-                      className="text-sm transition-colors"
-                      style={{ color: "rgba(255,255,255,0.3)" }}
-                      onMouseEnter={e => (e.currentTarget.style.color = BRAND.teal)}
-                      onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
+                      className="text-sm transition-colors text-white/30 hover:text-snd-teal"
                     >
                       {l.label}
                     </Link>
@@ -149,26 +129,15 @@ export default function Footer() {
         </div>
 
         {/* Payment methods */}
-        <div
-          className="py-7"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-        >
-          <p
-            className="snd-label mb-4"
-            style={{ color: "rgba(255,255,255,0.2)", fontFamily: FONTS.body }}
-          >
+        <div className="py-7 border-b border-white/6">
+          <p className="snd-label mb-4 text-white/20">
             We Accept
           </p>
           <div className="flex flex-wrap gap-2">
             {["GCash", "Maya", "Bank Transfer", "Cash on Delivery"].map(m => (
               <span
                 key={m}
-                className="text-xs font-semibold px-3 py-1.5"
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  color: "rgba(255,255,255,0.3)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                }}
+                className="text-xs font-semibold px-3 py-1.5 bg-white/5 text-white/30 border border-white/6"
               >
                 {m}
               </span>
@@ -178,10 +147,10 @@ export default function Footer() {
 
         {/* Bottom row */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6">
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
+          <p className="text-xs text-white/20">
             © 2025 Sneak N&apos; Drip. All Rights Reserved.
           </p>
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.15)" }}>
+          <p className="text-xs text-white/15">
             100% Authentic &nbsp;·&nbsp; Philippines-wide Shipping
           </p>
           <div className="flex gap-5">
@@ -192,10 +161,7 @@ export default function Footer() {
               <Link
                 key={l.label}
                 href={l.href}
-                className="text-xs transition-colors"
-                style={{ color: "rgba(255,255,255,0.2)" }}
-                onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}
-                onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.2)")}
+                className="text-xs transition-colors text-white/20 hover:text-white/50"
               >
                 {l.label}
               </Link>
