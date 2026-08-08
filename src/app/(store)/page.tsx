@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BRANDS } from "@/lib/constants";
 import ProductCard from "@/components/product/ProductCard";
 import HomeClient from "@/components/home/HomeClient";
 import HomeReviews from "@/components/home/HomeReviews";
-import HeroAddToCart from "@/components/product/HeroAddToCart";
 import HeroProductImage from "@/components/product/HeroProductImage";
+import { getProducts, getReviews, getSettings } from "@/lib/supabase/products";
 
 export const dynamic = "force-dynamic";
-import { getProducts, getReviews, getSettings } from "@/lib/supabase/products";
 
 export const metadata: Metadata = {
   title: "Sneak N' Drip — Authentic Sneakers Philippines",
@@ -21,21 +19,20 @@ export const metadata: Metadata = {
 };
 
 const HERO_DEFAULTS = {
-  hero_badge: "New Drops Every Week",
-  hero_line1: "STEP INTO",
-  hero_line2: "YOUR NEXT",
-  hero_line3: "PAIR",
-  hero_subtitle: "100% Authentic Sneakers · On Hand & Pre-Order\nShips Philippines-wide. GCash, Maya, Bank Transfer & COD accepted.",
-  hero_cta_primary: "Shop Now",
-  hero_cta_secondary: "Pre-Orders",
+  hero_badge: "This week from Harajuku",
+  hero_line1: "Nike P-6000",
+  hero_line2: "'Bini'",
+  hero_line3: "is on the floor",
+  hero_subtitle: "Sourced last Tuesday. Below SRP.\nThree sizes remaining.",
+  hero_cta_primary: "Shop the drop",
+  hero_cta_secondary: "Journal entry",
 };
 
 export default async function HomePage() {
   const [products, reviews, settings] = await Promise.all([getProducts(), getReviews(), getSettings()]);
   const newArrivals = [...products]
     .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
-    .slice(0, 5);
-  const onHand = products.filter(p => p.status === "on-hand").slice(0, 6);
+    .slice(0, 8);
   const trending = products.filter(p => p.is_trending).slice(0, 4);
   const featured = products.find(p => p.is_featured && p.status === "on-hand") ?? products[0];
   const productSlugMap = new Map(products.map(p => [p.id, p.slug]));
@@ -52,118 +49,39 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden flex items-center bg-snd-bg min-h-[94vh]">
-        {/* Tonal grain — very subtle */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `
-              radial-gradient(ellipse 80% 60% at 70% 50%, #5BB8B408 0%, transparent 70%),
-              radial-gradient(ellipse 40% 40% at 10% 80%, #0D0D0D04 0%, transparent 60%)
-            `,
-          }}
-        />
-
-        <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 w-full py-24">
-          <div className="grid lg:grid-cols-[1fr_420px] gap-20 items-center">
-
-            {/* Left — editorial text */}
-            <div>
-              <div className="snd-label inline-block mb-10 text-snd-teal">
-                {hero.badge}
-              </div>
-
-              <h1
-                className="font-heading text-snd-black leading-[0.92] tracking-[0.02em]"
-                style={{ fontSize: "var(--text-display-xl)" }}
-              >
-                {hero.line1}
-                <span className="block text-snd-teal">{hero.line2}</span>
-                <span className="block">{hero.line3}</span>
+      {/* ── Hero — editorial split ───────────────────────────────────── */}
+      <section className="bg-paper">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24">
+          <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:gap-16 lg:items-center">
+            <div className="flex flex-col justify-center">
+              <p className="text-eyebrow text-ink-3 mb-6">{hero.badge}</p>
+              <h1 className="text-display lg:text-display-l text-ink font-display font-medium leading-[0.95] tracking-[-0.03em] mb-6">
+                {hero.line1}<br />
+                {hero.line2 && <>{hero.line2}<br /></>}
+                {hero.line3}
               </h1>
-
-              <p className="mt-8 text-lg leading-relaxed max-w-lg text-snd-muted">
+              <p className="text-body-sm lg:text-body text-ink-2 max-w-md mb-8">
                 {hero.subtitle[0]}
-                {hero.subtitle[1] && (
-                  <>
-                    <br />
-                    <span className="text-sm mt-1 block text-snd-muted-lt">
-                      {hero.subtitle[1]}
-                    </span>
-                  </>
-                )}
               </p>
-
-              <div className="flex flex-wrap gap-3 mt-10">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Link
                   href="/shop"
-                  className="font-bold text-sm px-10 py-4 transition-opacity hover:opacity-85 active:scale-[0.98] uppercase tracking-widest bg-snd-black text-snd-bg"
+                  className="inline-flex items-center justify-center bg-ink text-paper text-body-sm font-medium px-6 py-3 rounded-md hover:bg-ink-2 transition-colors duration-fast active:scale-[0.98]"
                 >
                   {hero.ctaPrimary}
                 </Link>
                 <Link
-                  href="/shop?filter=pre-order"
-                  className="font-bold text-sm px-10 py-4 transition-opacity hover:opacity-70 uppercase tracking-widest border-[1.5px] border-snd-black text-snd-black bg-transparent"
+                  href="/authenticity"
+                  className="inline-flex items-center justify-center bg-transparent text-ink border border-ink text-body-sm font-medium px-6 py-3 rounded-md hover:bg-ink hover:text-paper transition-colors duration-fast"
                 >
                   {hero.ctaSecondary}
                 </Link>
               </div>
-
-              {/* Stats */}
-              <div className="flex flex-wrap gap-8 sm:gap-12 mt-16 pt-12 border-t border-snd-border">
-                {[
-                  ["Since 2020", "Trusted Shop"],
-                  ["1,900+", "Verified Reviews"],
-                  ["4.9 ★", "Shopee Rating"],
-                ].map(([v, l]) => (
-                  <div key={l}>
-                    <p className="font-heading tracking-[0.03em] text-snd-black leading-none text-[2.4rem]">
-                      {v}
-                    </p>
-                    <p className="snd-label mt-1.5 text-snd-muted-lt">
-                      {l}
-                    </p>
-                  </div>
-                ))}
-              </div>
             </div>
 
-            {/* Right — featured product */}
             {featured && (
-              <div className="hidden lg:block">
-                <div
-                  className="overflow-hidden bg-snd-card border border-snd-border"
-                  style={{ boxShadow: "var(--shadow-xl)" }}
-                >
-                  {/* Header */}
-                  <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-snd-border">
-                    <span className="snd-label px-2.5 py-1 bg-snd-teal/[8%] text-snd-teal">
-                      On Hand
-                    </span>
-                    <span className="text-xs font-semibold text-snd-muted">
-                      {featured.brand}
-                    </span>
-                  </div>
-
-                  {/* Product image */}
-                  <div
-                    className="aspect-square mx-5 mt-4 mb-3 overflow-hidden relative"
-                    style={{ background: featured.bg || "#F2F0EF" }}
-                  >
-                    <HeroProductImage product={featured} />
-                  </div>
-
-                  {/* Info + Add to Cart */}
-                  <HeroAddToCart product={featured} />
-                </div>
-
-                {/* Below SRP badge */}
-                <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-snd-red">
-                  <span className="font-heading text-white tracking-[0.12em] text-[0.8rem]">
-                    BELOW SRP
-                  </span>
-                </div>
+              <div className="bg-paper-2 aspect-square rounded-md overflow-hidden flex items-center justify-center relative">
+                <HeroProductImage product={featured} />
               </div>
             )}
           </div>
@@ -171,175 +89,76 @@ export default async function HomePage() {
       </section>
 
       {/* ── Editorial context bar ────────────────────────────────────── */}
-      <div className="border-y border-snd-border bg-snd-bg">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-snd-muted tracking-[0.08em] uppercase">
+      <div className="bg-paper border-y border-line">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-micro text-ink-3">
             <span>Sourced weekly — Tokyo, Seoul, Hong Kong</span>
-            <span>Every pair verified on the floor</span>
-            <span className="hidden md:inline">Ships nationwide from Rizal</span>
+            <span className="hidden md:inline">Every pair verified on the floor</span>
+            <span>Ships nationwide from Rizal</span>
           </div>
         </div>
       </div>
 
-      {/* ── Brand Strip ────────────────────────────────────────────────── */}
-      <div className="border-y border-snd-border bg-snd-bg">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-5 overflow-x-auto">
-          <div className="flex items-center gap-8 min-w-max sm:min-w-0 sm:justify-between flex-nowrap sm:flex-wrap">
-            {BRANDS.map(b => (
-              <Link
-                key={b}
-                href={`/shop?brand=${b}`}
-                className="snd-label whitespace-nowrap text-snd-muted-lt hover:text-snd-black transition-colors"
-                style={{ letterSpacing: "0.14em" }}
-              >
-                {b}
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── New Arrivals ───────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
-        <div className="flex items-end justify-between mb-12">
+      {/* ── New This Week ────────────────────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24">
+        <div className="flex items-end justify-between mb-8 lg:mb-12">
           <div>
-            <p className="snd-label mb-3 text-snd-muted-lt">
-              Just Landed
-            </p>
-            <h2 className="font-heading tracking-[0.04em] text-snd-black leading-none text-[length:var(--text-display-md)]">
-              NEW ARRIVALS
+            <p className="text-eyebrow text-ink-3 mb-2">New this week</p>
+            <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-tight tracking-[-0.02em]">
+              Just landed
             </h2>
           </div>
-          <Link
-            href="/shop?sort=newest"
-            className="text-sm font-semibold transition-opacity hover:opacity-60 pb-1 text-snd-muted"
-          >
-            View All →
+          <Link href="/shop?sort=newest" className="text-micro text-ink-3 hover:text-ink transition-colors">
+            View all →
           </Link>
         </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-5">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
           {newArrivals.map(p => (
             <ProductCard key={p.id} product={p} />
           ))}
         </div>
       </section>
 
-      {/* ── Divider ────────────────────────────────────────────────────── */}
-      <div className="h-px bg-snd-border" />
-
-      {/* ── On Hand ────────────────────────────────────────────────────── */}
-      {onHand.length > 0 && (
-        <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
-          <div className="flex items-end justify-between mb-12">
-            <div>
-              <p className="snd-label mb-3 text-snd-teal">
-                Ships Immediately
-              </p>
-              <h2 className="font-heading tracking-[0.04em] text-snd-black leading-none text-[length:var(--text-display-md)]">
-                ON HAND
-              </h2>
-            </div>
-            <Link
-              href="/shop?filter=on-hand"
-              className="text-sm font-semibold transition-opacity hover:opacity-60 pb-1 text-snd-muted"
-            >
-              View All →
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
-            {onHand.map(p => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Pre-Order Banner ───────────────────────────────────────────── */}
-      <section className="bg-snd-black">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-
-            <div>
-              <p className="snd-label mb-5 text-snd-teal">
-                Flexible Payment
-              </p>
-              <h2 className="font-heading tracking-[0.03em] leading-[0.95] text-snd-bg text-[length:var(--text-display-md)]">
-                PRE-ORDER &<br />PAY LATER
-              </h2>
-              <p className="text-sm leading-relaxed mt-6 mb-10 max-w-sm text-white/40">
-                Reserve your pair before it sells out. Pay a downpayment now — settle the balance when it arrives. ETA dates always provided.
-              </p>
-
-              <div className="flex flex-wrap gap-6 sm:gap-8 mb-10">
-                {[
-                  { label: "SRP",          price: "₱10,295", dim: true },
-                  { label: "Downpayment",  price: "₱9,490",  color: "#5BB8B4" },
-                  { label: "Full Payment", price: "₱9,000",  color: "#D94F3D" },
-                ].map(t => (
-                  <div key={t.label}>
-                    <p
-                      className="font-heading tracking-[0.02em] leading-none text-[1.6rem]"
-                      style={{ color: t.color ?? "#444", textDecoration: t.dim ? "line-through" : "none" }}
-                    >
-                      {t.price}
-                    </p>
-                    <p className="snd-label mt-1.5 text-[#444]">
-                      {t.label}
-                    </p>
-                  </div>
-                ))}
+      {/* ── From The Buying Floor ────────────────────────────────────── */}
+      <section className="bg-paper-2">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24">
+          <div className="grid gap-10 lg:grid-cols-[1fr_1.4fr] lg:gap-16 lg:items-center">
+            <div className="relative aspect-[4/5] bg-paper-3 rounded-md overflow-hidden order-2 lg:order-1">
+              <div className="absolute inset-0 flex items-center justify-center text-ink-3 text-eyebrow">
+                Founder photo — Harajuku 2026
               </div>
-
-              <Link
-                href="/shop?filter=pre-order"
-                className="inline-block px-8 py-4 text-sm font-bold uppercase tracking-widest transition-opacity hover:opacity-80 bg-snd-teal text-snd-black"
-              >
-                Browse Pre-Orders
-              </Link>
             </div>
-
-            {/* Steps */}
-            <div>
-              {[
-                { n: "01", t: "Browse available pre-orders" },
-                { n: "02", t: "Leave a downpayment via GCash or Bank Transfer" },
-                { n: "03", t: "Upload your proof of payment" },
-                { n: "04", t: "Receive confirmation + ETA notification" },
-              ].map(({ n, t }, i, arr) => (
-                <div
-                  key={n}
-                  className={`flex items-center gap-5 py-5 ${i < arr.length - 1 ? "border-b border-white/6" : ""}`}
-                >
-                  <span className="font-heading tracking-[0.04em] text-snd-teal shrink-0 text-[1.2rem]">
-                    {n}
-                  </span>
-                  <span className="text-sm leading-relaxed text-white/[53%]">
-                    {t}
-                  </span>
-                </div>
-              ))}
+            <div className="order-1 lg:order-2">
+              <p className="text-eyebrow text-ink-3 mb-4">From the buying floor</p>
+              <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-[1.1] tracking-[-0.02em] mb-6 max-w-lg">
+                Every pair picked in person.
+              </h2>
+              <p className="text-body-sm lg:text-body text-ink-2 leading-relaxed max-w-md mb-3">
+                This week&apos;s pickups came from four days walking Harajuku, Shinjuku, and Shibuya.
+              </p>
+              <p className="text-body-sm text-ink-2 leading-relaxed max-w-md mb-8">
+                Every pair verified in person. Boxes checked, receipts kept, photos on file. That&apos;s the only way we source.
+              </p>
+              <p className="text-micro italic text-ink-3 mb-8">— Juls, founder</p>
+              <Link href="/authenticity" className="text-eyebrow text-ink border-b border-ink pb-1 hover:opacity-60 transition-opacity">
+                Our verification process →
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Trending ─────────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
-        <div className="flex items-end justify-between mb-12">
+      {/* ── Trending ──────────────────────────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24 border-t border-line">
+        <div className="flex items-end justify-between mb-8 lg:mb-12">
           <div>
-            <p className="snd-label mb-3 text-snd-muted-lt">
-              This Week
-            </p>
-            <h2 className="font-heading tracking-[0.04em] text-snd-black leading-none text-[length:var(--text-display-md)]">
-              TRENDING
+            <p className="text-eyebrow text-ink-3 mb-2">Trending</p>
+            <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-tight tracking-[-0.02em]">
+              What&apos;s moving
             </h2>
           </div>
-          <Link
-            href="/shop?filter=trending"
-            className="text-sm font-semibold transition-opacity hover:opacity-60 pb-1 text-snd-muted"
-          >
-            View All →
+          <Link href="/shop?filter=trending" className="text-micro text-ink-3 hover:text-ink transition-colors">
+            View all →
           </Link>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
@@ -349,58 +168,19 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── From The Buying Floor ────────────────────────────────────── */}
-      <section className="bg-snd-bg">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
-          <div className="grid lg:grid-cols-[1fr_1.5fr] gap-16 items-center">
-            <div className="relative aspect-[4/5] bg-snd-card">
-              {/* Founder photo placeholder — replace src with real photo later */}
-              <div className="absolute inset-0 flex items-center justify-center text-snd-muted-lt text-xs tracking-[0.14em] uppercase">
-                [ Founder photo — Harajuku, 2026 ]
-              </div>
-            </div>
-            <div>
-              <p className="snd-label mb-6 text-snd-teal">From the buying floor</p>
-              <h2
-                className="font-heading text-snd-black leading-[0.95] tracking-[0.02em]"
-                style={{ fontSize: "var(--text-display-lg)" }}
-              >
-                EVERY PAIR<br />PICKED<br />IN PERSON.
-              </h2>
-              <p className="mt-8 text-base leading-relaxed text-snd-muted max-w-md">
-                This week&apos;s pickups came from four days walking Harajuku, Shinjuku,
-                and Shibuya. Every pair verified before it left the shelf — boxes
-                checked, receipts kept, photos on file.
-              </p>
-              <p className="mt-2 text-sm text-snd-muted-lt italic">— Juls, founder</p>
-              <Link
-                href="/authenticity"
-                className="inline-block mt-10 snd-label text-snd-teal border-b border-snd-teal pb-1 hover:opacity-60 transition-opacity"
-              >
-                Our verification process →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Customer Reviews ───────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
-        <div className="flex items-end justify-between mb-12">
-          <div>
-            <p className="snd-label mb-3 text-snd-muted-lt">
-              Real Buyers
-            </p>
-            <h2 className="font-heading tracking-[0.04em] text-snd-black leading-none text-[length:var(--text-display-md)]">
-              WHAT THEY&apos;RE SAYING
-            </h2>
-          </div>
+      {/* ── Reviews ───────────────────────────────────────────────────── */}
+      <section className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24 border-t border-line">
+        <div className="mb-8 lg:mb-12">
+          <p className="text-eyebrow text-ink-3 mb-2">Real buyers</p>
+          <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-tight tracking-[-0.02em]">
+            What they&apos;re saying
+          </h2>
         </div>
 
         <HomeReviews reviews={reviews} productSlugMap={productSlugMap} />
       </section>
 
-      {/* ── Newsletter ─────────────────────────────────────────────────── */}
+      {/* ── Newsletter ────────────────────────────────────────────────── */}
       <HomeClient />
     </>
   );
