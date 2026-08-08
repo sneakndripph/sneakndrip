@@ -136,15 +136,15 @@ export default function ChatWidget() {
     <div className="fixed bottom-6 right-5 z-[60] flex flex-col items-end gap-3 font-body">
       {/* Chat window */}
       {step !== "closed" && (
-        <div className="rounded-2xl overflow-hidden shadow-2xl flex flex-col bg-snd-card border border-snd-border"
+        <div className="rounded-md overflow-hidden shadow-2xl flex flex-col bg-paper border border-line"
           style={{ width: 340, height: 480 }}>
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 shrink-0 bg-snd-black">
+          <div className="flex items-center justify-between px-4 py-3 shrink-0 bg-ink">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-400" />
-              <span className="font-bold text-sm text-white">Sneak N&apos; Drip Support</span>
+              <div className="w-2 h-2 rounded-full bg-state-onhand" />
+              <span className="text-body-sm font-medium text-paper">Sneak N&apos; Drip Support</span>
             </div>
-            <button onClick={() => setStep("closed")} className="text-white opacity-60 hover:opacity-100">
+            <button onClick={() => setStep("closed")} className="text-paper opacity-60 hover:opacity-100">
               <ChevronDown className="w-4 h-4" />
             </button>
           </div>
@@ -152,37 +152,37 @@ export default function ChatWidget() {
           {/* Form step */}
           {step === "form" && (
             <form onSubmit={handleStart} className="flex flex-col flex-1 p-4 gap-3 overflow-y-auto">
-              <div className="p-3 rounded-xl text-sm leading-relaxed bg-snd-teal/[7%] text-snd-black">
+              <div className="p-3 rounded-md text-body-sm leading-relaxed bg-paper-2 text-ink-2">
                 Hi! We&apos;re here to help. Send us a message and we&apos;ll reply ASAP!
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wide mb-1 text-snd-muted">
-                  Name <span className="text-snd-red">*</span>
+                <label className="block text-micro font-medium uppercase tracking-wide mb-1 text-ink-3">
+                  Name <span className="text-state-error">*</span>
                 </label>
                 <input value={name} onChange={e => setName(e.target.value)} required
                   placeholder="Your name"
                   readOnly={!!authedName}
-                  className={`w-full px-3 py-2.5 text-sm focus:outline-none text-snd-black border ${authedName ? "bg-snd-teal/[3%] border-snd-teal/[25%]" : "bg-snd-bg border-snd-border"}`} />
+                  className={`w-full px-3 py-2.5 text-body-sm focus:outline-none text-ink rounded-md border ${authedName ? "bg-paper-2 border-line-strong" : "bg-paper-2 border-line"}`} />
               </div>
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wide mb-1 text-snd-muted">
+                <label className="block text-micro font-medium uppercase tracking-wide mb-1 text-ink-3">
                   Email
                 </label>
                 <input value={email} onChange={e => setEmail(e.target.value)}
                   type="email" placeholder="Email (optional)"
                   readOnly={!!authedEmail}
-                  className={`w-full px-3 py-2.5 text-sm focus:outline-none text-snd-black border ${authedEmail ? "bg-snd-teal/[3%] border-snd-teal/[25%]" : "bg-snd-bg border-snd-border"}`} />
+                  className={`w-full px-3 py-2.5 text-body-sm focus:outline-none text-ink rounded-md border ${authedEmail ? "bg-paper-2 border-line-strong" : "bg-paper-2 border-line"}`} />
               </div>
               <div className="flex-1 flex flex-col">
-                <label className="block text-[10px] font-bold uppercase tracking-wide mb-1 text-snd-muted">
-                  Message <span className="text-snd-red">*</span>
+                <label className="block text-micro font-medium uppercase tracking-wide mb-1 text-ink-3">
+                  Message <span className="text-state-error">*</span>
                 </label>
                 <textarea value={input} onChange={e => setInput(e.target.value)} required rows={3}
                   placeholder="How can we help you?"
-                  className="px-3 py-2.5 text-sm focus:outline-none resize-none flex-1 bg-snd-bg border border-snd-border text-snd-black" />
+                  className="px-3 py-2.5 text-body-sm focus:outline-none resize-none flex-1 bg-paper-2 border border-line rounded-md text-ink" />
               </div>
               <button type="submit" disabled={starting}
-                className="flex items-center justify-center gap-2 py-3 font-bold text-sm uppercase tracking-wide disabled:opacity-50 bg-snd-teal text-white">
+                className="flex items-center justify-center gap-2 py-3 rounded-md text-body-sm font-medium uppercase tracking-wide disabled:opacity-50 bg-ink text-paper hover:bg-ink-2 transition-colors">
                 <Send className="w-4 h-4" />
                 {starting ? "Starting…" : "Start Chat"}
               </button>
@@ -194,12 +194,12 @@ export default function ChatWidget() {
             <>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {messages.length === 0 && (
-                  <p className="text-xs text-center text-snd-muted-lt">No messages yet.</p>
+                  <p className="text-micro text-center text-ink-3">No messages yet.</p>
                 )}
                 {messages.map(m => (
                   <div key={m.id} className={`flex ${m.sender_type === "customer" ? "justify-end" : "justify-start"}`}>
-                    <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
-                      m.sender_type === "customer" ? "bg-snd-teal text-white" : "bg-snd-bg text-snd-black border border-snd-border"
+                    <div className={`max-w-[80%] px-3 py-2 rounded-md text-body-sm leading-relaxed ${
+                      m.sender_type === "customer" ? "bg-ink text-paper" : "bg-paper-2 text-ink border border-line"
                     }`}
                       style={{
                         borderBottomRightRadius: m.sender_type === "customer" ? 4 : undefined,
@@ -211,12 +211,12 @@ export default function ChatWidget() {
                 ))}
                 <div ref={bottomRef} />
               </div>
-              <form onSubmit={handleSend} className="flex gap-2 p-3 shrink-0 border-t border-snd-border">
+              <form onSubmit={handleSend} className="flex gap-2 p-3 shrink-0 border-t border-line">
                 <input value={input} onChange={e => setInput(e.target.value)}
                   placeholder="Type a message…"
-                  className="flex-1 px-3 py-2 text-sm focus:outline-none bg-snd-bg border border-snd-border text-snd-black" />
+                  className="flex-1 px-3 py-2 text-body-sm focus:outline-none bg-paper-2 border border-line rounded-md text-ink" />
                 <button type="submit" disabled={sending || !input.trim()}
-                  className="px-3 py-2 disabled:opacity-40 transition-opacity hover:opacity-80 bg-snd-teal text-white">
+                  className="px-3 py-2 rounded-md disabled:opacity-40 transition-opacity hover:opacity-80 bg-ink text-paper">
                   <Send className="w-4 h-4" />
                 </button>
               </form>
@@ -227,14 +227,14 @@ export default function ChatWidget() {
 
       {/* FAB */}
       <button onClick={() => step === "closed" ? open() : setStep("closed")}
-        className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-105 relative bg-snd-teal">
+        className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-105 relative bg-ink">
         {step === "closed" ? (
-          <MessageCircle className="w-6 h-6 text-white" />
+          <MessageCircle className="w-6 h-6 text-paper" />
         ) : (
-          <X className="w-6 h-6 text-white" />
+          <X className="w-6 h-6 text-paper" />
         )}
         {unread && (
-          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-black text-white flex items-center justify-center bg-snd-red">!</span>
+          <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-medium text-paper flex items-center justify-center bg-state-error">!</span>
         )}
       </button>
     </div>

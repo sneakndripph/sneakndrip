@@ -18,7 +18,7 @@ export default async function RootPage() {
   const { data } = await admin.from("store_settings").select("value").eq("key", "maintenance_mode").maybeSingle();
   if (data?.value === "true") redirect("/maintenance");
   return (
-    <div className="bg-snd-bg min-h-screen">
+    <div className="bg-paper min-h-screen">
       <AnnouncementBar />
       <Navbar />
       <main>
