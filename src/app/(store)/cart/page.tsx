@@ -13,37 +13,37 @@ import type { Product } from "@/lib/types";
 function TopProducts({ products }: { products: Product[] }) {
   if (!products.length) return null;
   return (
-    <section className="mt-16 pt-12 border-t border-snd-border">
+    <section className="mt-16 pt-12 border-t border-line">
       <div className="flex items-end justify-between mb-8">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-1 text-snd-teal">You Might Also Like</p>
-          <h2 className="font-heading tracking-[0.04em] text-[2rem] text-snd-black">TOP PICKS</h2>
+          <p className="text-eyebrow text-ink-3 mb-1">You Might Also Like</p>
+          <h2 className="text-display-s text-ink font-display font-medium">Top picks</h2>
         </div>
-        <Link href="/shop" className="text-sm font-semibold transition-opacity hover:opacity-60 text-snd-black">
+        <Link href="/shop" className="text-body-sm text-ink-2 transition-colors hover:text-ink">
           View All →
         </Link>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {products.map(p => (
           <Link key={p.id} href={`/shop/${p.slug}`} className="group block">
-            <div className={`aspect-square overflow-hidden mb-3 relative flex items-center justify-center transition-transform group-hover:scale-[1.02] border border-snd-border ${!p.bg ? "bg-snd-bg" : ""}`}
+            <div className={`aspect-square overflow-hidden mb-3 relative flex items-center justify-center rounded-md transition-transform duration-slow ease-smooth group-hover:scale-[1.02] border border-line ${!p.bg ? "bg-paper-2" : ""}`}
               style={p.bg ? { background: p.bg } : undefined}>
               {p.images?.[0] ? (
                 <Image src={p.images[0]} alt={p.name} fill className="object-cover object-center" sizes="300px" />
               ) : (
-                <span className="font-heading text-[3rem] text-snd-black opacity-[0.06]">
+                <span className="font-display text-ink opacity-5 text-[3rem]">
                   {p.brand.charAt(0)}
                 </span>
               )}
               <div className="absolute top-2 left-2">
-                <span className={`text-[9px] font-black uppercase px-2 py-0.5 text-white ${p.status === "pre-order" ? "bg-snd-red" : "bg-snd-teal"}`}>
+                <span className="bg-paper border border-line text-eyebrow px-2 py-0.5 rounded-sm text-ink-3">
                   {p.status === "pre-order" ? "Pre-Order" : "On Hand"}
                 </span>
               </div>
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5 text-snd-muted">{p.brand}</p>
-            <p className="text-sm font-semibold leading-snug mb-1 text-snd-black">{p.name}</p>
-            <p className="font-black font-heading text-[1.1rem] text-snd-black">
+            <p className="text-eyebrow text-ink-3 mb-0.5">{p.brand}</p>
+            <p className="text-body-sm text-ink leading-snug mb-1">{p.name}</p>
+            <p className="text-body-sm font-medium text-ink">
               ₱{p.full_payment_price.toLocaleString()}
             </p>
           </Link>
@@ -109,16 +109,18 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="bg-snd-bg font-body min-h-[80vh]">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-24">
+      <div className="bg-paper min-h-[80vh]">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-24">
           <div className="flex flex-col items-center justify-center mb-16">
-            <ShoppingBag className="w-16 h-16 mb-5 text-snd-muted-lt" />
-            <h2 className="font-heading tracking-[0.04em] text-[2.5rem] text-snd-black">
-              YOUR CART IS EMPTY
+            <div className="w-20 h-20 rounded-full bg-paper-2 flex items-center justify-center mb-5">
+              <ShoppingBag className="w-8 h-8 text-ink-3" />
+            </div>
+            <h2 className="text-display-s text-ink font-display font-medium">
+              Your cart is empty
             </h2>
-            <p className="text-sm mt-2 mb-8 text-snd-muted">Looks like you haven't added anything yet.</p>
+            <p className="text-body-sm text-ink-3 mt-2 mb-8">Looks like you haven&apos;t added anything yet.</p>
             <Link href="/shop"
-              className="px-8 py-4 font-bold text-sm uppercase tracking-widest transition-opacity hover:opacity-80 bg-snd-black text-snd-bg">
+              className="px-8 py-3.5 rounded-md text-body-sm font-medium transition-colors bg-ink text-paper hover:bg-ink-2">
               Start Shopping
             </Link>
           </div>
@@ -129,12 +131,12 @@ export default function CartPage() {
   }
 
   return (
-    <div className="bg-snd-bg font-body min-h-[80vh]">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12">
+    <div className="bg-paper min-h-[80vh]">
+      <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-12">
         <div className="mb-10">
-          <p className="snd-label mb-3 text-snd-muted-lt">Checkout</p>
-          <h1 className="font-heading tracking-[0.04em] leading-none text-snd-black text-[length:var(--text-display-sm)]">
-            YOUR CART
+          <p className="text-eyebrow text-ink-3 mb-3">Checkout</p>
+          <h1 className="text-display text-ink font-display leading-tight tracking-[-0.03em]">
+            Your cart
           </h1>
         </div>
 
@@ -144,8 +146,8 @@ export default function CartPage() {
             <div className="flex items-center justify-between pb-2">
               <button
                 onClick={() => setSelected(allSelected ? new Set() : new Set(items.map(i => itemKey(i.product.id, i.size))))}
-                className="flex items-center gap-1.5 text-xs font-bold transition-opacity hover:opacity-70 text-snd-muted">
-                {allSelected ? <CheckSquare className="w-4 h-4 text-snd-teal" /> : <Square className="w-4 h-4" />}
+                className="flex items-center gap-1.5 text-body-sm text-ink-3 transition-colors hover:text-ink">
+                {allSelected ? <CheckSquare className="w-4 h-4 text-ink" /> : <Square className="w-4 h-4" />}
                 {allSelected ? "Deselect All" : "Select All"}
               </button>
               {selected.size > 0 && (
@@ -154,7 +156,7 @@ export default function CartPage() {
                     removeItems(items.filter(i => selected.has(itemKey(i.product.id, i.size))).map(i => ({ productId: i.product.id, size: i.size })));
                     setSelected(new Set());
                   }}
-                  className="flex items-center gap-1.5 text-xs font-bold transition-opacity hover:opacity-70 text-[#EF4444]">
+                  className="flex items-center gap-1.5 text-body-sm text-state-error transition-opacity hover:opacity-70">
                   <Trash2 className="w-3.5 h-3.5" />
                   Delete Selected ({selected.size})
                 </button>
@@ -166,23 +168,23 @@ export default function CartPage() {
               const isPreOrder = item.product.status === "pre-order";
               return (
               <div key={key}
-                className={`p-5 flex gap-5 transition-opacity bg-snd-card border-[1.5px] ${isSelected ? "border-snd-teal opacity-100" : "border-snd-border opacity-60"}`}>
+                className={`p-4 flex gap-4 rounded-md transition-opacity bg-paper border ${isSelected ? "border-ink opacity-100" : "border-line opacity-60"}`}>
                 {/* Checkbox */}
                 <button
                   onClick={() => setSelected(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; })}
                   className="shrink-0 self-start mt-0.5">
                   {isSelected
-                    ? <CheckSquare className="w-5 h-5 text-snd-teal" />
-                    : <Square className="w-5 h-5 text-snd-border" />}
+                    ? <CheckSquare className="w-5 h-5 text-ink" />
+                    : <Square className="w-5 h-5 text-line-strong" />}
                 </button>
 
                 {/* Image — clickable */}
-                <Link href={`/shop/${item.product.slug}`} className={`w-20 h-20 shrink-0 flex items-center justify-center relative overflow-hidden transition-opacity hover:opacity-80 border border-snd-border ${!item.product.bg ? "bg-snd-bg" : ""}`}
+                <Link href={`/shop/${item.product.slug}`} className={`w-20 h-20 shrink-0 flex items-center justify-center relative overflow-hidden rounded-md transition-opacity hover:opacity-80 border border-line ${!item.product.bg ? "bg-paper-2" : ""}`}
                   style={item.product.bg ? { background: item.product.bg } : undefined}>
                   {item.product.images?.[0] ? (
                     <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover object-center" sizes="80px" />
                   ) : (
-                    <span className="font-heading text-snd-black opacity-[0.06] text-[1.5rem]">
+                    <span className="font-display text-ink opacity-5 text-[1.5rem]">
                       {item.product.brand.charAt(0)}
                     </span>
                   )}
@@ -192,13 +194,13 @@ export default function CartPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-widest mb-0.5 text-snd-muted">{item.product.brand}</p>
-                      <Link href={`/shop/${item.product.slug}`} className="font-semibold text-sm leading-snug hover:underline underline-offset-2 text-snd-black">{item.product.name}</Link>
+                      <p className="text-eyebrow text-ink-3 mb-0.5">{item.product.brand}</p>
+                      <Link href={`/shop/${item.product.slug}`} className="text-body-sm text-ink leading-snug hover:underline underline-offset-2">{item.product.name}</Link>
                       <div className="flex items-center gap-2 mt-1.5">
                         <select
                           value={item.size}
                           onChange={e => updateSize(item.product.id, item.size, e.target.value)}
-                          className="text-xs px-2 py-0.5 font-medium cursor-pointer focus:outline-none border border-snd-border text-snd-muted bg-snd-bg">
+                          className="text-micro px-2 py-0.5 rounded-sm cursor-pointer focus:outline-none border border-line text-ink-3 bg-paper-2">
                           {item.product.sizes
                             .filter(s => s.stock > 0 || s.size === item.size)
                             .map(s => (
@@ -210,34 +212,34 @@ export default function CartPage() {
                             {(["full_payment", "downpayment"] as const).map(pt => (
                               <button key={pt} type="button"
                                 onClick={() => updatePaymentType(item.product.id, item.size, pt)}
-                                className={`px-2 py-0.5 text-xs font-bold transition-all whitespace-nowrap border ${
-                                  item.payment_type === pt ? "bg-snd-teal text-white border-snd-teal" : "bg-transparent text-snd-muted border-snd-border"
+                                className={`px-2 py-0.5 text-micro rounded-sm transition-colors whitespace-nowrap border ${
+                                  item.payment_type === pt ? "bg-ink text-paper border-ink" : "bg-transparent text-ink-3 border-line"
                                 }`}>
                                 {pt === "full_payment" ? `Full ₱${item.product.full_payment_price.toLocaleString()}` : `DP ₱${item.product.downpayment_price.toLocaleString()}`}
                               </button>
                             ))}
                           </div>
                         ) : (
-                          <span className="text-xs px-2 py-0.5 font-semibold bg-snd-teal/[8%] text-snd-teal">
+                          <span className="text-micro px-2 py-0.5 rounded-sm bg-paper-2 text-ink-3">
                             Full Payment
                           </span>
                         )}
                       </div>
                     </div>
-                    <p className="font-black shrink-0 font-heading text-[1.3rem] text-snd-black">
+                    <p className="text-body font-display font-medium shrink-0 text-ink">
                       ₱{(item.unit_price * item.quantity).toLocaleString()}
                     </p>
                   </div>
 
                   <div className="flex items-center justify-between mt-4">
                     {/* Qty control */}
-                    <div className="flex items-center gap-0 border border-snd-border">
+                    <div className="flex items-center gap-0 border border-line rounded-md">
                       {(() => {
                         const maxStock = item.product.sizes.find(s => s.size === item.size)?.stock ?? 99;
                         return (
                           <>
                             <button onClick={() => updateQuantity(item.product.id, item.size, item.quantity - 1)}
-                              className="w-8 h-8 flex items-center justify-center transition-colors hover:opacity-60 text-snd-black">
+                              className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60">
                               <Minus className="w-3 h-3" />
                             </button>
                             <input
@@ -251,11 +253,11 @@ export default function CartPage() {
                                   updateQuantity(item.product.id, item.size, Math.min(val, maxStock));
                                 }
                               }}
-                              className="w-10 text-center text-sm font-bold focus:outline-none bg-transparent text-snd-black"
+                              className="w-10 text-center text-body-sm text-ink focus:outline-none bg-transparent"
                             />
                             <button onClick={() => updateQuantity(item.product.id, item.size, Math.min(item.quantity + 1, maxStock))}
                               disabled={item.quantity >= maxStock}
-                              className="w-8 h-8 flex items-center justify-center transition-colors hover:opacity-60 disabled:opacity-30 text-snd-black">
+                              className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60 disabled:opacity-30">
                               <Plus className="w-3 h-3" />
                             </button>
                           </>
@@ -264,7 +266,7 @@ export default function CartPage() {
                     </div>
 
                     <button onClick={() => removeItem(item.product.id, item.size)}
-                      className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-60 text-snd-red">
+                      className="flex items-center gap-1 text-body-sm text-state-error transition-opacity hover:opacity-60">
                       <Trash2 className="w-3 h-3" /> Remove
                     </button>
                   </div>
@@ -275,39 +277,39 @@ export default function CartPage() {
           </div>
 
           {/* Summary */}
-          <div className="overflow-hidden sticky top-24 bg-snd-card border border-snd-border">
+          <div className="overflow-hidden rounded-md lg:sticky lg:top-24 bg-paper border border-line">
             <div className="p-6">
-              <h2 className="mb-5 font-heading tracking-[0.04em] text-[1.5rem] text-snd-black">
-                ORDER SUMMARY
+              <h2 className="text-eyebrow text-ink-3 mb-5">
+                Order Summary
               </h2>
               <div className="space-y-3 mb-5">
-                <div className="flex justify-between text-sm">
-                  <span className="text-snd-muted">
+                <div className="flex justify-between text-body-sm">
+                  <span className="text-ink-3">
                     Subtotal ({selectedItems.reduce((s, i) => s + i.quantity, 0)} of {items.reduce((s, i) => s + i.quantity, 0)} items)
                   </span>
-                  <span className="text-snd-black">₱{sub.toLocaleString()}</span>
+                  <span className="text-ink">₱{sub.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-snd-muted">Shipping</span>
-                  <span className="text-snd-muted">Calculated at checkout</span>
+                <div className="flex justify-between text-body-sm">
+                  <span className="text-ink-3">Shipping</span>
+                  <span className="text-ink-3">Computed at checkout</span>
                 </div>
                 {sub >= SHIPPING_FEE.free_threshold && (
-                  <p className="text-xs text-snd-teal">
+                  <p className="text-micro text-ink-3">
                     You may qualify for free shipping (GCash / Maya / Bank)
                   </p>
                 )}
               </div>
-              <div className="flex justify-between font-black py-4 mb-5 border-t border-b border-snd-border">
-                <span className="text-snd-black">Subtotal</span>
-                <span className="font-heading text-[1.5rem] text-snd-black">₱{sub.toLocaleString()}</span>
+              <div className="flex justify-between items-center py-4 mb-5 border-t border-b border-line">
+                <span className="text-body-sm text-ink">Total</span>
+                <span className="text-display-s text-ink font-display font-medium">₱{sub.toLocaleString()}</span>
               </div>
               {selectedItems.length === 0 && (
-                <p className="text-xs text-center mb-3 font-semibold text-snd-red">Select at least one item to checkout</p>
+                <p className="text-micro text-center mb-3 text-state-error">Select at least one item to checkout</p>
               )}
               {isLoggedIn === false ? (
                 <button
                   onClick={() => router.push("/login?redirect=/checkout")}
-                  className="flex items-center justify-center gap-2 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 bg-snd-teal text-white">
+                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-md text-body-sm font-medium transition-colors bg-ink text-paper hover:bg-ink-2">
                   <LogIn className="w-4 h-4" /> Sign In to Checkout
                 </button>
               ) : (
@@ -318,12 +320,12 @@ export default function CartPage() {
                     sessionStorage.setItem("snd_checkout_keys", JSON.stringify(keys));
                     router.push("/checkout");
                   }}
-                  className="flex items-center justify-center gap-2 w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-40 bg-snd-black text-snd-bg">
+                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-md text-body-sm font-medium transition-colors bg-ink text-paper hover:bg-ink-2 disabled:opacity-40">
                   Proceed to Checkout <ArrowRight className="w-4 h-4" />
                 </button>
               )}
               <Link href="/shop"
-                className="flex items-center justify-center mt-3 py-3 text-sm font-semibold transition-opacity hover:opacity-60 text-snd-muted">
+                className="flex items-center justify-center mt-3 py-3 text-body-sm text-ink-3 transition-colors hover:text-ink">
                 ← Continue Shopping
               </Link>
             </div>
