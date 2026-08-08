@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Minus, Plus, Share2, Heart, ChevronUp } from "lucide-react";
+import { ShoppingBag, Minus, Plus, Share2, Heart, ChevronUp, Zap } from "lucide-react";
 import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cartStore";
 import { useWishlist } from "@/hooks/useWishlist";
@@ -152,13 +152,20 @@ export default function ProductCTA({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 mb-2">
+      <div className="flex gap-2 mb-6">
         <button
           onClick={handleAddToCart}
           className="flex-1 py-3.5 rounded-md text-body-sm font-medium flex items-center justify-center gap-2 bg-ink text-paper hover:bg-ink-2 transition-colors"
         >
           <ShoppingBag className="w-4 h-4" />
           {isPreOrder ? "Reserve now" : "Add to bag"}
+        </button>
+        <button
+          onClick={handleBuyNow}
+          className="flex-1 py-3.5 rounded-md text-body-sm font-medium flex items-center justify-center gap-2 bg-transparent text-ink border border-ink hover:bg-ink hover:text-paper transition-colors duration-fast"
+        >
+          <Zap className="w-4 h-4" />
+          Buy now
         </button>
         <button
           onClick={() => toggleWishlist(product.id)}
@@ -173,9 +180,6 @@ export default function ProductCTA({
           <Share2 className="w-4 h-4" />
         </button>
       </div>
-      <button onClick={handleBuyNow} className="text-micro text-ink-3 underline hover:text-ink transition-colors mb-6">
-        or buy now →
-      </button>
 
       {/* Payment methods */}
       <div className="flex flex-wrap gap-1.5">
