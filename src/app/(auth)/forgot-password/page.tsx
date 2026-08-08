@@ -28,56 +28,48 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-snd-bg font-body">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <p className="text-xs font-bold uppercase tracking-widest mb-2 text-snd-teal">Sneak N&apos; Drip</p>
-          <h1 className="font-heading text-snd-black" style={{ fontSize: "2.5rem", letterSpacing: "0.04em" }}>
-            FORGOT PASSWORD
-          </h1>
+    <div>
+      <h1 className="text-display-s text-ink font-display font-medium mb-2">Forgot password</h1>
+
+      {sent ? (
+        <div className="text-center">
+          <p className="text-body-sm font-medium text-ink mb-2">Check your email</p>
+          <p className="text-body-sm text-ink-2 mb-6 leading-relaxed">
+            We sent a password reset link to <strong className="text-ink">{email}</strong>. Check your inbox (and spam folder).
+          </p>
+          <Link href="/login" className="text-body-sm text-ink underline hover:opacity-60 transition-opacity">Back to sign in</Link>
         </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <p className="text-body-sm text-ink-2 mb-4">
+            Enter your account email and we&apos;ll send you a reset link.
+          </p>
 
-        {sent ? (
-          <div className="p-6 rounded-xl text-center bg-snd-card border border-snd-border">
-            <p className="font-bold mb-2 text-snd-black">Check your email</p>
-            <p className="text-sm mb-6 text-snd-muted">
-              We sent a password reset link to <strong>{email}</strong>. Check your inbox (and spam folder).
-            </p>
-            <Link href="/login" className="text-sm font-bold uppercase tracking-wide text-snd-teal">Back to Login</Link>
+          <div>
+            <label htmlFor="forgot-email" className="block text-eyebrow text-ink-3 mb-1.5">Email address</label>
+            <input
+              id="forgot-email"
+              type="email" required value={email} onChange={e => setEmail(e.target.value)}
+              placeholder="juan@email.com"
+              className="w-full bg-paper-2 border-0 rounded-md px-4 py-3 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1"
+            />
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="p-6 rounded-xl space-y-4 bg-snd-card border border-snd-border">
-            <p className="text-sm text-snd-muted">
-              Enter your account email and we&apos;ll send you a reset link.
-            </p>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
-                Email Address
-              </label>
-              <input
-                type="email" required value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="juan@email.com"
-                className="w-full px-4 py-3 text-sm focus:outline-none bg-snd-bg border border-snd-border text-snd-black"
-              />
-            </div>
+          {error && <p className="text-body-sm text-state-error">{error}</p>}
 
-            {error && (
-              <p className="text-xs font-semibold text-snd-red">{error}</p>
-            )}
+          <button
+            type="submit" disabled={loading}
+            className="w-full py-3.5 rounded-md text-body-sm font-medium bg-ink text-paper hover:bg-ink-2 transition-colors disabled:opacity-50"
+          >
+            {loading ? "Sending…" : "Send reset link"}
+          </button>
 
-            <button type="submit" disabled={loading}
-              className="w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-snd-black text-snd-bg">
-              {loading ? "Sending…" : "Send Reset Link"}
-            </button>
-
-            <p className="text-center text-sm text-snd-muted">
-              Remember it?{" "}
-              <Link href="/login" className="font-bold transition-opacity hover:opacity-70 text-snd-black">Sign In</Link>
-            </p>
-          </form>
-        )}
-      </div>
+          <p className="text-center text-body-sm text-ink-2">
+            Remember it?{" "}
+            <Link href="/login" className="text-ink underline hover:opacity-60 transition-opacity">Sign in</Link>
+          </p>
+        </form>
+      )}
     </div>
   );
 }
