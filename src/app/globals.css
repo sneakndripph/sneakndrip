@@ -209,6 +209,13 @@
   --radius-lg:  6px;
   --radius-xl:  8px;
   --radius-2xl: 12px;
+
+  /* Motion — exposed to duration-* and ease-* utilities */
+  --duration-fast: var(--dur-fast);
+  --duration-base: var(--dur-base);
+  --duration-slow: var(--dur-slow);
+  --duration-hero: var(--dur-hero);
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ─── Animations ──────────────────────────────────────────────────────── */
