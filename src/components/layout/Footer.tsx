@@ -11,17 +11,17 @@ const FOOTER_LINKS = {
     { label: "On Hand",      href: "/shop?filter=on-hand" },
     { label: "Sale",         href: "/shop?filter=sale" },
   ],
-  Help: [
+  Company: [
+    { label: "Our Story",  href: "/about" },
+    { label: "Contact Us", href: "/contact" },
+    { label: "Privacy",    href: "/privacy" },
+    { label: "Terms",      href: "/terms" },
+  ],
+  Support: [
     { label: "Track My Order", href: "/account" },
     { label: "Shipping Info",  href: "/shipping" },
     { label: "Returns Policy", href: "/returns" },
     { label: "Authenticity",   href: "/authenticity" },
-  ],
-  About: [
-    { label: "Our Story",  href: "/about" },
-    { label: "Contact Us", href: "/contact" },
-    { label: "Instagram",  href: "https://www.instagram.com/sneakndripph/" },
-    { label: "TikTok",     href: "https://www.tiktok.com/@sneakyjuls" },
   ],
 };
 
@@ -49,19 +49,39 @@ function TikTokIcon() {
   );
 }
 
+const SOCIAL_LINKS = [
+  { name: "Instagram", href: "https://www.instagram.com/sneakndripph/", Icon: InstagramIcon },
+  { name: "TikTok",    href: "https://www.tiktok.com/@sneakyjuls",       Icon: TikTokIcon },
+  { name: "Facebook",  href: "https://www.facebook.com/SneakNDrip/",     Icon: FacebookIcon },
+];
+
 export default function Footer() {
   return (
-    <footer className="bg-snd-black">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-16 pb-8">
+    <footer className="bg-paper border-t border-line">
+      <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 pt-16 pb-8">
 
-        {/* Brands marquee strip */}
-        <div className="overflow-x-auto pb-8 mb-8 border-b border-white/6">
+        {/* Brand */}
+        <div className="mb-12">
+          <Image
+            src="/sneakndrip-logo.gif"
+            alt="Sneak N' Drip"
+            width={130}
+            height={52}
+            className="object-contain mb-4"
+          />
+          <p className="text-body-sm text-ink-2 leading-relaxed max-w-sm">
+            Philippines&apos; trusted source for 100% authentic sneakers. On hand and pre-order.
+          </p>
+        </div>
+
+        {/* Brands strip */}
+        <div className="overflow-x-auto pb-8 mb-8 border-b border-line">
           <div className="flex items-center gap-8 min-w-max">
             {BRANDS.map(b => (
               <Link
                 key={b}
                 href={`/shop?brand=${b}`}
-                className="snd-label whitespace-nowrap transition-opacity hover:opacity-60 text-white/15"
+                className="text-eyebrow text-ink-3 whitespace-nowrap transition-colors hover:text-ink"
               >
                 {b}
               </Link>
@@ -70,55 +90,14 @@ export default function Footer() {
         </div>
 
         {/* Main grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-12 border-b border-white/6">
-
-          {/* Brand column */}
-          <div className="col-span-2 md:col-span-1">
-            <div className="inline-block mb-6">
-              <Image
-                src="/sneakndrip-logo.gif"
-                alt="Sneak N' Drip"
-                width={130}
-                height={52}
-                className="object-contain"
-              />
-            </div>
-            <p className="text-sm leading-relaxed mb-6 text-white/30">
-              Philippines&apos; trusted source for 100% authentic sneakers. On hand and pre-order.
-            </p>
-            <div className="flex gap-3">
-              {[
-                { name: "Facebook",  href: "https://www.facebook.com/SneakNDrip/",       Icon: FacebookIcon },
-                { name: "Instagram", href: "https://www.instagram.com/sneakndripph/",     Icon: InstagramIcon },
-                { name: "TikTok",    href: "https://www.tiktok.com/@sneakyjuls",           Icon: TikTokIcon },
-              ].map(({ name, href, Icon }) => (
-                <a
-                  key={name}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 flex items-center justify-center transition-all hover:opacity-80 bg-white/7 hover:bg-white/12 text-white/50"
-                  aria-label={name}
-                >
-                  <Icon />
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Link columns */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-line">
           {Object.entries(FOOTER_LINKS).map(([heading, links]) => (
             <div key={heading}>
-              <h4 className="snd-label mb-5 text-white/50">
-                {heading}
-              </h4>
+              <h4 className="text-eyebrow text-ink-3 mb-5">{heading}</h4>
               <ul className="space-y-3">
                 {links.map(l => (
                   <li key={l.href}>
-                    <Link
-                      href={l.href}
-                      className="text-sm transition-colors text-white/30 hover:text-snd-teal"
-                    >
+                    <Link href={l.href} className="text-body-sm text-ink-2 transition-colors hover:text-ink">
                       {l.label}
                     </Link>
                   </li>
@@ -126,19 +105,33 @@ export default function Footer() {
               </ul>
             </div>
           ))}
+
+          {/* Follow */}
+          <div>
+            <h4 className="text-eyebrow text-ink-3 mb-5">Follow</h4>
+            <div className="flex gap-3">
+              {SOCIAL_LINKS.map(({ name, href, Icon }) => (
+                <a
+                  key={name}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 flex items-center justify-center rounded-md border border-line text-ink-3 transition-colors hover:text-ink hover:border-ink"
+                  aria-label={name}
+                >
+                  <Icon />
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Payment methods */}
-        <div className="py-7 border-b border-white/6">
-          <p className="snd-label mb-4 text-white/20">
-            We Accept
-          </p>
+        <div className="py-7 border-b border-line">
+          <p className="text-eyebrow text-ink-3 mb-4">We Accept</p>
           <div className="flex flex-wrap gap-2">
             {["GCash", "Maya", "Bank Transfer", "Cash on Delivery"].map(m => (
-              <span
-                key={m}
-                className="text-xs font-semibold px-3 py-1.5 bg-white/5 text-white/30 border border-white/6"
-              >
+              <span key={m} className="text-micro text-ink-2 px-3 py-1.5 bg-paper-2 border border-line rounded-sm">
                 {m}
               </span>
             ))}
@@ -147,26 +140,12 @@ export default function Footer() {
 
         {/* Bottom row */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6">
-          <p className="text-xs text-white/20">
+          <p className="text-micro text-ink-3">
             © 2025 Sneak N&apos; Drip. All Rights Reserved.
           </p>
-          <p className="text-xs text-white/15">
+          <p className="text-micro text-ink-3">
             100% Authentic &nbsp;·&nbsp; Philippines-wide Shipping
           </p>
-          <div className="flex gap-5">
-            {[
-              { label: "Privacy",  href: "/privacy" },
-              { label: "Terms",    href: "/terms" },
-            ].map(l => (
-              <Link
-                key={l.label}
-                href={l.href}
-                className="text-xs transition-colors text-white/20 hover:text-white/50"
-              >
-                {l.label}
-              </Link>
-            ))}
-          </div>
         </div>
       </div>
 
