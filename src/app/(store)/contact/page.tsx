@@ -40,86 +40,27 @@ export default async function ContactPage() {
   const content = await getPageContent("contact", FALLBACK);
 
   return (
-    <div className="bg-snd-bg font-body">
+    <div className="max-w-3xl mx-auto px-5 md:px-8 py-16 lg:py-24">
+      <h1 className="text-display text-ink font-display leading-tight tracking-[-0.03em] mb-8">
+        Contact Us
+      </h1>
 
-      {/* Hero */}
-      <section className="bg-snd-black">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-24">
-          <p
-            className="snd-label mb-8 text-snd-teal font-body"
+      <div className="mb-12">
+        {CONTACTS.map(c => (
+          <a
+            key={c.label}
+            href={c.href}
+            target={c.href.startsWith("http") ? "_blank" : undefined}
+            rel="noopener noreferrer"
+            className="flex items-center justify-between py-4 border-b border-line transition-opacity hover:opacity-60"
           >
-            We&apos;re Here
-          </p>
-          <h1
-            className="font-heading"
-            style={{
-              fontSize: "var(--text-display-lg)",
-              letterSpacing: "0.03em",
-              color: "#F2F0EF",
-              lineHeight: 0.9,
-            }}
-          >
-            CONTACT<br />US
-          </h1>
-          <p
-            className="mt-8 text-sm leading-relaxed max-w-xs"
-            style={{ color: "rgba(255,255,255,0.35)" }}
-          >
-            Have a question? We&apos;d love to hear from you.
-          </p>
-        </div>
-      </section>
+            <p className="text-eyebrow text-ink-3">{c.label}</p>
+            <p className="text-body text-ink font-medium">{c.val}</p>
+          </a>
+        ))}
+      </div>
 
-      <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
-        <div className="grid lg:grid-cols-3 gap-16">
-
-          {/* Left — contact methods */}
-          <div>
-            <p
-              className="snd-label mb-6 text-snd-muted-lt font-body"
-            >
-              Reach Us
-            </p>
-
-            <div>
-              {CONTACTS.map((c, i) => (
-                <a
-                  key={c.label}
-                  href={c.href}
-                  target={c.href.startsWith("http") ? "_blank" : undefined}
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-between py-4 transition-opacity hover:opacity-70 border-b border-snd-border"
-                >
-                  <p
-                    className="snd-label text-snd-muted-lt font-body"
-                  >
-                    {c.label}
-                  </p>
-                  <p
-                    className="text-sm font-semibold text-snd-black"
-                  >
-                    {c.val}
-                  </p>
-                </a>
-              ))}
-            </div>
-
-            <div className="mt-8 pt-6 border-t-2 border-snd-teal">
-              <p
-                className="text-xs leading-relaxed text-snd-muted"
-              >
-                Use the chat widget at the bottom-right of any page to message us directly.
-              </p>
-            </div>
-          </div>
-
-          {/* Right — content */}
-          <div className="lg:col-span-2">
-            <PageContent text={content} />
-          </div>
-
-        </div>
-      </section>
+      <PageContent text={content} />
     </div>
   );
 }

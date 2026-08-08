@@ -30,204 +30,74 @@ const STATS = [
 
 export default function AboutPage() {
   return (
-    <div className="bg-snd-bg font-body">
+    <div className="max-w-3xl mx-auto px-5 md:px-8 py-16 lg:py-24">
+      <h1 className="text-display text-ink font-display leading-tight tracking-[-0.03em] mb-8">
+        Your trusted source for authentic sneakers.
+      </h1>
+      <p className="text-body text-ink-2 leading-relaxed">
+        Sneak N&apos; Drip was born out of a simple frustration: finding authentic sneakers in the
+        Philippines at fair prices was too hard. So we built the solution. We source directly from
+        trusted and verified suppliers — locally and internationally — so every pair that leaves
+        our hands is 100% legit. No reps. No fakes. Ever.
+      </p>
 
-      {/* Hero */}
-      <section className="bg-snd-black">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-28">
-          <div className="max-w-2xl">
-            <p
-              className="snd-label mb-8 text-snd-teal font-body"
-            >
-              Our Story
-            </p>
-            <h1
-              className="font-heading"
-              style={{
-                fontSize: "var(--text-display-lg)",
-                letterSpacing: "0.03em",
-                color: "#F2F0EF",
-                lineHeight: 0.9,
-              }}
-            >
-              SNEAK N&apos;<br />DRIP
-            </h1>
-            <p
-              className="mt-10 text-sm leading-relaxed max-w-md"
-              style={{ color: "rgba(255,255,255,0.4)" }}
-            >
-              Your trusted source for 100% authentic sneakers in the Philippines.
-              On hand and pre-order. Always legit. Always below SRP.
-            </p>
+      <div className="grid grid-cols-2 gap-8 mt-12 pt-8 border-t border-line">
+        {STATS.map(stat => (
+          <div key={stat.label}>
+            <p className="text-display-s text-ink font-display font-medium">{stat.n}</p>
+            <p className="text-micro text-ink-3 mt-1">{stat.label}</p>
           </div>
-        </div>
-      </section>
+        ))}
+      </div>
 
-      {/* Mission + Stats */}
-      <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
-        <div className="grid lg:grid-cols-2 gap-20 items-start">
-
-          {/* Left — copy */}
-          <div>
-            <h2
-              className="font-heading text-snd-black"
-              style={{
-                fontSize: "var(--text-display-md)",
-                letterSpacing: "0.03em",
-                lineHeight: 0.92,
-              }}
-            >
-              BUILT FOR<br /><span className="text-snd-teal">SNEAKER<br />LOVERS.</span>
-            </h2>
-            <p
-              className="mt-8 text-sm leading-relaxed max-w-md text-snd-muted"
-            >
-              Sneak N&apos; Drip was born out of a simple frustration: finding authentic sneakers
-              in the Philippines at fair prices was too hard. So we built the solution.
-            </p>
-            <p
-              className="mt-5 text-sm leading-relaxed max-w-md text-snd-muted"
-            >
-              We source directly from trusted and verified suppliers — locally and internationally —
-              so every pair that leaves our hands is 100% legit. No reps. No fakes. Ever.
-            </p>
-          </div>
-
-          {/* Right — stats, editorial row */}
+      <h2 className="text-display-s text-ink font-display font-medium mt-12 mb-4">
+        What we stand for
+      </h2>
+      <div>
+        {VALUES.map((v, i) => (
           <div
-            className="grid grid-cols-2 gap-8 pt-4 border-t-2 border-snd-black"
+            key={v.title}
+            className={`flex items-start gap-5 py-6 ${i < VALUES.length - 1 ? "border-b border-line" : ""}`}
           >
-            {STATS.map(stat => (
-              <div key={stat.label} className="py-4">
-                <p
-                  className="font-heading text-snd-black"
-                  style={{
-                    fontSize: "clamp(2rem, 5vw, 3rem)",
-                    letterSpacing: "0.02em",
-                    lineHeight: 1,
-                  }}
-                >
-                  {stat.n}
-                </p>
-                <p
-                  className="snd-label mt-2 text-snd-muted-lt font-body"
-                >
-                  {stat.label}
-                </p>
-              </div>
-            ))}
+            <span className="text-micro text-ink-3 shrink-0 pt-0.5">
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <div>
+              <p className="text-body text-ink font-medium mb-1">{v.title}</p>
+              <p className="text-body text-ink-2 leading-relaxed">{v.desc}</p>
+            </div>
           </div>
+        ))}
+      </div>
 
-        </div>
-      </section>
-
-      {/* Divider */}
-      <div className="bg-snd-border" style={{ height: "1px" }} />
-
-      {/* Values */}
-      <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
-        <div className="grid lg:grid-cols-2 gap-16 items-start">
-
-          <div className="lg:sticky lg:top-24">
-            <p
-              className="snd-label mb-5 text-snd-muted-lt font-body"
-            >
-              Philosophy
-            </p>
-            <h2
-              className="font-heading text-snd-black"
-              style={{
-                fontSize: "var(--text-display-md)",
-                letterSpacing: "0.03em",
-                lineHeight: 0.92,
-              }}
-            >
-              WHAT WE<br />STAND FOR
-            </h2>
-          </div>
-
-          <div>
-            {VALUES.map((v, i) => (
-              <div
-                key={v.title}
-                className={`flex items-start gap-6 py-7 ${i < VALUES.length - 1 ? "border-b border-snd-border" : ""}`}
-              >
-                <span
-                  className="snd-label shrink-0 pt-0.5 text-snd-muted-lt font-body"
-                  style={{ width: "1.5rem" }}
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <div>
-                  <p
-                    className="text-sm font-bold mb-2 text-snd-black"
-                  >
-                    {v.title}
-                  </p>
-                  <p
-                    className="text-sm leading-relaxed text-snd-muted"
-                  >
-                    {v.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-        </div>
-      </section>
-
-      {/* Divider */}
-      <div className="bg-snd-border" style={{ height: "1px" }} />
-
-      {/* CTA */}
-      <section className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 snd-section">
-        <div className="grid md:grid-cols-2 gap-16 items-center">
-          <div>
-            <h2
-              className="font-heading text-snd-black"
-              style={{
-                fontSize: "var(--text-display-md)",
-                letterSpacing: "0.03em",
-                lineHeight: 0.92,
-              }}
-            >
-              GET IN TOUCH
-            </h2>
-            <p
-              className="text-sm mt-6 leading-relaxed max-w-sm text-snd-muted"
-            >
-              Have a question about a pair, want to check availability, or just want to connect?
-              Hit us up anytime on Facebook, Instagram, or TikTok.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <a
-              href="https://www.facebook.com/SneakNDrip/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-7 py-3.5 font-bold text-sm uppercase tracking-wider transition-opacity hover:opacity-80 bg-snd-black text-snd-bg"
-            >
-              Facebook
-            </a>
-            <a
-              href="https://www.instagram.com/sneakndripph/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-7 py-3.5 font-bold text-sm uppercase tracking-wider transition-opacity hover:opacity-80 border-[1.5px] border-snd-black text-snd-black"
-            >
-              Instagram
-            </a>
-            <Link
-              href="/shop"
-              className="px-7 py-3.5 font-bold text-sm uppercase tracking-wider transition-opacity hover:opacity-80 text-white bg-snd-teal"
-            >
-              Shop Now
-            </Link>
-          </div>
-        </div>
-      </section>
-
+      <h2 className="text-display-s text-ink font-display font-medium mt-12 mb-4">
+        Get in touch
+      </h2>
+      <p className="text-body text-ink-2 leading-relaxed mb-6">
+        Have a question about a pair, want to check availability, or just want to connect? Hit us
+        up anytime on Facebook, Instagram, or TikTok.
+      </p>
+      <div className="flex flex-wrap gap-x-6 gap-y-2">
+        <a
+          href="https://www.facebook.com/SneakNDrip/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-ink underline hover:opacity-60 transition-opacity"
+        >
+          Facebook
+        </a>
+        <a
+          href="https://www.instagram.com/sneakndripph/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-ink underline hover:opacity-60 transition-opacity"
+        >
+          Instagram
+        </a>
+        <Link href="/shop" className="text-ink underline hover:opacity-60 transition-opacity">
+          Shop now
+        </Link>
+      </div>
     </div>
   );
 }

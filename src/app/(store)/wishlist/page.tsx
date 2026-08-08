@@ -35,27 +35,27 @@ export default function WishlistPage() {
   const visibleProducts = products.filter(p => wishlist.includes(p.id));
 
   return (
-    <div className="bg-snd-bg min-h-screen font-body">
+    <div className="bg-paper min-h-screen font-body">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="mb-10">
-          <p className="text-xs font-bold uppercase tracking-widest mb-2 text-snd-teal">My Collection</p>
-          <h1 className="font-heading tracking-[0.04em] text-[length:clamp(2rem,6vw,3rem)] text-snd-black">WISHLIST</h1>
+          <p className="text-eyebrow text-ink-3 mb-2">My Collection</p>
+          <h1 className="text-display text-ink font-display leading-tight tracking-[-0.03em]">Wishlist</h1>
         </div>
 
         {loading ? (
-          <div className="py-24 text-center text-sm text-snd-muted">Loading wishlist…</div>
+          <div className="py-24 text-center text-sm text-ink-2">Loading wishlist…</div>
         ) : visibleProducts.length === 0 ? (
           <div className="py-24 text-center">
-            <Heart className="w-12 h-12 mx-auto mb-4 opacity-20 text-snd-black" />
-            <p className="font-heading tracking-[0.04em] text-[1.5rem] text-snd-muted">WISHLIST IS EMPTY</p>
-            <p className="text-sm mt-2 mb-8 text-snd-muted-lt">Tap the ♡ on any sneaker to save it here.</p>
-            <Link href="/shop" className="inline-block px-8 py-3 font-black text-sm uppercase tracking-widest bg-snd-black text-snd-bg">
+            <Heart className="w-12 h-12 mx-auto mb-4 opacity-20 text-ink" />
+            <p className="text-display-s text-ink font-display font-medium">Your wishlist is empty</p>
+            <p className="text-body-sm text-ink-3 mt-2 mb-8">Tap the ♡ on any sneaker to save it here.</p>
+            <Link href="/shop" className="inline-block px-8 py-3 text-body-sm font-medium bg-ink text-paper rounded-md hover:bg-ink-2 transition-colors">
               Shop Now
             </Link>
           </div>
         ) : (
           <>
-            <p className="text-sm mb-6 text-snd-muted">
+            <p className="text-sm mb-6 text-ink-2">
               {visibleProducts.length} item{visibleProducts.length !== 1 ? "s" : ""} saved
             </p>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">

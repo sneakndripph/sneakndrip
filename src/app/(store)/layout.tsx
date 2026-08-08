@@ -17,7 +17,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   if (data?.value === "true") redirect("/maintenance");
 
   return (
-    <div className="bg-snd-bg min-h-screen">
+    <div className="bg-paper min-h-screen">
       <VisitorTracker />
       <CartGuard />
       <CartSyncer />

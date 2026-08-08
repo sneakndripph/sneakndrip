@@ -537,18 +537,18 @@ export default function AccountPage() {
   const inputCls = "w-full px-4 py-3 text-sm focus:outline-none transition-colors";
 
   return (
-    <div className="bg-snd-bg font-body min-h-screen">
+    <div className="bg-paper font-body min-h-screen">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-1 text-snd-teal">Welcome back</p>
-            <h1 className="font-heading text-[length:clamp(1.8rem,5vw,2.5rem)] tracking-[0.04em] text-snd-black">
-              MY ACCOUNT
+            <p className="text-eyebrow text-ink-3 mb-1">Welcome back</p>
+            <h1 className="text-display text-ink font-display leading-tight tracking-[-0.03em]">
+              My Account
             </h1>
           </div>
           <button onClick={handleSignOut}
-            className="flex items-center gap-1.5 text-sm font-semibold transition-opacity hover:opacity-60 text-snd-muted">
+            className="flex items-center gap-1.5 text-sm font-semibold transition-opacity hover:opacity-60 text-ink-2">
             <LogOut className="w-4 h-4" /> Sign Out
           </button>
         </div>
@@ -560,7 +560,7 @@ export default function AccountPage() {
             return (
               <button key={item.id} onClick={() => setTab(item.id)}
                 className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold whitespace-nowrap rounded-full shrink-0 transition-all border ${
-                  tab === item.id ? "bg-snd-black text-snd-bg border-snd-black" : "bg-snd-card text-snd-muted border-snd-border"
+                  tab === item.id ? "bg-ink text-paper border-ink" : "bg-paper-2 text-ink-2 border-line"
                 }`}>
                 <Icon className="w-3.5 h-3.5" />
                 {item.label}
@@ -572,19 +572,19 @@ export default function AccountPage() {
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Sidebar — desktop only */}
           <div className="hidden lg:block lg:col-span-1">
-            <div className="rounded-xl overflow-hidden bg-snd-card border border-snd-border">
+            <div className="rounded-xl overflow-hidden bg-paper-2 border border-line">
               {NAV_TABS.map((item, idx) => {
                 const Icon = item.icon;
                 return (
                   <button key={item.id} onClick={() => setTab(item.id)}
                     className={`w-full flex items-center justify-between px-4 py-4 text-sm font-semibold transition-colors border-l-[3px] ${
-                      idx < NAV_TABS.length - 1 ? "border-b border-b-snd-border" : ""
-                    } ${tab === item.id ? "bg-snd-teal/[6%] text-snd-teal border-l-snd-teal" : "text-snd-black border-l-transparent"}`}>
+                      idx < NAV_TABS.length - 1 ? "border-b border-b-line" : ""
+                    } ${tab === item.id ? "bg-ink/[6%] text-ink border-l-ink" : "text-ink border-l-transparent"}`}>
                     <div className="flex items-center gap-2.5">
                       <Icon className="w-4 h-4" />
                       {item.label}
                     </div>
-                    <ChevronRight className="w-4 h-4 text-snd-muted-lt" />
+                    <ChevronRight className="w-4 h-4 text-ink-3" />
                   </button>
                 );
               })}
@@ -597,7 +597,7 @@ export default function AccountPage() {
             {/* Orders tab */}
             {tab === "orders" && (
               <div className="space-y-4">
-                <h2 className="font-black text-lg mb-3 text-snd-black">Order History</h2>
+                <h2 className="font-black text-lg mb-3 text-ink">Order History</h2>
 
                 {/* Order filter tabs */}
                 {!loadingOrders && orders.length > 0 && (
@@ -622,12 +622,12 @@ export default function AccountPage() {
                           });
                         }}
                         className={`flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-full transition-all border ${
-                          orderFilter === f.key ? "bg-snd-black text-snd-bg border-snd-black" : "bg-snd-card text-snd-muted border-snd-border"
+                          orderFilter === f.key ? "bg-ink text-paper border-ink" : "bg-paper-2 text-ink-2 border-line"
                         }`}>
                         {f.label}
                         {cnt > 0 && f.key !== "all" && cnt > (seenCounts[f.key] ?? 0) && (
                           <span className={`inline-flex items-center justify-center min-w-[16px] h-4 px-1 text-[9px] font-black rounded-full ${
-                            orderFilter === f.key ? "bg-snd-bg text-snd-black" : "bg-snd-teal text-white"
+                            orderFilter === f.key ? "bg-paper text-ink" : "bg-ink text-white"
                           }`}>
                             {cnt}
                           </span>
@@ -639,12 +639,12 @@ export default function AccountPage() {
                 )}
 
                 {loadingOrders ? (
-                  <div className="py-12 text-center text-sm text-snd-muted">Loading orders…</div>
+                  <div className="py-12 text-center text-sm text-ink-2">Loading orders…</div>
                 ) : orders.length === 0 ? (
                   <div className="py-12 text-center">
-                    <p className="font-heading text-[1.5rem] tracking-[0.04em] text-snd-muted">NO ORDERS YET</p>
-                    <p className="text-sm mt-2 mb-6 text-snd-muted-lt">Your orders will show up here after you place one.</p>
-                    <Link href="/shop" className="inline-block px-8 py-3 font-bold text-sm uppercase tracking-widest bg-snd-black text-snd-bg">Shop Now</Link>
+                    <p className="font-display text-[1.5rem] tracking-[0.04em] text-ink-2">NO ORDERS YET</p>
+                    <p className="text-sm mt-2 mb-6 text-ink-3">Your orders will show up here after you place one.</p>
+                    <Link href="/shop" className="inline-block px-8 py-3 font-bold text-sm uppercase tracking-widest bg-ink text-paper">Shop Now</Link>
                   </div>
                 ) : orders.filter(order => {
                     if (orderFilter === "all") return true;
@@ -657,8 +657,8 @@ export default function AccountPage() {
                     return true;
                   }).length === 0 ? (
                   <div className="py-12 text-center">
-                    <p className="font-heading text-[1.5rem] tracking-[0.04em] text-snd-muted">NO ORDERS</p>
-                    <p className="text-sm mt-2 text-snd-muted-lt">No orders in this category.</p>
+                    <p className="font-display text-[1.5rem] tracking-[0.04em] text-ink-2">NO ORDERS</p>
+                    <p className="text-sm mt-2 text-ink-3">No orders in this category.</p>
                   </div>
                 ) : orders.filter(order => {
                     if (orderFilter === "all") return true;
@@ -679,16 +679,16 @@ export default function AccountPage() {
                   const activeIdx = STEPS.findIndex(s => s.key === order.status);
                   const address = [order.shipping_street, order.shipping_barangay, order.shipping_city, order.shipping_province].filter(Boolean).join(", ");
                   return (
-                    <div key={order.id} className="rounded-xl overflow-hidden bg-snd-card border border-snd-border">
+                    <div key={order.id} className="rounded-xl overflow-hidden bg-paper-2 border border-line">
 
                       {/* Order header */}
-                      <div className="px-5 pt-5 pb-4 border-b border-snd-border">
+                      <div className="px-5 pt-5 pb-4 border-b border-line">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <p className="font-black text-sm text-snd-black">{order.order_number}</p>
-                            <p className="text-xs mt-0.5 text-snd-muted">{date}</p>
+                            <p className="font-black text-sm text-ink">{order.order_number}</p>
+                            <p className="text-xs mt-0.5 text-ink-2">{date}</p>
                             {(order.customer_name || order.customer_mobile) && (
-                              <p className="text-xs mt-1 text-snd-muted">
+                              <p className="text-xs mt-1 text-ink-2">
                                 {[order.customer_name, order.customer_mobile].filter(Boolean).join(" · ")}
                               </p>
                             )}
@@ -703,7 +703,7 @@ export default function AccountPage() {
 
                       {/* Progress tracker */}
                       {order.status !== "cancelled" && (
-                        <div className="px-5 py-5 border-b border-snd-border">
+                        <div className="px-5 py-5 border-b border-line">
                           <div className="flex items-center">
                             {STEPS.map((step, i) => {
                               const done = activeIdx >= i;
@@ -712,18 +712,18 @@ export default function AccountPage() {
                                 <div key={step.key} className="flex items-center flex-1 min-w-0">
                                   <div className="flex flex-col items-center flex-1">
                                     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black mb-1.5 shrink-0 transition-all ${
-                                      active ? "bg-snd-teal text-white shadow-[0_0_0_3px_rgba(91,184,180,0.15)]" : done ? "bg-snd-teal/[33%] text-white" : "bg-snd-border text-snd-muted-lt"
+                                      active ? "bg-ink text-white shadow-[0_0_0_3px_rgba(91,184,180,0.15)]" : done ? "bg-ink/[33%] text-white" : "bg-line text-ink-3"
                                     }`}>
                                       {done && !active ? "✓" : i + 1}
                                     </div>
                                     <p className={`text-[9px] font-bold text-center whitespace-nowrap px-0.5 ${
-                                      active ? "text-snd-teal" : done ? "text-snd-teal/90" : "text-snd-muted-lt"
+                                      active ? "text-ink" : done ? "text-ink/90" : "text-ink-3"
                                     }`}>
                                       {step.label}
                                     </p>
                                   </div>
                                   {i < STEPS.length - 1 && (
-                                    <div className={`h-0.5 flex-1 mx-0.5 mb-5 shrink-0 transition-all ${activeIdx > i ? "bg-snd-teal" : "bg-snd-border"}`} />
+                                    <div className={`h-0.5 flex-1 mx-0.5 mb-5 shrink-0 transition-all ${activeIdx > i ? "bg-ink" : "bg-line"}`} />
                                   )}
                                 </div>
                               );
@@ -734,17 +734,17 @@ export default function AccountPage() {
 
                       {/* Tracking card — shown when shipped or delivered */}
                       {order.tracking_number && (order.status === "shipped" || order.status === "delivered") && (
-                        <div className="mx-5 my-4 p-4 rounded-lg bg-snd-teal/[6%] border border-snd-teal/[19%]">
+                        <div className="mx-5 my-4 p-4 rounded-lg bg-ink/[6%] border border-ink/[19%]">
                           <div className="flex items-center gap-3 mb-2">
-                            <Truck className="w-5 h-5 shrink-0 text-snd-teal" />
-                            <p className="text-xs font-bold uppercase tracking-wide text-snd-teal">Your order is on its way</p>
+                            <Truck className="w-5 h-5 shrink-0 text-ink" />
+                            <p className="text-xs font-bold uppercase tracking-wide text-ink">Your order is on its way</p>
                           </div>
-                          <p className="text-xs text-snd-muted">Here&apos;s your tracking number:</p>
-                          <p className="text-base font-black mt-1 text-snd-black">{order.tracking_number}</p>
-                          <p className="text-[11px] mt-2 text-snd-muted">
+                          <p className="text-xs text-ink-2">Here&apos;s your tracking number:</p>
+                          <p className="text-base font-black mt-1 text-ink">{order.tracking_number}</p>
+                          <p className="text-[11px] mt-2 text-ink-2">
                             Copy and paste to{" "}
                             <a href="https://www.jtexpress.ph/track-and-trace" target="_blank" rel="noopener noreferrer"
-                              className="underline font-semibold text-snd-teal">
+                              className="underline font-semibold text-ink">
                               https://www.jtexpress.ph/track-and-trace
                             </a>
                           </p>
@@ -754,36 +754,36 @@ export default function AccountPage() {
                       {/* Shipping address */}
                       {address && (
                         <div className="px-5 pb-4 flex items-start gap-2">
-                          <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-snd-muted-lt" />
-                          <p className="text-xs text-snd-muted">{address}</p>
+                          <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-ink-3" />
+                          <p className="text-xs text-ink-2">{address}</p>
                         </div>
                       )}
 
                       {/* Items */}
-                      <div className="border-t border-snd-border">
+                      <div className="border-t border-line">
                         {order.order_items?.map((item, i) => {
                           const img = item.products?.images?.[0] ?? null;
                           const bg = item.products?.bg ?? "#EDE9E3";
                           return (
-                            <div key={i} className="flex items-center gap-3 px-5 py-3 border-b border-snd-border">
+                            <div key={i} className="flex items-center gap-3 px-5 py-3 border-b border-line">
                               {item.products?.slug ? (
-                                <Link href={`/shop/${item.products.slug}`} className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative transition-opacity hover:opacity-70 border border-snd-border"
+                                <Link href={`/shop/${item.products.slug}`} className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative transition-opacity hover:opacity-70 border border-line"
                                   style={{ background: bg }}>
                                   {img ? (
                                     <Image src={img} alt={item.product_name} fill className="object-cover" sizes="44px" />
                                   ) : (
-                                    <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-snd-black opacity-[0.12] font-heading">
+                                    <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-ink opacity-[0.12] font-display">
                                       S
                                     </span>
                                   )}
                                 </Link>
                               ) : (
-                                <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative border border-snd-border"
+                                <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative border border-line"
                                   style={{ background: bg }}>
                                   {img ? (
                                     <Image src={img} alt={item.product_name} fill className="object-cover" sizes="44px" />
                                   ) : (
-                                    <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-snd-black opacity-[0.12] font-heading">
+                                    <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-ink opacity-[0.12] font-display">
                                       S
                                     </span>
                                   )}
@@ -791,13 +791,13 @@ export default function AccountPage() {
                               )}
                               <div className="flex-1 min-w-0">
                                 {item.products?.slug ? (
-                                  <Link href={`/shop/${item.products.slug}`} className="text-sm font-semibold truncate block transition-opacity hover:opacity-70 text-snd-black">{item.product_name}</Link>
+                                  <Link href={`/shop/${item.products.slug}`} className="text-sm font-semibold truncate block transition-opacity hover:opacity-70 text-ink">{item.product_name}</Link>
                                 ) : (
-                                  <p className="text-sm font-semibold truncate text-snd-black">{item.product_name}</p>
+                                  <p className="text-sm font-semibold truncate text-ink">{item.product_name}</p>
                                 )}
-                                <p className="text-xs text-snd-muted">Size {item.size} · Qty {item.quantity}</p>
+                                <p className="text-xs text-ink-2">Size {item.size} · Qty {item.quantity}</p>
                               </div>
-                              <p className="font-bold text-sm shrink-0 text-snd-black">
+                              <p className="font-bold text-sm shrink-0 text-ink">
                                 ₱{(item.unit_price * item.quantity).toLocaleString()}
                               </p>
                             </div>
@@ -806,7 +806,7 @@ export default function AccountPage() {
                       </div>
 
                       {/* Order breakdown + actions */}
-                      <div className="px-5 py-4 border-t border-snd-border">
+                      <div className="px-5 py-4 border-t border-line">
                         {/* Price breakdown */}
                         {(order.subtotal !== undefined) && (() => {
                           const dpItems = order.order_items.filter(i => i.payment_type === "downpayment");
@@ -815,36 +815,36 @@ export default function AccountPage() {
                           const dpItemsNow = dpItems.reduce((s, i) => s + DP_RESERVE_FEE * i.quantity, 0);
                           const totalNow = dpItemsNow + (order.shipping_fee ?? 0) - (order.discount ?? 0);
                           return (
-                            <div className="space-y-1 mb-3 text-xs text-snd-muted">
+                            <div className="space-y-1 mb-3 text-xs text-ink-2">
                               <div className="flex justify-between">
                                 <span>Subtotal</span>
                                 <span>₱{Number(order.subtotal).toLocaleString()}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Shipping</span>
-                                <span className={order.shipping_fee === 0 ? "text-snd-teal" : undefined}>
+                                <span className={order.shipping_fee === 0 ? "text-ink" : undefined}>
                                   {order.shipping_fee === 0 ? "FREE" : `₱${Number(order.shipping_fee).toLocaleString()}`}
                                 </span>
                               </div>
                               {(order.discount ?? 0) > 0 && (
-                                <div className="flex justify-between text-snd-teal">
+                                <div className="flex justify-between text-ink">
                                   <span>Coupon {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
                                   <span>−₱{Number(order.discount).toLocaleString()}</span>
                                 </div>
                               )}
                               {isOrderDP ? (
                                 <>
-                                  <div className="flex justify-between pt-1 font-bold text-snd-black">
+                                  <div className="flex justify-between pt-1 font-bold text-ink">
                                     <span>Downpayment Paid</span>
-                                    <span className="text-snd-teal">₱{totalNow.toLocaleString()}</span>
+                                    <span className="text-ink">₱{totalNow.toLocaleString()}</span>
                                   </div>
-                                  <div className={`flex justify-between ${order.status === "stock_on_hand" ? "text-snd-red" : "text-snd-muted"}`}>
+                                  <div className={`flex justify-between ${order.status === "stock_on_hand" ? "text-state-error" : "text-ink-2"}`}>
                                     <span>Balance Due</span>
                                     <span>₱{dpItemsBalance.toLocaleString()}</span>
                                   </div>
                                 </>
                               ) : (
-                                <div className="flex justify-between pt-1 font-bold text-snd-black">
+                                <div className="flex justify-between pt-1 font-bold text-ink">
                                   <span>Total</span>
                                   <span>₱{Number(order.total).toLocaleString()}</span>
                                 </div>
@@ -856,24 +856,24 @@ export default function AccountPage() {
                         <div className="space-y-3">
                           {/* Payment info row */}
                           <div className="flex items-center gap-3 flex-wrap">
-                            <p className="text-xs text-snd-muted">
+                            <p className="text-xs text-ink-2">
                               {isCOD ? "Cash on Delivery" : order.payment_method?.replace("_", " ")}
                             </p>
                             {order.payment_reference && (
-                              <p className="text-xs font-medium text-snd-muted">
-                                Ref: <span className="text-snd-black">{order.payment_reference}</span>
+                              <p className="text-xs font-medium text-ink-2">
+                                Ref: <span className="text-ink">{order.payment_reference}</span>
                               </p>
                             )}
                             {!isCOD && order.proof_of_payment && (
                               <button
                                 onClick={() => { setProofImgLoaded(false); setProofModal({ url: `/api/proof?orderNumber=${encodeURIComponent(order.order_number)}`, orderNumber: order.order_number }); }}
-                                className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70 text-snd-teal">
+                                className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70 text-ink">
                                 <Eye className="w-3.5 h-3.5" /> View Proof
                               </button>
                             )}
                             <button
                               onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
-                              className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70 text-snd-teal">
+                              className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70 text-ink">
                               <MessageCircle className="w-3.5 h-3.5" /> Need help?
                             </button>
                           </div>
@@ -889,7 +889,7 @@ export default function AccountPage() {
                                       .reduce((s, i) => s + (i.unit_price - DP_RESERVE_FEE) * i.quantity, 0);
                                     setPayBalanceModal({ orderNumber: order.order_number, balance: dpItemsBalance });
                                   }}
-                                  className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide px-4 py-2 transition-opacity hover:opacity-80 rounded bg-snd-teal text-white">
+                                  className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide px-4 py-2 transition-opacity hover:opacity-80 rounded bg-ink text-white">
                                   Pay Balance
                                 </button>
                               )}
@@ -897,7 +897,7 @@ export default function AccountPage() {
                                 <button
                                   onClick={() => setCancelModalOrder(order.order_number)}
                                   disabled={cancellingOrder === order.order_number}
-                                  className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity disabled:opacity-50 border border-snd-red text-snd-red">
+                                  className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity disabled:opacity-50 border border-state-error text-state-error">
                                   {cancellingOrder === order.order_number ? "Cancelling…" : "Cancel Order"}
                                 </button>
                               )}
@@ -911,7 +911,7 @@ export default function AccountPage() {
                                     setReturnPhotoFiles([]);
                                     setReturnPhotoPreviews([]);
                                   }}
-                                  className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-snd-border text-snd-muted">
+                                  className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-line text-ink-2">
                                   <RotateCcw className="w-3 h-3" />
                                   Request Return
                                 </button>
@@ -923,8 +923,8 @@ export default function AccountPage() {
                                     onClick={() => setViewReturnModal({ orderNumber: order.order_number, ...ret })}
                                     className={`text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border ${
                                       ret.status === "approved" ? "border-[#10B981] text-[#10B981] bg-[rgba(16,185,129,0.08)]"
-                                        : ret.status === "denied" ? "border-snd-red text-snd-red bg-snd-red/[3%]"
-                                        : "border-snd-border text-snd-muted bg-transparent"
+                                        : ret.status === "denied" ? "border-state-error text-state-error bg-state-error/[3%]"
+                                        : "border-line text-ink-2 bg-transparent"
                                     }`}>
                                     View Request
                                   </button>
@@ -958,13 +958,13 @@ export default function AccountPage() {
                                       }
                                     }
                                   }}
-                                  className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-snd-teal text-snd-teal">
+                                  className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-ink text-ink">
                                   <Star className="w-3 h-3" />
                                   {reviewedOrderIds.has(order.id) ? "Edit Review" : "Write a Review"}
                                 </button>
                               )}
                             </div>
-                            <p className="font-black text-sm shrink-0 text-snd-black">
+                            <p className="font-black text-sm shrink-0 text-ink">
                               Total ₱{Number(order.total).toLocaleString()}
                             </p>
                           </div>
@@ -980,58 +980,58 @@ export default function AccountPage() {
             {tab === "account" && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="font-black text-lg text-snd-black">Account Details</h2>
-                  <span className="text-xs text-snd-muted">
-                    <span className="text-snd-red">*</span> Required
+                  <h2 className="font-black text-lg text-ink">Account Details</h2>
+                  <span className="text-xs text-ink-2">
+                    <span className="text-state-error">*</span> Required
                   </span>
                 </div>
-                <p className="text-sm mb-6 text-snd-muted">Signed in as <strong>{user.email}</strong></p>
+                <p className="text-sm mb-6 text-ink-2">Signed in as <strong>{user.email}</strong></p>
 
                 <form onSubmit={handleSaveProfile}>
-                  <div className="p-6 rounded-xl space-y-4 bg-snd-card border border-snd-border">
+                  <div className="p-6 rounded-xl space-y-4 bg-paper-2 border border-line">
 
                     {profileSuccess && (
-                      <div className="flex items-center gap-2 px-4 py-3 rounded text-sm font-semibold bg-snd-teal/[8%] text-snd-teal border border-snd-teal/[19%]">
+                      <div className="flex items-center gap-2 px-4 py-3 rounded text-sm font-semibold bg-ink/[8%] text-ink border border-ink/[19%]">
                         <CheckCircle className="w-4 h-4" /> Profile updated successfully!
                       </div>
                     )}
                     {profileError && (
-                      <div className="px-4 py-3 rounded text-sm font-medium bg-snd-red/[7%] text-snd-red border border-snd-red/[19%]">
+                      <div className="px-4 py-3 rounded text-sm font-medium bg-state-error/[7%] text-state-error border border-state-error/[19%]">
                         {profileError}
                       </div>
                     )}
 
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="sm:col-span-2">
-                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
-                          Full Name <span className="text-snd-red">*</span>
+                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                          Full Name <span className="text-state-error">*</span>
                         </label>
                         <input
                           value={profileForm.name}
                           onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))}
                           placeholder="Juan Dela Cruz"
-                          className={`${inputCls} bg-snd-bg text-snd-black border focus:border-snd-teal ${profileTouched && !profileForm.name ? "border-snd-red" : "border-snd-border"}`}
+                          className={`${inputCls} bg-paper text-ink border focus:border-ink ${profileTouched && !profileForm.name ? "border-state-error" : "border-line"}`}
                         />
                         {profileTouched && !profileForm.name && (
-                          <p className="mt-1 text-[11px] font-semibold text-snd-red">Full name is required</p>
+                          <p className="mt-1 text-[11px] font-semibold text-state-error">Full name is required</p>
                         )}
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
+                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
                           Email Address
                         </label>
                         <input
                           value={user.email || ""}
                           disabled
-                          className={`${inputCls} bg-snd-border border border-snd-border text-snd-muted cursor-not-allowed`}
+                          className={`${inputCls} bg-line border border-line text-ink-2 cursor-not-allowed`}
                         />
-                        <p className="mt-1 text-[11px] text-snd-muted-lt">Email cannot be changed</p>
+                        <p className="mt-1 text-[11px] text-ink-3">Email cannot be changed</p>
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
-                          Mobile Number <span className="text-snd-red">*</span>
+                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                          Mobile Number <span className="text-state-error">*</span>
                         </label>
                         <input
                           value={profileForm.mobile}
@@ -1039,16 +1039,16 @@ export default function AccountPage() {
                           placeholder="09XX XXX XXXX"
                           inputMode="numeric"
                           maxLength={11}
-                          className={`${inputCls} bg-snd-bg text-snd-black border focus:border-snd-teal ${profileTouched && !profileForm.mobile ? "border-snd-red" : "border-snd-border"}`}
+                          className={`${inputCls} bg-paper text-ink border focus:border-ink ${profileTouched && !profileForm.mobile ? "border-state-error" : "border-line"}`}
                         />
                         {profileTouched && !profileForm.mobile && (
-                          <p className="mt-1 text-[11px] font-semibold text-snd-red">Mobile number is required</p>
+                          <p className="mt-1 text-[11px] font-semibold text-state-error">Mobile number is required</p>
                         )}
                       </div>
                     </div>
 
                     <button type="submit" disabled={savingProfile}
-                      className="flex items-center gap-2 mt-2 px-6 py-3 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-snd-black text-snd-bg">
+                      className="flex items-center gap-2 mt-2 px-6 py-3 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-ink text-paper">
                       <Save className="w-4 h-4" />
                       {savingProfile ? "Saving…" : "Save Changes"}
                     </button>
@@ -1061,32 +1061,32 @@ export default function AccountPage() {
             {tab === "address" && (
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <h2 className="font-black text-lg text-snd-black">My Default Address</h2>
-                  <span className="text-xs text-snd-muted">
-                    <span className="text-snd-red">*</span> Required
+                  <h2 className="font-black text-lg text-ink">My Default Address</h2>
+                  <span className="text-xs text-ink-2">
+                    <span className="text-state-error">*</span> Required
                   </span>
                 </div>
-                <p className="text-sm mb-6 text-snd-muted">
+                <p className="text-sm mb-6 text-ink-2">
                   Saved address will auto-fill at checkout.
                 </p>
 
                 <form onSubmit={handleSaveAddress}>
-                  <div className="p-6 rounded-xl space-y-4 bg-snd-card border border-snd-border">
+                  <div className="p-6 rounded-xl space-y-4 bg-paper-2 border border-line">
                     {addressSuccess && (
-                      <div className="flex items-center gap-2 px-4 py-3 rounded text-sm font-semibold bg-snd-teal/[8%] text-snd-teal border border-snd-teal/[19%]">
+                      <div className="flex items-center gap-2 px-4 py-3 rounded text-sm font-semibold bg-ink/[8%] text-ink border border-ink/[19%]">
                         <CheckCircle className="w-4 h-4" /> Address saved successfully!
                       </div>
                     )}
 
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
-                        Street Address <span className="text-snd-red">*</span>
+                      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                        Street Address <span className="text-state-error">*</span>
                       </label>
                       <input
                         value={addressForm.street}
                         onChange={e => setAddressForm(f => ({ ...f, street: e.target.value }))}
                         placeholder="123 Rizal St."
-                        className={`${inputCls} bg-snd-bg text-snd-black border focus:border-snd-teal ${addressShowErrors && !addressForm.street ? "border-snd-red" : "border-snd-border"}`}
+                        className={`${inputCls} bg-paper text-ink border focus:border-ink ${addressShowErrors && !addressForm.street ? "border-state-error" : "border-line"}`}
                       />
                     </div>
 
@@ -1102,23 +1102,23 @@ export default function AccountPage() {
                         showErrors={addressShowErrors}
                       />
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
-                          Postal Code <span className="text-snd-red">*</span>
+                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                          Postal Code <span className="text-state-error">*</span>
                         </label>
                         <input
                           value={addressForm.postal}
                           onChange={e => setAddressForm(f => ({ ...f, postal: e.target.value }))}
                           placeholder="1630"
-                          className={`${inputCls} bg-snd-bg text-snd-black border focus:border-snd-teal ${addressShowErrors && !addressForm.postal ? "border-snd-red" : "border-snd-border"}`}
+                          className={`${inputCls} bg-paper text-ink border focus:border-ink ${addressShowErrors && !addressForm.postal ? "border-state-error" : "border-line"}`}
                         />
                         {addressShowErrors && !addressForm.postal && (
-                          <p className="mt-1 text-[11px] font-semibold text-snd-red">Postal code is required</p>
+                          <p className="mt-1 text-[11px] font-semibold text-state-error">Postal code is required</p>
                         )}
                       </div>
                     </div>
 
                     <button type="submit" disabled={savingAddress}
-                      className="flex items-center gap-2 mt-2 px-6 py-3 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-snd-black text-snd-bg">
+                      className="flex items-center gap-2 mt-2 px-6 py-3 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-ink text-paper">
                       <Save className="w-4 h-4" />
                       {savingAddress ? "Saving…" : "Save Address"}
                     </button>
@@ -1130,29 +1130,29 @@ export default function AccountPage() {
             {/* Change Password tab */}
             {tab === "password" && (
               <div>
-                <h2 className="font-black text-lg mb-2 text-snd-black">Change Password</h2>
-                <p className="text-sm mb-6 text-snd-muted">
+                <h2 className="font-black text-lg mb-2 text-ink">Change Password</h2>
+                <p className="text-sm mb-6 text-ink-2">
                   Choose a strong password with at least 6 characters.{" "}
-                  <span className="text-snd-red">*</span> Required
+                  <span className="text-state-error">*</span> Required
                 </p>
 
                 <form onSubmit={handleChangePassword}>
-                  <div className="p-6 rounded-xl space-y-4 bg-snd-card border border-snd-border">
+                  <div className="p-6 rounded-xl space-y-4 bg-paper-2 border border-line">
 
                     {pwSuccess && (
-                      <div className="flex items-center gap-2 px-4 py-3 rounded text-sm font-semibold bg-snd-teal/[8%] text-snd-teal border border-snd-teal/[19%]">
+                      <div className="flex items-center gap-2 px-4 py-3 rounded text-sm font-semibold bg-ink/[8%] text-ink border border-ink/[19%]">
                         <CheckCircle className="w-4 h-4" /> Password updated successfully!
                       </div>
                     )}
                     {pwError && (
-                      <div className="px-4 py-3 rounded text-sm font-medium bg-snd-red/[7%] text-snd-red border border-snd-red/[19%]">
+                      <div className="px-4 py-3 rounded text-sm font-medium bg-state-error/[7%] text-state-error border border-state-error/[19%]">
                         {pwError}
                       </div>
                     )}
 
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
-                        Current Password <span className="text-snd-red">*</span>
+                      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                        Current Password <span className="text-state-error">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -1160,18 +1160,18 @@ export default function AccountPage() {
                           value={pwForm.currentPw}
                           onChange={e => setPwForm(f => ({ ...f, currentPw: e.target.value }))}
                           placeholder="Your current password"
-                          className={`${inputCls} pr-12 bg-snd-bg text-snd-black border focus:border-snd-teal ${pwTouched && !pwForm.currentPw ? "border-snd-red" : "border-snd-border"}`}
+                          className={`${inputCls} pr-12 bg-paper text-ink border focus:border-ink ${pwTouched && !pwForm.currentPw ? "border-state-error" : "border-line"}`}
                         />
                         <button type="button" onClick={() => setShowCurrentPw(!showCurrentPw)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-snd-muted">
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-2">
                           {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
-                        New Password <span className="text-snd-red">*</span>
+                      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                        New Password <span className="text-state-error">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -1179,21 +1179,21 @@ export default function AccountPage() {
                           value={pwForm.newPw}
                           onChange={e => setPwForm(f => ({ ...f, newPw: e.target.value }))}
                           placeholder="Min. 6 characters"
-                          className={`${inputCls} pr-12 bg-snd-bg text-snd-black border focus:border-snd-teal ${pwTouched && !pwForm.newPw ? "border-snd-red" : "border-snd-border"}`}
+                          className={`${inputCls} pr-12 bg-paper text-ink border focus:border-ink ${pwTouched && !pwForm.newPw ? "border-state-error" : "border-line"}`}
                         />
                         <button type="button" onClick={() => setShowNewPw(!showNewPw)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-snd-muted">
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-2">
                           {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                       {pwTouched && !pwForm.newPw && (
-                        <p className="mt-1 text-[11px] font-semibold text-snd-red">New password is required</p>
+                        <p className="mt-1 text-[11px] font-semibold text-state-error">New password is required</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
-                        Confirm New Password <span className="text-snd-red">*</span>
+                      <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                        Confirm New Password <span className="text-state-error">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -1201,20 +1201,20 @@ export default function AccountPage() {
                           value={pwForm.confirmPw}
                           onChange={e => setPwForm(f => ({ ...f, confirmPw: e.target.value }))}
                           placeholder="Re-enter new password"
-                          className={`${inputCls} pr-12 bg-snd-bg text-snd-black border focus:border-snd-teal ${pwTouched && pwForm.newPw !== pwForm.confirmPw ? "border-snd-red" : "border-snd-border"}`}
+                          className={`${inputCls} pr-12 bg-paper text-ink border focus:border-ink ${pwTouched && pwForm.newPw !== pwForm.confirmPw ? "border-state-error" : "border-line"}`}
                         />
                         <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-snd-muted">
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-2">
                           {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                       {pwTouched && pwForm.newPw && pwForm.confirmPw && pwForm.newPw !== pwForm.confirmPw && (
-                        <p className="mt-1 text-[11px] font-semibold text-snd-red">Passwords do not match</p>
+                        <p className="mt-1 text-[11px] font-semibold text-state-error">Passwords do not match</p>
                       )}
                     </div>
 
                     <button type="submit" disabled={savingPw}
-                      className="flex items-center gap-2 mt-2 px-6 py-3 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-snd-teal text-white">
+                      className="flex items-center gap-2 mt-2 px-6 py-3 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-ink text-white">
                       <Lock className="w-4 h-4" />
                       {savingPw ? "Updating…" : "Update Password"}
                     </button>
@@ -1231,62 +1231,62 @@ export default function AccountPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={e => { if (e.target === e.currentTarget) { setReviewModalOrder(null); setReviewSuccess(false); setReviewImageFile(null); setReviewImagePreview(null); } }}>
-          <div className="w-full max-w-sm rounded-2xl overflow-hidden bg-snd-bg border border-snd-border">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-snd-border bg-snd-card">
-              <p className="font-black text-sm uppercase tracking-widest text-snd-black">
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden bg-paper border border-line">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-line bg-paper-2">
+              <p className="font-black text-sm uppercase tracking-widest text-ink">
                 {existingReviewId ? "Edit Review" : "Write a Review"}
               </p>
               <button onClick={() => { setReviewModalOrder(null); setReviewSuccess(false); setReviewImageFile(null); setReviewImagePreview(null); }} className="p-1 transition-opacity hover:opacity-70">
-                <X className="w-4 h-4 text-snd-muted" />
+                <X className="w-4 h-4 text-ink-2" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               {reviewSuccess ? (
                 <div className="py-6 text-center">
-                  <CheckCircle className="w-10 h-10 mx-auto mb-2 text-snd-teal" />
-                  <p className="font-bold text-sm text-snd-black">Thank you for your review!</p>
+                  <CheckCircle className="w-10 h-10 mx-auto mb-2 text-ink" />
+                  <p className="font-bold text-sm text-ink">Thank you for your review!</p>
                 </div>
               ) : (
                 <>
                   {reviewModalOrder.order_items[0] && (
-                    <p className="text-xs font-semibold text-snd-muted">
-                      Order: <span className="text-snd-black">{reviewModalOrder.order_number}</span>
+                    <p className="text-xs font-semibold text-ink-2">
+                      Order: <span className="text-ink">{reviewModalOrder.order_number}</span>
                       {" · "}{reviewModalOrder.order_items[0].product_name}
                     </p>
                   )}
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-2 text-snd-black">Rating</label>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-2 text-ink">Rating</label>
                     <div className="flex gap-1">
                       {[1,2,3,4,5].map(n => (
                         <button key={n} type="button"
                           onClick={() => setReviewForm(f => ({ ...f, rating: n }))}
                           className="transition-opacity hover:opacity-80">
-                          <Star className={`w-7 h-7 ${n <= reviewForm.rating ? "fill-snd-teal text-snd-teal" : "fill-none text-snd-border"}`} />
+                          <Star className={`w-7 h-7 ${n <= reviewForm.rating ? "fill-ink text-ink" : "fill-none text-line"}`} />
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">Title (optional)</label>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">Title (optional)</label>
                     <input
                       value={reviewForm.title}
                       onChange={e => setReviewForm(f => ({ ...f, title: e.target.value }))}
                       placeholder="e.g. Great quality!"
-                      className="w-full px-3 py-2.5 text-sm focus:outline-none bg-snd-card border border-snd-border text-snd-black"
+                      className="w-full px-3 py-2.5 text-sm focus:outline-none bg-paper-2 border border-line text-ink"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">Review <span className="text-snd-red">*</span></label>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">Review <span className="text-state-error">*</span></label>
                     <textarea
                       value={reviewForm.body}
                       onChange={e => setReviewForm(f => ({ ...f, body: e.target.value }))}
                       placeholder="Share your experience…"
                       rows={3}
-                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-snd-card border border-snd-border text-snd-black"
+                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-paper-2 border border-line text-ink"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
                       Photo (optional)
                     </label>
                     {reviewImagePreview ? (
@@ -1294,13 +1294,13 @@ export default function AccountPage() {
                         <Image src={reviewImagePreview} alt="Review" fill className="object-cover rounded-lg" sizes="80px" />
                         <button type="button"
                           onClick={() => { setReviewImageFile(null); setReviewImagePreview(null); }}
-                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center bg-snd-black text-snd-bg">
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center bg-ink text-paper">
                           <X className="w-3 h-3" />
                         </button>
                       </div>
                     ) : (
-                      <label className="flex flex-col items-center justify-center gap-1 w-20 h-20 rounded-lg cursor-pointer border-2 border-dashed border-snd-border bg-snd-card">
-                        <span className="text-[10px] font-semibold text-snd-muted">Add Photo</span>
+                      <label className="flex flex-col items-center justify-center gap-1 w-20 h-20 rounded-lg cursor-pointer border-2 border-dashed border-line bg-paper-2">
+                        <span className="text-[10px] font-semibold text-ink-2">Add Photo</span>
                         <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
                           onChange={e => {
                             const f = e.target.files?.[0];
@@ -1312,12 +1312,12 @@ export default function AccountPage() {
                     )}
                   </div>
                   {loadingReview && (
-                    <p className="text-xs text-center text-snd-muted">Loading your previous review…</p>
+                    <p className="text-xs text-center text-ink-2">Loading your previous review…</p>
                   )}
                   <button
                     onClick={handleSubmitReview}
                     disabled={submittingReview || !reviewForm.body.trim() || loadingReview}
-                    className="w-full py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-snd-teal text-white">
+                    className="w-full py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-ink text-white">
                     {submittingReview ? "Submitting…" : existingReviewId ? "Update Review" : "Submit Review"}
                   </button>
                 </>
@@ -1332,48 +1332,48 @@ export default function AccountPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={e => { if (e.target === e.currentTarget) { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); setReturnPhotoFiles([]); setReturnPhotoPreviews([]); } }}>
-          <div className="w-full max-w-sm rounded-2xl overflow-hidden bg-snd-bg border border-snd-border">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-snd-border bg-snd-card">
-              <p className="font-black text-sm uppercase tracking-widest text-snd-black">Request Return</p>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden bg-paper border border-line">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-line bg-paper-2">
+              <p className="font-black text-sm uppercase tracking-widest text-ink">Request Return</p>
               <button onClick={() => { setReturnModalOrder(null); setReturnReason(""); setReturnError(""); setReturnSuccess(false); setReturnPhotoFiles([]); setReturnPhotoPreviews([]); }}
                 className="p-1 transition-opacity hover:opacity-70">
-                <X className="w-4 h-4 text-snd-muted" />
+                <X className="w-4 h-4 text-ink-2" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               {returnSuccess ? (
                 <div className="py-6 text-center">
-                  <CheckCircle className="w-10 h-10 mx-auto mb-2 text-snd-teal" />
-                  <p className="font-bold text-sm text-snd-black">Return request submitted!</p>
-                  <p className="text-xs mt-1 text-snd-muted">We&apos;ll review it and get back to you soon.</p>
+                  <CheckCircle className="w-10 h-10 mx-auto mb-2 text-ink" />
+                  <p className="font-bold text-sm text-ink">Return request submitted!</p>
+                  <p className="text-xs mt-1 text-ink-2">We&apos;ll review it and get back to you soon.</p>
                 </div>
               ) : (
                 <>
-                  <p className="text-xs text-snd-muted">
-                    Order: <span className="font-bold text-snd-black">{returnModalOrder.order_number}</span>
+                  <p className="text-xs text-ink-2">
+                    Order: <span className="font-bold text-ink">{returnModalOrder.order_number}</span>
                   </p>
                   {returnError && (
-                    <div className="px-3 py-2.5 rounded text-xs font-medium bg-snd-red/[7%] text-snd-red border border-snd-red/[19%]">
+                    <div className="px-3 py-2.5 rounded text-xs font-medium bg-state-error/[7%] text-state-error border border-state-error/[19%]">
                       {returnError}
                     </div>
                   )}
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
-                      Reason for Return <span className="text-snd-red">*</span>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                      Reason for Return <span className="text-state-error">*</span>
                     </label>
                     <textarea
                       value={returnReason}
                       onChange={e => setReturnReason(e.target.value)}
                       placeholder="e.g. Wrong size, defective item, changed mind…"
                       rows={3}
-                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-snd-card border border-snd-border text-snd-black"
+                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-paper-2 border border-line text-ink"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
-                      Photos of Item <span className="text-snd-red">*</span>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                      Photos of Item <span className="text-state-error">*</span>
                       {returnPhotoFiles.length > 0 && (
-                        <span className="ml-2 font-normal normal-case text-snd-muted">
+                        <span className="ml-2 font-normal normal-case text-ink-2">
                           {returnPhotoFiles.length}/5
                         </span>
                       )}
@@ -1381,7 +1381,7 @@ export default function AccountPage() {
                     {returnPhotoPreviews.length > 0 ? (
                       <div className="grid grid-cols-3 gap-2 mb-2">
                         {returnPhotoPreviews.map((preview, i) => (
-                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden group bg-snd-card border border-snd-border">
+                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden group bg-paper-2 border border-line">
                             <Image src={preview} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="100px" />
                             <button type="button"
                               onClick={() => {
@@ -1395,8 +1395,8 @@ export default function AccountPage() {
                           </div>
                         ))}
                         {returnPhotoFiles.length < 5 && (
-                          <label className="relative aspect-square rounded-lg flex items-center justify-center cursor-pointer transition-colors bg-snd-card border-2 border-dashed border-snd-border">
-                            <span className="text-xl font-bold text-snd-muted">+</span>
+                          <label className="relative aspect-square rounded-lg flex items-center justify-center cursor-pointer transition-colors bg-paper-2 border-2 border-dashed border-line">
+                            <span className="text-xl font-bold text-ink-2">+</span>
                             <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
                               onChange={e => {
                                 const files = Array.from(e.target.files ?? []).slice(0, 5 - returnPhotoFiles.length);
@@ -1407,10 +1407,10 @@ export default function AccountPage() {
                         )}
                       </div>
                     ) : (
-                      <label className="flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-lg cursor-pointer transition-colors border-2 border-dashed border-snd-border bg-snd-card">
-                        <span className="text-xs font-semibold text-center text-snd-muted">
+                      <label className="flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-lg cursor-pointer transition-colors border-2 border-dashed border-line bg-paper-2">
+                        <span className="text-xs font-semibold text-center text-ink-2">
                           Click to upload up to 5 photos<br />
-                          <span className="text-snd-muted-lt">JPG, PNG, WEBP · max 10MB each</span>
+                          <span className="text-ink-3">JPG, PNG, WEBP · max 10MB each</span>
                         </span>
                         <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
                           onChange={e => {
@@ -1424,7 +1424,7 @@ export default function AccountPage() {
                   <button
                     onClick={handleSubmitReturn}
                     disabled={submittingReturn || !returnReason.trim() || returnPhotoFiles.length === 0}
-                    className="w-full py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-snd-black text-snd-bg">
+                    className="w-full py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-ink text-paper">
                     {submittingReturn ? "Submitting…" : "Submit Return Request"}
                   </button>
                 </>
@@ -1439,24 +1439,24 @@ export default function AccountPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={e => { if (e.target === e.currentTarget) { setViewReturnModal(null); setEditingReturn(false); } }}>
-          <div className="w-full max-w-sm rounded-2xl overflow-hidden bg-snd-bg border border-snd-border">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-snd-border bg-snd-card">
-              <p className="font-black text-sm uppercase tracking-widest text-snd-black">
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden bg-paper border border-line">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-line bg-paper-2">
+              <p className="font-black text-sm uppercase tracking-widest text-ink">
                 {editingReturn ? "Edit Request" : "Return Request"}
               </p>
               <button onClick={() => { setViewReturnModal(null); setEditingReturn(false); }} className="p-1 transition-opacity hover:opacity-70">
-                <X className="w-4 h-4 text-snd-muted" />
+                <X className="w-4 h-4 text-ink-2" />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-snd-muted">
-                  Order: <span className="font-bold text-snd-black">{viewReturnModal.orderNumber}</span>
+                <p className="text-xs text-ink-2">
+                  Order: <span className="font-bold text-ink">{viewReturnModal.orderNumber}</span>
                 </p>
                 <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${
                   viewReturnModal.status === "approved" ? "bg-[rgba(16,185,129,0.12)] text-[#10B981]"
-                    : viewReturnModal.status === "denied" ? "bg-snd-red/[7%] text-snd-red"
-                    : "bg-[rgba(138,133,128,0.12)] text-snd-muted"
+                    : viewReturnModal.status === "denied" ? "bg-state-error/[7%] text-state-error"
+                    : "bg-[rgba(138,133,128,0.12)] text-ink-2"
                 }`}>
                   {viewReturnModal.status === "approved" ? "Approved" : viewReturnModal.status === "denied" ? "Denied" : "Pending Review"}
                 </span>
@@ -1465,26 +1465,26 @@ export default function AccountPage() {
               {editingReturn ? (
                 <>
                   {editReturnError && (
-                    <div className="px-3 py-2 rounded text-xs font-medium bg-snd-red/[7%] text-snd-red">
+                    <div className="px-3 py-2 rounded text-xs font-medium bg-state-error/[7%] text-state-error">
                       {editReturnError}
                     </div>
                   )}
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
-                      Reason <span className="text-snd-red">*</span>
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                      Reason <span className="text-state-error">*</span>
                     </label>
                     <textarea
                       value={editReturnReason}
                       onChange={e => setEditReturnReason(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-snd-card border border-snd-border text-snd-black"
+                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-paper-2 border border-line text-ink"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">
+                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
                       Replace Photos (optional)
                       {editReturnPhotoFiles.length > 0 && (
-                        <span className="ml-2 font-normal normal-case text-snd-muted">
+                        <span className="ml-2 font-normal normal-case text-ink-2">
                           {editReturnPhotoFiles.length}/5 new
                         </span>
                       )}
@@ -1492,7 +1492,7 @@ export default function AccountPage() {
                     {editReturnPhotoPreviews.length > 0 ? (
                       <div className="grid grid-cols-3 gap-2 mb-1">
                         {editReturnPhotoPreviews.map((preview, i) => (
-                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden group bg-snd-card border border-snd-border">
+                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden group bg-paper-2 border border-line">
                             <Image src={preview} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="90px" />
                             <button type="button"
                               onClick={() => {
@@ -1506,8 +1506,8 @@ export default function AccountPage() {
                           </div>
                         ))}
                         {editReturnPhotoFiles.length < 5 && (
-                          <label className="relative aspect-square rounded-lg flex items-center justify-center cursor-pointer bg-snd-card border-2 border-dashed border-snd-border">
-                            <span className="text-xl font-bold text-snd-muted">+</span>
+                          <label className="relative aspect-square rounded-lg flex items-center justify-center cursor-pointer bg-paper-2 border-2 border-dashed border-line">
+                            <span className="text-xl font-bold text-ink-2">+</span>
                             <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
                               onChange={e => {
                                 const files = Array.from(e.target.files ?? []).slice(0, 5 - editReturnPhotoFiles.length);
@@ -1518,8 +1518,8 @@ export default function AccountPage() {
                         )}
                       </div>
                     ) : (
-                      <label className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg cursor-pointer border-2 border-dashed border-snd-border bg-snd-card">
-                        <span className="text-xs font-semibold text-snd-muted">
+                      <label className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg cursor-pointer border-2 border-dashed border-line bg-paper-2">
+                        <span className="text-xs font-semibold text-ink-2">
                           Click to replace all photos (up to 5)
                         </span>
                         <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden"
@@ -1533,11 +1533,11 @@ export default function AccountPage() {
                   </div>
                   <div className="flex gap-3">
                     <button onClick={handleSaveEditReturn} disabled={savingEditReturn || !editReturnReason.trim()}
-                      className="flex-1 py-2.5 text-xs font-black uppercase tracking-wide disabled:opacity-50 bg-snd-teal text-white">
+                      className="flex-1 py-2.5 text-xs font-black uppercase tracking-wide disabled:opacity-50 bg-ink text-white">
                       {savingEditReturn ? "Saving…" : "Save Changes"}
                     </button>
                     <button onClick={() => { setEditingReturn(false); setEditReturnPhotoFiles([]); setEditReturnPhotoPreviews([]); setEditReturnError(""); }}
-                      className="px-4 py-2.5 text-xs font-bold border border-snd-border text-snd-muted">
+                      className="px-4 py-2.5 text-xs font-bold border border-line text-ink-2">
                       Cancel
                     </button>
                   </div>
@@ -1545,8 +1545,8 @@ export default function AccountPage() {
               ) : (
                 <>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-wide mb-1 text-snd-muted">Your Reason</p>
-                    <p className="text-sm text-snd-black">{viewReturnModal.reason}</p>
+                    <p className="text-xs font-bold uppercase tracking-wide mb-1 text-ink-2">Your Reason</p>
+                    <p className="text-sm text-ink">{viewReturnModal.reason}</p>
                   </div>
                   {(() => {
                     const photos = viewReturnModal.photo_urls?.length
@@ -1555,13 +1555,13 @@ export default function AccountPage() {
                     if (!photos.length) return null;
                     return (
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-muted">
+                        <p className="text-xs font-bold uppercase tracking-wide mb-1.5 text-ink-2">
                           Your Photos ({photos.length})
                         </p>
                         <div className="grid grid-cols-3 gap-2">
                           {photos.map((url, i) => (
                             <a key={i} href={url} target="_blank" rel="noopener noreferrer"
-                              className="relative aspect-square rounded-lg overflow-hidden transition-opacity hover:opacity-80 bg-snd-card border border-snd-border">
+                              className="relative aspect-square rounded-lg overflow-hidden transition-opacity hover:opacity-80 bg-paper-2 border border-line">
                               <Image src={url} alt={`Return photo ${i + 1}`} fill className="object-cover" sizes="90px" />
                             </a>
                           ))}
@@ -1570,20 +1570,20 @@ export default function AccountPage() {
                     );
                   })()}
                   {viewReturnModal.admin_note && (
-                    <div className="px-4 py-3 rounded-lg bg-snd-teal/[6%] border border-snd-teal/[15%]">
-                      <p className="text-xs font-bold uppercase tracking-wide mb-1 text-snd-teal">Message from Store</p>
-                      <p className="text-sm text-snd-black">{viewReturnModal.admin_note}</p>
+                    <div className="px-4 py-3 rounded-lg bg-ink/[6%] border border-ink/[15%]">
+                      <p className="text-xs font-bold uppercase tracking-wide mb-1 text-ink">Message from Store</p>
+                      <p className="text-sm text-ink">{viewReturnModal.admin_note}</p>
                     </div>
                   )}
                   {viewReturnModal.status === "pending" && (
-                    <p className="text-xs text-center text-snd-muted-lt">
+                    <p className="text-xs text-center text-ink-3">
                       We&apos;ll review your request and get back to you soon.
                     </p>
                   )}
                   {viewReturnModal.status === "approved" && (
                     <div className="p-4 rounded-xl" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)" }}>
                       <p className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: "#10B981" }}>Next Step</p>
-                      <p className="text-xs mb-3 text-snd-muted">
+                      <p className="text-xs mb-3 text-ink-2">
                         Your return has been approved. Please reach out to us via chat or Facebook to arrange the return process.
                       </p>
                       <div className="flex flex-col gap-2">
@@ -1593,7 +1593,7 @@ export default function AccountPage() {
                           Chat with Us
                         </a>
                         <a href="https://m.me/sneakndrip" target="_blank" rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-2 py-2.5 text-xs font-bold transition-opacity hover:opacity-70 border border-snd-border text-snd-muted">
+                          className="flex items-center justify-center gap-2 py-2.5 text-xs font-bold transition-opacity hover:opacity-70 border border-line text-ink-2">
                           Message on Facebook
                         </a>
                       </div>
@@ -1606,13 +1606,13 @@ export default function AccountPage() {
               {!editingReturn && viewReturnModal.status === "pending" && viewReturnModal.id && (
                 <button
                   onClick={() => { setEditingReturn(true); setEditReturnReason(viewReturnModal.reason); setEditReturnPhotoFiles([]); setEditReturnPhotoPreviews([]); setEditReturnError(""); }}
-                  className="flex-1 py-2.5 text-sm font-bold transition-opacity hover:opacity-80 border border-snd-teal text-snd-teal">
+                  className="flex-1 py-2.5 text-sm font-bold transition-opacity hover:opacity-80 border border-ink text-ink">
                   Edit Request
                 </button>
               )}
               {!editingReturn && (
                 <button onClick={() => setViewReturnModal(null)}
-                  className="flex-1 py-2.5 text-sm font-bold transition-opacity hover:opacity-70 border border-snd-border text-snd-muted">
+                  className="flex-1 py-2.5 text-sm font-bold transition-opacity hover:opacity-70 border border-line text-ink-2">
                   Close
                 </button>
               )}
@@ -1626,20 +1626,20 @@ export default function AccountPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={e => { if (e.target === e.currentTarget) setProofModal(null); }}>
-          <div className="w-full max-w-lg rounded-2xl overflow-hidden bg-snd-bg border border-snd-border">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-snd-border bg-snd-card">
-              <p className="font-black text-sm uppercase tracking-widest text-snd-black">
+          <div className="w-full max-w-lg rounded-2xl overflow-hidden bg-paper border border-line">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-line bg-paper-2">
+              <p className="font-black text-sm uppercase tracking-widest text-ink">
                 Payment Proof — {proofModal.orderNumber}
               </p>
               <button onClick={() => setProofModal(null)} className="p-1 transition-opacity hover:opacity-70">
-                <X className="w-4 h-4 text-snd-muted" />
+                <X className="w-4 h-4 text-ink-2" />
               </button>
             </div>
             <div className="p-4 overflow-y-auto" style={{ maxHeight: "75vh" }}>
               {!proofImgLoaded && (
                 <div className="flex flex-col items-center justify-center py-10 gap-3">
-                  <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin border-snd-teal" />
-                  <p className="text-xs text-snd-muted">Loading proof…</p>
+                  <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin border-ink" />
+                  <p className="text-xs text-ink-2">Loading proof…</p>
                 </div>
               )}
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1653,11 +1653,11 @@ export default function AccountPage() {
               />
               <div className="flex gap-3 mt-3">
                 <a href={proofModal.url} target="_blank" rel="noopener noreferrer"
-                  className="flex-1 text-center text-xs font-bold py-2.5 transition-opacity hover:opacity-80 bg-snd-teal text-white">
+                  className="flex-1 text-center text-xs font-bold py-2.5 transition-opacity hover:opacity-80 bg-ink text-white">
                   Open in New Tab
                 </a>
                 <button onClick={() => setProofModal(null)}
-                  className="px-5 text-xs font-bold py-2.5 border border-snd-border text-snd-muted">
+                  className="px-5 text-xs font-bold py-2.5 border border-line text-ink-2">
                   Close
                 </button>
               </div>
@@ -1671,33 +1671,33 @@ export default function AccountPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={e => { if (e.target === e.currentTarget) { setCancelModalOrder(null); setCancelReason(""); } }}>
-          <div className="w-full max-w-sm rounded-2xl overflow-hidden bg-snd-bg border border-snd-border">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-snd-border bg-snd-card">
-              <p className="font-black text-sm uppercase tracking-widest text-snd-red">Cancel Order</p>
+          <div className="w-full max-w-sm rounded-2xl overflow-hidden bg-paper border border-line">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-line bg-paper-2">
+              <p className="font-black text-sm uppercase tracking-widest text-state-error">Cancel Order</p>
               <button onClick={() => { setCancelModalOrder(null); setCancelReason(""); }} className="p-1 transition-opacity hover:opacity-70">
-                <X className="w-4 h-4 text-snd-muted" />
+                <X className="w-4 h-4 text-ink-2" />
               </button>
             </div>
             <div className="p-5">
-              <p className="text-sm mb-3 text-snd-muted">
-                Please let us know why you&apos;re cancelling order <span className="font-bold text-snd-black">{cancelModalOrder}</span>.
+              <p className="text-sm mb-3 text-ink-2">
+                Please let us know why you&apos;re cancelling order <span className="font-bold text-ink">{cancelModalOrder}</span>.
               </p>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-2 text-snd-black">Reason (optional)</label>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-2 text-ink">Reason (optional)</label>
               <textarea
                 value={cancelReason}
                 onChange={e => setCancelReason(e.target.value)}
                 placeholder="e.g. Changed my mind, ordered wrong size…"
                 rows={3}
-                className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-snd-card border border-snd-border text-snd-black"
+                className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-paper-2 border border-line text-ink"
               />
             </div>
             <div className="flex gap-3 px-5 pb-5">
               <button onClick={executeCancelOrder}
-                className="flex-1 py-2.5 text-xs font-black uppercase tracking-wide bg-snd-red text-white">
+                className="flex-1 py-2.5 text-xs font-black uppercase tracking-wide bg-state-error text-white">
                 Confirm Cancel
               </button>
               <button onClick={() => { setCancelModalOrder(null); setCancelReason(""); }}
-                className="px-4 py-2.5 text-xs font-bold border border-snd-border text-snd-muted">
+                className="px-4 py-2.5 text-xs font-bold border border-line text-ink-2">
                 Keep Order
               </button>
             </div>
@@ -1710,51 +1710,51 @@ export default function AccountPage() {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
           style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={e => { if (e.target === e.currentTarget && !submittingBalance) { setPayBalanceModal(null); setPayBalanceMethod(null); setPayBalanceRef(""); setPayBalanceProof(null); setPayBalanceProofPreview(null); setPayBalanceError(""); setPayBalanceSuccess(false); } }}>
-          <div className="w-full sm:max-w-sm max-h-[92dvh] flex flex-col rounded-t-2xl sm:rounded-2xl overflow-hidden bg-snd-card">
+          <div className="w-full sm:max-w-sm max-h-[92dvh] flex flex-col rounded-t-2xl sm:rounded-2xl overflow-hidden bg-paper-2">
 
             {/* Header */}
-            <div className="flex items-start justify-between px-5 pt-5 pb-4 shrink-0 border-b border-snd-border">
+            <div className="flex items-start justify-between px-5 pt-5 pb-4 shrink-0 border-b border-line">
               <div>
-                <p className="font-black text-base font-heading text-snd-black">PAY BALANCE</p>
-                <p className="text-xs mt-0.5 text-snd-muted">{payBalanceModal.orderNumber}</p>
+                <p className="font-black text-base font-display text-ink">PAY BALANCE</p>
+                <p className="text-xs mt-0.5 text-ink-2">{payBalanceModal.orderNumber}</p>
               </div>
               <button onClick={() => { if (!submittingBalance) { setPayBalanceModal(null); setPayBalanceMethod(null); setPayBalanceRef(""); setPayBalanceProof(null); setPayBalanceProofPreview(null); setPayBalanceError(""); setPayBalanceSuccess(false); } }}
                 className="p-1 rounded-lg transition-colors hover:bg-black/10 mt-0.5">
-                <X className="w-4 h-4 text-snd-muted" />
+                <X className="w-4 h-4 text-ink-2" />
               </button>
             </div>
 
             <div className="overflow-y-auto flex-1 px-5 py-5 space-y-5">
               {payBalanceSuccess ? (
                 <div className="text-center py-6">
-                  <CheckCircle className="w-12 h-12 mx-auto mb-3 text-snd-teal" />
-                  <p className="font-black text-base mb-1 font-heading text-snd-black">PAYMENT SUBMITTED!</p>
-                  <p className="text-sm leading-relaxed text-snd-muted">
+                  <CheckCircle className="w-12 h-12 mx-auto mb-3 text-ink" />
+                  <p className="font-black text-base mb-1 font-display text-ink">PAYMENT SUBMITTED!</p>
+                  <p className="text-sm leading-relaxed text-ink-2">
                     We&apos;ve received your balance payment details. We&apos;ll verify and process your order for shipping right away.
                   </p>
                 </div>
               ) : (
                 <>
                   {/* Balance amount */}
-                  <div className="p-4 rounded-lg bg-snd-teal/[6%] border border-snd-teal/[15%]">
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-snd-muted">Balance Due</p>
-                    <p className="font-heading text-[1.75rem] text-snd-black">₱{payBalanceModal.balance.toLocaleString()}</p>
+                  <div className="p-4 rounded-lg bg-ink/[6%] border border-ink/[15%]">
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-ink-2">Balance Due</p>
+                    <p className="font-display text-[1.75rem] text-ink">₱{payBalanceModal.balance.toLocaleString()}</p>
                   </div>
 
                   {/* Message */}
-                  <p className="text-sm leading-relaxed text-snd-muted">
+                  <p className="text-sm leading-relaxed text-ink-2">
                     Your pre-order has arrived! Please settle your remaining balance so we can ship your order right away.
                   </p>
 
                   {/* Payment method */}
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-2.5 text-snd-muted">Payment Method</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-2.5 text-ink-2">Payment Method</p>
                     <div className="grid grid-cols-3 gap-2">
                       {(["gcash", "maya", "bank_transfer"] as const).map(m => (
                         <button key={m} type="button"
                           onClick={() => setPayBalanceMethod(m)}
                           className={`py-2.5 text-xs font-bold rounded-lg transition-all border-[1.5px] ${
-                            payBalanceMethod === m ? "bg-snd-teal text-white border-snd-teal" : "bg-snd-bg text-snd-black border-snd-border"
+                            payBalanceMethod === m ? "bg-ink text-white border-ink" : "bg-paper text-ink border-line"
                           }`}>
                           {m === "gcash" ? "GCash" : m === "maya" ? "Maya" : "Bank\nTransfer"}
                         </button>
@@ -1764,41 +1764,41 @@ export default function AccountPage() {
 
                   {/* Payment instructions */}
                   {payBalanceMethod && (
-                    <div className="p-4 rounded-lg text-sm space-y-1 bg-snd-bg border border-snd-border">
+                    <div className="p-4 rounded-lg text-sm space-y-1 bg-paper border border-line">
                       {payBalanceMethod === "gcash" && (
                         <>
-                          <p className="font-bold text-xs mb-1.5 text-snd-black">GCash</p>
-                          <p className="text-xs text-snd-muted">Number: <span className="font-semibold text-snd-black">{payCfg.gcashNumber}</span></p>
-                          <p className="text-xs text-snd-muted">Name: <span className="font-semibold text-snd-black">{payCfg.gcashName}</span></p>
+                          <p className="font-bold text-xs mb-1.5 text-ink">GCash</p>
+                          <p className="text-xs text-ink-2">Number: <span className="font-semibold text-ink">{payCfg.gcashNumber}</span></p>
+                          <p className="text-xs text-ink-2">Name: <span className="font-semibold text-ink">{payCfg.gcashName}</span></p>
                         </>
                       )}
                       {payBalanceMethod === "maya" && (
                         <>
-                          <p className="font-bold text-xs mb-1.5 text-snd-black">Maya</p>
-                          <p className="text-xs text-snd-muted">Number: <span className="font-semibold text-snd-black">{payCfg.mayaNumber}</span></p>
-                          <p className="text-xs text-snd-muted">Name: <span className="font-semibold text-snd-black">{payCfg.mayaName}</span></p>
+                          <p className="font-bold text-xs mb-1.5 text-ink">Maya</p>
+                          <p className="text-xs text-ink-2">Number: <span className="font-semibold text-ink">{payCfg.mayaNumber}</span></p>
+                          <p className="text-xs text-ink-2">Name: <span className="font-semibold text-ink">{payCfg.mayaName}</span></p>
                         </>
                       )}
                       {payBalanceMethod === "bank_transfer" && (
                         <>
-                          <p className="font-bold text-xs mb-1.5 text-snd-black">Bank Transfer</p>
+                          <p className="font-bold text-xs mb-1.5 text-ink">Bank Transfer</p>
                           {payCfg.bank1Name && (
                             <div className="space-y-0.5 mb-2">
-                              <p className="text-xs font-semibold text-snd-black">{payCfg.bank1Name}</p>
-                              <p className="text-xs text-snd-muted">Account: <span className="font-semibold text-snd-black">{payCfg.bank1Account}</span></p>
-                              <p className="text-xs text-snd-muted">Name: <span className="font-semibold text-snd-black">{payCfg.bank1AccountName}</span></p>
+                              <p className="text-xs font-semibold text-ink">{payCfg.bank1Name}</p>
+                              <p className="text-xs text-ink-2">Account: <span className="font-semibold text-ink">{payCfg.bank1Account}</span></p>
+                              <p className="text-xs text-ink-2">Name: <span className="font-semibold text-ink">{payCfg.bank1AccountName}</span></p>
                             </div>
                           )}
                           {payCfg.bank2Name && (
-                            <div className="space-y-0.5 pt-2 border-t border-snd-border">
-                              <p className="text-xs font-semibold text-snd-black">{payCfg.bank2Name}</p>
-                              <p className="text-xs text-snd-muted">Account: <span className="font-semibold text-snd-black">{payCfg.bank2Account}</span></p>
-                              <p className="text-xs text-snd-muted">Name: <span className="font-semibold text-snd-black">{payCfg.bank2AccountName}</span></p>
+                            <div className="space-y-0.5 pt-2 border-t border-line">
+                              <p className="text-xs font-semibold text-ink">{payCfg.bank2Name}</p>
+                              <p className="text-xs text-ink-2">Account: <span className="font-semibold text-ink">{payCfg.bank2Account}</span></p>
+                              <p className="text-xs text-ink-2">Name: <span className="font-semibold text-ink">{payCfg.bank2AccountName}</span></p>
                             </div>
                           )}
                         </>
                       )}
-                      <p className="text-[10px] mt-2 text-snd-muted-lt">
+                      <p className="text-[10px] mt-2 text-ink-3">
                         Amount: ₱{payBalanceModal.balance.toLocaleString()} · Include your order number in the remarks.
                       </p>
                     </div>
@@ -1806,21 +1806,21 @@ export default function AccountPage() {
 
                   {/* Reference number */}
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 text-snd-muted">
-                      Reference / Transaction Number <span className="text-snd-red">*</span>
+                    <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 text-ink-2">
+                      Reference / Transaction Number <span className="text-state-error">*</span>
                     </label>
                     <input
                       value={payBalanceRef}
                       onChange={e => setPayBalanceRef(e.target.value)}
                       placeholder="e.g. 1234567890"
-                      className="w-full px-3 py-2.5 text-sm focus:outline-none bg-snd-bg border border-snd-border text-snd-black"
+                      className="w-full px-3 py-2.5 text-sm focus:outline-none bg-paper border border-line text-ink"
                     />
                   </div>
 
                   {/* Proof upload */}
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 text-snd-muted">
-                      Proof of Payment <span className="text-snd-red">*</span>
+                    <label className="block text-[10px] font-black uppercase tracking-widest mb-1.5 text-ink-2">
+                      Proof of Payment <span className="text-state-error">*</span>
                     </label>
                     {payBalanceProofPreview ? (
                       <div className="relative">
@@ -1828,14 +1828,14 @@ export default function AccountPage() {
                         <img src={payBalanceProofPreview} alt="Proof preview" className="w-full rounded-lg object-cover max-h-36" />
                         <button type="button"
                           onClick={() => { setPayBalanceProof(null); setPayBalanceProofPreview(null); }}
-                          className="absolute top-2 right-2 p-1 rounded-full bg-snd-black text-white">
+                          className="absolute top-2 right-2 p-1 rounded-full bg-ink text-white">
                           <X className="w-3 h-3" />
                         </button>
                       </div>
                     ) : (
-                      <label className="flex flex-col items-center justify-center gap-2 py-5 cursor-pointer rounded-lg transition-colors border-[1.5px] border-dashed border-snd-border bg-snd-bg">
-                        <Upload className="w-5 h-5 text-snd-muted" />
-                        <span className="text-xs text-snd-muted">Tap to upload screenshot</span>
+                      <label className="flex flex-col items-center justify-center gap-2 py-5 cursor-pointer rounded-lg transition-colors border-[1.5px] border-dashed border-line bg-paper">
+                        <Upload className="w-5 h-5 text-ink-2" />
+                        <span className="text-xs text-ink-2">Tap to upload screenshot</span>
                         <input type="file" accept="image/*" className="hidden"
                           onChange={e => {
                             const f = e.target.files?.[0];
@@ -1848,7 +1848,7 @@ export default function AccountPage() {
                   </div>
 
                   {payBalanceError && (
-                    <p className="text-xs px-3 py-2 rounded bg-snd-red/[6%] text-snd-red">
+                    <p className="text-xs px-3 py-2 rounded bg-state-error/[6%] text-state-error">
                       {payBalanceError}
                     </p>
                   )}
@@ -1857,11 +1857,11 @@ export default function AccountPage() {
             </div>
 
             {/* Footer */}
-            <div className="px-5 pb-5 pt-3 shrink-0 space-y-2 border-t border-snd-border">
+            <div className="px-5 pb-5 pt-3 shrink-0 space-y-2 border-t border-line">
               {payBalanceSuccess ? (
                 <button
                   onClick={() => { setPayBalanceModal(null); setPayBalanceMethod(null); setPayBalanceRef(""); setPayBalanceProof(null); setPayBalanceProofPreview(null); setPayBalanceError(""); setPayBalanceSuccess(false); }}
-                  className="w-full py-3.5 font-black text-sm uppercase tracking-widest bg-snd-teal text-white">
+                  className="w-full py-3.5 font-black text-sm uppercase tracking-widest bg-ink text-white">
                   Done
                 </button>
               ) : (
@@ -1869,10 +1869,10 @@ export default function AccountPage() {
                   <button
                     onClick={handlePayBalance}
                     disabled={submittingBalance || !payBalanceMethod || !payBalanceRef.trim() || !payBalanceProof}
-                    className="w-full py-3.5 font-black text-sm uppercase tracking-widest transition-opacity disabled:opacity-40 bg-snd-teal text-white">
+                    className="w-full py-3.5 font-black text-sm uppercase tracking-widest transition-opacity disabled:opacity-40 bg-ink text-white">
                     {submittingBalance ? "Submitting…" : "Submit Payment"}
                   </button>
-                  <p className="text-[10px] text-center text-snd-muted-lt">
+                  <p className="text-[10px] text-center text-ink-3">
                     Admin will review and confirm your payment before shipping.
                   </p>
                 </>

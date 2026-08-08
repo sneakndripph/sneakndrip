@@ -39,20 +39,16 @@ export default async function BrandsPage() {
   const sortedBrands = [...brandsWithProducts, ...brandsEmpty];
 
   return (
-    <div className="bg-snd-bg font-body" style={{ minHeight: "80vh" }}>
+    <div className="bg-paper" style={{ minHeight: "80vh" }}>
       {/* Header */}
-      <div className="py-14 border-b border-snd-border">
+      <div className="py-14 border-b border-line">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <p className="snd-label mb-4 text-snd-teal font-body">
-            Shop by Brand
-          </p>
+          <p className="text-eyebrow text-ink-3 mb-4">Shop by Brand</p>
           <div className="flex items-end justify-between">
-            <h1 className="font-heading text-snd-black" style={{ fontSize: "var(--text-display-md)", letterSpacing: "0.04em", lineHeight: 1 }}>
-              ALL BRANDS
+            <h1 className="text-display text-ink font-display leading-tight tracking-[-0.03em]">
+              All Brands
             </h1>
-            <p className="snd-label pb-1 text-snd-muted-lt font-body">
-              {brandsWithProducts.length} brands
-            </p>
+            <p className="text-eyebrow text-ink-3 pb-1">{brandsWithProducts.length} brands</p>
           </div>
         </div>
       </div>
@@ -67,7 +63,7 @@ export default async function BrandsPage() {
               <Link
                 key={b}
                 href={`/shop?brand=${encodeURIComponent(b)}`}
-                className={`brand-card-hover flex flex-col items-center justify-center p-8 text-center bg-snd-card border border-snd-border ${isEmpty ? "pointer-events-none opacity-30" : ""}`}
+                className={`flex flex-col items-center justify-center p-8 text-center bg-paper-2 border border-line transition-opacity hover:opacity-80 ${isEmpty ? "pointer-events-none opacity-30" : ""}`}
               >
                 {/* Logo area */}
                 <div
@@ -82,10 +78,8 @@ export default async function BrandsPage() {
                   <BrandLogo brand={b} color={brandColor} size={28} />
                 </div>
 
-                <p className="font-black text-sm uppercase tracking-wide mb-1 text-snd-black">
-                  {b}
-                </p>
-                <p className="text-xs text-snd-muted">
+                <p className="text-body-sm text-ink font-medium mb-1">{b}</p>
+                <p className="text-micro text-ink-3">
                   {isEmpty ? "Coming soon" : `${count} pair${count === 1 ? "" : "s"}`}
                 </p>
               </Link>

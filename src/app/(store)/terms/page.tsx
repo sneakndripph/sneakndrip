@@ -42,28 +42,11 @@ export default async function TermsPage() {
   const content = await getPageContent("terms", FALLBACK);
 
   return (
-    <div className="bg-snd-bg font-body">
-      <section className="relative py-20 px-4 text-center overflow-hidden bg-snd-black">
-        <div className="absolute inset-0 pointer-events-none opacity-[0.04]"
-          style={{
-            backgroundImage: `linear-gradient(#5BB8B4 1px, transparent 1px), linear-gradient(90deg, #5BB8B4 1px, transparent 1px)`,
-            backgroundSize: "60px 60px",
-          }} />
-        <div className="relative max-w-3xl mx-auto">
-          <p className="text-xs font-bold uppercase tracking-widest mb-4 text-snd-teal">Legal</p>
-          <h1 className="font-heading" style={{ fontSize: "clamp(2.5rem, 7vw, 5rem)", letterSpacing: "0.04em", color: "#F2F0EF", lineHeight: 1 }}>
-            TERMS OF SERVICE
-          </h1>
-          <p className="mt-5 text-sm leading-relaxed max-w-md mx-auto" style={{ color: "#888" }}>
-            The terms and conditions that govern purchases from our store.
-          </p>
-        </div>
-      </section>
-      <section className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
-        <div className="p-8 rounded-2xl bg-snd-card border border-snd-border">
-          <PageContent text={content} />
-        </div>
-      </section>
+    <div className="max-w-3xl mx-auto px-5 md:px-8 py-16 lg:py-24">
+      <h1 className="text-display text-ink font-display leading-tight tracking-[-0.03em] mb-8">
+        Terms of Service
+      </h1>
+      <PageContent text={content} />
     </div>
   );
 }

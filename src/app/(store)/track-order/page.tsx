@@ -64,35 +64,35 @@ export default function TrackOrderPage() {
   const cfg = STATUS_CFG[status] ?? STATUS_CFG.pending;
 
   return (
-    <div className="bg-snd-bg min-h-screen font-body">
+    <div className="bg-paper min-h-screen font-body">
       <div className="max-w-2xl mx-auto px-6 py-20">
         <div className="mb-12">
-          <p className="snd-label mb-4 text-snd-muted-lt">Order Status</p>
-          <h1 className="font-heading tracking-[0.04em] leading-none text-snd-black text-[length:var(--text-display-sm)]">TRACK ORDER</h1>
-          <p className="mt-4 text-sm text-snd-muted">Enter your order number and email to track your delivery.</p>
+          <p className="text-eyebrow mb-4 text-ink-3">Order Status</p>
+          <h1 className="text-display text-ink font-display leading-tight tracking-[-0.03em]">Track Your Order</h1>
+          <p className="mt-4 text-sm text-ink-2">Enter your order number and email to track your delivery.</p>
         </div>
 
-        <form onSubmit={handleSearch} className="p-6 mb-6 bg-snd-card border border-snd-border">
+        <form onSubmit={handleSearch} className="p-6 mb-6 bg-paper-2 border border-line">
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">Order Number</label>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">Order Number</label>
               <input value={form.orderNumber} onChange={e => setForm(f => ({ ...f, orderNumber: e.target.value.toUpperCase() }))}
                 placeholder="SND-12345678"
-                className="w-full px-4 py-3 text-sm focus:outline-none bg-snd-bg border border-snd-border text-snd-black focus:border-snd-teal" />
+                className="w-full px-4 py-3 text-sm focus:outline-none bg-paper border border-line text-ink focus:border-ink" />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-snd-black">Email Address</label>
+              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">Email Address</label>
               <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} type="email"
                 placeholder="Email used during checkout"
-                className="w-full px-4 py-3 text-sm focus:outline-none bg-snd-bg border border-snd-border text-snd-black focus:border-snd-teal" />
+                className="w-full px-4 py-3 text-sm focus:outline-none bg-paper border border-line text-ink focus:border-ink" />
             </div>
             {error && (
-              <p className="text-sm font-semibold px-4 py-3 bg-snd-red/[6%] text-snd-red border border-snd-red/[13%]">
+              <p className="text-sm font-semibold px-4 py-3 bg-state-error/[6%] text-state-error border border-state-error/[13%]">
                 {error}
               </p>
             )}
             <button type="submit" disabled={loading || !form.orderNumber.trim() || !form.email.trim()}
-              className="w-full py-4 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50 bg-snd-black text-snd-bg">
+              className="w-full py-4 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity hover:opacity-90 disabled:opacity-50 bg-ink text-paper">
               <Search className="w-4 h-4" />
               {loading ? "Searching…" : "Track Order"}
             </button>
@@ -100,12 +100,12 @@ export default function TrackOrderPage() {
         </form>
 
         {order && (
-          <div className="bg-snd-card border border-snd-border">
-            <div className="px-6 py-5 border-b border-snd-border">
+          <div className="bg-paper-2 border border-line">
+            <div className="px-6 py-5 border-b border-line">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-black text-lg text-snd-black">{order.order_number}</p>
-                  <p className="text-xs mt-0.5 text-snd-muted">
+                  <p className="font-black text-lg text-ink">{order.order_number}</p>
+                  <p className="text-xs mt-0.5 text-ink-2">
                     {new Date(order.created_at).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" })}
                   </p>
                 </div>
@@ -117,12 +117,12 @@ export default function TrackOrderPage() {
             </div>
 
             {status !== "cancelled" && (
-              <div className="px-6 pt-6 pb-2 border-b border-snd-border">
+              <div className="px-6 pt-6 pb-2 border-b border-line">
                 {/* Progress bar */}
                 <div className="relative mb-6">
-                  <div className="absolute top-5 left-0 right-0 h-0.5 bg-snd-border" />
+                  <div className="absolute top-5 left-0 right-0 h-0.5 bg-line" />
                   <div
-                    className="absolute top-5 left-0 h-0.5 transition-all duration-700 bg-snd-teal"
+                    className="absolute top-5 left-0 h-0.5 transition-all duration-700 bg-ink"
                     style={{ width: activeIdx < 0 ? "0%" : `${(activeIdx / (steps.length - 1)) * 100}%` }}
                   />
                   <div className="relative flex justify-between">
@@ -134,11 +134,11 @@ export default function TrackOrderPage() {
                         <div key={step} className="flex flex-col items-center gap-2" style={{ width: `${100 / steps.length}%` }}>
                           <div
                             className={`w-9 h-9 rounded-full flex items-center justify-center transition-all border-2 ${
-                              active || done ? "bg-snd-teal border-snd-teal" : "bg-snd-card border-snd-border"
+                              active || done ? "bg-ink border-ink" : "bg-paper-2 border-line"
                             } ${active ? "shadow-[0_0_0_4px_rgba(91,184,180,0.13)]" : ""}`}>
-                            <Icon className={`w-4 h-4 ${active || done ? "text-white" : "text-snd-muted-lt"}`} />
+                            <Icon className={`w-4 h-4 ${active || done ? "text-white" : "text-ink-3"}`} />
                           </div>
-                          <p className={`text-[10px] font-bold text-center leading-tight ${active ? "text-snd-teal" : done ? "text-snd-black" : "text-snd-muted-lt"}`}>
+                          <p className={`text-[10px] font-bold text-center leading-tight ${active ? "text-ink" : done ? "text-ink" : "text-ink-3"}`}>
                             {STEP_META[step]?.label}
                           </p>
                         </div>
@@ -148,9 +148,9 @@ export default function TrackOrderPage() {
                 </div>
 
                 {/* What's next */}
-                <div className="flex items-center gap-3 px-4 py-3 mb-4 bg-snd-teal/[6%] border border-snd-teal/[15%]">
-                  <div className="w-1.5 h-1.5 shrink-0 animate-pulse rounded-full bg-snd-teal" />
-                  <p className="text-xs font-semibold text-snd-teal">
+                <div className="flex items-center gap-3 px-4 py-3 mb-4 bg-ink/[6%] border border-ink/[15%]">
+                  <div className="w-1.5 h-1.5 shrink-0 animate-pulse rounded-full bg-ink" />
+                  <p className="text-xs font-semibold text-ink">
                     {NEXT_MSG[status] ?? "Your order is being processed."}
                   </p>
                 </div>
@@ -158,43 +158,43 @@ export default function TrackOrderPage() {
             )}
 
             {order.tracking_number && (
-              <div className="px-6 py-4 flex items-center gap-3 border-b border-snd-border bg-snd-teal/[3%]">
-                <Truck className="w-5 h-5 shrink-0 text-snd-teal" />
+              <div className="px-6 py-4 flex items-center gap-3 border-b border-line bg-ink/[3%]">
+                <Truck className="w-5 h-5 shrink-0 text-ink" />
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide text-snd-teal">Tracking Number</p>
-                  <p className="font-black mt-0.5 text-snd-black">{order.tracking_number}</p>
+                  <p className="text-xs font-bold uppercase tracking-wide text-ink">Tracking Number</p>
+                  <p className="font-black mt-0.5 text-ink">{order.tracking_number}</p>
                 </div>
               </div>
             )}
 
             {(order.order_items as TrackItem[])?.length > 0 && (
               <div className="px-6 py-5">
-                <p className="text-xs font-black uppercase tracking-widest mb-4 text-snd-muted">Items</p>
+                <p className="text-xs font-black uppercase tracking-widest mb-4 text-ink-2">Items</p>
                 <div className="space-y-3">
                   {(order.order_items as TrackItem[]).map((item, i) => (
                     <div key={i} className="flex items-center gap-3">
-                      <div className="w-12 h-12 shrink-0 overflow-hidden relative border border-snd-border"
+                      <div className="w-12 h-12 shrink-0 overflow-hidden relative border border-line"
                         style={{ background: item.products?.bg || "#EDE9E3" }}>
                         {item.products?.images?.[0] ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={item.products.images[0]} alt={item.product_name} className="w-full h-full object-cover" />
                         ) : (
-                          <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-snd-black opacity-[0.12] font-heading">S</span>
+                          <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-ink opacity-[0.12] font-display">S</span>
                         )}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-snd-black">{item.product_name}</p>
-                        <p className="text-xs text-snd-muted">Size {item.size} · x{item.quantity}</p>
+                        <p className="text-sm font-semibold text-ink">{item.product_name}</p>
+                        <p className="text-xs text-ink-2">Size {item.size} · x{item.quantity}</p>
                       </div>
-                      <p className="text-sm font-bold text-snd-black">
+                      <p className="text-sm font-bold text-ink">
                         ₱{(Number(item.unit_price) * Number(item.quantity)).toLocaleString()}
                       </p>
                     </div>
                   ))}
                 </div>
-                <div className="flex justify-between mt-4 pt-4 font-black border-t border-snd-border">
-                  <span className="text-snd-black">Total</span>
-                  <span className="font-heading text-snd-black">₱{Number(order.total).toLocaleString()}</span>
+                <div className="flex justify-between mt-4 pt-4 font-black border-t border-line">
+                  <span className="text-ink">Total</span>
+                  <span className="font-display text-ink">₱{Number(order.total).toLocaleString()}</span>
                 </div>
               </div>
             )}
