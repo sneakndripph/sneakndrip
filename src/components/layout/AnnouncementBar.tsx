@@ -41,7 +41,7 @@ export default function AnnouncementBar() {
 
   return (
     <div
-      className="relative flex items-center justify-center py-2.5 px-10 text-xs font-semibold tracking-widest uppercase bg-snd-teal text-white"
+      className="relative flex items-center justify-center py-2.5 px-10 text-eyebrow bg-ink text-paper"
     >
       <span>{text}</span>
       <button

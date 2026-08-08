@@ -70,8 +70,8 @@ export default function RootLayout({
           toastOptions={{
             duration: 3200,
             style: {
-              background: "var(--snd-black)",
-              color: "var(--snd-bg)",
+              background: "var(--ink)",
+              color: "var(--paper)",
               fontFamily: "var(--font-inter), sans-serif",
               fontSize: "13px",
               padding: "12px 16px",
@@ -80,10 +80,10 @@ export default function RootLayout({
               maxWidth: "340px",
             },
             success: {
-              iconTheme: { primary: "var(--snd-teal)", secondary: "var(--snd-bg)" },
+              iconTheme: { primary: "var(--state-onhand)", secondary: "var(--paper)" },
             },
             error: {
-              iconTheme: { primary: "var(--snd-red)", secondary: "var(--snd-bg)" },
+              iconTheme: { primary: "var(--state-error)", secondary: "var(--paper)" },
             },
           }}
         />
