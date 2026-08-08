@@ -1,22 +1,15 @@
 "use client";
 
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
-import { type Dispatch, type SetStateAction } from "react";
-import { ShoppingBag, Zap, Shield, Truck, Clock, Minus, Plus, Share2, Heart } from "lucide-react";
+import { ShoppingBag, Minus, Plus, Share2, Heart, ChevronUp } from "lucide-react";
 import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cartStore";
 import { useWishlist } from "@/hooks/useWishlist";
+import { DP_RESERVE_FEE } from "@/lib/constants";
 import type { Product } from "@/lib/types";
 
-function formatETA(start: string, end?: string) {
-  const s = new Date(start);
-  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  if (!end) return `${months[s.getMonth()]} ${s.getDate()}`;
-  const e = new Date(end);
-  if (s.getMonth() === e.getMonth())
-    return `${months[s.getMonth()]} ${s.getDate()}–${e.getDate()}`;
-  return `${months[s.getMonth()]} ${s.getDate()} – ${months[e.getMonth()]} ${e.getDate()}`;
-}
+const PAYMENT_METHODS = ["GCash", "Maya", "Bank Transfer", "COD"];
 
 export default function ProductCTA({
   product,
@@ -24,6 +17,8 @@ export default function ProductCTA({
   quantity,
   setQuantity,
   isPreOrder,
+  paymentType,
+  setPaymentType,
   effectivePaymentType,
 }: {
   product: Product;
@@ -31,12 +26,24 @@ export default function ProductCTA({
   quantity: number;
   setQuantity: Dispatch<SetStateAction<number>>;
   isPreOrder: boolean;
+  paymentType: "full_payment" | "downpayment";
+  setPaymentType: Dispatch<SetStateAction<"full_payment" | "downpayment">>;
   effectivePaymentType: "full_payment" | "downpayment";
 }) {
+  const [expanded, setExpanded] = useState(false);
   const router = useRouter();
   const addItem = useCartStore(s => s.addItem);
   const { isWishlisted, toggle: toggleWishlist } = useWishlist();
   const wishlisted = isWishlisted(product.id);
+
+  const isOnSale = useMemo(() => {
+    if (product.sale_price == null) return false;
+    const now = Date.now();
+    return (!product.sale_start || new Date(product.sale_start).getTime() <= now) &&
+           (!product.sale_end   || new Date(product.sale_end).getTime()   >= now);
+  }, [product.sale_price, product.sale_start, product.sale_end]);
+  const effectiveFullPrice = isOnSale ? product.sale_price! : product.full_payment_price;
+  const price = effectivePaymentType === "full_payment" ? effectiveFullPrice : product.downpayment_price;
 
   function getStock() {
     return product.sizes.find(s => s.size === selectedSize)?.stock ?? 0;
@@ -45,9 +52,8 @@ export default function ProductCTA({
     return useCartStore.getState().items
       .find(i => i.product.id === product.id && i.size === selectedSize)?.quantity ?? 0;
   }
-
-  function handleAddToCart() {
-    if (!selectedSize) { toast.error("Please select a size"); return; }
+  function checkStock() {
+    if (!selectedSize) { toast.error("Please select a size"); return false; }
     const stock = getStock();
     const inCart = getInCart();
     if (inCart + quantity > stock) {
@@ -56,25 +62,24 @@ export default function ProductCTA({
         ? `Only ${stock} pair${stock === 1 ? "" : "s"} available for ${selectedSize}`
         : `Only ${remaining} more pair${remaining === 1 ? "" : "s"} can be added`
       );
-      return;
+      return false;
     }
-    addItem(product, selectedSize, effectivePaymentType, quantity);
+    return true;
+  }
+  function incrementQuantity() {
+    if (!selectedSize) { setQuantity(q => q + 1); return; }
+    if (quantity + getInCart() < getStock()) setQuantity(q => q + 1);
+  }
+
+  function handleAddToCart() {
+    if (!checkStock()) return;
+    addItem(product, selectedSize!, effectivePaymentType, quantity);
     toast.success(`${product.name} added to cart`);
   }
 
   function handleBuyNow() {
-    if (!selectedSize) { toast.error("Please select a size"); return; }
-    const stock = getStock();
-    const inCart = getInCart();
-    if (inCart + quantity > stock) {
-      const remaining = stock - inCart;
-      toast.error(remaining <= 0
-        ? `Only ${stock} pair${stock === 1 ? "" : "s"} available for ${selectedSize}`
-        : `Only ${remaining} more pair${remaining === 1 ? "" : "s"} can be added`
-      );
-      return;
-    }
-    addItem(product, selectedSize, effectivePaymentType, quantity);
+    if (!checkStock()) return;
+    addItem(product, selectedSize!, effectivePaymentType, quantity);
     router.push("/cart");
   }
 
@@ -90,80 +95,133 @@ export default function ProductCTA({
     }
   }
 
-  return (<>
-    {/* Quantity selector */}
-    <div className="mb-6">
-      <p className="text-sm font-bold tracking-wide mb-3 text-snd-black">Quantity</p>
-      <div className="flex items-center gap-0 w-fit border border-snd-border">
-        <button
-          onClick={() => setQuantity(q => Math.max(1, q - 1))}
-          className="w-10 h-10 flex items-center justify-center transition-colors hover:opacity-60 text-snd-black"
-        >
-          <Minus className="w-3.5 h-3.5" />
-        </button>
-        <span className="w-12 text-center text-sm font-bold text-snd-black border-l border-r border-snd-border">
-          {quantity}
-        </span>
-        <button
-          onClick={() => {
-            if (selectedSize) {
-              const stock = getStock();
-              const inCart = getInCart();
-              if (quantity + inCart < stock) setQuantity(q => q + 1);
-            } else {
-              setQuantity(q => q + 1);
-            }
-          }}
-          className="w-10 h-10 flex items-center justify-center transition-colors hover:opacity-60 text-snd-black"
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
+  const content = (
+    <>
+      {/* Price */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          {product.srp_price > price && (
+            <span className="text-micro text-ink-3 line-through">₱{product.srp_price.toLocaleString()}</span>
+          )}
+          {isOnSale && <span className="bg-paper border border-line text-state-error text-eyebrow px-2 py-0.5 rounded-sm">Sale</span>}
+        </div>
+        <p className="text-display-s text-ink font-display font-medium">₱{price.toLocaleString()}</p>
       </div>
-    </div>
 
-    {/* CTAs */}
-    <div className="flex flex-col gap-3 mb-8">
-      <div className="flex gap-3">
+      {/* Pre-order payment toggle */}
+      {isPreOrder && (
+        <div className="mb-4">
+          <div className="grid grid-cols-2 gap-2">
+            {(["full_payment", "downpayment"] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => setPaymentType(type)}
+                className={`py-3 px-3 text-center rounded-md border transition-colors ${
+                  paymentType === type ? "border-ink bg-ink text-paper" : "border-line text-ink hover:border-ink"
+                }`}
+              >
+                <p className="text-micro uppercase tracking-wide">{type === "full_payment" ? "Full payment" : "Downpayment"}</p>
+                <p className="text-body-sm font-medium">
+                  ₱{(type === "full_payment" ? product.full_payment_price : DP_RESERVE_FEE).toLocaleString()}{type === "downpayment" && " now"}
+                </p>
+              </button>
+            ))}
+          </div>
+          {paymentType === "downpayment" && (
+            <p className="text-micro text-ink-3 text-center mt-2">
+              ₱{DP_RESERVE_FEE.toLocaleString()} reserve now · ₱{(product.downpayment_price - DP_RESERVE_FEE).toLocaleString()} balance upon arrival
+            </p>
+          )}
+        </div>
+      )}
+
+      {selectedSize && <p className="text-micro text-ink-3 mb-4">Size {selectedSize} selected</p>}
+
+      {/* Quantity */}
+      <div className="flex items-center gap-3 mb-5">
+        <p className="text-micro text-ink-3">Quantity</p>
+        <div className="flex items-center border border-line rounded-md w-fit">
+          <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-8 h-8 flex items-center justify-center text-ink hover:opacity-60 transition-opacity">
+            <Minus className="w-3 h-3" />
+          </button>
+          <span className="w-8 text-center text-body-sm text-ink border-l border-r border-line">{quantity}</span>
+          <button onClick={incrementQuantity} className="w-8 h-8 flex items-center justify-center text-ink hover:opacity-60 transition-opacity">
+            <Plus className="w-3 h-3" />
+          </button>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-3 mb-2">
         <button
           onClick={handleAddToCart}
-          className="flex-1 py-4 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity hover:opacity-90 bg-snd-black text-snd-bg"
+          className="flex-1 py-3.5 rounded-md text-body-sm font-medium flex items-center justify-center gap-2 bg-ink text-paper hover:bg-ink-2 transition-colors"
         >
           <ShoppingBag className="w-4 h-4" />
-          {isPreOrder ? "Reserve Now" : "Add to Cart"}
+          {isPreOrder ? "Reserve now" : "Add to bag"}
         </button>
         <button
           onClick={() => toggleWishlist(product.id)}
-          className={`px-4 py-4 flex items-center justify-center transition-all border-[1.5px] ${
-            wishlisted ? "bg-snd-teal/[15%] border-snd-teal text-snd-teal" : "bg-transparent border-snd-border text-snd-muted"
+          className={`w-12 flex items-center justify-center rounded-md border transition-colors ${
+            wishlisted ? "border-ink bg-ink text-paper" : "border-line text-ink-3 hover:border-ink"
           }`}
-          title={wishlisted ? "Remove from wishlist" : "Add wishlist"}
+          title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
         >
-          <Heart className="w-5 h-5" fill={wishlisted ? "var(--color-snd-teal)" : "none"} stroke={wishlisted ? "var(--color-snd-teal)" : "var(--color-snd-muted)"} />
+          <Heart className="w-4 h-4" fill={wishlisted ? "currentColor" : "none"} />
+        </button>
+        <button onClick={handleShare} className="w-12 flex items-center justify-center rounded-md border border-line text-ink-3 hover:border-ink transition-colors" title="Share">
+          <Share2 className="w-4 h-4" />
         </button>
       </div>
-      <button
-        onClick={handleBuyNow}
-        className="w-full py-4 font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-opacity hover:opacity-90 bg-snd-teal text-white"
-      >
-        <Zap className="w-4 h-4" />
-        Buy Now
+      <button onClick={handleBuyNow} className="text-micro text-ink-3 underline hover:text-ink transition-colors mb-6">
+        or buy now →
       </button>
-    </div>
 
-    {/* Trust pills */}
-    <div className="flex flex-wrap gap-2 mb-8">
-      {[
-        { icon: <Shield className="w-3 h-3" />, text: "100% Authentic" },
-        { icon: <Truck className="w-3 h-3" />, text: "Fast Shipping" },
-        ...(product.eta_start ? [{ icon: <Clock className="w-3 h-3" />, text: `ETA: ${formatETA(product.eta_start, product.eta_end)}` }] : []),
-      ].map(b => (
-        <span key={b.text} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-snd-teal/[12%] text-snd-teal border border-snd-teal/25">
-          {b.icon}{b.text}
-        </span>
-      ))}
-      <button onClick={handleShare} className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 transition-opacity hover:opacity-70 bg-snd-black/[8%] text-snd-black border border-snd-border">
-        <Share2 className="w-3 h-3" />
-      </button>
-    </div>
-  </>);
+      {/* Payment methods */}
+      <div className="flex flex-wrap gap-1.5">
+        {PAYMENT_METHODS.map(m => (
+          <span key={m} className="text-micro text-ink-3 border border-line rounded-sm px-2 py-1">{m}</span>
+        ))}
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop inline */}
+      <div className="hidden lg:block">{content}</div>
+
+      {/* Mobile sticky bar */}
+      <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-paper border-t border-line px-5 py-3 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-body font-display font-medium text-ink truncate">₱{price.toLocaleString()}</p>
+        </div>
+        <button
+          onClick={handleAddToCart}
+          className="flex-1 py-3 rounded-md text-body-sm font-medium flex items-center justify-center gap-2 bg-ink text-paper hover:bg-ink-2 transition-colors"
+        >
+          <ShoppingBag className="w-4 h-4" />
+          {isPreOrder ? "Reserve" : "Add to bag"}
+        </button>
+        <button
+          onClick={() => setExpanded(true)}
+          aria-label="More purchase options"
+          className="w-11 h-11 flex items-center justify-center border border-line rounded-md text-ink-3 shrink-0"
+        >
+          <ChevronUp className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Mobile expanded sheet */}
+      {expanded && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-ink/50" onClick={() => setExpanded(false)} />
+          <div className="fixed inset-x-0 bottom-0 bg-paper rounded-t-xl p-6 pb-8 shadow-xl max-h-[85vh] overflow-y-auto">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-strong" />
+            {content}
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

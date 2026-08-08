@@ -11,7 +11,7 @@ import ProductSizeSelector from "./ProductSizeSelector";
 import ProductCTA from "./ProductCTA";
 import ProductTabs from "./ProductTabs";
 
-type Tab = "details" | "shipping" | "auth" | "reviews";
+type Tab = "shipping" | "auth" | "reviews";
 
 export default function ProductDetail({
   product,
@@ -25,7 +25,7 @@ export default function ProductDetail({
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [paymentType, setPaymentType] = useState<"full_payment" | "downpayment">("full_payment");
-  const [activeTab, setActiveTab] = useState<Tab>("details");
+  const [activeTab, setActiveTab] = useState<Tab>("shipping");
   const tabsRef = useRef<HTMLDivElement>(null);
   const { trackItem } = useRecentlyViewed();
   const recentItems = useRecentlyViewedStore(s => s.items);
@@ -45,36 +45,21 @@ export default function ProductDetail({
 
   const isPreOrder = product.status === "pre-order";
   const effectivePaymentType = isPreOrder ? paymentType : "full_payment";
+  const otherRecentItems = recentItems.filter(i => i.id !== product.id);
 
   function handleViewReviews() {
     setActiveTab("reviews");
     setTimeout(() => tabsRef.current?.scrollIntoView({ block: "start" }), 50);
   }
 
-  return (<>
-    <div className="bg-snd-bg font-body">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-10">
-        <div className="flex items-center gap-2 mb-10 text-xs overflow-hidden text-snd-muted">
-          <Link href="/" className="hover:opacity-70">Home</Link>
-          <span>/</span>
-          <Link href="/shop" className="hover:opacity-70">Shop</Link>
-          <span>/</span>
-          <span className="truncate text-snd-black">{product.name}</span>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-12">
+  return (
+    <div className="bg-paper pb-24 lg:pb-0">
+      <div className="lg:max-w-7xl lg:mx-auto lg:px-8 xl:px-12 lg:py-10">
+        <div className="lg:grid lg:grid-cols-2 lg:gap-12 lg:items-start">
           <ProductGallery product={product} isPreOrder={isPreOrder} />
 
-          <div>
-            <ProductInfo
-              product={product}
-              reviews={reviews}
-              isPreOrder={isPreOrder}
-              paymentType={paymentType}
-              setPaymentType={setPaymentType}
-              effectivePaymentType={effectivePaymentType}
-              onViewReviews={handleViewReviews}
-            />
+          <div className="px-5 py-6 lg:px-0 lg:py-0 lg:sticky lg:top-24">
+            <ProductInfo product={product} reviews={reviews} isPreOrder={isPreOrder} onViewReviews={handleViewReviews} />
 
             <ProductSizeSelector
               product={product}
@@ -89,6 +74,8 @@ export default function ProductDetail({
               quantity={quantity}
               setQuantity={setQuantity}
               isPreOrder={isPreOrder}
+              paymentType={paymentType}
+              setPaymentType={setPaymentType}
               effectivePaymentType={effectivePaymentType}
             />
 
@@ -96,7 +83,6 @@ export default function ProductDetail({
               containerRef={tabsRef}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
-              product={product}
               reviews={reviews}
               settings={settings}
               isPreOrder={isPreOrder}
@@ -105,24 +91,24 @@ export default function ProductDetail({
         </div>
 
         {/* Recently Viewed */}
-        {recentItems.filter(i => i.id !== product.id).length > 0 && (
-          <div className="mt-12 pt-10 border-t border-snd-border">
-            <p className="text-xs font-bold uppercase tracking-widest mb-5 text-snd-muted">Recently Viewed</p>
+        {otherRecentItems.length > 0 && (
+          <div className="px-5 md:px-8 lg:px-0 mt-12 pt-10 border-t border-line">
+            <p className="text-eyebrow text-ink-3 mb-5">Recently viewed</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {recentItems.filter(i => i.id !== product.id).slice(0, 4).map(item => (
+              {otherRecentItems.slice(0, 4).map(item => (
                 <Link key={item.id} href={`/shop/${item.slug}`} className="group block">
-                  <div className="relative aspect-square mb-2 overflow-hidden bg-snd-bg border border-snd-border" style={{ background: item.bg || undefined }}>
+                  <div className="relative aspect-square mb-2 overflow-hidden rounded-md bg-paper-2" style={{ background: item.bg || undefined }}>
                     {item.images[0] ? (
-                      <Image src={item.images[0]} alt={item.name} fill className="object-cover transition-transform duration-300 group-hover:scale-105" sizes="(max-width: 640px) 50vw, 25vw" />
+                      <Image src={item.images[0]} alt={item.name} fill className="object-cover transition-transform duration-slow ease-smooth group-hover:scale-[1.02]" sizes="(max-width: 640px) 50vw, 25vw" />
                     ) : (
-                      <span className="absolute inset-0 flex items-center justify-center font-heading text-snd-black opacity-5 text-[2rem]">
+                      <span className="absolute inset-0 flex items-center justify-center font-display text-ink opacity-5 text-[2rem]">
                         {item.brand.charAt(0)}
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5 text-snd-muted">{item.brand}</p>
-                  <p className="text-xs font-semibold leading-snug text-snd-black">{item.name}</p>
-                  <p className="text-xs font-black mt-0.5 text-snd-black">₱{item.price.toLocaleString()}</p>
+                  <p className="text-eyebrow text-ink-3 mb-0.5">{item.brand}</p>
+                  <p className="text-body-sm text-ink leading-snug">{item.name}</p>
+                  <p className="text-body-sm font-medium mt-0.5 text-ink">₱{item.price.toLocaleString()}</p>
                 </Link>
               ))}
             </div>
@@ -130,5 +116,5 @@ export default function ProductDetail({
         )}
       </div>
     </div>
-  </>);
+  );
 }

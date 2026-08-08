@@ -63,33 +63,33 @@ export default function ProductSizeGuideModal({
   const sizeGuideData = getSizeGuideData(brand);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
-      <div className="w-full max-w-lg overflow-hidden flex flex-col bg-snd-card border border-snd-border max-h-[85vh]" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 shrink-0 bg-snd-black">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60" onClick={onClose}>
+      <div className="w-full max-w-lg overflow-hidden flex flex-col rounded-md bg-paper border border-line max-h-[85vh]" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-line">
           <div>
-            <h2 className="font-heading text-white text-[1.1rem]">SIZE GUIDE</h2>
-            <p className="text-xs mt-0.5 text-white/60">{sizeGuideData.label} · All sizes in US (men&apos;s)</p>
+            <h2 className="text-body font-display font-medium text-ink">Size guide</h2>
+            <p className="text-micro mt-0.5 text-ink-3">{sizeGuideData.label} · All sizes in US (men&apos;s)</p>
           </div>
-          <button onClick={onClose} className="opacity-60 hover:opacity-100">
-            <X className="w-5 h-5 text-white" />
+          <button onClick={onClose} className="text-ink-3 hover:text-ink transition-colors">
+            <X className="w-4 h-4" />
           </button>
         </div>
         <div className="flex-1 overflow-y-auto p-4">
-          <p className="text-xs mb-3 px-1 text-snd-muted">{sizeGuideData.note}</p>
-          <div className="overflow-x-auto rounded-lg border border-snd-border">
-            <table className="w-full text-xs">
+          <p className="text-micro mb-3 px-1 text-ink-3">{sizeGuideData.note}</p>
+          <div className="overflow-x-auto rounded-md border border-line">
+            <table className="w-full text-micro">
               <thead>
-                <tr className="bg-snd-black">
+                <tr className="bg-paper-2">
                   {["US", "EU", "UK", "CM"].map(h => (
-                    <th key={h} className="px-3 py-2.5 text-left font-black uppercase tracking-wider text-white">{h}</th>
+                    <th key={h} className="px-3 py-2.5 text-left font-medium uppercase tracking-wider text-ink-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {sizeGuideData.rows.map((row, i) => (
-                  <tr key={row[0]} className={`border-b border-snd-border ${i % 2 === 0 ? "bg-snd-bg" : "bg-snd-card"}`}>
+                  <tr key={row[0]} className={`border-t border-line ${i % 2 === 0 ? "bg-paper" : "bg-paper-2"}`}>
                     {row.map((cell, j) => (
-                      <td key={j} className={`px-3 py-2.5 font-semibold ${j === 0 ? "text-snd-teal" : "text-snd-black"}`}>{cell}</td>
+                      <td key={j} className={`px-3 py-2.5 ${j === 0 ? "text-ink font-medium" : "text-ink-2"}`}>{cell}</td>
                     ))}
                   </tr>
                 ))}
