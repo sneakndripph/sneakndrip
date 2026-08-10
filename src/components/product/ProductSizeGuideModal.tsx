@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 type SizeGuide = { label: string; note: string; rows: string[][] };
@@ -62,7 +63,7 @@ export default function ProductSizeGuideModal({
   if (!open) return null;
   const sizeGuideData = getSizeGuideData(brand);
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60" onClick={onClose}>
       <div className="w-full max-w-lg overflow-hidden flex flex-col rounded-md bg-paper border border-line max-h-[85vh]" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 shrink-0 border-b border-line">
@@ -98,6 +99,7 @@ export default function ProductSizeGuideModal({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

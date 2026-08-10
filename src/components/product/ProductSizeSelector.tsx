@@ -41,40 +41,54 @@ export default function ProductSizeSelector({
     setNotifySize(null);
   }
 
-  function renderGrid() {
+  function renderSizeButton(s: Product["sizes"][number]) {
+    const outOfStock = s.stock === 0;
+    const isSelected = selectedSize === s.size;
+    const isNotify = notifySize === s.size;
+    const isNotified = notifiedSizes.has(s.size);
     return (
-      <div className="grid grid-cols-4 gap-2">
-        {product.sizes.map(s => {
-          const outOfStock = s.stock === 0;
-          const isSelected = selectedSize === s.size;
-          const isNotify = notifySize === s.size;
-          const isNotified = notifiedSizes.has(s.size);
-          return (
-            <button
-              key={s.size}
-              onClick={() => {
-                if (outOfStock && !isNotified) { setNotifySize(isNotify ? null : s.size); }
-                else if (!outOfStock) { setSelectedSize(s.size); setQuantity(1); setNotifySize(null); }
-              }}
-              className={`relative py-3 border rounded-md text-body-sm transition-colors flex flex-col items-center justify-center gap-0.5 ${
-                isSelected ? "border-ink bg-ink text-paper"
-                : isNotify || isNotified ? "border-ink text-ink"
-                : "border-line text-ink hover:border-ink"
-              } ${outOfStock && !isNotified ? "opacity-40 line-through cursor-not-allowed" : ""}`}
-            >
-              <span>{s.size.replace("US ", "")}</span>
-              {outOfStock && (
-                isNotified
-                  ? <BellRing className="w-2.5 h-2.5" />
-                  : <Bell className="w-2.5 h-2.5" />
-              )}
-              {s.stock > 0 && s.stock <= 2 && (
-                <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full text-[8px] font-medium text-paper flex items-center justify-center bg-state-error">{s.stock}</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      <button
+        key={s.size}
+        onClick={() => {
+          if (outOfStock && !isNotified) { setNotifySize(isNotify ? null : s.size); }
+          else if (!outOfStock) { setSelectedSize(s.size); setQuantity(1); setNotifySize(null); }
+        }}
+        className={`relative py-3 border rounded-md text-body-sm transition-colors flex flex-col items-center justify-center gap-0.5 ${
+          isSelected ? "border-ink bg-ink text-paper"
+          : isNotify || isNotified ? "border-ink text-ink"
+          : "border-line text-ink hover:border-ink"
+        } ${outOfStock && !isNotified ? "opacity-40 line-through cursor-not-allowed" : ""}`}
+      >
+        <span>{s.size.replace("US ", "")}</span>
+        {outOfStock && (
+          isNotified
+            ? <BellRing className="w-2.5 h-2.5" />
+            : <Bell className="w-2.5 h-2.5" />
+        )}
+        {s.stock > 0 && s.stock <= 2 && (
+          <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full text-[8px] font-medium text-paper flex items-center justify-center bg-state-error">{s.stock}</span>
+        )}
+      </button>
+    );
+  }
+
+  function renderGrid() {
+    const inStockSizes = product.sizes.filter(s => s.stock > 0);
+    const soldOutSizes = product.sizes.filter(s => s.stock === 0);
+    return (
+      <>
+        <div className="grid grid-cols-4 gap-2">
+          {inStockSizes.map(renderSizeButton)}
+        </div>
+        {soldOutSizes.length > 0 && (
+          <div className="mt-4">
+            <p className="text-eyebrow text-ink-3 mb-3">Sold out sizes</p>
+            <div className="grid grid-cols-4 gap-2">
+              {soldOutSizes.map(renderSizeButton)}
+            </div>
+          </div>
+        )}
+      </>
     );
   }
 
