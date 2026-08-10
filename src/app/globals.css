@@ -91,6 +91,26 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* ─── Admin-specific tokens ─────────────────────────────────────── */
+
+  /* Sidebar */
+  --admin-sidebar-bg:        var(--ink);
+  --admin-sidebar-fg:        var(--paper);
+  --admin-sidebar-fg-muted:  #8A8580;
+  --admin-sidebar-hover:     #1F1F1D;
+  --admin-sidebar-active:    #2A2A27;
+
+  /* Data table interaction */
+  --admin-row-hover:         var(--paper-3);
+
+  /* Focus */
+  --admin-focus-ring:        var(--ink);
+
+  /* Motion — snappier than customer surfaces */
+  --dur-admin-fast: 100ms;
+  --dur-admin-base: 150ms;
+  --dur-admin-slow: 250ms;
 }
 
 .dark {
@@ -194,6 +214,19 @@
   --duration-slow: var(--dur-slow);
   --duration-hero: var(--dur-hero);
   --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Admin utilities */
+  --color-admin-sidebar-bg:        var(--admin-sidebar-bg);
+  --color-admin-sidebar-fg:        var(--admin-sidebar-fg);
+  --color-admin-sidebar-fg-muted:  var(--admin-sidebar-fg-muted);
+  --color-admin-sidebar-hover:     var(--admin-sidebar-hover);
+  --color-admin-sidebar-active:    var(--admin-sidebar-active);
+  --color-admin-row-hover:         var(--admin-row-hover);
+
+  /* Admin motion — exposed to duration-admin-* utilities */
+  --duration-admin-fast: var(--dur-admin-fast);
+  --duration-admin-base: var(--dur-admin-base);
+  --duration-admin-slow: var(--dur-admin-slow);
 }
 
 /* ─── Animations ──────────────────────────────────────────────────────── */
@@ -344,5 +377,32 @@
     .text-display-s { font-size: 32px; }
     .text-display   { font-size: 48px; }
     .text-display-l { font-size: 72px; }
+  }
+
+  /* Admin type scale — denser than customer */
+  .text-admin-eyebrow {
+    font-size: 10px;
+    line-height: 1;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .text-admin-micro { font-size: 11px; line-height: 1.4; }
+  .text-admin-sm    { font-size: 12px; line-height: 1.5; }
+  .text-admin       { font-size: 13px; line-height: 1.55; }
+  .text-admin-lg    { font-size: 15px; line-height: 1.55; }
+  .text-admin-title {
+    font-size: 20px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    font-family: var(--font-display);
+    font-weight: 500;
+  }
+  .text-admin-hero {
+    font-size: 32px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-family: var(--font-display);
+    font-weight: 500;
   }
 }
