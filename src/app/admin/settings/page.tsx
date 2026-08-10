@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { BRAND, FONTS } from "@/lib/admin/constants";
-import { Save, ToggleLeft, ToggleRight, Star, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight, Star, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check, MessageCircle } from "lucide-react";
 import QRUploadField from "@/components/admin/QRUploadField";
 
 type SettingsData = Record<string, string>;
@@ -54,6 +54,7 @@ const DEFAULTS: SettingsData = {
   google_analytics_id: "",
   cod_enabled: "true",
   maintenance_mode: "false",
+  chat_widget_enabled: "true",
 };
 
 function Field({ label, settingsKey, settings, onChange, type = "text", hint, multiline, placeholder }: {
@@ -82,6 +83,7 @@ function Field({ label, settingsKey, settings, onChange, type = "text", hint, mu
 
 const SECTIONS = [
   { id: "maintenance",   title: "Maintenance Mode",  icon: ToggleLeft },
+  { id: "chat-support",  title: "Chat & Support",    icon: MessageCircle },
   { id: "why-shop",      title: "Why Shop With Us",  icon: Star },
   { id: "announcement",  title: "Announcement Bar",  icon: Bell },
   { id: "hero",          title: "Homepage Hero",     icon: Monitor },
@@ -116,6 +118,16 @@ export default function AdminSettingsPage() {
 
   function update(key: string, val: string) {
     setSettings(prev => ({ ...prev, [key]: val }));
+  }
+
+  async function toggleChatWidget() {
+    const newVal = settings.chat_widget_enabled === "false" ? "true" : "false";
+    setSettings(prev => ({ ...prev, chat_widget_enabled: newVal }));
+    await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_widget_enabled: newVal }),
+    });
   }
 
   async function toggleMaintenance() {
@@ -238,6 +250,35 @@ export default function AdminSettingsPage() {
                       {settings.maintenance_mode === "true"
                         ? <><ToggleRight className="w-4 h-4" /> Turn OFF</>
                         : <><ToggleLeft className="w-4 h-4" /> Turn ON</>}
+                    </button>
+                  </div>
+                  <p className="text-xs" style={{ color: BRAND.muted }}>
+                    The toggle saves instantly — no need to click Save.
+                  </p>
+                </div>
+              )}
+
+              {activeSection === "chat-support" && (
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between p-5 rounded-xl" style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+                    <div>
+                      <p className="font-bold text-sm mb-0.5" style={{ color: BRAND.black }}>Facebook Messenger chat widget</p>
+                      <p className="text-xs" style={{ color: BRAND.muted }}>
+                        When off, the chat bubble is hidden from all customers site-wide.
+                      </p>
+                    </div>
+                    <button type="button"
+                      onClick={toggleChatWidget}
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-bold transition-all shrink-0"
+                      style={{
+                        background: settings.chat_widget_enabled === "false" ? BRAND.muted : BRAND.teal,
+                        color: "#fff",
+                      }}>
+                      {settings.chat_widget_enabled === "false" ? (
+                        <><ToggleLeft className="w-4 h-4" /> Turn ON</>
+                      ) : (
+                        <><ToggleRight className="w-4 h-4" /> Turn OFF</>
+                      )}
                     </button>
                   </div>
                   <p className="text-xs" style={{ color: BRAND.muted }}>

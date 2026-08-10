@@ -13,8 +13,12 @@ export const dynamic = "force-dynamic";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   const admin = createAdminClient();
-  const { data } = await admin.from("store_settings").select("value").eq("key", "maintenance_mode").maybeSingle();
-  if (data?.value === "true") redirect("/maintenance");
+  const [{ data: maintenanceRow }, { data: chatRow }] = await Promise.all([
+    admin.from("store_settings").select("value").eq("key", "maintenance_mode").maybeSingle(),
+    admin.from("store_settings").select("value").eq("key", "chat_widget_enabled").maybeSingle(),
+  ]);
+  if (maintenanceRow?.value === "true") redirect("/maintenance");
+  const chatEnabled = chatRow?.value !== "false";
 
   return (
     <div className="bg-paper min-h-screen">
@@ -25,7 +29,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <Navbar />
       <RouteTransition>{children}</RouteTransition>
       <Footer />
-      <ChatWidget />
+      {chatEnabled && <ChatWidget />}
     </div>
   );
 }
