@@ -225,7 +225,7 @@ export default function ShopClient({
             </div>
 
             <p className="text-micro text-ink-3 mb-5">
-              {filtered.length} available
+              Showing {filtered.length} {filtered.length === 1 ? "product" : "products"}
             </p>
 
             {filtered.length > 0 ? (

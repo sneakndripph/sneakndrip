@@ -106,17 +106,30 @@ export default function ProductCard({ product }: ProductCardProps) {
           ₱{displayPrice.toLocaleString()}
         </p>
 
-        {isOnSale && (
-          <p className="text-micro text-ink-3 line-through">
-            ₱{product.full_payment_price.toLocaleString()}
+        {/* Optional metadata rows — always reserve eyebrow-line height so card bottoms stay aligned */}
+        <div className="space-y-1">
+          <p className="text-eyebrow tracking-[0.08em] text-state-error">
+            {product.srp_price > displayPrice ? (
+              <>SRP <span className="line-through">₱{product.srp_price.toLocaleString()}</span></>
+            ) : (
+              <span aria-hidden="true">&nbsp;</span>
+            )}
           </p>
-        )}
 
-        {isPreOrder && product.eta_start && product.eta_end && (
-          <p className="text-micro text-state-preorder">
-            ETA {formatETA(product.eta_start, product.eta_end)}
+          {isOnSale && (
+            <p className="text-micro text-ink-3 line-through">
+              ₱{product.full_payment_price.toLocaleString()}
+            </p>
+          )}
+
+          <p className="text-eyebrow tracking-[0.08em] text-state-preorder">
+            {isPreOrder && product.eta_start && product.eta_end ? (
+              <>ETA {formatETA(product.eta_start, product.eta_end)}</>
+            ) : (
+              <span aria-hidden="true">&nbsp;</span>
+            )}
           </p>
-        )}
+        </div>
       </div>
     </Link>
   );
