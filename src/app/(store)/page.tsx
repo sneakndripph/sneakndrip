@@ -30,10 +30,12 @@ const HERO_DEFAULTS = {
 
 export default async function HomePage() {
   const [products, reviews, settings] = await Promise.all([getProducts(), getReviews(), getSettings()]);
+  const inStock = (p: (typeof products)[number]) => p.sizes.some(s => s.stock > 0);
   const newArrivals = [...products]
+    .filter(inStock)
     .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
     .slice(0, 8);
-  const trending = products.filter(p => p.is_trending).slice(0, 4);
+  const trending = products.filter(p => p.is_trending && inStock(p)).slice(0, 4);
   const featured = products.find(p => p.is_featured && p.status === "on-hand") ?? products[0];
   const productSlugMap = new Map(products.map(p => [p.id, p.slug]));
 

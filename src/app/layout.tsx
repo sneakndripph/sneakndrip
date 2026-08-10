@@ -66,7 +66,6 @@ export default function RootLayout({
           position="top-right"
           gutter={8}
           containerStyle={{ top: 72, right: 16 }}
-          containerClassName="!left-4 md:!left-auto"
           toastOptions={{
             duration: 3200,
             style: {
@@ -78,7 +77,8 @@ export default function RootLayout({
               padding: "12px 16px",
               borderRadius: "6px",
               boxShadow: "0 8px 24px rgba(10, 10, 10, 0.14)",
-              maxWidth: "340px",
+              minWidth: "280px",
+              maxWidth: "320px",
             },
             success: {
               iconTheme: { primary: "var(--state-onhand)", secondary: "var(--paper)" },

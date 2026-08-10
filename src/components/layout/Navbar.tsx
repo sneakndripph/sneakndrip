@@ -6,13 +6,12 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
-import { ShoppingBag, Search, User, Menu, X, Bell } from "lucide-react";
+import { ShoppingBag, Search, User, Menu, X, Bell, Heart } from "lucide-react";
 
 const PRIMARY_LINKS = [
-  { label: "Shop",    href: "/shop" },
-  { label: "New",     href: "/shop?filter=new" },
-  { label: "Journal", href: "/authenticity" },
-  { label: "About",   href: "/about" },
+  { label: "Shop", href: "/shop" },
+  { label: "New",  href: "/shop?filter=new" },
+  { label: "About", href: "/about" },
 ];
 
 const SECONDARY_LINKS = [
@@ -267,6 +266,22 @@ export default function Navbar() {
                 )}
               </AnimatePresence>
             </div>
+
+            <Link
+              href="/wishlist"
+              className={`hidden md:inline-flex w-11 h-11 items-center justify-center text-ink hover:text-ink-3 transition-colors ${focusRing}`}
+              aria-label="Wishlist"
+            >
+              <Heart className="w-5 h-5" />
+            </Link>
+
+            <Link
+              href="/account"
+              className={`hidden md:inline-flex w-11 h-11 items-center justify-center text-ink hover:text-ink-3 transition-colors ${focusRing}`}
+              aria-label="Account"
+            >
+              <User className="w-5 h-5" />
+            </Link>
 
             <Link
               href="/cart"
