@@ -83,7 +83,7 @@ function Field({ label, settingsKey, settings, onChange, type = "text", hint, mu
 
 const SECTIONS = [
   { id: "maintenance",   title: "Maintenance Mode",  icon: ToggleLeft },
-  { id: "chat-support",  title: "Chat & Support",    icon: MessageCircle },
+  { id: "chat-support",  title: "Support Chat",      icon: MessageCircle },
   { id: "why-shop",      title: "Why Shop With Us",  icon: Star },
   { id: "announcement",  title: "Announcement Bar",  icon: Bell },
   { id: "hero",          title: "Homepage Hero",     icon: Monitor },
@@ -262,9 +262,9 @@ export default function AdminSettingsPage() {
                 <div className="space-y-5">
                   <div className="flex items-center justify-between p-5 rounded-xl" style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
                     <div>
-                      <p className="font-bold text-sm mb-0.5" style={{ color: BRAND.black }}>Facebook Messenger chat widget</p>
+                      <p className="font-bold text-sm mb-0.5" style={{ color: BRAND.black }}>Customer support chat</p>
                       <p className="text-xs" style={{ color: BRAND.muted }}>
-                        When off, the chat bubble is hidden from all customers site-wide.
+                        When off, the support chat bubble is hidden from all customers site-wide.
                       </p>
                     </div>
                     <button type="button"

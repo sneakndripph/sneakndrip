@@ -227,7 +227,9 @@ export default function ChatWidget() {
 
       {/* FAB */}
       <button onClick={() => step === "closed" ? open() : setStep("closed")}
-        className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-105 relative bg-ink">
+        className="w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-105 relative bg-ink"
+        title="Chat with us"
+        aria-label="Chat with us">
         {step === "closed" ? (
           <MessageCircle className="w-6 h-6 text-paper" />
         ) : (

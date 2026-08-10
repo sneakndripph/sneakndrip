@@ -148,26 +148,6 @@ export default function Footer() {
           </p>
         </div>
       </div>
-
-      {/* Messenger chat button */}
-      <a
-        href="https://m.me/SneakNDrip"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-40 w-13 h-13 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-105"
-        style={{
-          background: "linear-gradient(135deg, #0084ff, #00c6ff)",
-          boxShadow: "0 4px 20px rgba(0,132,255,0.4)",
-          width: "52px",
-          height: "52px",
-        }}
-        title="Chat with us on Messenger"
-        aria-label="Chat with us on Messenger"
-      >
-        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.906 1.42 5.503 3.653 7.214V22l3.33-1.833c.89.247 1.832.38 2.017.38 5.523 0 10-4.145 10-9.244C21 6.145 17.523 2 12 2zm1.013 12.453l-2.55-2.72-4.975 2.72 5.474-5.81 2.61 2.72 4.914-2.72-5.473 5.81z" />
-        </svg>
-      </a>
     </footer>
   );
 }
