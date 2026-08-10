@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 

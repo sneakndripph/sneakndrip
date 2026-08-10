@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { Send, MessageCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 

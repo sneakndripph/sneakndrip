@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { Check, Trash2, Star, X, MessageSquare } from "lucide-react";
 
 type Review = {

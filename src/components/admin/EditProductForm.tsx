@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BRAND, FONTS, SNEAKER_SIZES, BRANDS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
+import { SNEAKER_SIZES, BRANDS } from "@/lib/constants";
 import { ArrowLeft, CheckCircle, ChevronDown, Check } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 

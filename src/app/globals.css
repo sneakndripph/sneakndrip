@@ -27,17 +27,6 @@
   --state-soldout:  #6B6B65;
   --state-error:    #B85450;
 
-  /* Brand palette */
-  --snd-bg:        #F2F0EF;
-  --snd-card:      #FFFFFF;
-  --snd-black:     #0D0D0D;
-  --snd-teal:      #5BB8B4;
-  --snd-red:       #D94F3D;
-  --snd-muted:     #8A8580;
-  --snd-muted-lt:  #B0ABA5;
-  --snd-border:    rgba(13,13,13,0.07);
-  --snd-input-bg:  #F8F7F6;
-
   /* Spacing scale */
   --space-section: 7rem;       /* 112px — main section gap */
   --space-section-sm: 5rem;    /* 80px — tighter sections */
@@ -173,17 +162,6 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-
-  /* Sneak N' Drip tokens exposed to Tailwind v4 utilities */
-  --color-snd-bg:       var(--snd-bg);
-  --color-snd-card:     var(--snd-card);
-  --color-snd-black:    var(--snd-black);
-  --color-snd-teal:     var(--snd-teal);
-  --color-snd-red:      var(--snd-red);
-  --color-snd-muted:    var(--snd-muted);
-  --color-snd-muted-lt: var(--snd-muted-lt);
-  --color-snd-border:   var(--snd-border);
-  --color-snd-input:    var(--snd-input-bg);
 
   /* Paper & Ink utilities */
   --color-paper:   var(--paper);

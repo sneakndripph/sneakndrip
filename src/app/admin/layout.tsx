@@ -10,7 +10,7 @@ import {
   MessageSquare, MessageCircle, UserCog, FileText, Tag, BarChart2, History,
   TrendingUp, RotateCcw,
 } from "lucide-react";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { createClient } from "@/lib/supabase/client";
 
 type NotifCounts = { pendingOrders: number; pendingReviews: number; pendingReturns: number; lowStock: number };

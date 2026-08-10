@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { Save, ToggleLeft, ToggleRight, Star, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check } from "lucide-react";
 import QRUploadField from "@/components/admin/QRUploadField";
 

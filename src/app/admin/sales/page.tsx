@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { TrendingUp, ShoppingBag, Banknote, XCircle, Download, RefreshCw, X, Package } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";

@@ -65,18 +65,19 @@ export default function RootLayout({
         <Toaster
           position="top-right"
           gutter={8}
-          containerStyle={{ top: 80, right: 16 }}
+          containerStyle={{ top: 72, right: 16 }}
           containerClassName="!left-4 md:!left-auto"
           toastOptions={{
             duration: 3200,
             style: {
               background: "var(--ink)",
               color: "var(--paper)",
-              fontFamily: "var(--font-inter), sans-serif",
+              fontFamily: "var(--font-body)",
               fontSize: "13px",
+              lineHeight: "1.4",
               padding: "12px 16px",
-              borderRadius: "0",
-              boxShadow: "var(--shadow-md)",
+              borderRadius: "6px",
+              boxShadow: "0 8px 24px rgba(10, 10, 10, 0.14)",
               maxWidth: "340px",
             },
             success: {

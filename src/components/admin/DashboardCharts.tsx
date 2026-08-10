@@ -6,7 +6,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import DashboardPeriodSelector from "@/components/admin/DashboardPeriodSelector";
 
 type DayData    = { date: string; revenue: number; orders: number };

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { Plus, Trash2, ToggleLeft, ToggleRight, Tag, ChevronDown, Check, X, Percent, Calendar } from "lucide-react";
 
 type Coupon = {

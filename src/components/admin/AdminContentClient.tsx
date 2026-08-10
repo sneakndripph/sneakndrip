@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { PageContent } from "@/components/ui/PageContent";
 import {
   FileText, Save, Check, ExternalLink, Eye, Edit3, List,

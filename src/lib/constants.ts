@@ -1,30 +1,4 @@
-/* ─── Brand Design Tokens — Design 1: Cream Culture ──────────────────────
-   Extracted directly from the Sneak N' Drip logo:
-   Teal  #5BB8B4  →  "DRIP" text
-   Red   #D94F3D  →  glitch effect + Converse shoe
-   Black #0D0D0D  →  thick sticker outline
-   Cream #F2F0EF  →  logo text fill + specified BG
-   ─────────────────────────────────────────────────────────────────────── */
-
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sneakndrip.ph";
-
-export const BRAND = {
-  bg: "#F2F0EF",
-  card: "#FFFFFF",
-  black: "#0D0D0D",
-  teal: "#5BB8B4",
-  red: "#D94F3D",
-  muted: "#8A8580",
-  mutedLight: "#B0ABA5",
-  border: "rgba(13,13,13,0.09)",
-  cardBorder: "rgba(13,13,13,0.07)",
-  inputBg: "#F8F7F6",
-} as const;
-
-export const FONTS = {
-  display: "var(--font-barlow), sans-serif",
-  body: "var(--font-inter), sans-serif",
-} as const;
 
 export const SNEAKER_SIZES = [
   "US 4", "US 4.5", "US 5", "US 5.5",

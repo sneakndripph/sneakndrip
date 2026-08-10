@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { Plus, Search, Edit, Trash2, Eye } from "lucide-react";
 
 type Row = Record<string, unknown> & { product_sizes?: { size: string; stock: number }[] };

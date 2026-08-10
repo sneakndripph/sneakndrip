@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import { Upload, X, Crop, Loader2, AlertCircle, ChevronUp, ChevronDown } from "lucide-react";
-import { BRAND } from "@/lib/constants";
+import { BRAND } from "@/lib/admin/constants";
 import { createClient } from "@/lib/supabase/client";
 
 interface ImageEntry {

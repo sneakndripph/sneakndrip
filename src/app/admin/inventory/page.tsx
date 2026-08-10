@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { Search, BarChart2, X, Package, Edit2, Download, Filter, RefreshCw } from "lucide-react";
 
 type LogEntry = {

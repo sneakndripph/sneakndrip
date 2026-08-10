@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { RefreshCw, CheckCircle, XCircle, X, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 

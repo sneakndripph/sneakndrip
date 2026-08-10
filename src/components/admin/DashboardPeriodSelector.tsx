@@ -1,6 +1,6 @@
 "use client";
 
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 
 const PERIODS = [
   { value: "today", label: "Today" },

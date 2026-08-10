@@ -2,7 +2,7 @@
 import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin-server";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { TrendingUp, ShoppingBag, Package, AlertTriangle, Plus, Clock, Users } from "lucide-react";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import DashboardRecentOrdersTable from "@/components/admin/DashboardRecentOrdersTable";

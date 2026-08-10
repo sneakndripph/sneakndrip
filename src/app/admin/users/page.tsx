@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { UserPlus, Shield, User, Trash2, X, Eye, EyeOff, ChevronDown, Check } from "lucide-react";
 // Check is used in create-user modal role dropdown
 

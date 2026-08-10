@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Upload, X, Loader2 } from "lucide-react";
-import { BRAND } from "@/lib/constants";
+import { BRAND } from "@/lib/admin/constants";
 import { createClient } from "@/lib/supabase/client";
 
 async function uploadQR(file: File): Promise<string> {

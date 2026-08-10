@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { BRAND, FONTS } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
 import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldCheck, Download, MessageCircle } from "lucide-react";
 
 const STATUS_COLORS: Record<string, string> = {

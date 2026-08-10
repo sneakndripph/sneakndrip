@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { BRAND, FONTS, DP_RESERVE_FEE } from "@/lib/constants";
+import { BRAND, FONTS } from "@/lib/admin/constants";
+import { DP_RESERVE_FEE } from "@/lib/constants";
 import {
   Search, Clock, CheckCircle, Truck, Package, XCircle,
   X, ExternalLink, MapPin, User, CreditCard, ChevronRight, MessageCircle, FileText,
