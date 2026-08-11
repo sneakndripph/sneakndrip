@@ -41,22 +41,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getRequestingUser();
   const isAdmin = user?.app_metadata?.role === "admin";
   if (!user || !isAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
+  const { reason } = await req.json().catch(() => ({ reason: undefined })) as { reason?: string };
   const admin = createAdminClient();
   const { error } = await admin.from("reviews").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   void admin.from("activity_log").insert({
-    action: "review_deleted",
+    action: reason ? "review_rejected" : "review_deleted",
     entity_type: "review",
     entity_id: id,
     actor_email: user.email ?? null,
-    details: null,
+    details: reason ? { reason } : null,
   });
 
   return NextResponse.json({ ok: true });
