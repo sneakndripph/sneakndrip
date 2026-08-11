@@ -11,13 +11,14 @@ export async function GET() {
   const admin = createAdminClient();
   const { data } = await admin
     .from("products")
-    .select("id, name, brand, status, full_payment_price, sale_price, sale_start, sale_end, product_sizes(size, stock)")
+    .select("id, name, brand, status, images, full_payment_price, sale_price, sale_start, sale_end, product_sizes(size, stock)")
     .order("name");
   const products = (data ?? []).map(p => ({
     id: p.id,
     name: p.name,
     brand: p.brand,
     status: p.status,
+    images: p.images ?? null,
     full_payment_price: p.full_payment_price,
     sale_price: p.sale_price ?? null,
     sale_start: p.sale_start ?? null,
