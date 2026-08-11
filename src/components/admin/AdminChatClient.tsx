@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { BRAND, FONTS } from "@/lib/admin/constants";
-import { Send, MessageCircle } from "lucide-react";
+import { Send, MessageCircle, ChevronLeft, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Message = { id: string; sender_type: "customer" | "admin"; sender_name: string; content: string; created_at: string };
@@ -10,23 +9,21 @@ type Conversation = { id: string; customer_name: string; customer_email: string 
 
 export default function AdminChatClient({ initialConvs }: { initialConvs: Conversation[] }) {
   const [convs, setConvs] = useState(initialConvs);
-  const [activeId, setActiveId] = useState<string | null>(initialConvs[0]?.id ?? null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Load messages when active conversation changes
   useEffect(() => {
     if (!activeId) return;
     fetch(`/api/chat/conversations/${activeId}/messages`)
       .then(r => r.json())
       .then((data: Message[]) => { if (Array.isArray(data)) setMessages(data); });
-    // Mark as read
     setConvs(prev => prev.map(c => c.id === activeId ? { ...c, unread_admin: 0 } : c));
   }, [activeId]);
 
-  // Real-time + polling fallback for active conversation messages
   useEffect(() => {
     if (!activeId) return;
 
@@ -53,7 +50,6 @@ export default function AdminChatClient({ initialConvs }: { initialConvs: Conver
     };
   }, [activeId]);
 
-  // Real-time: new conversations
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -67,7 +63,10 @@ export default function AdminChatClient({ initialConvs }: { initialConvs: Conver
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversations" },
         (payload) => {
           const c = payload.new as Conversation;
-          setConvs(prev => prev.map(p => p.id === c.id ? c : p));
+          setConvs(prev => {
+            const next = prev.some(p => p.id === c.id) ? prev.map(p => p.id === c.id ? c : p) : [c, ...prev];
+            return [...next].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+          });
         }
       )
       .subscribe();
@@ -78,9 +77,8 @@ export default function AdminChatClient({ initialConvs }: { initialConvs: Conver
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    if (!input.trim() || !activeId) return;
+  async function sendMessage() {
+    if (!input.trim() || !activeId || sending) return;
     setSending(true);
     await fetch(`/api/chat/conversations/${activeId}/messages`, {
       method: "POST",
@@ -89,59 +87,63 @@ export default function AdminChatClient({ initialConvs }: { initialConvs: Conver
     });
     setInput("");
     setSending(false);
+    textareaRef.current?.focus();
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    sendMessage();
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
   }
 
   const activeConv = convs.find(c => c.id === activeId);
   const totalUnread = convs.reduce((n, c) => n + (c.unread_admin > 0 ? 1 : 0), 0);
 
   return (
-    <div style={{ fontFamily: FONTS.body }}>
+    <div>
       <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Support</p>
-        <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>
-          CHAT INBOX
+        <p className="text-admin-eyebrow text-ink-3 mb-1">Support</p>
+        <h1 className="text-admin-hero text-ink font-display font-medium tracking-[-0.02em] flex items-center gap-3">
+          Chat inbox
           {totalUnread > 0 && (
-            <span className="ml-3 text-sm font-black px-3 py-1 align-middle"
-              style={{ background: BRAND.red, color: "#fff" }}>{totalUnread} new</span>
+            <span className="text-admin-sm font-medium px-2.5 py-1 rounded-full bg-state-error/10 text-state-error align-middle">
+              {totalUnread} new
+            </span>
           )}
         </h1>
       </div>
 
       {convs.length === 0 ? (
-        <div className="py-20 text-center rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-          <MessageCircle className="w-10 h-10 mx-auto mb-3 opacity-20" style={{ color: BRAND.black }} />
-          <p style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.muted, letterSpacing: "0.04em" }}>NO MESSAGES YET</p>
+        <div className="bg-paper border border-line rounded-md py-20 text-center">
+          <MessageCircle className="w-9 h-9 mx-auto mb-3 text-ink-3" />
+          <p className="text-admin-title text-ink">No messages yet</p>
         </div>
       ) : (
-        <div className="grid lg:grid-cols-3 gap-5 h-[600px]">
+        <div className="grid lg:grid-cols-[3fr_7fr] gap-4 h-[calc(100vh-220px)] min-h-[420px]">
           {/* Conversation list */}
-          <div className="rounded-xl overflow-hidden flex flex-col" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-            <div className="px-4 py-3 text-xs font-black uppercase tracking-widest shrink-0"
-              style={{ borderBottom: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+          <div className={`${activeId ? "hidden lg:flex" : "flex"} flex-col bg-paper border border-line rounded-md overflow-hidden`}>
+            <div className="px-4 py-3 text-admin-eyebrow text-ink-3 border-b border-line shrink-0">
               Conversations ({convs.length})
             </div>
             <div className="flex-1 overflow-y-auto">
               {convs.map(c => (
                 <button key={c.id} onClick={() => setActiveId(c.id)}
-                  className="w-full text-left px-4 py-3.5 transition-colors"
-                  style={{
-                    borderBottom: `1px solid ${BRAND.border}`,
-                    background: activeId === c.id ? `${BRAND.teal}10` : "transparent",
-                    borderLeft: `3px solid ${activeId === c.id ? BRAND.teal : "transparent"}`,
-                  }}>
-                  <div className="flex items-center justify-between mb-0.5">
-                    <p className="font-bold text-sm truncate" style={{ color: BRAND.black }}>{c.customer_name}</p>
-                    {c.unread_admin > 0 && (
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: BRAND.red }} />
-                    )}
+                  className={`w-full text-left px-4 py-3.5 border-b border-line transition-colors duration-admin-fast ${
+                    activeId === c.id ? "bg-admin-row-hover border-l-2 border-l-ink" : "hover:bg-admin-row-hover border-l-2 border-l-transparent"
+                  }`}>
+                  <div className="flex items-center justify-between gap-2 mb-0.5">
+                    <p className="text-admin-sm font-semibold text-ink truncate">{c.customer_name}</p>
+                    {c.unread_admin > 0 && <span className="w-2 h-2 rounded-full bg-state-error shrink-0" />}
                   </div>
-                  {c.customer_email && (
-                    <p className="text-xs truncate" style={{ color: BRAND.muted }}>{c.customer_email}</p>
-                  )}
-                  {c.last_message && (
-                    <p className="text-xs truncate mt-0.5" style={{ color: BRAND.mutedLight }}>{c.last_message}</p>
-                  )}
-                  <p className="text-[10px] mt-1" style={{ color: BRAND.mutedLight }}>
+                  {c.customer_email && <p className="text-admin-micro text-ink-3 truncate">{c.customer_email}</p>}
+                  {c.last_message && <p className="text-admin-micro text-ink-2 truncate mt-0.5">{c.last_message}</p>}
+                  <p className="text-admin-micro text-ink-3 mt-1">
                     {new Date(c.updated_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </button>
@@ -150,20 +152,18 @@ export default function AdminChatClient({ initialConvs }: { initialConvs: Conver
           </div>
 
           {/* Message thread */}
-          <div className="lg:col-span-2 rounded-xl overflow-hidden flex flex-col"
-            style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+          <div className={`${activeId ? "flex" : "hidden lg:flex"} flex-col bg-paper border border-line rounded-md overflow-hidden`}>
             {activeConv ? (
               <>
-                <div className="px-5 py-3.5 shrink-0 flex items-center gap-3"
-                  style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                  <div>
-                    <p className="font-bold text-sm" style={{ color: BRAND.black }}>{activeConv.customer_name}</p>
-                    {activeConv.customer_email && (
-                      <p className="text-xs" style={{ color: BRAND.muted }}>{activeConv.customer_email}</p>
-                    )}
+                <div className="px-4 py-3 shrink-0 flex items-center gap-3 border-b border-line">
+                  <button onClick={() => setActiveId(null)} className="lg:hidden p-1 -ml-1 text-ink-3 hover:text-ink transition-colors duration-admin-fast">
+                    <ChevronLeft className="w-4.5 h-4.5" />
+                  </button>
+                  <div className="min-w-0">
+                    <p className="text-admin-sm font-semibold text-ink truncate">{activeConv.customer_name}</p>
+                    {activeConv.customer_email && <p className="text-admin-micro text-ink-3 truncate">{activeConv.customer_email}</p>}
                   </div>
-                  <span className="ml-auto text-xs font-bold px-2 py-0.5"
-                    style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>
+                  <span className="ml-auto text-admin-micro font-medium px-2 py-0.5 rounded-full bg-paper-2 text-ink-2 shrink-0">
                     {activeConv.status}
                   </span>
                 </div>
@@ -172,16 +172,12 @@ export default function AdminChatClient({ initialConvs }: { initialConvs: Conver
                   {messages.map(m => (
                     <div key={m.id} className={`flex ${m.sender_type === "admin" ? "justify-end" : "justify-start"}`}>
                       <div className="max-w-[75%]">
-                        <p className="text-[10px] mb-1 px-1" style={{ color: BRAND.mutedLight }}>
+                        <p className={`text-admin-micro text-ink-3 mb-1 px-1 ${m.sender_type === "admin" ? "text-right" : ""}`}>
                           {m.sender_name} · {new Date(m.created_at).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" })}
                         </p>
-                        <div className="px-3.5 py-2.5 text-sm leading-relaxed"
-                          style={{
-                            background: m.sender_type === "admin" ? BRAND.teal : BRAND.bg,
-                            color: m.sender_type === "admin" ? "#fff" : BRAND.black,
-                            border: m.sender_type === "customer" ? `1px solid ${BRAND.border}` : "none",
-                            borderRadius: m.sender_type === "admin" ? "12px 12px 4px 12px" : "12px 12px 12px 4px",
-                          }}>
+                        <div className={`px-3.5 py-2.5 text-admin-sm leading-relaxed rounded-md ${
+                          m.sender_type === "admin" ? "bg-ink text-paper" : "bg-paper-2 text-ink border border-line"
+                        }`}>
                           {m.content}
                         </div>
                       </div>
@@ -190,23 +186,20 @@ export default function AdminChatClient({ initialConvs }: { initialConvs: Conver
                   <div ref={bottomRef} />
                 </div>
 
-                <form onSubmit={handleSend} className="flex gap-2 p-3 shrink-0"
-                  style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                  <input value={input} onChange={e => setInput(e.target.value)}
-                    placeholder="Reply to customer…"
-                    className="flex-1 px-4 py-2.5 text-sm focus:outline-none"
-                    style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
+                <form onSubmit={handleSubmit} className="flex items-end gap-2 p-3 shrink-0 border-t border-line">
+                  <textarea ref={textareaRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
+                    placeholder="Reply to customer…" rows={1}
+                    className="flex-1 px-3.5 py-2.5 text-admin-sm bg-paper border border-line rounded-md text-ink placeholder:text-ink-3 focus:outline-none focus:border-line-strong transition-colors duration-admin-fast resize-none max-h-32" />
                   <button type="submit" disabled={sending || !input.trim()}
-                    className="flex items-center gap-2 px-4 py-2.5 font-bold text-sm disabled:opacity-40 transition-opacity hover:opacity-80"
-                    style={{ background: BRAND.teal, color: "#fff" }}>
-                    <Send className="w-4 h-4" />
+                    className="flex items-center gap-2 px-4 py-2.5 text-admin-sm font-medium rounded-md bg-ink text-paper disabled:opacity-40 hover:opacity-90 transition-opacity duration-admin-fast shrink-0">
+                    {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                     Send
                   </button>
                 </form>
               </>
             ) : (
               <div className="flex-1 flex items-center justify-center">
-                <p className="text-sm" style={{ color: BRAND.muted }}>Select a conversation</p>
+                <p className="text-admin-sm text-ink-3">Select a conversation</p>
               </div>
             )}
           </div>
