@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { BRAND, FONTS } from "@/lib/admin/constants";
-import { Eye, EyeOff, Lock } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AdminLoginPage() {
@@ -37,87 +36,62 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: "#0A0A0A", fontFamily: FONTS.body }}
-    >
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex justify-center mb-10">
-          <div className="px-4 py-2 rounded" style={{ background: BRAND.bg }}>
-            <Image src="/sneakndrip-logo.gif" alt="Sneak N' Drip" width={110} height={44} className="object-contain" />
-          </div>
+    <div className="min-h-screen bg-paper flex items-center justify-center px-5 py-12">
+      <div className="w-full max-w-md mx-auto">
+        <div className="flex justify-center mb-8">
+          <Image src="/sneakndrip-logo.gif" alt="Sneak N' Drip" width={120} height={48} className="object-contain" />
         </div>
 
-        {/* Card */}
-        <div className="p-8 rounded-2xl" style={{ background: "#161616", border: "1px solid rgba(255,255,255,0.07)" }}>
-          <div className="flex items-center gap-2 mb-1">
-            <Lock className="w-4 h-4" style={{ color: BRAND.teal }} />
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: BRAND.teal }}>Admin Portal</span>
-          </div>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "2rem", letterSpacing: "0.06em", color: "#F2F0EF", lineHeight: 1, marginBottom: 24 }}>
-            SIGN IN
-          </h1>
-
-          {error && (
-            <div className="mb-5 px-4 py-3 rounded-lg text-sm font-medium"
-              style={{ background: `${BRAND.red}18`, color: "#FF6B6B", border: `1px solid ${BRAND.red}35` }}>
-              {error}
-            </div>
-          )}
+        <div className="bg-paper border border-line rounded-md p-8">
+          <h1 className="text-admin-title text-ink mb-6">Admin sign in</h1>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#777" }}>
-                Email Address
-              </label>
+              <label htmlFor="admin-email" className="block text-admin-eyebrow text-ink-3 mb-1.5">Email address</label>
               <input
+                id="admin-email"
                 type="email" value={email} onChange={e => setEmail(e.target.value)}
                 placeholder="admin@sneakndrip.com" required
-                className="w-full px-4 py-3 text-sm focus:outline-none transition-colors"
-                style={{ background: "#1F1F1F", border: "1px solid rgba(255,255,255,0.08)", color: "#F2F0EF" }}
-                onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                onBlur={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
+                className="w-full bg-paper-2 border-0 rounded-md px-3 py-2 text-admin text-ink placeholder:text-ink-3 focus:outline-none focus:ring-1 focus:ring-line-strong"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#777" }}>
-                Password
-              </label>
+              <label htmlFor="admin-password" className="block text-admin-eyebrow text-ink-3 mb-1.5">Password</label>
               <div className="relative">
                 <input
-                  type={showPw ? "text" : "password"} value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  id="admin-password"
+                  type={showPw ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••" required
-                  className="w-full px-4 py-3 pr-12 text-sm focus:outline-none transition-colors"
-                  style={{ background: "#1F1F1F", border: "1px solid rgba(255,255,255,0.08)", color: "#F2F0EF" }}
-                  onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                  onBlur={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)")}
+                  className="w-full bg-paper-2 border-0 rounded-md px-3 py-2 pr-11 text-admin text-ink placeholder:text-ink-3 focus:outline-none focus:ring-1 focus:ring-line-strong"
                 />
                 <button type="button" onClick={() => setShowPw(!showPw)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 opacity-50 hover:opacity-80">
-                  {showPw ? <EyeOff className="w-4 h-4 text-white" /> : <Eye className="w-4 h-4 text-white" />}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink transition-colors duration-admin-fast">
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
             <div className="flex justify-end">
-              <a href="/forgot-password" className="text-xs font-semibold transition-opacity hover:opacity-60"
-                style={{ color: "#555" }}>Forgot password?</a>
+              <a href="/forgot-password" className="text-admin-sm text-ink-3 hover:text-ink transition-colors duration-admin-fast">
+                Forgot password?
+              </a>
             </div>
 
             <button
               type="submit" disabled={loading}
-              className="w-full py-3.5 font-black text-sm uppercase tracking-widest mt-2 transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ background: BRAND.teal, color: "#fff" }}
+              className="w-full bg-ink text-paper text-admin py-2 px-4 rounded-md hover:bg-ink-2 disabled:opacity-50 transition-colors duration-admin-fast"
             >
-              {loading ? "Signing In…" : "Sign In to Admin"}
+              {loading ? "Signing in…" : "Sign in to admin"}
             </button>
+
+            {error && (
+              <p className="text-admin-micro text-state-error">{error}</p>
+            )}
           </form>
         </div>
 
-        <p className="text-center mt-6 text-xs" style={{ color: "#333" }}>
+        <p className="text-center mt-6 text-admin-micro text-ink-3">
           Sneak N&apos; Drip Admin Panel
         </p>
       </div>
