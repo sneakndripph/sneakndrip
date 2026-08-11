@@ -3,16 +3,29 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { BRAND, FONTS } from "@/lib/admin/constants";
-import { SNEAKER_SIZES, BRANDS } from "@/lib/constants";
-import { ArrowLeft, CheckCircle, ChevronDown, Check } from "lucide-react";
+import toast from "react-hot-toast";
+import { SNEAKER_SIZES, BRANDS, GENDERS } from "@/lib/constants";
+import { ArrowLeft, ChevronDown, Check, Copy, Trash2 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
+
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+      className={`relative w-9 h-5 rounded-full shrink-0 transition-colors duration-admin-fast ${checked ? "bg-ink" : "bg-line-strong"}`}>
+      <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-paper transition-transform duration-admin-fast ${checked ? "translate-x-4" : "translate-x-0"}`} />
+    </button>
+  );
+}
+
+type SizeRow = { size: string; stock: number; enabled: boolean };
 
 type Product = Record<string, unknown> & {
   id: string;
   slug: string;
   images?: string[];
   product_sizes?: { size: string; stock: number }[];
+  created_at?: string;
+  updated_at?: string;
 };
 
 export default function EditProductForm({ product }: { product: Product }) {
@@ -20,34 +33,41 @@ export default function EditProductForm({ product }: { product: Product }) {
   const initialSizes = (product.product_sizes ?? []) as { size: string; stock: number }[];
   const initialImages = (product.images ?? []) as string[];
 
+  const [name, setName] = useState(String(product.name ?? ""));
+  const [slug, setSlug] = useState(String(product.slug ?? ""));
+  const [brand, setBrand] = useState(String(product.brand ?? ""));
+  const [gender, setGender] = useState(String(product.gender ?? "Unisex"));
+  const [colorway, setColorway] = useState(String(product.colorway ?? ""));
+  const [sku, setSku] = useState(String(product.sku ?? ""));
+  const [description, setDescription] = useState(String(product.description ?? ""));
+
   const [status, setStatus] = useState<"on-hand" | "pre-order">(
     (product.status as "on-hand" | "pre-order") ?? "on-hand"
   );
-  const [sizes, setSizes] = useState<{ size: string; stock: number }[]>(initialSizes);
+  const [etaStart, setEtaStart] = useState(String(product.eta_start ?? ""));
+  const [etaEnd, setEtaEnd] = useState(String(product.eta_end ?? ""));
+
+  const [srp, setSrp] = useState(String(product.srp_price ?? ""));
+  const [dp, setDp] = useState(String(product.downpayment_price ?? ""));
+  const [full, setFull] = useState(String(product.full_payment_price ?? ""));
+  const [cost, setCost] = useState(String(product.cost_price ?? ""));
+
+  const [sizeRows, setSizeRows] = useState<SizeRow[]>(() =>
+    SNEAKER_SIZES.map(s => {
+      const existing = initialSizes.find(x => x.size === s);
+      return { size: s, stock: existing?.stock ?? 0, enabled: !!existing };
+    })
+  );
   const [imageUrls, setImageUrls] = useState<string[]>(initialImages);
+
+  const [isPublished, setIsPublished] = useState(Boolean(product.is_published ?? true));
+  const [featured, setFeatured] = useState(Boolean(product.is_featured ?? false));
+  const [trending, setTrending] = useState(Boolean(product.is_trending ?? false));
+
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
 
-  const [form, setForm] = useState({
-    name: String(product.name ?? ""),
-    brand: String(product.brand ?? ""),
-    colorway: String(product.colorway ?? ""),
-    gender: String(product.gender ?? "Unisex"),
-    sku: String(product.sku ?? ""),
-    description: String(product.description ?? ""),
-    srp: String(product.srp_price ?? ""),
-    dp: String(product.downpayment_price ?? ""),
-    full: String(product.full_payment_price ?? ""),
-    cost: String(product.cost_price ?? ""),
-    etaStart: String(product.eta_start ?? ""),
-    etaEnd: String(product.eta_end ?? ""),
-  });
-  const [visibility, setVisibility] = useState({
-    published: Boolean(product.is_published ?? true),
-    featured: Boolean(product.is_featured ?? false),
-    trending: Boolean(product.is_trending ?? false),
-  });
   const [brandOpen, setBrandOpen] = useState(false);
   const [genderOpen, setGenderOpen] = useState(false);
   const brandRef = useRef<HTMLDivElement>(null);
@@ -62,329 +82,368 @@ export default function EditProductForm({ product }: { product: Product }) {
     return () => document.removeEventListener("mousedown", handle);
   }, []);
 
-  function set(key: string, val: string) { setForm(f => ({ ...f, [key]: val })); }
-  function toggleSize(s: string) {
-    setSizes(prev => prev.find(x => x.size === s)
-      ? prev.filter(x => x.size !== s)
-      : [...prev, { size: s, stock: 1 }]);
+  function toggleSizeEnabled(s: string) {
+    setSizeRows(prev => prev.map(r => r.size === s
+      ? { ...r, enabled: !r.enabled, stock: !r.enabled && r.stock === 0 ? 1 : r.stock }
+      : r));
   }
   function updateStock(s: string, stock: number) {
-    setSizes(prev => prev.map(x => x.size === s ? { ...x, stock } : x));
+    setSizeRows(prev => prev.map(r => r.size === s ? { ...r, stock } : r));
+  }
+  function setAllZero() { setSizeRows(prev => prev.map(r => ({ ...r, stock: 0 }))); }
+  function enableAll() { setSizeRows(prev => prev.map(r => ({ ...r, enabled: true }))); }
+
+  const margin = Number(cost) > 0 && Number(full) > 0
+    ? ((Number(full) - Number(cost)) / Number(full)) * 100
+    : null;
+
+  function copyId() {
+    navigator.clipboard.writeText(product.id).then(() => toast.success("Product ID copied"));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!form.name || !form.brand || !form.full) {
-      setError("Name, brand and full payment price are required.");
-      return;
-    }
+    if (!name || !brand || !full) { setError("Name, brand and full payment price are required."); return; }
     setSaving(true);
     try {
       const fd = new FormData();
       fd.append("product", JSON.stringify({
-        slug: product.slug,
-        name: form.name, brand: form.brand,
-        colorway: form.colorway || null, gender: form.gender,
-        sku: form.sku || null, description: form.description || null,
-        srp_price: Number(form.srp) || Number(form.full),
-        downpayment_price: Number(form.dp) || Math.round(Number(form.full) * 0.5),
-        full_payment_price: Number(form.full),
-        cost_price: form.cost ? Number(form.cost) : null,
+        slug,
+        name, brand,
+        colorway: colorway || null, gender,
+        sku: sku || null, description: description || null,
+        srp_price: Number(srp) || Number(full),
+        downpayment_price: Number(dp) || Math.round(Number(full) * 0.5),
+        full_payment_price: Number(full),
+        cost_price: cost ? Number(cost) : null,
         status,
-        eta_start: status === "pre-order" && form.etaStart ? form.etaStart : null,
-        eta_end: status === "pre-order" && form.etaEnd ? form.etaEnd : null,
-        is_published: visibility.published, is_featured: visibility.featured,
-        is_trending: visibility.trending,
+        eta_start: status === "pre-order" && etaStart ? etaStart : null,
+        eta_end: status === "pre-order" && etaEnd ? etaEnd : null,
+        is_published: isPublished, is_featured: featured,
+        is_trending: trending,
         images: imageUrls,
       }));
-      fd.append("sizes", JSON.stringify(sizes));
+      fd.append("sizes", JSON.stringify(
+        sizeRows.filter(r => r.enabled).map(r => ({ size: r.size, stock: r.stock }))
+      ));
 
       const res = await fetch(`/api/admin/products/${product.id}`, { method: "PATCH", body: fd });
       const result = await res.json().catch(() => ({})) as { error?: string };
       if (!res.ok) { setError(result.error ?? "Failed to save"); setSaving(false); return; }
 
-      setSaved(true);
+      toast.success("Product updated");
+      router.push("/admin/products");
     } catch (err) {
       setError(String(err));
       setSaving(false);
     }
   }
 
-  if (saved) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-          style={{ background: `${BRAND.teal}15` }}>
-          <CheckCircle className="w-8 h-8" style={{ color: BRAND.teal }} />
-        </div>
-        <h2 style={{ fontFamily: FONTS.display, fontSize: "2rem", color: BRAND.black }}>CHANGES SAVED!</h2>
-        <p className="mt-2 mb-6 text-sm" style={{ color: BRAND.muted }}>Product has been updated.</p>
-        <div className="flex gap-3">
-          <Link href="/admin/products"
-            className="px-6 py-3 font-bold text-sm uppercase tracking-wider"
-            style={{ background: BRAND.black, color: BRAND.bg }}>
-            Back to Products
-          </Link>
-          <button onClick={() => { setSaved(false); router.refresh(); }}
-            className="px-6 py-3 font-bold text-sm uppercase tracking-wider"
-            style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.black }}>
-            Keep Editing
-          </button>
-        </div>
-      </div>
-    );
+  async function handleDelete() {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    setDeleting(true);
+    const res = await fetch(`/api/admin/products/${product.id}`, { method: "DELETE" });
+    if (res.ok) {
+      toast.success("Product deleted");
+      router.push("/admin/products");
+    } else {
+      toast.error("Failed to delete product");
+      setDeleting(false);
+    }
   }
 
-  const inputStyle = { background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black };
+  const inputCls = "w-full px-3.5 py-2.5 text-admin bg-paper border border-line rounded-md text-ink placeholder:text-ink-3 focus:outline-none focus:border-line-strong transition-colors duration-admin-fast";
+  const labelCls = "block text-admin-eyebrow text-ink-3 mb-1.5";
 
   return (
-    <div style={{ fontFamily: FONTS.body }}>
+    <div className="pb-24 lg:pb-0">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/admin/products" className="p-2 transition-opacity hover:opacity-60"
-          style={{ color: BRAND.muted }}>
-          <ArrowLeft className="w-5 h-5" />
+        <Link href="/admin/products"
+          className="p-2 rounded-md text-ink-3 hover:text-ink hover:bg-admin-row-hover transition-colors duration-admin-fast">
+          <ArrowLeft className="w-4 h-4" />
         </Link>
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: BRAND.teal }}>Edit Product</p>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "2rem", letterSpacing: "0.04em", color: BRAND.black }}>
-            EDIT PRODUCT
-          </h1>
-        </div>
+        <h1 className="text-admin-hero text-ink font-display font-medium tracking-[-0.02em]">Edit product</h1>
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 text-sm font-medium rounded"
-          style={{ background: `${BRAND.red}12`, color: BRAND.red, border: `1px solid ${BRAND.red}30` }}>
+        <div className="mb-5 px-4 py-3 text-admin-sm font-medium rounded-md bg-state-error/10 text-state-error border border-state-error/30">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit}>
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-5">
+          {/* Main column */}
           <div className="lg:col-span-2 space-y-5">
-            {/* Basic info */}
-            <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <h2 className="font-black mb-5" style={{ color: BRAND.black }}>Product Information</h2>
+            {/* Basics */}
+            <div className="bg-paper border border-line rounded-md p-5">
+              <p className="text-admin-title text-ink mb-4">Basics</p>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Product Name *</label>
-                  <input required value={form.name} onChange={e => set("name", e.target.value)}
-                    className="w-full px-4 py-3 text-sm focus:outline-none" style={inputStyle} />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Brand *</label>
-                  <div className="relative" ref={brandRef}>
-                    <button type="button" onClick={() => setBrandOpen(o => !o)}
-                      className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold focus:outline-none"
-                      style={{ ...inputStyle, border: `1px solid ${brandOpen ? BRAND.teal : BRAND.border}` }}>
-                      <span style={{ color: form.brand ? BRAND.black : BRAND.mutedLight }}>{form.brand || "Select brand…"}</span>
-                      <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: brandOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-                    </button>
-                    {brandOpen && (
-                      <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden shadow-lg max-h-52 overflow-y-auto"
-                        style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-                        {BRANDS.map(b => (
-                          <button key={b} type="button" onClick={() => { set("brand", b); setBrandOpen(false); }}
-                            className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors hover:opacity-80"
-                            style={{ background: form.brand === b ? `${BRAND.teal}10` : "transparent", color: form.brand === b ? BRAND.teal : BRAND.black, borderBottom: `1px solid ${BRAND.border}`, fontWeight: form.brand === b ? 700 : 500 }}>
-                            {b} {form.brand === b && <Check className="w-3.5 h-3.5 shrink-0" />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Colorway</label>
-                  <input value={form.colorway} onChange={e => set("colorway", e.target.value)}
-                    className="w-full px-4 py-3 text-sm focus:outline-none" style={inputStyle} />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Gender</label>
-                  <div className="relative" ref={genderRef}>
-                    <button type="button" onClick={() => setGenderOpen(o => !o)}
-                      className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold focus:outline-none"
-                      style={{ ...inputStyle, border: `1px solid ${genderOpen ? BRAND.teal : BRAND.border}` }}>
-                      <span style={{ color: BRAND.black }}>{form.gender}</span>
-                      <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: genderOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-                    </button>
-                    {genderOpen && (
-                      <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden shadow-lg"
-                        style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-                        {["Unisex", "Men", "Women", "Kids"].map(g => (
-                          <button key={g} type="button" onClick={() => { set("gender", g); setGenderOpen(false); }}
-                            className="w-full flex items-center justify-between px-4 py-2.5 text-sm text-left transition-colors hover:opacity-80"
-                            style={{ background: form.gender === g ? `${BRAND.teal}10` : "transparent", color: form.gender === g ? BRAND.teal : BRAND.black, borderBottom: `1px solid ${BRAND.border}`, fontWeight: form.gender === g ? 700 : 500 }}>
-                            {g} {form.gender === g && <Check className="w-3.5 h-3.5 shrink-0" />}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>SKU</label>
-                  <input value={form.sku} onChange={e => set("sku", e.target.value)}
-                    className="w-full px-4 py-3 text-sm focus:outline-none" style={inputStyle} />
+                  <label className={labelCls}>Name *</label>
+                  <input required value={name} onChange={e => setName(e.target.value)} className={inputCls} />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Description</label>
-                  <textarea rows={3} value={form.description} onChange={e => set("description", e.target.value)}
-                    className="w-full px-4 py-3 text-sm focus:outline-none resize-none" style={inputStyle} />
+                  <label className={labelCls}>Slug</label>
+                  <input value={slug} onChange={e => setSlug(e.target.value)} className={`${inputCls} font-mono text-admin-sm`} />
                 </div>
-              </div>
-            </div>
-
-            {/* Pricing */}
-            <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <h2 className="font-black mb-5" style={{ color: BRAND.black }}>Pricing</h2>
-              <div className="grid sm:grid-cols-3 gap-4">
-                {[
-                  { label: "SRP Price", key: "srp" },
-                  { label: "DP Plan Total", key: "dp" },
-                  { label: "Full Payment Price *", key: "full" },
-                ].map(f => (
-                  <div key={f.key}>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>{f.label}</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: BRAND.muted }}>₱</span>
-                      <input type="number" value={form[f.key as keyof typeof form]}
-                        onChange={e => set(f.key, e.target.value)}
-                        className="w-full pl-7 pr-4 py-3 text-sm focus:outline-none" style={inputStyle} />
-                    </div>
+                <div>
+                  <label className={labelCls}>Brand *</label>
+                  <div className="relative" ref={brandRef}>
+                    <button type="button" onClick={() => setBrandOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 text-admin bg-paper border border-line rounded-md text-left hover:border-line-strong transition-colors duration-admin-fast">
+                      <span className={brand ? "text-ink" : "text-ink-3"}>{brand || "Select brand…"}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 text-ink-3 transition-transform duration-admin-fast ${brandOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {brandOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1 z-30 max-h-56 overflow-y-auto bg-paper border border-line rounded-md shadow-lg overflow-hidden">
+                        {BRANDS.map(b => (
+                          <button key={b} type="button" onClick={() => { setBrand(b); setBrandOpen(false); }}
+                            className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 text-admin-sm text-left hover:bg-admin-row-hover transition-colors duration-admin-fast ${brand === b ? "text-ink font-semibold" : "text-ink-2"}`}>
+                            {b}
+                            {brand === b && <Check className="w-3.5 h-3.5 shrink-0" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.muted }}>
-                  Cost Price (internal)
-                </label>
-                <div className="relative max-w-[180px]">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold" style={{ color: BRAND.muted }}>₱</span>
-                  <input type="number" value={form.cost} onChange={e => set("cost", e.target.value)}
-                    placeholder="0"
-                    className="w-full pl-7 pr-4 py-3 text-sm focus:outline-none" style={inputStyle} />
                 </div>
-                {Number(form.cost) > 0 && (Number(form.full) > 0 || Number(form.dp) > 0) && (
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                    {Number(form.full) > 0 && (
-                      <div className="p-3 rounded-lg" style={{ background: `${BRAND.teal}12`, border: `1px solid ${BRAND.teal}30` }}>
-                        <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>Full Payment Profit</p>
-                        <p className="text-lg font-black" style={{ color: Number(form.full) - Number(form.cost) >= 0 ? BRAND.teal : "#D94F3D" }}>
-                          ₱{(Number(form.full) - Number(form.cost)).toLocaleString()}
-                        </p>
+                <div>
+                  <label className={labelCls}>Gender</label>
+                  <div className="relative" ref={genderRef}>
+                    <button type="button" onClick={() => setGenderOpen(o => !o)}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 text-admin bg-paper border border-line rounded-md text-left hover:border-line-strong transition-colors duration-admin-fast">
+                      <span className="text-ink">{gender}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 text-ink-3 transition-transform duration-admin-fast ${genderOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {genderOpen && (
+                      <div className="absolute left-0 right-0 top-full mt-1 z-30 bg-paper border border-line rounded-md shadow-lg overflow-hidden">
+                        {GENDERS.map(g => (
+                          <button key={g} type="button" onClick={() => { setGender(g); setGenderOpen(false); }}
+                            className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 text-admin-sm text-left hover:bg-admin-row-hover transition-colors duration-admin-fast ${gender === g ? "text-ink font-semibold" : "text-ink-2"}`}>
+                            {g}
+                            {gender === g && <Check className="w-3.5 h-3.5 shrink-0" />}
+                          </button>
+                        ))}
                       </div>
                     )}
-                    {Number(form.dp) > 0 && (
-                      <div className="p-3 rounded-lg" style={{ background: `${BRAND.teal}12`, border: `1px solid ${BRAND.teal}30` }}>
-                        <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>DP Plan Profit</p>
-                        <p className="text-lg font-black" style={{ color: Number(form.dp) - Number(form.cost) >= 0 ? BRAND.teal : "#D94F3D" }}>
-                          ₱{(Number(form.dp) - Number(form.cost)).toLocaleString()}
-                        </p>
-                      </div>
-                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>Colorway</label>
+                  <input value={colorway} onChange={e => setColorway(e.target.value)} className={inputCls} />
+                </div>
+                <div>
+                  <label className={labelCls}>SKU</label>
+                  <input value={sku} onChange={e => setSku(e.target.value)} className={inputCls} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={labelCls}>Description</label>
+                  <textarea rows={3} value={description} onChange={e => setDescription(e.target.value)}
+                    className={`${inputCls} resize-none`} />
+                </div>
+              </div>
+
+              {/* Availability */}
+              <div className="mt-5 pt-5 border-t border-line">
+                <p className={labelCls}>Availability</p>
+                <div className="grid sm:grid-cols-2 gap-2.5">
+                  {([
+                    { value: "on-hand" as const, label: "On Hand", desc: "Available for immediate shipping" },
+                    { value: "pre-order" as const, label: "Pre-Order", desc: "Reserve now, ships later" },
+                  ]).map(opt => (
+                    <button key={opt.value} type="button" onClick={() => setStatus(opt.value)}
+                      className={`p-3.5 text-left rounded-md border transition-colors duration-admin-fast ${
+                        status === opt.value ? "border-ink bg-admin-row-hover" : "border-line hover:border-line-strong"
+                      }`}>
+                      <p className="text-admin-sm font-semibold text-ink">{opt.label}</p>
+                      <p className="text-admin-micro text-ink-3 mt-0.5">{opt.desc}</p>
+                    </button>
+                  ))}
+                </div>
+                {status === "pre-order" && (
+                  <div className="grid sm:grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <label className={labelCls}>ETA start</label>
+                      <input type="date" value={etaStart} onChange={e => setEtaStart(e.target.value)} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className={labelCls}>ETA end</label>
+                      <input type="date" value={etaEnd} onChange={e => setEtaEnd(e.target.value)} className={inputCls} />
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Availability */}
-            <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <h2 className="font-black mb-5" style={{ color: BRAND.black }}>Availability</h2>
-              <div className="grid sm:grid-cols-2 gap-3 mb-4">
-                {([
-                  { value: "on-hand" as const, label: "On Hand", desc: "Available for immediate shipping" },
-                  { value: "pre-order" as const, label: "Pre-Order", desc: "Reserve now, ships later" },
-                ]).map(opt => (
-                  <button key={opt.value} type="button" onClick={() => setStatus(opt.value)}
-                    className="p-4 text-left rounded-xl transition-all"
-                    style={{ border: `2px solid ${status === opt.value ? BRAND.teal : BRAND.border}`, background: status === opt.value ? `${BRAND.teal}08` : "transparent" }}>
-                    <p className="font-bold text-sm mb-0.5" style={{ color: BRAND.black }}>{opt.label}</p>
-                    <p className="text-xs" style={{ color: BRAND.muted }}>{opt.desc}</p>
-                  </button>
+            {/* Pricing */}
+            <div className="bg-paper border border-line rounded-md p-5">
+              <p className="text-admin-title text-ink mb-4">Pricing</p>
+              <div className="grid sm:grid-cols-3 gap-4">
+                {[
+                  { label: "SRP", value: srp, set: setSrp },
+                  { label: "DP Plan Total", value: dp, set: setDp },
+                  { label: "Full Payment Price *", value: full, set: setFull },
+                ].map(f => (
+                  <div key={f.label}>
+                    <label className={labelCls}>{f.label}</label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-admin-sm text-ink-3">₱</span>
+                      <input type="number" min="0" value={f.value} onChange={e => f.set(e.target.value)}
+                        className={`${inputCls} pl-7`} />
+                    </div>
+                  </div>
                 ))}
               </div>
-              {status === "pre-order" && (
-                <div className="grid sm:grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>ETA Start</label>
-                    <input type="date" value={form.etaStart} onChange={e => set("etaStart", e.target.value)}
-                      className="w-full px-4 py-3 text-sm focus:outline-none" style={inputStyle} />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>ETA End</label>
-                    <input type="date" value={form.etaEnd} onChange={e => set("etaEnd", e.target.value)}
-                      className="w-full px-4 py-3 text-sm focus:outline-none" style={inputStyle} />
-                  </div>
+              <div className="mt-4 pt-4 border-t border-line">
+                <label className={labelCls}>Cost price (internal)</label>
+                <div className="relative max-w-[180px]">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-admin-sm text-ink-3">₱</span>
+                  <input type="number" min="0" value={cost} onChange={e => setCost(e.target.value)}
+                    className={`${inputCls} pl-7`} />
                 </div>
-              )}
+                {margin !== null && (
+                  <p className={`mt-2.5 text-admin-sm font-medium ${margin >= 0 ? "text-state-onhand" : "text-state-error"}`}>
+                    Margin: {margin.toFixed(1)}%
+                  </p>
+                )}
+              </div>
             </div>
 
-            {/* Sizes */}
-            <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <h2 className="font-black mb-2" style={{ color: BRAND.black }}>Sizes & Stock</h2>
-              <p className="text-xs mb-4" style={{ color: BRAND.muted }}>Click a size to toggle it, then set the stock count.</p>
-              <div className="flex flex-wrap gap-2 mb-5">
-                {SNEAKER_SIZES.map(s => {
-                  const added = sizes.find(x => x.size === s);
+            {/* Sizes & Stock */}
+            <div className="bg-paper border border-line rounded-md p-5">
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <p className="text-admin-title text-ink">Sizes & stock</p>
+                <div className="flex gap-2">
+                  <button type="button" onClick={setAllZero}
+                    className="px-2.5 py-1.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
+                    Set all to 0
+                  </button>
+                  <button type="button" onClick={enableAll}
+                    className="px-2.5 py-1.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
+                    Enable all
+                  </button>
+                </div>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {sizeRows.map(r => (
+                  <div key={r.size}
+                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-md border transition-colors duration-admin-fast ${
+                      r.enabled ? "border-line-strong" : "border-line"
+                    }`}>
+                    <span className={`text-admin-sm font-medium w-14 shrink-0 ${r.enabled ? "text-ink" : "text-ink-3"}`}>{r.size}</span>
+                    <input type="number" min="0" value={r.stock} disabled={!r.enabled}
+                      onChange={e => updateStock(r.size, Number(e.target.value))}
+                      className="w-16 px-2 py-1.5 text-admin-sm text-center bg-paper border border-line rounded text-ink focus:outline-none focus:border-line-strong disabled:opacity-40 transition-colors duration-admin-fast" />
+                    <div className="ml-auto">
+                      <Toggle checked={r.enabled} onChange={() => toggleSizeEnabled(r.size)} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Images */}
+            <div className="bg-paper border border-line rounded-md p-5">
+              <p className="text-admin-title text-ink mb-4">Images</p>
+              <ImageUploader initialUrls={initialImages} onChange={setImageUrls} />
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-5 lg:sticky lg:top-20 lg:self-start">
+            <div className="bg-paper border border-line rounded-md p-5">
+              <p className="text-admin-eyebrow text-ink-3">Publish status</p>
+              <div className="flex gap-2 mt-2.5">
+                {(["draft", "published"] as const).map(opt => {
+                  const active = (opt === "published") === isPublished;
                   return (
-                    <button key={s} type="button" onClick={() => toggleSize(s)}
-                      className="px-3 py-2 text-xs font-semibold transition-all"
-                      style={{ border: `1.5px solid ${added ? BRAND.teal : BRAND.border}`, background: added ? `${BRAND.teal}15` : "transparent", color: added ? BRAND.teal : BRAND.muted }}>
-                      {s}
+                    <button key={opt} type="button" onClick={() => setIsPublished(opt === "published")}
+                      className={`flex-1 flex items-center gap-2 px-3 py-2.5 rounded-md border text-admin-sm font-medium capitalize transition-colors duration-admin-fast ${
+                        active ? "border-ink bg-admin-row-hover text-ink" : "border-line text-ink-2 hover:border-line-strong"
+                      }`}>
+                      <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${active ? "border-ink" : "border-line-strong"}`}>
+                        {active && <span className="w-1.5 h-1.5 rounded-full bg-ink" />}
+                      </span>
+                      {opt}
                     </button>
                   );
                 })}
               </div>
-              {sizes.length > 0 && (
-                <div className="space-y-2">
-                  {sizes.map(s => (
-                    <div key={s.size} className="flex items-center gap-3">
-                      <span className="text-xs font-bold w-14 text-right" style={{ color: BRAND.black }}>{s.size}</span>
-                      <input type="number" min="0" value={s.stock}
-                        onChange={e => updateStock(s.size, Number(e.target.value))}
-                        className="w-20 px-3 py-2 text-sm text-center focus:outline-none" style={inputStyle} />
-                      <span className="text-xs" style={{ color: BRAND.muted }}>pairs</span>
-                    </div>
-                  ))}
+
+              <p className="text-admin-eyebrow text-ink-3 mt-6">Visibility flags</p>
+              <div className="mt-2.5 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-admin-sm font-medium text-ink">Featured</p>
+                    <p className="text-admin-micro text-ink-3 mt-0.5">Shows on homepage hero-adjacent</p>
+                  </div>
+                  <Toggle checked={featured} onChange={setFeatured} />
                 </div>
-              )}
-            </div>
-          </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-admin-sm font-medium text-ink">Trending</p>
+                    <p className="text-admin-micro text-ink-3 mt-0.5">Shows in &ldquo;What&rsquo;s moving&rdquo; section</p>
+                  </div>
+                  <Toggle checked={trending} onChange={setTrending} />
+                </div>
+              </div>
 
-          {/* Right sidebar */}
-          <div className="space-y-5">
-            <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <h2 className="font-black mb-4" style={{ color: BRAND.black }}>Product Images</h2>
-              <ImageUploader initialUrls={initialImages} onChange={setImageUrls} />
-            </div>
-
-            <div className="p-6 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <h2 className="font-black mb-4" style={{ color: BRAND.black }}>Visibility</h2>
-              <div className="space-y-3">
-                {([["published", "Published"], ["featured", "Featured"], ["trending", "Trending"]] as const).map(([key, label]) => (
-                  <label key={key} className="flex items-center justify-between cursor-pointer">
-                    <span className="text-sm font-medium" style={{ color: BRAND.black }}>{label}</span>
-                    <input type="checkbox" checked={visibility[key]}
-                      onChange={e => setVisibility(v => ({ ...v, [key]: e.target.checked }))}
-                      className="w-4 h-4" style={{ accentColor: BRAND.teal }} />
-                  </label>
-                ))}
+              <div className="hidden lg:flex flex-col gap-2 mt-6">
+                <button type="submit" disabled={saving}
+                  className="w-full py-2.5 text-admin font-medium rounded-md bg-ink text-paper hover:bg-ink-2 disabled:opacity-50 transition-colors duration-admin-fast">
+                  {saving ? "Saving…" : "Save changes"}
+                </button>
+                <Link href="/admin/products"
+                  className="w-full text-center py-2.5 text-admin font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
+                  Cancel
+                </Link>
+                <button type="button" onClick={handleDelete} disabled={deleting}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 text-admin font-medium rounded-md border border-state-error/30 text-state-error hover:bg-state-error/10 disabled:opacity-50 transition-colors duration-admin-fast">
+                  <Trash2 className="w-3.5 h-3.5" /> {deleting ? "Deleting…" : "Delete product"}
+                </button>
               </div>
             </div>
 
-            <button type="submit" disabled={saving}
-              className="w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ background: BRAND.black, color: BRAND.bg }}>
-              {saving ? "Saving…" : "Save Changes"}
-            </button>
-            <Link href="/admin/products"
-              className="flex items-center justify-center w-full py-3 text-sm font-semibold transition-opacity hover:opacity-60"
-              style={{ color: BRAND.muted }}>
-              Cancel
-            </Link>
+            <div className="bg-paper border border-line rounded-md p-5">
+              <p className="text-admin-eyebrow text-ink-3 mb-3">Metadata</p>
+              <div className="space-y-3">
+                <div>
+                  <p className="text-admin-micro text-ink-3">Created</p>
+                  <p className="text-admin-sm text-ink mt-0.5">
+                    {product.created_at ? new Date(product.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-admin-micro text-ink-3">Last updated</p>
+                  <p className="text-admin-sm text-ink mt-0.5">
+                    {product.updated_at ? new Date(product.updated_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-admin-micro text-ink-3">Product ID</p>
+                  <button type="button" onClick={copyId}
+                    className="flex items-center gap-1.5 text-admin-sm text-ink mt-0.5 font-mono hover:text-ink-2 transition-colors duration-admin-fast">
+                    <span className="truncate max-w-[160px]">{product.id}</span>
+                    <Copy className="w-3 h-3 shrink-0 text-ink-3" />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Mobile sticky save bar */}
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-paper border-t border-line p-3 flex gap-2">
+          <Link href="/admin/products"
+            className="flex-1 text-center py-2.5 text-admin font-medium rounded-md border border-line text-ink-2">
+            Cancel
+          </Link>
+          <button type="submit" disabled={saving}
+            className="flex-1 py-2.5 text-admin font-medium rounded-md bg-ink text-paper disabled:opacity-50">
+            {saving ? "Saving…" : "Save changes"}
+          </button>
         </div>
       </form>
     </div>
