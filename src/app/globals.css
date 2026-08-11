@@ -305,13 +305,6 @@
   padding-bottom: var(--space-section-sm);
 }
 
-.snd-label {
-  font-size: 0.625rem;
-  font-weight: 900;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
 /* Admin-specific utility */
 .admin-card {
   background: #ffffff;
