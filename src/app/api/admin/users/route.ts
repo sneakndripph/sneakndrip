@@ -84,6 +84,7 @@ export async function DELETE(req: NextRequest) {
 
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "User id required" }, { status: 400 });
+  if (id === caller.id) return NextResponse.json({ error: "You cannot delete your own account" }, { status: 400 });
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.deleteUser(id);

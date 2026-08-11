@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { BRAND, FONTS } from "@/lib/admin/constants";
 import { UserPlus, Shield, User, Trash2, X, Eye, EyeOff, ChevronDown, Check } from "lucide-react";
-// Check is used in create-user modal role dropdown
+import { createClient } from "@/lib/supabase/client";
 
 type UserRow = {
   id: string;
@@ -16,35 +15,74 @@ type UserRow = {
 
 const ROLES = ["customer", "admin"];
 
+const inputCls = "w-full px-3.5 py-2.5 text-admin bg-paper border border-line rounded-md text-ink placeholder:text-ink-3 focus:outline-none focus:border-line-strong transition-colors duration-admin-fast";
+const labelCls = "block text-admin-eyebrow text-ink-3 mb-1.5";
+
+function RoleIcon({ role, className }: { role: string; className?: string }) {
+  return role === "admin" ? <Shield className={className} /> : <User className={className} />;
+}
+
+function RoleDropdown({ value, onChange, open, setOpen }: {
+  value: string; onChange: (r: string) => void; open: boolean; setOpen: (o: boolean) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [setOpen]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button type="button" onClick={() => setOpen(!open)}
+        className={`w-full flex items-center justify-between px-3.5 py-2.5 text-admin bg-paper border rounded-md text-ink focus:outline-none transition-colors duration-admin-fast ${
+          open ? "border-line-strong" : "border-line"
+        }`}>
+        <div className="flex items-center gap-2">
+          <RoleIcon role={value} className="w-3.5 h-3.5 text-ink-3" />
+          <span>{value.charAt(0).toUpperCase() + value.slice(1)}</span>
+        </div>
+        <ChevronDown className={`w-3.5 h-3.5 shrink-0 text-ink-3 transition-transform duration-admin-fast ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden rounded-md border border-line bg-paper shadow-lg">
+          {ROLES.map(r => (
+            <button key={r} type="button" onClick={() => { onChange(r); setOpen(false); }}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 text-admin-sm text-left border-b border-line last:border-b-0 transition-colors duration-admin-fast ${
+                value === r ? "bg-admin-row-hover text-ink font-medium" : "text-ink-2 hover:bg-admin-row-hover"
+              }`}>
+              <div className="flex items-center gap-2">
+                <RoleIcon role={r} className="w-3.5 h-3.5" />
+                {r.charAt(0).toUpperCase() + r.slice(1)}
+              </div>
+              {value === r && <Check className="w-3.5 h-3.5 shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ email: "", password: "", full_name: "", role: "customer" });
   const [showPw, setShowPw] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [roleOpen, setRoleOpen] = useState(false);
-  const roleRef = useRef<HTMLDivElement>(null);
   const [viewUser, setViewUser] = useState<UserRow | null>(null);
   const [viewRoleOpen, setViewRoleOpen] = useState(false);
   const [viewRole, setViewRole] = useState("customer");
-  const viewRoleRef = useRef<HTMLDivElement>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
 
   useEffect(() => {
-    function handle(e: MouseEvent) {
-      if (viewRoleRef.current && !viewRoleRef.current.contains(e.target as Node)) setViewRoleOpen(false);
-    }
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, []);
-
-  useEffect(() => {
-    function handle(e: MouseEvent) {
-      if (roleRef.current && !roleRef.current.contains(e.target as Node)) setRoleOpen(false);
-    }
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
+    createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
 
   async function loadUsers() {
@@ -79,13 +117,14 @@ export default function AdminUsersPage() {
     setSaving(false);
   }
 
-  async function handleDelete(id: string, email: string) {
-    if (!confirm(`Delete user ${email}? This cannot be undone.`)) return;
+  async function executeDelete() {
+    if (!deleteTarget) return;
     await fetch("/api/admin/users", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ id: deleteTarget.id }),
     });
+    setDeleteTarget(null);
     setViewUser(null);
     loadUsers();
   }
@@ -109,182 +148,146 @@ export default function AdminUsersPage() {
     setViewUser(prev => prev ? { ...prev, role } : null);
   }
 
-  const inputCls = "w-full px-4 py-3 text-sm focus:outline-none transition-colors";
-  const inputStyle = { background: "#F8F7F6", border: `1px solid ${BRAND.border}`, color: BRAND.black };
-
   return (
-    <div style={{ fontFamily: FONTS.body }}>
+    <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
         <div>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "2rem", letterSpacing: "0.04em", color: BRAND.black }}>USERS</h1>
-          <p className="text-sm mt-1" style={{ color: BRAND.muted }}>{users.length} accounts</p>
+          <p className="text-admin-eyebrow text-ink-3 mb-1">Access</p>
+          <h1 className="text-admin-hero text-ink font-display font-medium tracking-[-0.02em]">Staff users</h1>
+          <p className="text-admin-sm text-ink-3 mt-0.5">{users.length} accounts</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80"
-          style={{ background: BRAND.teal, color: "#fff" }}
-        >
-          <UserPlus className="w-4 h-4" /> New User
+        <button onClick={() => setShowModal(true)}
+          className="flex items-center gap-2 px-4 py-2.5 text-admin-sm font-medium rounded-md bg-ink text-paper hover:opacity-90 transition-opacity duration-admin-fast">
+          <UserPlus className="w-4 h-4" /> Add user
         </button>
       </div>
 
       {/* Table */}
-      <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${BRAND.border}`, background: BRAND.card }}>
+      <div className="bg-paper border border-line rounded-md overflow-hidden">
         {loading ? (
-          <div className="py-16 text-center text-sm" style={{ color: BRAND.muted }}>Loading users…</div>
+          <div className="py-16 text-center text-admin-sm text-ink-3">Loading users…</div>
         ) : users.length === 0 ? (
-          <div className="py-16 text-center text-sm" style={{ color: BRAND.muted }}>No users found.</div>
+          <div className="py-16 text-center text-admin-sm text-ink-3">No users found.</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: `1px solid ${BRAND.border}`, background: "#F8F7F6" }}>
-                {["User", "Role", "Joined", "Last Sign In", ""].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>{h}</th>
+          <>
+            {/* Desktop table */}
+            <table className="w-full text-admin-sm hidden md:table">
+              <thead>
+                <tr className="border-b border-line bg-paper-2">
+                  {["Name", "Email", "Role", "Created", "Actions"].map(h => (
+                    <th key={h} className="px-5 py-3 text-left text-admin-eyebrow text-ink-3">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id}
+                    className="border-b border-line last:border-b-0 hover:bg-admin-row-hover cursor-pointer transition-colors duration-admin-fast"
+                    onClick={() => openViewUser(u)}>
+                    <td className="px-5 py-4 font-medium text-ink">{u.full_name || "—"}</td>
+                    <td className="px-5 py-4 text-ink-2">{u.email}</td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-admin-micro font-medium ${
+                        u.role === "admin" ? "bg-ink text-paper" : "bg-paper-2 text-ink-2"
+                      }`}>
+                        <RoleIcon role={u.role} className="w-3 h-3" />
+                        {u.role}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-ink-3">
+                      {new Date(u.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                    </td>
+                    <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
+                      <button onClick={() => setDeleteTarget(u)} disabled={u.id === currentUserId}
+                        className="p-1.5 rounded text-state-error hover:bg-state-error/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-admin-fast"
+                        title={u.id === currentUserId ? "You cannot delete your own account" : "Delete user"}>
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u, i) => (
-                <tr key={u.id}
-                  className="transition-colors hover:bg-black/[0.02] cursor-pointer"
-                  style={{ borderBottom: i < users.length - 1 ? `1px solid ${BRAND.border}` : "none" }}
-                  onClick={() => openViewUser(u)}>
-                  <td className="px-5 py-4">
-                    <p className="font-semibold" style={{ color: BRAND.black }}>{u.full_name || "—"}</p>
-                    <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>{u.email}</p>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className="flex items-center gap-1.5 w-fit px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide"
-                      style={{
-                        background: u.role === "admin" ? `${BRAND.teal}18` : `${BRAND.border}`,
-                        color: u.role === "admin" ? BRAND.teal : BRAND.muted,
-                      }}>
-                      {u.role === "admin" ? <Shield className="w-3 h-3" /> : <User className="w-3 h-3" />}
+              </tbody>
+            </table>
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-line">
+              {users.map(u => (
+                <button key={u.id} onClick={() => openViewUser(u)} className="w-full text-left p-4 hover:bg-admin-row-hover transition-colors duration-admin-fast">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="font-medium text-ink">{u.full_name || "—"}</p>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-admin-micro font-medium shrink-0 ${
+                      u.role === "admin" ? "bg-ink text-paper" : "bg-paper-2 text-ink-2"
+                    }`}>
+                      <RoleIcon role={u.role} className="w-3 h-3" />
                       {u.role}
                     </span>
-                  </td>
-                  <td className="px-5 py-4 text-xs" style={{ color: BRAND.muted }}>
-                    {new Date(u.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
-                  </td>
-                  <td className="px-5 py-4 text-xs" style={{ color: BRAND.muted }}>
-                    {u.last_sign_in
-                      ? new Date(u.last_sign_in).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
-                      : "Never"}
-                  </td>
-                  <td className="px-5 py-4" onClick={e => e.stopPropagation()}>
-                    <button
-                      onClick={() => handleDelete(u.id, u.email)}
-                      className="p-1.5 rounded transition-opacity hover:opacity-70"
-                      style={{ color: BRAND.red }}
-                      title="Delete user"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
+                  </div>
+                  <p className="text-admin-sm text-ink-2">{u.email}</p>
+                  <p className="text-admin-micro text-ink-3 mt-1">
+                    Joined {new Date(u.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                  </p>
+                </button>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* Create User Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
-          <div className="w-full max-w-md rounded-2xl p-7" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-black text-lg" style={{ color: BRAND.black }}>Create New User</h2>
-              <button onClick={() => setShowModal(false)} style={{ color: BRAND.muted }}><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60"
+          onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
+          <div className="w-full max-w-md rounded-md bg-paper border border-line p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-admin-title text-ink">Create new user</h2>
+              <button onClick={() => setShowModal(false)} className="text-ink-3 hover:text-ink transition-colors duration-admin-fast">
+                <X className="w-4.5 h-4.5" />
+              </button>
             </div>
 
             {formError && (
-              <div className="mb-4 px-4 py-3 rounded text-sm font-medium"
-                style={{ background: `${BRAND.red}12`, color: BRAND.red, border: `1px solid ${BRAND.red}30` }}>
+              <div className="mb-4 px-3.5 py-2.5 rounded-md text-admin-sm font-medium bg-state-error/10 text-state-error border border-state-error/30">
                 {formError}
               </div>
             )}
 
             <form className="space-y-4" onSubmit={handleCreate}>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Full Name</label>
+                <label className={labelCls}>Full name</label>
                 <input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
-                  placeholder="Juan Dela Cruz" className={inputCls} style={inputStyle}
-                  onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                  onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)} />
+                  placeholder="Juan Dela Cruz" className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                  Email Address <span style={{ color: BRAND.red }}>*</span>
-                </label>
+                <label className={labelCls}>Email address *</label>
                 <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                  placeholder="user@email.com" required className={inputCls} style={inputStyle}
-                  onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                  onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)} />
+                  placeholder="user@email.com" required className={inputCls} />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                  Password <span style={{ color: BRAND.red }}>*</span>
-                </label>
+                <label className={labelCls}>Temporary password *</label>
                 <div className="relative">
                   <input type={showPw ? "text" : "password"} value={form.password}
                     onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                    placeholder="Min. 6 characters" required className={`${inputCls} pr-12`} style={inputStyle}
-                    onFocus={e => (e.currentTarget.style.borderColor = BRAND.teal)}
-                    onBlur={e => (e.currentTarget.style.borderColor = BRAND.border)} />
+                    placeholder="Min. 6 characters" required className={`${inputCls} pr-11`} />
                   <button type="button" onClick={() => setShowPw(!showPw)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink transition-colors duration-admin-fast">
                     {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>Role</label>
-                <div className="relative" ref={roleRef}>
-                  <button type="button" onClick={() => setRoleOpen(o => !o)}
-                    className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold focus:outline-none transition-colors"
-                    style={{ ...inputStyle, border: `1px solid ${roleOpen ? BRAND.teal : BRAND.border}` }}>
-                    <div className="flex items-center gap-2">
-                      {form.role === "admin" ? <Shield className="w-4 h-4" style={{ color: BRAND.teal }} /> : <User className="w-4 h-4" style={{ color: BRAND.muted }} />}
-                      <span style={{ color: BRAND.black }}>{form.role.charAt(0).toUpperCase() + form.role.slice(1)}</span>
-                    </div>
-                    <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: roleOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-                  </button>
-                  {roleOpen && (
-                    <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden shadow-lg"
-                      style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-                      {ROLES.map(r => (
-                        <button key={r} type="button"
-                          onClick={() => { setForm(f => ({ ...f, role: r })); setRoleOpen(false); }}
-                          className="w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors hover:opacity-80"
-                          style={{
-                            background: form.role === r ? `${BRAND.teal}10` : "transparent",
-                            color: form.role === r ? BRAND.teal : BRAND.black,
-                            borderBottom: `1px solid ${BRAND.border}`,
-                            fontWeight: form.role === r ? 700 : 500,
-                          }}>
-                          <div className="flex items-center gap-2">
-                            {r === "admin" ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
-                            {r.charAt(0).toUpperCase() + r.slice(1)}
-                          </div>
-                          {form.role === r && <Check className="w-3.5 h-3.5 shrink-0" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <label className={labelCls}>Role</label>
+                <RoleDropdown value={form.role} onChange={r => setForm(f => ({ ...f, role: r }))} open={roleOpen} setOpen={setRoleOpen} />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-2.5 pt-2">
                 <button type="button" onClick={() => setShowModal(false)}
-                  className="flex-1 py-3 font-bold text-sm uppercase tracking-wide transition-opacity hover:opacity-70"
-                  style={{ border: `1.5px solid ${BRAND.border}`, color: BRAND.muted }}>
+                  className="flex-1 py-2.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
                   Cancel
                 </button>
                 <button type="submit" disabled={saving}
-                  className="flex-1 py-3 font-bold text-sm uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                  style={{ background: BRAND.teal }}>
-                  {saving ? "Creating…" : "Create User"}
+                  className="flex-1 py-2.5 text-admin-sm font-medium rounded-md bg-ink text-paper hover:opacity-90 disabled:opacity-50 transition-opacity duration-admin-fast">
+                  {saving ? "Creating…" : "Create user"}
                 </button>
               </div>
             </form>
@@ -294,66 +297,35 @@ export default function AdminUsersPage() {
 
       {/* View user modal */}
       {viewUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
-          <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-            <div className="flex items-start justify-between px-6 py-5" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60"
+          onClick={e => { if (e.target === e.currentTarget) setViewUser(null); }}>
+          <div className="w-full max-w-md rounded-md overflow-hidden bg-paper border border-line">
+            <div className="flex items-start justify-between px-6 py-4 border-b border-line">
               <div>
-                <p className="font-black text-lg" style={{ color: BRAND.black }}>{viewUser.full_name || "—"}</p>
-                <p className="text-sm mt-0.5" style={{ color: BRAND.muted }}>{viewUser.email}</p>
+                <p className="text-admin-title text-ink">{viewUser.full_name || "—"}</p>
+                <p className="text-admin-sm text-ink-3 mt-0.5">{viewUser.email}</p>
               </div>
-              <button onClick={() => setViewUser(null)} className="transition-opacity hover:opacity-60 mt-1">
-                <X className="w-5 h-5" style={{ color: BRAND.muted }} />
+              <button onClick={() => setViewUser(null)} className="text-ink-3 hover:text-ink transition-colors duration-admin-fast mt-1">
+                <X className="w-4.5 h-4.5" />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wide mb-2" style={{ color: BRAND.muted }}>Role</label>
-                <div className="relative" ref={viewRoleRef}>
-                  <button type="button" onClick={() => setViewRoleOpen(o => !o)}
-                    className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold focus:outline-none"
-                    style={{ background: BRAND.bg, border: `1px solid ${viewRoleOpen ? BRAND.teal : BRAND.border}`, color: BRAND.black }}>
-                    <div className="flex items-center gap-2">
-                      {viewRole === "admin" ? <Shield className="w-4 h-4" style={{ color: BRAND.teal }} /> : <User className="w-4 h-4" style={{ color: BRAND.muted }} />}
-                      <span>{viewRole.charAt(0).toUpperCase() + viewRole.slice(1)}</span>
-                    </div>
-                    <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: viewRoleOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-                  </button>
-                  {viewRoleOpen && (
-                    <div className="absolute left-0 right-0 top-full mt-1 z-50 overflow-hidden shadow-lg"
-                      style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-                      {ROLES.map(r => (
-                        <button key={r} type="button"
-                          onClick={() => handleViewRoleChange(r)}
-                          className="w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors hover:opacity-80"
-                          style={{
-                            background: viewRole === r ? `${BRAND.teal}10` : "transparent",
-                            color: viewRole === r ? BRAND.teal : BRAND.black,
-                            borderBottom: `1px solid ${BRAND.border}`,
-                            fontWeight: viewRole === r ? 700 : 500,
-                          }}>
-                          <div className="flex items-center gap-2">
-                            {r === "admin" ? <Shield className="w-4 h-4" /> : <User className="w-4 h-4" />}
-                            {r.charAt(0).toUpperCase() + r.slice(1)}
-                          </div>
-                          {viewRole === r && <Check className="w-3.5 h-3.5 shrink-0" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <label className={labelCls}>Role</label>
+                <RoleDropdown value={viewRole} onChange={handleViewRoleChange} open={viewRoleOpen} setOpen={setViewRoleOpen} />
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-2 gap-3 text-admin-sm">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>Joined</p>
-                  <p style={{ color: BRAND.black }}>
+                  <p className="text-admin-eyebrow text-ink-3 mb-1">Joined</p>
+                  <p className="text-ink">
                     {new Date(viewUser.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>Last Sign In</p>
-                  <p style={{ color: BRAND.black }}>
+                  <p className="text-admin-eyebrow text-ink-3 mb-1">Last sign in</p>
+                  <p className="text-ink">
                     {viewUser.last_sign_in
                       ? new Date(viewUser.last_sign_in).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
                       : "Never"}
@@ -362,17 +334,40 @@ export default function AdminUsersPage() {
               </div>
             </div>
 
-            <div className="px-6 pb-5 flex gap-3">
-              <button
-                onClick={() => { handleDelete(viewUser.id, viewUser.email); }}
-                className="px-4 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
-                style={{ border: `1px solid ${BRAND.red}`, color: BRAND.red }}>
+            <div className="px-6 pb-6 flex gap-2.5">
+              <button onClick={() => setDeleteTarget(viewUser)} disabled={viewUser.id === currentUserId}
+                className="px-4 py-2.5 text-admin-sm font-medium rounded-md border border-state-error text-state-error hover:bg-state-error/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-admin-fast"
+                title={viewUser.id === currentUserId ? "You cannot delete your own account" : undefined}>
                 Delete
               </button>
               <button onClick={() => setViewUser(null)}
-                className="flex-1 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
-                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+                className="flex-1 py-2.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink/60"
+          onClick={e => { if (e.target === e.currentTarget) setDeleteTarget(null); }}>
+          <div className="w-full max-w-sm rounded-md overflow-hidden bg-paper border border-line">
+            <div className="p-6">
+              <p className="text-admin-title text-ink mb-1.5">Delete user</p>
+              <p className="text-admin-sm text-ink-3">
+                Delete <span className="text-ink font-medium">{deleteTarget.email}</span>? This cannot be undone.
+              </p>
+            </div>
+            <div className="flex gap-2.5 px-6 pb-6">
+              <button onClick={executeDelete}
+                className="flex-1 py-2.5 text-admin-sm font-medium rounded-md bg-state-error text-paper hover:opacity-90 transition-opacity duration-admin-fast">
+                Delete
+              </button>
+              <button onClick={() => setDeleteTarget(null)}
+                className="px-5 py-2.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
+                Cancel
               </button>
             </div>
           </div>
