@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { BRAND, FONTS } from "@/lib/admin/constants";
 import { PageContent } from "@/components/ui/PageContent";
 import {
   FileText, Save, Check, ExternalLink, Eye, Edit3, List,
@@ -9,7 +8,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-type PageDef = { slug: string; title: string; content: string };
+type PageDef = { slug: string; title: string; content: string; updatedAt: string | null };
 
 function insertAtCursor(
   ref: React.RefObject<HTMLTextAreaElement | null>,
@@ -91,6 +90,9 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
   const [contents, setContents] = useState<Record<string, string>>(
     Object.fromEntries(pages.map(p => [p.slug, p.content]))
   );
+  const [lastSaved, setLastSaved] = useState<Record<string, string | null>>(
+    Object.fromEntries(pages.map(p => [p.slug, p.updatedAt]))
+  );
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -126,6 +128,7 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
     setSaving(false);
     if (res.ok) {
       setSaved(true);
+      setLastSaved(prev => ({ ...prev, [active]: new Date().toISOString() }));
       setTimeout(() => setSaved(false), 2500);
     } else {
       setSaveError("Save failed — run migration 009 in Supabase first.");
@@ -133,34 +136,30 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
   }
 
   const wordCount = activeContent.trim() ? activeContent.trim().split(/\s+/).length : 0;
+  const activeLastSaved = lastSaved[active];
 
-  const btnCls = "flex items-center gap-1 px-2 py-1.5 text-xs rounded transition-colors hover:bg-black/[0.07]";
+  const btnCls = "flex items-center gap-1 px-2 py-1.5 text-admin-sm rounded transition-colors duration-admin-fast hover:bg-admin-row-hover text-ink-3";
 
   return (
-    <div style={{ fontFamily: FONTS.body }}>
+    <div>
       <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Content Management</p>
-        <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>PAGES</h1>
-        <p className="text-sm mt-1" style={{ color: BRAND.muted }}>Edit the text shown on your store&apos;s info pages.</p>
+        <p className="text-admin-eyebrow text-ink-3 mb-1">Content management</p>
+        <h1 className="text-admin-hero text-ink font-display font-medium tracking-[-0.02em]">Pages</h1>
+        <p className="text-admin-sm text-ink-3 mt-1">Edit the text shown on your store&apos;s info pages.</p>
       </div>
 
-      <div className="grid lg:grid-cols-4 gap-6">
+      <div className="grid lg:grid-cols-4 gap-4">
         {/* Page list */}
         <div className="lg:col-span-1">
-          <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-            {pages.map((p, i) => (
+          <div className="bg-paper border border-line rounded-md overflow-hidden">
+            {pages.map(p => (
               <button key={p.slug}
                 onClick={() => { setActive(p.slug); setMode("edit"); }}
-                className="w-full flex items-center gap-3 px-4 py-3.5 text-left text-sm transition-colors"
-                style={{
-                  borderBottom: i < pages.length - 1 ? `1px solid ${BRAND.border}` : "none",
-                  background: active === p.slug ? `${BRAND.teal}10` : "transparent",
-                  color: active === p.slug ? BRAND.teal : BRAND.black,
-                  borderLeft: active === p.slug ? `3px solid ${BRAND.teal}` : "3px solid transparent",
-                  fontWeight: active === p.slug ? 600 : 400,
-                }}>
-                <FileText className="w-3.5 h-3.5 shrink-0 opacity-50" />
-                <span className="truncate text-xs">{p.title}</span>
+                className={`w-full flex items-center gap-3 px-4 py-3.5 text-left border-b border-line last:border-b-0 transition-colors duration-admin-fast ${
+                  active === p.slug ? "bg-admin-row-hover border-l-2 border-l-ink text-ink font-medium" : "border-l-2 border-l-transparent text-ink-2 hover:bg-admin-row-hover"
+                }`}>
+                <FileText className="w-3.5 h-3.5 shrink-0 text-ink-3" />
+                <span className="truncate text-admin-sm">{p.title}</span>
               </button>
             ))}
           </div>
@@ -169,29 +168,27 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
         {/* Editor */}
         <div className="lg:col-span-3">
           {activePage && (
-            <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+            <div className="bg-paper border border-line rounded-md overflow-hidden">
 
               {/* Toolbar */}
-              <div className="px-3 py-2.5 flex flex-wrap items-center justify-between gap-2"
-                style={{ borderBottom: `1px solid ${BRAND.border}`, background: BRAND.bg }}>
+              <div className="px-3 py-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-line bg-paper-2">
 
                 <div className="flex flex-wrap items-center gap-0.5">
                   {/* Paragraph style */}
                   <div className="relative mr-1" ref={styleRef}>
                     <button type="button" onClick={() => setStyleOpen(o => !o)}
-                      className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded focus:outline-none transition-colors hover:bg-black/[0.07]"
-                      style={{ background: "transparent", border: `1px solid ${styleOpen ? BRAND.teal : BRAND.border}`, color: BRAND.muted }}>
+                      className={`flex items-center gap-1.5 text-admin-sm px-2 py-1.5 rounded focus:outline-none transition-colors duration-admin-fast hover:bg-admin-row-hover text-ink-3 border ${
+                        styleOpen ? "border-line-strong" : "border-line"
+                      }`}>
                       Style
-                      <ChevronDown className="w-3 h-3 shrink-0 transition-transform" style={{ transform: styleOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
+                      <ChevronDown className={`w-3 h-3 shrink-0 transition-transform duration-admin-fast ${styleOpen ? "rotate-180" : ""}`} />
                     </button>
                     {styleOpen && (
-                      <div className="absolute left-0 top-full mt-1 z-50 overflow-hidden shadow-lg min-w-[130px]"
-                        style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
+                      <div className="absolute left-0 top-full mt-1 z-50 overflow-hidden rounded-md border border-line bg-paper shadow-lg min-w-[130px]">
                         {STYLE_OPTIONS.map(o => (
                           <button key={o.label} type="button"
                             onClick={() => { setLineStyle(taRef, o.prefix, setContent); setStyleOpen(false); }}
-                            className="w-full px-3 py-2 text-xs text-left transition-colors hover:opacity-80"
-                            style={{ borderBottom: `1px solid ${BRAND.border}`, color: BRAND.black }}>
+                            className="w-full px-3 py-2 text-admin-sm text-left border-b border-line last:border-b-0 text-ink hover:bg-admin-row-hover transition-colors duration-admin-fast">
                             {o.label}
                           </button>
                         ))}
@@ -199,23 +196,23 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
                     )}
                   </div>
 
-                  <div className="w-px h-4 mx-0.5" style={{ background: BRAND.border }} />
+                  <div className="w-px h-4 mx-0.5 bg-line" />
 
                   {/* Inline format */}
                   <button onClick={() => insertAtCursor(taRef, "**", "**", setContent)} title="Bold"
-                    className={btnCls} style={{ color: BRAND.muted, fontWeight: 700 }}>B</button>
+                    className={`${btnCls} font-bold`}>B</button>
                   <button onClick={() => insertAtCursor(taRef, "_", "_", setContent)} title="Italic"
-                    className={btnCls} style={{ color: BRAND.muted, fontStyle: "italic" }}>I</button>
+                    className={`${btnCls} italic`}>I</button>
                   <button onClick={() => insertAtCursor(taRef, "__", "__", setContent)} title="Underline"
-                    className={btnCls} style={{ color: BRAND.muted }}>
+                    className={btnCls}>
                     <Underline className="w-3.5 h-3.5" />
                   </button>
                   <button onClick={() => insertAtCursor(taRef, "~~", "~~", setContent)} title="Strikethrough"
-                    className={btnCls} style={{ color: BRAND.muted }}>
+                    className={btnCls}>
                     <Strikethrough className="w-3.5 h-3.5" />
                   </button>
 
-                  <div className="w-px h-4 mx-0.5" style={{ background: BRAND.border }} />
+                  <div className="w-px h-4 mx-0.5 bg-line" />
 
                   {/* Bullet */}
                   <button onClick={() => {
@@ -225,54 +222,56 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
                     const next = el.value.slice(0, ls) + "- " + el.value.slice(ls);
                     setContent(next);
                     requestAnimationFrame(() => { el.focus(); el.setSelectionRange(s + 2, s + 2); });
-                  }} title="Bullet list" className={btnCls} style={{ color: BRAND.muted }}>
+                  }} title="Bullet list" className={btnCls}>
                     <List className="w-3.5 h-3.5" />
                   </button>
 
-                  <div className="w-px h-4 mx-0.5" style={{ background: BRAND.border }} />
+                  <div className="w-px h-4 mx-0.5 bg-line" />
 
                   {/* Alignment */}
                   <button onClick={() => toggleLineAlign(taRef, "[center]", setContent)} title="Center"
-                    className={btnCls} style={{ color: BRAND.muted }}>
+                    className={btnCls}>
                     <AlignCenter className="w-3.5 h-3.5" />
                   </button>
                   <button onClick={() => toggleLineAlign(taRef, "[right]", setContent)} title="Right"
-                    className={btnCls} style={{ color: BRAND.muted }}>
+                    className={btnCls}>
                     <AlignRight className="w-3.5 h-3.5" />
                   </button>
                   <button onClick={() => toggleLineAlign(taRef, "", setContent)} title="Left (default)"
-                    className={btnCls} style={{ color: BRAND.muted }}>
+                    className={btnCls}>
                     <AlignLeft className="w-3.5 h-3.5" />
                   </button>
 
-                  <div className="w-px h-4 mx-0.5" style={{ background: BRAND.border }} />
-                  <span className="text-[10px] ml-1" style={{ color: BRAND.mutedLight }}>{wordCount} words</span>
+                  <div className="w-px h-4 mx-0.5 bg-line" />
+                  <span className="text-admin-micro ml-1 text-ink-3">{wordCount} words</span>
                 </div>
 
                 {/* Right controls */}
                 <div className="flex items-center gap-2">
-                  <div className="flex rounded overflow-hidden" style={{ border: `1px solid ${BRAND.border}` }}>
+                  <div className="flex rounded overflow-hidden border border-line">
                     <button onClick={() => setMode("edit")}
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs transition-colors"
-                      style={{ background: mode === "edit" ? BRAND.black : "transparent", color: mode === "edit" ? "#fff" : BRAND.muted }}>
+                      className={`flex items-center gap-1 px-3 py-1.5 text-admin-sm transition-colors duration-admin-fast ${
+                        mode === "edit" ? "bg-ink text-paper" : "text-ink-3 hover:bg-admin-row-hover"
+                      }`}>
                       <Edit3 className="w-3 h-3" /> Edit
                     </button>
                     <button onClick={() => setMode("preview")}
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs transition-colors"
-                      style={{ background: mode === "preview" ? BRAND.black : "transparent", color: mode === "preview" ? "#fff" : BRAND.muted }}>
+                      className={`flex items-center gap-1 px-3 py-1.5 text-admin-sm transition-colors duration-admin-fast ${
+                        mode === "preview" ? "bg-ink text-paper" : "text-ink-3 hover:bg-admin-row-hover"
+                      }`}>
                       <Eye className="w-3 h-3" /> Preview
                     </button>
                   </div>
 
                   <a href={`/${active}`} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs transition-opacity hover:opacity-70"
-                    style={{ color: BRAND.teal }}>
+                    className="flex items-center gap-1 text-admin-sm text-ink-2 hover:text-ink transition-colors duration-admin-fast">
                     <ExternalLink className="w-3 h-3" /> View
                   </a>
 
                   <button onClick={handleSave} disabled={saving}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold transition-all disabled:opacity-50"
-                    style={{ background: saved ? "#10B981" : BRAND.teal, color: "#fff" }}>
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-admin-sm font-medium rounded transition-colors duration-admin-fast disabled:opacity-50 ${
+                      saved ? "bg-state-onhand text-paper" : "bg-ink text-paper hover:opacity-90"
+                    }`}>
                     {saved ? <Check className="w-3 h-3" /> : <Save className="w-3 h-3" />}
                     {saving ? "Saving…" : saved ? "Saved!" : "Save"}
                   </button>
@@ -280,15 +279,18 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
               </div>
 
               {/* Page title bar */}
-              <div className="px-5 py-3 flex items-center gap-2"
-                style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                <span className="text-xs font-semibold" style={{ color: BRAND.black }}>{activePage.title}</span>
-                <span className="text-xs" style={{ color: BRAND.mutedLight }}>· /{active}</span>
+              <div className="px-5 py-3 flex items-center gap-2 border-b border-line flex-wrap">
+                <span className="text-admin-sm font-semibold text-ink">{activePage.title}</span>
+                <span className="text-admin-sm text-ink-3">· /{active}</span>
+                <span className="text-admin-micro text-ink-3 ml-auto">
+                  {activeLastSaved
+                    ? `Last saved ${new Date(activeLastSaved).toLocaleString("en-PH", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}`
+                    : "Not yet saved"}
+                </span>
               </div>
 
               {saveError && (
-                <div className="px-5 py-3 text-xs font-semibold"
-                  style={{ background: "#FEF2F2", color: "#DC2626", borderBottom: `1px solid #FCA5A5` }}>
+                <div className="px-5 py-3 text-admin-sm font-medium bg-state-error/10 text-state-error border-b border-state-error/30">
                   {saveError}
                 </div>
               )}
@@ -302,18 +304,11 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
                     onChange={e => setContent(e.target.value)}
                     rows={26}
                     spellCheck
-                    className="w-full px-4 py-3 text-sm focus:outline-none resize-y"
-                    style={{
-                      background: BRAND.bg,
-                      border: `1px solid ${BRAND.border}`,
-                      color: BRAND.black,
-                      lineHeight: 1.8,
-                      fontFamily: "ui-monospace, 'Cascadia Code', monospace",
-                      fontSize: "12.5px",
-                    }}
+                    className="w-full px-3.5 py-3 text-admin-sm bg-paper-2 border border-line rounded-md text-ink focus:outline-none focus:border-line-strong transition-colors duration-admin-fast resize-y"
+                    style={{ lineHeight: 1.8, fontFamily: "ui-monospace, 'Cascadia Code', monospace", fontSize: "12.5px" }}
                     placeholder={"# Big Heading\n\n### Sub-heading\n\n## SECTION LABEL\n\nParagraph text. **Bold**, _italic_, __underline__, ~~strike~~.\n\n- Bullet one\n- Bullet two\n\n[center] Centered text"}
                   />
-                  <p className="mt-2 text-[10px]" style={{ color: BRAND.mutedLight }}>
+                  <p className="mt-2 text-admin-micro text-ink-3">
                     <code># H1</code> &nbsp;·&nbsp;
                     <code>### Sub</code> &nbsp;·&nbsp;
                     <code>## label</code> &nbsp;·&nbsp;
@@ -333,7 +328,7 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
                   {activeContent.trim() ? (
                     <PageContent text={activeContent} />
                   ) : (
-                    <p className="text-sm text-center py-12" style={{ color: BRAND.mutedLight }}>
+                    <p className="text-admin-sm text-center py-12 text-ink-3">
                       Nothing to preview yet — switch to Edit and add some content.
                     </p>
                   )}
