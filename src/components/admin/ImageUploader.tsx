@@ -4,7 +4,6 @@ import { useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import { Upload, X, Crop, Loader2, AlertCircle, ChevronUp, ChevronDown } from "lucide-react";
-import { BRAND } from "@/lib/admin/constants";
 import { createClient } from "@/lib/supabase/client";
 
 interface ImageEntry {
@@ -60,6 +59,7 @@ export default function ImageUploader({
   const [croppedPixels, setCroppedPixels] = useState<Area | null>(null);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const [zoneActive, setZoneActive] = useState(false);
 
   const onCropComplete = useCallback((_: Area, pixels: Area) => setCroppedPixels(pixels), []);
 
@@ -129,6 +129,14 @@ export default function ImageUploader({
     notify(updated);
   }
 
+  function onZoneDragOver(e: React.DragEvent) { e.preventDefault(); setZoneActive(true); }
+  function onZoneDragLeave() { setZoneActive(false); }
+  function onZoneDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setZoneActive(false);
+    addFiles(e.dataTransfer.files);
+  }
+
   function onDragStart(idx: number) { setDragIdx(idx); }
   function onDragOver(e: React.DragEvent, idx: number) { e.preventDefault(); setDragOverIdx(idx); }
   function onDragLeave() { setDragOverIdx(null); }
@@ -160,24 +168,27 @@ export default function ImageUploader({
   return (
     <div>
       {/* Drop zone */}
-      <label className="block border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors"
-        style={{ borderColor: entries.length ? BRAND.teal : BRAND.border, marginBottom: entries.length ? "12px" : 0 }}>
+      <label
+        onDragOver={onZoneDragOver}
+        onDragLeave={onZoneDragLeave}
+        onDrop={onZoneDrop}
+        className={`block border-2 border-dashed rounded-md p-8 text-center cursor-pointer transition-colors duration-admin-fast ${
+          zoneActive ? "border-ink-3" : "border-line hover:border-ink-3"
+        } ${entries.length ? "mb-4" : ""}`}>
         <input type="file" multiple accept="image/*,.jpg,.jpeg,.png,.webp" className="hidden"
           onChange={e => addFiles(e.target.files)} />
-        <Upload className="w-6 h-6 mx-auto mb-1.5" style={{ color: BRAND.mutedLight }} />
-        <p className="text-sm font-semibold" style={{ color: BRAND.black }}>
-          {entries.length ? "Add more photos" : "Upload product photos"}
-        </p>
-        <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>JPG, PNG, WEBP · Uploads directly to storage</p>
+        <Upload className="w-8 h-8 mx-auto mb-2 text-ink-3" />
+        <p className="text-admin text-ink-3">Drag images here or click to browse</p>
+        <p className="text-admin-micro text-ink-3 mt-1">JPG or PNG · up to 5MB each</p>
       </label>
 
       {/* Thumbnails grid */}
       {entries.length > 0 && (
         <>
-          <p className="text-[11px] mb-2" style={{ color: BRAND.muted }}>
-            Drag to reorder · Tap ✂ to crop · First photo is the cover
+          <p className="text-admin-micro text-ink-3 mb-2">
+            Drag to reorder · crop icon to adjust · first photo is the cover
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2.5">
             {entries.map((entry, i) => (
               <div key={entry.id} draggable={!entry.uploading}
                 onDragStart={() => onDragStart(i)}
@@ -185,36 +196,32 @@ export default function ImageUploader({
                 onDragLeave={onDragLeave}
                 onDrop={() => onDrop(i)}
                 onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
-                className="relative aspect-square rounded-lg overflow-hidden cursor-grab active:cursor-grabbing"
-                style={{
-                  border: `2px solid ${entry.error ? BRAND.red : dragOverIdx === i ? BRAND.teal : i === 0 ? BRAND.black : BRAND.border}`,
-                  opacity: dragIdx === i ? 0.4 : 1,
-                  transition: "opacity 0.15s",
-                }}>
+                className={`relative aspect-square rounded-md overflow-hidden cursor-grab active:cursor-grabbing border-2 transition-opacity duration-admin-fast ${
+                  entry.error ? "border-state-error" : dragOverIdx === i ? "border-ink-3" : i === 0 ? "border-ink" : "border-line"
+                } ${dragIdx === i ? "opacity-40" : "opacity-100"}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={entry.preview} alt="" className="w-full h-full object-cover" draggable={false} />
 
                 {/* Upload overlay */}
                 {entry.uploading && (
-                  <div className="absolute inset-0 flex items-center justify-center"
-                    style={{ background: "rgba(0,0,0,0.5)" }}>
-                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center bg-ink/60">
+                    <Loader2 className="w-5 h-5 text-paper animate-spin" />
                   </div>
                 )}
 
                 {/* Error overlay */}
                 {entry.error && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-1 text-center"
-                    style={{ background: "rgba(0,0,0,0.7)" }}>
-                    <AlertCircle className="w-4 h-4 text-red-400 mb-0.5" />
-                    <p className="text-[9px] text-red-300 leading-tight">Upload failed</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-1 text-center bg-ink/70">
+                    <AlertCircle className="w-4 h-4 text-state-error mb-0.5" />
+                    <p className="text-admin-micro text-state-error leading-tight">Upload failed</p>
                   </div>
                 )}
 
                 {/* Cover badge */}
                 {i === 0 && !entry.uploading && !entry.error && (
-                  <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white rounded-sm"
-                    style={{ background: BRAND.black }}>Cover</div>
+                  <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 text-admin-micro font-semibold uppercase tracking-wider text-paper bg-ink rounded-sm">
+                    Cover
+                  </div>
                 )}
 
                 {/* Move arrows (mobile reorder) */}
@@ -222,16 +229,14 @@ export default function ImageUploader({
                   <div className="absolute bottom-1 left-1 flex gap-0.5">
                     {i > 0 && (
                       <button type="button" onClick={() => moveUp(i)}
-                        className="w-5 h-5 rounded-sm flex items-center justify-center shadow"
-                        style={{ background: "rgba(0,0,0,0.55)" }}>
-                        <ChevronUp className="w-3 h-3 text-white" />
+                        className="w-5 h-5 rounded-sm flex items-center justify-center bg-ink/55">
+                        <ChevronUp className="w-3 h-3 text-paper" />
                       </button>
                     )}
                     {i < entries.length - 1 && (
                       <button type="button" onClick={() => moveDown(i)}
-                        className="w-5 h-5 rounded-sm flex items-center justify-center shadow"
-                        style={{ background: "rgba(0,0,0,0.55)" }}>
-                        <ChevronDown className="w-3 h-3 text-white" />
+                        className="w-5 h-5 rounded-sm flex items-center justify-center bg-ink/55">
+                        <ChevronDown className="w-3 h-3 text-paper" />
                       </button>
                     )}
                   </div>
@@ -243,15 +248,13 @@ export default function ImageUploader({
                     {!entry.error && (
                       <button type="button"
                         onClick={() => { setCropIdx(i); setCrop({ x: 0, y: 0 }); setZoom(1); }}
-                        className="w-6 h-6 rounded-sm flex items-center justify-center shadow"
-                        style={{ background: BRAND.teal }}>
-                        <Crop className="w-3 h-3 text-white" />
+                        className="w-6 h-6 rounded-sm flex items-center justify-center bg-ink/70 hover:bg-ink transition-colors duration-admin-fast">
+                        <Crop className="w-3 h-3 text-paper" />
                       </button>
                     )}
                     <button type="button" onClick={() => remove(i)}
-                      className="w-6 h-6 rounded-sm flex items-center justify-center shadow"
-                      style={{ background: BRAND.red }}>
-                      <X className="w-3 h-3 text-white" />
+                      className="w-6 h-6 rounded-sm flex items-center justify-center bg-state-error hover:bg-state-error/85 transition-colors duration-admin-fast">
+                      <X className="w-3 h-3 text-paper" />
                     </button>
                   </div>
                 )}
@@ -263,10 +266,8 @@ export default function ImageUploader({
 
       {/* Crop modal */}
       {cropIdx !== null && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.85)" }}>
-          <div className="rounded-2xl overflow-hidden w-full max-w-sm shadow-2xl"
-            style={{ background: "#fff" }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/60">
+          <div className="rounded-md overflow-hidden w-full max-w-sm shadow-lg bg-paper">
             <div className="relative" style={{ height: 320 }}>
               <Cropper
                 image={entries[cropIdx].preview}
@@ -280,21 +281,19 @@ export default function ImageUploader({
             </div>
             <div className="p-4">
               <div className="flex items-center gap-2 mb-4">
-                <span className="text-xs font-semibold" style={{ color: BRAND.muted }}>Zoom</span>
+                <span className="text-admin-sm font-medium text-ink-3">Zoom</span>
                 <input type="range" min={1} max={3} step={0.01} value={zoom}
                   onChange={e => setZoom(Number(e.target.value))}
-                  className="flex-1" style={{ accentColor: BRAND.teal }} />
+                  className="flex-1 accent-ink" />
               </div>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setCropIdx(null)}
-                  className="flex-1 py-2.5 text-sm font-bold rounded-lg"
-                  style={{ background: "#f5f5f5", color: BRAND.muted }}>
+                  className="flex-1 py-2.5 text-admin font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
                   Cancel
                 </button>
                 <button type="button" onClick={applyCrop}
-                  className="flex-1 py-2.5 text-sm font-black text-white rounded-lg"
-                  style={{ background: BRAND.teal }}>
-                  Apply Crop
+                  className="flex-1 py-2.5 text-admin font-medium rounded-md bg-ink text-paper hover:bg-ink-2 transition-colors duration-admin-fast">
+                  Apply crop
                 </button>
               </div>
             </div>
