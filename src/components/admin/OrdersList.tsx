@@ -85,8 +85,8 @@ export default function OrdersList({
 
       {/* Desktop table */}
       <table className="w-full hidden md:table">
-        <thead>
-          <tr className="border-b border-line bg-paper-2">
+        <thead className="sticky top-0 z-10 bg-paper border-b border-line-strong">
+          <tr className="bg-paper-2">
             <th className="px-3 py-3 w-10">
               <input type="checkbox"
                 checked={selectedIds.size === orders.length && orders.length > 0}
@@ -102,7 +102,7 @@ export default function OrdersList({
         <tbody className="divide-y divide-line">
           {orders.map(o => (
             <tr key={o.id}
-              className="cursor-pointer hover:bg-admin-row-hover transition-colors duration-admin-fast"
+              className="cursor-pointer even:bg-paper-2 hover:bg-admin-row-hover transition-colors duration-admin-fast"
               onClick={() => onRowClick(o)}>
               <td className="px-3 py-3.5" onClick={e => e.stopPropagation()}>
                 <input type="checkbox"
