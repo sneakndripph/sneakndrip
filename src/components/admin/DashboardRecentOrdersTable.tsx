@@ -1,27 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
-import { BRAND, FONTS } from "@/lib/admin/constants";
-import { Clock, CheckCircle, Truck, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import OrderStatusBadge from "./OrderStatusBadge";
 
-const STATUS_CFG = {
-  pending:    { icon: Clock,       color: "#D97706", bg: "rgba(217,119,6,0.1)",   label: "Pending" },
-  paid:       { icon: CheckCircle, color: BRAND.teal, bg: `rgba(91,184,180,0.1)`, label: "Paid" },
-  processing: { icon: Clock,       color: "#6366F1", bg: "rgba(99,102,241,0.1)",  label: "Processing" },
-  shipped:    { icon: Truck,       color: "#3B82F6", bg: "rgba(59,130,246,0.1)",  label: "Shipped" },
-  delivered:  { icon: CheckCircle, color: "#10B981", bg: "rgba(16,185,129,0.1)",  label: "Delivered" },
-  cancelled:  { icon: X,          color: "#D94F3D", bg: "rgba(217,79,61,0.1)",   label: "Cancelled" },
-} as const;
-
-type ProductRef = { images: string[] | null; bg: string | null };
-
-type OrderItem = {
-  product_name: string;
-  size: string;
-  products?: ProductRef | ProductRef[] | null;
-};
+type OrderItem = { product_name: string; size: string };
 
 type Order = {
   order_number: string;
@@ -32,143 +14,81 @@ type Order = {
   order_items: OrderItem[];
 };
 
+function itemSummary(items: OrderItem[]) {
+  if (!items?.length) return "—";
+  const first = items[0];
+  const rest = items.length > 1 ? ` +${items.length - 1} more` : "";
+  return `${first.product_name} (${first.size})${rest}`;
+}
+
 export default function DashboardRecentOrdersTable({ orders }: { orders: Order[] }) {
-  const [modalOrder, setModalOrder] = useState<Order | null>(null);
+  const router = useRouter();
 
   if (!orders.length) {
     return (
       <div className="py-12 text-center">
-        <p className="text-sm" style={{ color: BRAND.muted }}>No orders yet.</p>
+        <p className="text-admin-sm text-ink-3">No orders yet.</p>
       </div>
     );
   }
 
+  function goToOrder(o: Order) {
+    router.push(`/admin/orders?q=${encodeURIComponent(o.order_number)}`);
+  }
+
   return (
-    <>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-              {["Order ID", "Customer", "Item", "Total", "Status", "Date"].map(h => (
-                <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest"
-                  style={{ color: BRAND.muted }}>{h}</th>
-              ))}
+    <div className="rounded-md overflow-hidden border border-line">
+      {/* Desktop table */}
+      <table className="w-full hidden md:table">
+        <thead>
+          <tr className="bg-paper-2 border-b border-line-strong">
+            {["Order", "Customer", "Item", "Total", "Status", "Date"].map(h => (
+              <th key={h} className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {orders.map(o => (
+            <tr key={o.order_number}
+              className="cursor-pointer even:bg-paper-2 hover:bg-admin-row-hover transition-colors duration-admin-fast"
+              onClick={() => goToOrder(o)}>
+              <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">{o.order_number}</td>
+              <td className="px-4 py-3.5 text-admin-sm font-medium text-ink">{o.customer_name}</td>
+              <td className="px-4 py-3.5 text-admin-sm text-ink-2 max-w-[180px] truncate">
+                {itemSummary(o.order_items)}
+              </td>
+              <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">
+                ₱{Number(o.total).toLocaleString()}
+              </td>
+              <td className="px-4 py-3.5">
+                <OrderStatusBadge status={o.status} />
+              </td>
+              <td className="px-4 py-3.5 text-admin-sm text-ink-3">
+                {new Date(o.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {orders.map(order => {
-              const cfg = STATUS_CFG[order.status as keyof typeof STATUS_CFG];
-              const Icon = cfg?.icon ?? Clock;
-              const firstItem = order.order_items?.[0];
-              return (
-                <tr key={order.order_number}
-                  className="transition-colors hover:bg-black/[0.02] cursor-pointer"
-                  style={{ borderBottom: `1px solid ${BRAND.border}` }}
-                  onClick={() => setModalOrder(order)}>
-                  <td className="px-4 py-3.5 text-xs font-bold" style={{ color: BRAND.black }}>
-                    {order.order_number}
-                  </td>
-                  <td className="px-4 py-3.5 text-xs font-semibold" style={{ color: BRAND.black, fontFamily: FONTS.body }}>{order.customer_name}</td>
-                  <td className="px-4 py-3.5 text-xs max-w-[160px] truncate" style={{ color: BRAND.muted }}>
-                    {firstItem ? `${firstItem.product_name} (${firstItem.size})` : "—"}
-                  </td>
-                  <td className="px-4 py-3.5 text-xs font-bold" style={{ color: BRAND.black }}>
-                    ₱{Number(order.total).toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
-                      style={{ background: cfg?.bg ?? "#eee", color: cfg?.color ?? "#666" }}>
-                      <Icon className="w-3 h-3" />{cfg?.label ?? order.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 text-xs" style={{ color: BRAND.muted }}>
-                    {new Date(order.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" })}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
 
-      {/* Order detail modal */}
-      {modalOrder && (() => {
-        const cfg = STATUS_CFG[modalOrder.status as keyof typeof STATUS_CFG];
-        const Icon = cfg?.icon ?? Clock;
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
-            <div className="w-full max-w-md rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                <div>
-                  <p className="font-black text-sm" style={{ color: BRAND.black, fontFamily: FONTS.display, letterSpacing: "0.04em" }}>
-                    {modalOrder.order_number}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: BRAND.muted }}>
-                    {new Date(modalOrder.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full"
-                    style={{ background: cfg?.bg ?? "#eee", color: cfg?.color ?? "#666" }}>
-                    <Icon className="w-3 h-3" />{cfg?.label ?? modalOrder.status}
-                  </span>
-                  <button onClick={() => setModalOrder(null)} className="transition-opacity hover:opacity-60">
-                    <X className="w-4 h-4" style={{ color: BRAND.muted }} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Customer */}
-              <div className="px-5 py-3" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>Customer</p>
-                <p className="text-sm font-semibold" style={{ color: BRAND.black }}>{modalOrder.customer_name}</p>
-              </div>
-
-              {/* Items */}
-              <div style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                <p className="px-5 pt-3 pb-1 text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>Items</p>
-                {modalOrder.order_items?.map((item, i) => {
-                  const prod = Array.isArray(item.products) ? item.products[0] : item.products;
-                  const imgUrl = prod?.images?.[0] ?? null;
-                  return (
-                    <div key={i} className="flex items-center gap-3 px-5 py-2">
-                      {imgUrl ? (
-                        <div className="w-10 h-10 rounded overflow-hidden shrink-0"
-                          style={{ background: prod?.bg ?? BRAND.card, border: `1px solid ${BRAND.border}` }}>
-                          <Image src={imgUrl} alt={item.product_name} width={40} height={40}
-                            className="w-full h-full object-cover" />
-                        </div>
-                      ) : (
-                        <div className="w-10 h-10 rounded shrink-0"
-                          style={{ background: BRAND.border }} />
-                      )}
-                      <div className="flex-1 flex items-center justify-between">
-                        <p className="text-sm" style={{ color: BRAND.black }}>{item.product_name}</p>
-                        <p className="text-xs" style={{ color: BRAND.muted }}>Size {item.size}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Total + link */}
-              <div className="px-5 py-4 flex items-center justify-between">
-                <p className="font-black text-base" style={{ color: BRAND.black }}>
-                  Total ₱{Number(modalOrder.total).toLocaleString()}
-                </p>
-                <Link
-                  href={`/admin/orders?q=${modalOrder.order_number}`}
-                  onClick={() => setModalOrder(null)}
-                  className="text-xs font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
-                  style={{ color: BRAND.teal }}>
-                  View Full Order →
-                </Link>
-              </div>
+      {/* Mobile cards */}
+      <div className="md:hidden divide-y divide-line">
+        {orders.map(o => (
+          <button key={o.order_number}
+            className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left"
+            onClick={() => goToOrder(o)}>
+            <div className="min-w-0">
+              <p className="text-admin-sm font-semibold text-ink">{o.order_number}</p>
+              <p className="text-admin-micro text-ink-3 mt-0.5 truncate">
+                {o.customer_name} · ₱{Number(o.total).toLocaleString()}
+              </p>
             </div>
-          </div>
-        );
-      })()}
-    </>
+            <div className="shrink-0 ml-2">
+              <OrderStatusBadge status={o.status} />
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
