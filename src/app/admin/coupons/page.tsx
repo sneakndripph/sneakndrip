@@ -124,8 +124,13 @@ export default function AdminMarketingPage() {
           body: JSON.stringify(form),
         });
         const data = await res.json();
-        if (!res.ok) { setError(data.error || "Failed to save"); return; }
+        if (!res.ok) {
+          setError(data.error || "Failed to save");
+          toast.error("Couldn't update coupon. Try again.");
+          return;
+        }
         setCoupons(prev => prev.map(c => c.id === editingId ? { ...c, ...data } : c));
+        toast.success(`Coupon "${form.code}" updated`);
       } else {
         const res = await fetch("/api/admin/coupons", {
           method: "POST",
@@ -133,8 +138,13 @@ export default function AdminMarketingPage() {
           body: JSON.stringify(form),
         });
         const data = await res.json();
-        if (!res.ok) { setError(data.error || "Failed to save"); return; }
+        if (!res.ok) {
+          setError(data.error || "Failed to save");
+          toast.error("Couldn't create coupon. Try again.");
+          return;
+        }
         setCoupons(prev => [data, ...prev]);
+        toast.success(`Coupon "${form.code}" created`);
       }
       closeForm();
     } finally {
@@ -142,16 +152,24 @@ export default function AdminMarketingPage() {
     }
   }
 
-  function toggleActive(c: Coupon) {
-    setCoupons(prev => prev.map(x => x.id === c.id ? { ...x, is_active: !c.is_active } : x));
-    fetch(`/api/admin/coupons/${c.id}`, {
+  async function toggleActive(c: Coupon) {
+    const nextIsActive = !c.is_active;
+    setCoupons(prev => prev.map(x => x.id === c.id ? { ...x, is_active: nextIsActive } : x));
+    const res = await fetch(`/api/admin/coupons/${c.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_active: !c.is_active }),
+      body: JSON.stringify({ is_active: nextIsActive }),
     });
+    if (!res.ok) {
+      setCoupons(prev => prev.map(x => x.id === c.id ? { ...x, is_active: c.is_active } : x));
+      toast.error("Couldn't update coupon. Try again.");
+      return;
+    }
+    toast.success(`Coupon "${c.code}" ${nextIsActive ? "activated" : "deactivated"}`);
   }
 
   async function handleDelete(id: string) {
+    const target = coupons.find(c => c.id === id);
     const ok = await confirmCouponDelete({
       title: "Delete this coupon?",
       description: "Existing uses will not be affected. New redemptions will be blocked.",
@@ -159,9 +177,14 @@ export default function AdminMarketingPage() {
       variant: "destructive",
     });
     if (!ok) return;
+    const res = await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error("Couldn't delete coupon. Try again.");
+      return;
+    }
     setCoupons(prev => prev.filter(c => c.id !== id));
     if (editingId === id) closeForm();
-    await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" });
+    toast.success(`Coupon "${target?.code}" deleted`);
   }
 
   async function handleDuplicate(c: Coupon) {
@@ -178,10 +201,13 @@ export default function AdminMarketingPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(copyForm),
     });
-    if (res.ok) {
-      const data = await res.json();
-      setCoupons(prev => [data, ...prev]);
+    if (!res.ok) {
+      toast.error("Couldn't duplicate coupon. Try again.");
+      return;
     }
+    const data = await res.json();
+    setCoupons(prev => [data, ...prev]);
+    toast.success(`Coupon "${data.code}" created from "${c.code}"`);
   }
 
   // --- Discount handlers ---
@@ -233,9 +259,11 @@ export default function AdminMarketingPage() {
           sale_end: salePriceNum > 0 && discountEdit.saleEnd ? discountEdit.saleEnd : null,
         } : x));
         closeDiscountEdit();
+        toast.success("Scheduled discount saved");
       } else {
         const err = await res.json().catch(() => ({}));
         setDiscountError(err.error || "Failed to save discount");
+        toast.error("Couldn't save scheduled discount. Try again.");
       }
     } finally {
       setSavingDiscount(false);
