@@ -36,7 +36,18 @@ export default async function HomePage() {
     .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
     .slice(0, 8);
   const trending = products.filter(p => p.is_trending && inStock(p)).slice(0, 4);
-  const featured = products.find(p => p.is_featured && p.status === "on-hand") ?? products[0];
+
+  // Featured product rotates daily via day-of-year modulo the featured pool.
+  // To change which products rotate, toggle is_featured in the admin.
+  // Fallback: first in-stock product if the featured pool is empty.
+  const featuredPool = products.filter(p => p.is_featured && inStock(p));
+  const now = new Date();
+  const startOfYearUTC = Date.UTC(now.getUTCFullYear(), 0, 1);
+  const dayOfYear = Math.floor((now.getTime() - startOfYearUTC) / 86400000);
+  const featured = featuredPool.length > 0
+    ? featuredPool[dayOfYear % featuredPool.length]
+    : products.find(inStock) ?? products[0];
+
   const productSlugMap = new Map(products.map(p => [p.id, p.slug]));
 
   const hero = {
@@ -82,9 +93,13 @@ export default async function HomePage() {
             </div>
 
             {featured && (
-              <div className="bg-paper-2 aspect-square rounded-md overflow-hidden flex items-center justify-center relative">
+              <Link
+                href={`/shop/${featured.slug}`}
+                aria-label={`Shop ${featured.name} ${featured.colorway || ""}`}
+                className="bg-paper-2 aspect-square rounded-md overflow-hidden flex items-center justify-center relative hover:opacity-95 transition-opacity duration-slow ease-smooth"
+              >
                 <HeroProductImage product={featured} />
-              </div>
+              </Link>
             )}
           </div>
         </div>
