@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Save, ToggleLeft, ToggleRight, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check, MessageCircle } from "lucide-react";
+import toast from "react-hot-toast";
 import QRUploadField from "@/components/admin/QRUploadField";
 
 type SettingsData = Record<string, string>;
@@ -111,23 +112,37 @@ export default function AdminSettingsPage() {
   }
 
   async function toggleChatWidget() {
-    const newVal = settings.chat_widget_enabled === "false" ? "true" : "false";
+    const prevVal = settings.chat_widget_enabled;
+    const newVal = prevVal === "false" ? "true" : "false";
     setSettings(prev => ({ ...prev, chat_widget_enabled: newVal }));
-    await fetch("/api/admin/settings", {
+    const res = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_widget_enabled: newVal }),
     });
+    if (!res.ok) {
+      setSettings(prev => ({ ...prev, chat_widget_enabled: prevVal }));
+      toast.error("Couldn't update support chat setting. Try again.");
+      return;
+    }
+    toast.success(newVal === "true" ? "Support chat enabled" : "Support chat disabled");
   }
 
   async function toggleMaintenance() {
-    const newVal = settings.maintenance_mode === "true" ? "false" : "true";
+    const prevVal = settings.maintenance_mode;
+    const newVal = prevVal === "true" ? "false" : "true";
     setSettings(prev => ({ ...prev, maintenance_mode: newVal }));
-    await fetch("/api/admin/settings", {
+    const res = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ maintenance_mode: newVal }),
     });
+    if (!res.ok) {
+      setSettings(prev => ({ ...prev, maintenance_mode: prevVal }));
+      toast.error("Couldn't update maintenance mode. Try again.");
+      return;
+    }
+    toast.success(newVal === "true" ? "Maintenance mode ON" : "Maintenance mode OFF");
   }
 
   async function handleSave() {
@@ -141,6 +156,9 @@ export default function AdminSettingsPage() {
       if (res.ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
+        toast.success("Settings saved");
+      } else {
+        toast.error("Couldn't save settings. Try again.");
       }
     } finally {
       setSaving(false);
