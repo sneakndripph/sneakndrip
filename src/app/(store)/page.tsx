@@ -50,6 +50,14 @@ export default async function HomePage() {
 
   const productSlugMap = new Map(products.map(p => [p.id, p.slug]));
 
+  // Fail-open: sections stay visible unless explicitly turned off in the admin.
+  const contextBarEnabled = settings.context_bar_enabled !== "false";
+  const newArrivalsEnabled = settings.new_arrivals_enabled !== "false";
+  const buyingFloorEnabled = settings.buying_floor_enabled !== "false";
+  const trendingEnabled = settings.trending_enabled !== "false";
+  const reviewsEnabled = settings.reviews_enabled !== "false";
+  const newsletterEnabled = settings.newsletter_enabled !== "false";
+
   const hero = {
     badge: settings.hero_badge || HERO_DEFAULTS.hero_badge,
     line1: settings.hero_line1 || HERO_DEFAULTS.hero_line1,
@@ -106,99 +114,109 @@ export default async function HomePage() {
       </section>
 
       {/* ── Editorial context bar ────────────────────────────────────── */}
-      <div className="bg-paper border-y border-line">
-        <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-3">
-          <div className="flex flex-wrap items-center justify-between gap-3 text-micro text-ink-3">
-            <span>Sourced weekly — Tokyo, Seoul, Hong Kong</span>
-            <span className="hidden md:inline">Every pair verified on the floor</span>
-            <span>Ships nationwide from Rizal</span>
+      {contextBarEnabled && (
+        <div className="bg-paper border-y border-line">
+          <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 text-micro text-ink-3">
+              <span>Sourced weekly — Tokyo, Seoul, Hong Kong</span>
+              <span className="hidden md:inline">Every pair verified on the floor</span>
+              <span>Ships nationwide from Rizal</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── New This Week ────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24">
-        <div className="flex items-end justify-between mb-8 lg:mb-12">
-          <div>
-            <p className="text-eyebrow text-ink-3 mb-2">New this week</p>
-            <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-tight tracking-[-0.02em]">
-              Just landed
-            </h2>
+      {newArrivalsEnabled && (
+        <section className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24">
+          <div className="flex items-end justify-between mb-8 lg:mb-12">
+            <div>
+              <p className="text-eyebrow text-ink-3 mb-2">New this week</p>
+              <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-tight tracking-[-0.02em]">
+                Just landed
+              </h2>
+            </div>
+            <Link href="/shop?sort=newest" className="text-micro text-ink-3 hover:text-ink transition-colors">
+              View all →
+            </Link>
           </div>
-          <Link href="/shop?sort=newest" className="text-micro text-ink-3 hover:text-ink transition-colors">
-            View all →
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-          {newArrivals.map(p => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+            {newArrivals.map(p => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── From The Buying Floor ────────────────────────────────────── */}
-      <section className="bg-paper-2">
-        <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24">
-          <div className="grid gap-10 lg:grid-cols-[1fr_1.4fr] lg:gap-16 lg:items-center">
-            <div className="relative aspect-[4/5] bg-paper-3 rounded-md overflow-hidden order-2 lg:order-1">
-              <div className="absolute inset-0 flex items-center justify-center text-ink-3 text-eyebrow">
-                Founder photo — Harajuku 2026
+      {buyingFloorEnabled && (
+        <section className="bg-paper-2">
+          <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24">
+            <div className="grid gap-10 lg:grid-cols-[1fr_1.4fr] lg:gap-16 lg:items-center">
+              <div className="relative aspect-[4/5] bg-paper-3 rounded-md overflow-hidden order-2 lg:order-1">
+                <div className="absolute inset-0 flex items-center justify-center text-ink-3 text-eyebrow">
+                  Founder photo — Harajuku 2026
+                </div>
+              </div>
+              <div className="order-1 lg:order-2">
+                <p className="text-eyebrow text-ink-3 mb-4">From the buying floor</p>
+                <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-[1.1] tracking-[-0.02em] mb-6 max-w-lg">
+                  Every pair picked in person.
+                </h2>
+                <p className="text-body-sm lg:text-body text-ink-2 leading-relaxed max-w-md mb-3">
+                  This week&apos;s pickups came from four days walking Harajuku, Shinjuku, and Shibuya.
+                </p>
+                <p className="text-body-sm text-ink-2 leading-relaxed max-w-md mb-8">
+                  Every pair verified in person. Boxes checked, receipts kept, photos on file. That&apos;s the only way we source.
+                </p>
+                <p className="text-micro italic text-ink-3 mb-8">— Juls, founder</p>
+                <Link href="/authenticity" className="text-eyebrow text-ink border-b border-ink pb-1 hover:opacity-60 transition-opacity">
+                  Our verification process →
+                </Link>
               </div>
             </div>
-            <div className="order-1 lg:order-2">
-              <p className="text-eyebrow text-ink-3 mb-4">From the buying floor</p>
-              <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-[1.1] tracking-[-0.02em] mb-6 max-w-lg">
-                Every pair picked in person.
-              </h2>
-              <p className="text-body-sm lg:text-body text-ink-2 leading-relaxed max-w-md mb-3">
-                This week&apos;s pickups came from four days walking Harajuku, Shinjuku, and Shibuya.
-              </p>
-              <p className="text-body-sm text-ink-2 leading-relaxed max-w-md mb-8">
-                Every pair verified in person. Boxes checked, receipts kept, photos on file. That&apos;s the only way we source.
-              </p>
-              <p className="text-micro italic text-ink-3 mb-8">— Juls, founder</p>
-              <Link href="/authenticity" className="text-eyebrow text-ink border-b border-ink pb-1 hover:opacity-60 transition-opacity">
-                Our verification process →
-              </Link>
-            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── Trending ──────────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24 border-t border-line">
-        <div className="flex items-end justify-between mb-8 lg:mb-12">
-          <div>
-            <p className="text-eyebrow text-ink-3 mb-2">Trending</p>
-            <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-tight tracking-[-0.02em]">
-              What&apos;s moving
-            </h2>
+      {trendingEnabled && (
+        <section className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24 border-t border-line">
+          <div className="flex items-end justify-between mb-8 lg:mb-12">
+            <div>
+              <p className="text-eyebrow text-ink-3 mb-2">Trending</p>
+              <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-tight tracking-[-0.02em]">
+                What&apos;s moving
+              </h2>
+            </div>
+            <Link href="/shop?filter=trending" className="text-micro text-ink-3 hover:text-ink transition-colors">
+              View all →
+            </Link>
           </div>
-          <Link href="/shop?filter=trending" className="text-micro text-ink-3 hover:text-ink transition-colors">
-            View all →
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
-          {trending.map(p => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
+            {trending.map(p => (
+              <ProductCard key={p.id} product={p} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Reviews ───────────────────────────────────────────────────── */}
-      <section className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24 border-t border-line">
-        <div className="mb-8 lg:mb-12">
-          <p className="text-eyebrow text-ink-3 mb-2">Real buyers</p>
-          <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-tight tracking-[-0.02em]">
-            What they&apos;re saying
-          </h2>
-        </div>
+      {reviewsEnabled && (
+        <section className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24 border-t border-line">
+          <div className="mb-8 lg:mb-12">
+            <p className="text-eyebrow text-ink-3 mb-2">Real buyers</p>
+            <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-tight tracking-[-0.02em]">
+              What they&apos;re saying
+            </h2>
+          </div>
 
-        <HomeReviews reviews={reviews} productSlugMap={productSlugMap} />
-      </section>
+          <HomeReviews reviews={reviews} productSlugMap={productSlugMap} />
+        </section>
+      )}
 
       {/* ── Newsletter ────────────────────────────────────────────────── */}
-      <HomeClient />
+      {newsletterEnabled && <HomeClient />}
     </>
   );
 }

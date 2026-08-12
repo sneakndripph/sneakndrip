@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Save, ToggleLeft, ToggleRight, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check, MessageCircle } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check, MessageCircle, LayoutGrid } from "lucide-react";
 import toast from "react-hot-toast";
 import QRUploadField from "@/components/admin/QRUploadField";
 
@@ -49,6 +49,12 @@ const DEFAULTS: SettingsData = {
   cod_enabled: "true",
   maintenance_mode: "false",
   chat_widget_enabled: "true",
+  context_bar_enabled: "true",
+  new_arrivals_enabled: "true",
+  buying_floor_enabled: "true",
+  trending_enabled: "true",
+  reviews_enabled: "true",
+  newsletter_enabled: "true",
 };
 
 function Field({ label, settingsKey, settings, onChange, type = "text", hint, multiline, placeholder }: {
@@ -78,6 +84,7 @@ const SECTIONS = [
   { id: "chat-support",  title: "Support Chat",      icon: MessageCircle },
   { id: "announcement",  title: "Announcement Bar",  icon: Bell },
   { id: "hero",          title: "Homepage Hero",     icon: Monitor },
+  { id: "homepage-sections", title: "Homepage Sections", icon: LayoutGrid },
   { id: "store-info",    title: "Store Information", icon: MapPin },
   { id: "shipping",      title: "Shipping & Fees",   icon: Truck },
   { id: "payments",      title: "Payment Methods",   icon: CreditCard },
@@ -126,6 +133,108 @@ export default function AdminSettingsPage() {
       return;
     }
     toast.success(newVal === "true" ? "Support chat enabled" : "Support chat disabled");
+  }
+
+  async function toggleContextBar() {
+    const prevVal = settings.context_bar_enabled;
+    const newVal = prevVal === "false" ? "true" : "false";
+    setSettings(prev => ({ ...prev, context_bar_enabled: newVal }));
+    const res = await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ context_bar_enabled: newVal }),
+    });
+    if (!res.ok) {
+      setSettings(prev => ({ ...prev, context_bar_enabled: prevVal }));
+      toast.error("Couldn't update homepage section setting. Try again.");
+      return;
+    }
+    toast.success(newVal === "true" ? "Editorial context bar enabled" : "Editorial context bar disabled");
+  }
+
+  async function toggleNewArrivals() {
+    const prevVal = settings.new_arrivals_enabled;
+    const newVal = prevVal === "false" ? "true" : "false";
+    setSettings(prev => ({ ...prev, new_arrivals_enabled: newVal }));
+    const res = await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ new_arrivals_enabled: newVal }),
+    });
+    if (!res.ok) {
+      setSettings(prev => ({ ...prev, new_arrivals_enabled: prevVal }));
+      toast.error("Couldn't update homepage section setting. Try again.");
+      return;
+    }
+    toast.success(newVal === "true" ? "\"New this week\" section enabled" : "\"New this week\" section disabled");
+  }
+
+  async function toggleBuyingFloor() {
+    const prevVal = settings.buying_floor_enabled;
+    const newVal = prevVal === "false" ? "true" : "false";
+    setSettings(prev => ({ ...prev, buying_floor_enabled: newVal }));
+    const res = await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ buying_floor_enabled: newVal }),
+    });
+    if (!res.ok) {
+      setSettings(prev => ({ ...prev, buying_floor_enabled: prevVal }));
+      toast.error("Couldn't update homepage section setting. Try again.");
+      return;
+    }
+    toast.success(newVal === "true" ? "\"From The Buying Floor\" section enabled" : "\"From The Buying Floor\" section disabled");
+  }
+
+  async function toggleTrending() {
+    const prevVal = settings.trending_enabled;
+    const newVal = prevVal === "false" ? "true" : "false";
+    setSettings(prev => ({ ...prev, trending_enabled: newVal }));
+    const res = await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trending_enabled: newVal }),
+    });
+    if (!res.ok) {
+      setSettings(prev => ({ ...prev, trending_enabled: prevVal }));
+      toast.error("Couldn't update homepage section setting. Try again.");
+      return;
+    }
+    toast.success(newVal === "true" ? "Trending section enabled" : "Trending section disabled");
+  }
+
+  async function toggleReviews() {
+    const prevVal = settings.reviews_enabled;
+    const newVal = prevVal === "false" ? "true" : "false";
+    setSettings(prev => ({ ...prev, reviews_enabled: newVal }));
+    const res = await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reviews_enabled: newVal }),
+    });
+    if (!res.ok) {
+      setSettings(prev => ({ ...prev, reviews_enabled: prevVal }));
+      toast.error("Couldn't update homepage section setting. Try again.");
+      return;
+    }
+    toast.success(newVal === "true" ? "Customer reviews section enabled" : "Customer reviews section disabled");
+  }
+
+  async function toggleNewsletter() {
+    const prevVal = settings.newsletter_enabled;
+    const newVal = prevVal === "false" ? "true" : "false";
+    setSettings(prev => ({ ...prev, newsletter_enabled: newVal }));
+    const res = await fetch("/api/admin/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ newsletter_enabled: newVal }),
+    });
+    if (!res.ok) {
+      setSettings(prev => ({ ...prev, newsletter_enabled: prevVal }));
+      toast.error("Couldn't update homepage section setting. Try again.");
+      return;
+    }
+    toast.success(newVal === "true" ? "Newsletter signup section enabled" : "Newsletter signup section disabled");
   }
 
   async function toggleMaintenance() {
@@ -282,6 +391,134 @@ export default function AdminSettingsPage() {
                   </div>
                   <p className="text-admin-sm text-ink-3">
                     The toggle saves instantly — no need to click Save.
+                  </p>
+                </div>
+              )}
+
+              {activeSection === "homepage-sections" && (
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between p-5 rounded-md bg-paper-2">
+                    <div>
+                      <p className="text-admin-sm font-semibold text-ink mb-0.5">Editorial context bar</p>
+                      <p className="text-admin-sm text-ink-3">
+                        Thin band below the hero with sourcing metadata (Tokyo/Seoul/HK, verification, shipping origin).
+                      </p>
+                    </div>
+                    <button type="button"
+                      onClick={toggleContextBar}
+                      className={`flex items-center gap-2 px-4 py-2 text-admin-sm font-semibold rounded-md text-paper shrink-0 transition-opacity duration-admin-fast hover:opacity-90 ${
+                        settings.context_bar_enabled === "false" ? "bg-ink-3" : "bg-ink"
+                      }`}>
+                      {settings.context_bar_enabled === "false" ? (
+                        <><ToggleLeft className="w-4 h-4" /> Turn ON</>
+                      ) : (
+                        <><ToggleRight className="w-4 h-4" /> Turn OFF</>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-5 rounded-md bg-paper-2">
+                    <div>
+                      <p className="text-admin-sm font-semibold text-ink mb-0.5">New this week</p>
+                      <p className="text-admin-sm text-ink-3">
+                        4-column grid of the most recent in-stock products.
+                      </p>
+                    </div>
+                    <button type="button"
+                      onClick={toggleNewArrivals}
+                      className={`flex items-center gap-2 px-4 py-2 text-admin-sm font-semibold rounded-md text-paper shrink-0 transition-opacity duration-admin-fast hover:opacity-90 ${
+                        settings.new_arrivals_enabled === "false" ? "bg-ink-3" : "bg-ink"
+                      }`}>
+                      {settings.new_arrivals_enabled === "false" ? (
+                        <><ToggleLeft className="w-4 h-4" /> Turn ON</>
+                      ) : (
+                        <><ToggleRight className="w-4 h-4" /> Turn OFF</>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-5 rounded-md bg-paper-2">
+                    <div>
+                      <p className="text-admin-sm font-semibold text-ink mb-0.5">From The Buying Floor section</p>
+                      <p className="text-admin-sm text-ink-3">
+                        When off, the founder note section is hidden from the homepage.
+                      </p>
+                    </div>
+                    <button type="button"
+                      onClick={toggleBuyingFloor}
+                      className={`flex items-center gap-2 px-4 py-2 text-admin-sm font-semibold rounded-md text-paper shrink-0 transition-opacity duration-admin-fast hover:opacity-90 ${
+                        settings.buying_floor_enabled === "false" ? "bg-ink-3" : "bg-ink"
+                      }`}>
+                      {settings.buying_floor_enabled === "false" ? (
+                        <><ToggleLeft className="w-4 h-4" /> Turn ON</>
+                      ) : (
+                        <><ToggleRight className="w-4 h-4" /> Turn OFF</>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-5 rounded-md bg-paper-2">
+                    <div>
+                      <p className="text-admin-sm font-semibold text-ink mb-0.5">Trending</p>
+                      <p className="text-admin-sm text-ink-3">
+                        4-column grid of trending-flagged products.
+                      </p>
+                    </div>
+                    <button type="button"
+                      onClick={toggleTrending}
+                      className={`flex items-center gap-2 px-4 py-2 text-admin-sm font-semibold rounded-md text-paper shrink-0 transition-opacity duration-admin-fast hover:opacity-90 ${
+                        settings.trending_enabled === "false" ? "bg-ink-3" : "bg-ink"
+                      }`}>
+                      {settings.trending_enabled === "false" ? (
+                        <><ToggleLeft className="w-4 h-4" /> Turn ON</>
+                      ) : (
+                        <><ToggleRight className="w-4 h-4" /> Turn OFF</>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-5 rounded-md bg-paper-2">
+                    <div>
+                      <p className="text-admin-sm font-semibold text-ink mb-0.5">Customer reviews</p>
+                      <p className="text-admin-sm text-ink-3">
+                        3-card grid of verified customer reviews.
+                      </p>
+                    </div>
+                    <button type="button"
+                      onClick={toggleReviews}
+                      className={`flex items-center gap-2 px-4 py-2 text-admin-sm font-semibold rounded-md text-paper shrink-0 transition-opacity duration-admin-fast hover:opacity-90 ${
+                        settings.reviews_enabled === "false" ? "bg-ink-3" : "bg-ink"
+                      }`}>
+                      {settings.reviews_enabled === "false" ? (
+                        <><ToggleLeft className="w-4 h-4" /> Turn ON</>
+                      ) : (
+                        <><ToggleRight className="w-4 h-4" /> Turn OFF</>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-5 rounded-md bg-paper-2">
+                    <div>
+                      <p className="text-admin-sm font-semibold text-ink mb-0.5">Newsletter signup</p>
+                      <p className="text-admin-sm text-ink-3">
+                        Email capture band at the bottom of the homepage.
+                      </p>
+                    </div>
+                    <button type="button"
+                      onClick={toggleNewsletter}
+                      className={`flex items-center gap-2 px-4 py-2 text-admin-sm font-semibold rounded-md text-paper shrink-0 transition-opacity duration-admin-fast hover:opacity-90 ${
+                        settings.newsletter_enabled === "false" ? "bg-ink-3" : "bg-ink"
+                      }`}>
+                      {settings.newsletter_enabled === "false" ? (
+                        <><ToggleLeft className="w-4 h-4" /> Turn ON</>
+                      ) : (
+                        <><ToggleRight className="w-4 h-4" /> Turn OFF</>
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="text-admin-sm text-ink-3">
+                    Each toggle saves instantly — no need to click Save.
                   </p>
                 </div>
               )}
