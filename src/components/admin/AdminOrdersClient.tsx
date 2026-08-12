@@ -134,6 +134,19 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
     if (notesInput !== notes) setNotesInput(notes);
   }
 
+  async function executeDeleteOrder(id: string, orderNumber: string) {
+    setSaving(true);
+    const res = await fetch(`/api/admin/orders/${id}`, { method: "DELETE" });
+    setSaving(false);
+    if (res.ok) {
+      setOrders(prev => prev.filter(o => o.id !== id));
+      if (selected?.id === id) setSelected(null);
+      toast.success(`Order ${orderNumber} deleted`);
+    } else {
+      toast.error("Couldn't delete order. Try again.");
+    }
+  }
+
   async function saveNotes(id: string) {
     setSaving(true);
     setOrders(prev => prev.map(o => o.id === id ? { ...o, admin_notes: notesInput } : o));
@@ -224,6 +237,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
           onStatusSelect={status => updateStatus(liveSelected.id, status)}
           onApprovePayment={() => updateStatus(liveSelected.id, "paid")}
           onCancelOrder={reason => executeCancelOrder(liveSelected.id, reason)}
+          onDeleteOrder={() => executeDeleteOrder(liveSelected.id, liveSelected.order_number)}
         />
       )}
     </div>

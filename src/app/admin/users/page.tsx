@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { UserPlus, Shield, User, Trash2, X, Eye, EyeOff, ChevronDown, Check } from "lucide-react";
+import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
+import ConfirmDialog from "@/components/admin/ConfirmDialog";
 
 type UserRow = {
   id: string;
@@ -110,23 +112,33 @@ export default function AdminUsersPage() {
       setShowModal(false);
       setForm({ email: "", password: "", full_name: "", role: "customer" });
       loadUsers();
+      toast.success("User created");
     } else {
       const err = await res.json().catch(() => ({}));
-      setFormError(err.error ?? "Failed to create user");
+      const errorMessage = err.error as string | undefined;
+      setFormError(errorMessage ?? "Failed to create user");
+      toast.error(errorMessage || "Couldn't create user. Try again.");
     }
     setSaving(false);
   }
 
   async function executeDelete() {
     if (!deleteTarget) return;
-    await fetch("/api/admin/users", {
+    const userName = deleteTarget.full_name || deleteTarget.email;
+    const res = await fetch("/api/admin/users", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: deleteTarget.id }),
     });
-    setDeleteTarget(null);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const errorMessage = err.error as string | undefined;
+      toast.error(errorMessage || "Couldn't delete user. Try again.");
+      throw new Error("delete failed");
+    }
     setViewUser(null);
     loadUsers();
+    toast.success(`${userName} deleted`);
   }
 
   function openViewUser(u: UserRow) {
@@ -137,15 +149,20 @@ export default function AdminUsersPage() {
 
   async function handleViewRoleChange(role: string) {
     if (!viewUser) return;
-    setViewRole(role);
     setViewRoleOpen(false);
-    await fetch("/api/admin/users", {
+    const res = await fetch("/api/admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: viewUser.id, role, full_name: viewUser.full_name }),
     });
+    if (!res.ok) {
+      toast.error("Couldn't change role. Try again.");
+      return;
+    }
+    setViewRole(role);
     setUsers(prev => prev.map(u => u.id === viewUser.id ? { ...u, role } : u));
     setViewUser(prev => prev ? { ...prev, role } : null);
+    toast.success(`Role changed to ${role}`);
   }
 
   return (
@@ -349,30 +366,15 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* Delete confirmation */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink/60"
-          onClick={e => { if (e.target === e.currentTarget) setDeleteTarget(null); }}>
-          <div className="w-full max-w-sm rounded-md overflow-hidden bg-paper border border-line">
-            <div className="p-6">
-              <p className="text-admin-title text-ink mb-1.5">Delete user</p>
-              <p className="text-admin-sm text-ink-3">
-                Delete <span className="text-ink font-medium">{deleteTarget.email}</span>? This cannot be undone.
-              </p>
-            </div>
-            <div className="flex gap-2.5 px-6 pb-6">
-              <button onClick={executeDelete}
-                className="flex-1 py-2.5 text-admin-sm font-medium rounded-md bg-state-error text-paper hover:opacity-90 transition-opacity duration-admin-fast">
-                Delete
-              </button>
-              <button onClick={() => setDeleteTarget(null)}
-                className="px-5 py-2.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={executeDelete}
+        title="Delete this user?"
+        description="This permanently removes their admin access. Cannot delete yourself."
+        confirmLabel="Delete user"
+        variant="destructive"
+      />
     </div>
   );
 }

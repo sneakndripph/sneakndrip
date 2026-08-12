@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, Copy, ToggleLeft, ToggleRight, Tag, Percent, X } from "lucide-react";
+import toast from "react-hot-toast";
+import { useConfirmDialog } from "@/components/admin/ConfirmDialog";
 
 type Coupon = {
   id: string;
@@ -81,6 +83,9 @@ export default function AdminMarketingPage() {
   const [discountError, setDiscountError] = useState("");
   const [savingDiscount, setSavingDiscount] = useState(false);
 
+  const { confirm: confirmCouponDelete, dialog: couponDeleteDialog } = useConfirmDialog();
+  const { confirm: confirmClearDiscount, dialog: clearDiscountDialog } = useConfirmDialog();
+
   useEffect(() => {
     fetch("/api/admin/coupons").then(r => r.json()).then(setCoupons).finally(() => setLoadingCoupons(false));
   }, []);
@@ -147,7 +152,13 @@ export default function AdminMarketingPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this coupon?")) return;
+    const ok = await confirmCouponDelete({
+      title: "Delete this coupon?",
+      description: "Existing uses will not be affected. New redemptions will be blocked.",
+      confirmLabel: "Delete coupon",
+      variant: "destructive",
+    });
+    if (!ok) return;
     setCoupons(prev => prev.filter(c => c.id !== id));
     if (editingId === id) closeForm();
     await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" });
@@ -228,6 +239,28 @@ export default function AdminMarketingPage() {
       }
     } finally {
       setSavingDiscount(false);
+    }
+  }
+
+  async function clearDiscount(p: DiscountProduct) {
+    const ok = await confirmClearDiscount({
+      title: "Delete this scheduled discount?",
+      description: "The scheduled promotion will be removed and won't run.",
+      confirmLabel: "Delete discount",
+      variant: "destructive",
+    });
+    if (!ok) return;
+
+    const fd = new FormData();
+    fd.append("product", JSON.stringify({ name: p.name, sale_price: null, sale_start: null, sale_end: null }));
+    fd.append("sizes", JSON.stringify([]));
+
+    const res = await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", body: fd });
+    if (res.ok) {
+      setProducts(prev => prev.map(x => x.id === p.id ? { ...x, sale_price: null, sale_start: null, sale_end: null } : x));
+      toast.success("Discount cleared");
+    } else {
+      toast.error("Couldn't clear discount. Try again.");
     }
   }
 
@@ -536,10 +569,18 @@ export default function AdminMarketingPage() {
                           {p.sale_end ? new Date(p.sale_end).toLocaleString("en-PH", { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}
                         </td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                          <button onClick={() => openDiscountEdit(p)}
-                            className="text-admin-micro font-medium px-3 py-1.5 rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
-                            Edit
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => openDiscountEdit(p)}
+                              className="text-admin-micro font-medium px-3 py-1.5 rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
+                              Edit
+                            </button>
+                            {p.sale_price && (
+                              <button onClick={() => clearDiscount(p)} title="Delete scheduled discount"
+                                className="p-1.5 rounded-md border border-line text-state-error hover:bg-state-error/5 transition-colors duration-admin-fast">
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -549,8 +590,18 @@ export default function AdminMarketingPage() {
               <div className="md:hidden divide-y divide-line">
                 {products.map(p => (
                   <div key={p.id} onClick={() => openDiscountEdit(p)} className="px-4 py-3.5">
-                    <p className="text-admin-sm font-semibold text-ink">{p.name}</p>
-                    <p className="text-admin-micro text-ink-3">{p.brand}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-admin-sm font-semibold text-ink">{p.name}</p>
+                        <p className="text-admin-micro text-ink-3">{p.brand}</p>
+                      </div>
+                      {p.sale_price && (
+                        <button onClick={e => { e.stopPropagation(); clearDiscount(p); }} title="Delete scheduled discount"
+                          className="shrink-0 p-1.5 rounded-md border border-line text-state-error hover:bg-state-error/5 transition-colors duration-admin-fast">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 mt-1.5">
                       <span className="text-admin-sm font-semibold text-ink">₱{Number(p.full_payment_price).toLocaleString()}</span>
                       {p.sale_price && (
@@ -564,6 +615,8 @@ export default function AdminMarketingPage() {
           )}
         </div>
       )}
+      {couponDeleteDialog}
+      {clearDiscountDialog}
     </div>
   );
 }

@@ -4,7 +4,9 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldCheck, Download, MessageCircle } from "lucide-react";
+import toast from "react-hot-toast";
 import OrderStatusBadge from "./OrderStatusBadge";
+import ConfirmDialog from "./ConfirmDialog";
 
 type CustomerOrder = {
   order_number: string;
@@ -43,9 +45,7 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selected, setSelected] = useState<Customer | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [banning, setBanning] = useState(false);
   const [banTarget, setBanTarget] = useState<Customer | null>(null);
-  const [banError, setBanError] = useState("");
 
   function openDrawer(c: Customer) {
     setSelected(c);
@@ -58,24 +58,20 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
 
   async function executeBan() {
     if (!banTarget) return;
-    setBanning(true);
-    setBanError("");
+    const nextBanned = !banTarget.banned;
     const userId = banTarget.authUserId ?? banTarget.id;
     const res = await fetch("/api/admin/customers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, ban: !banTarget.banned }),
+      body: JSON.stringify({ userId, ban: nextBanned }),
     });
-    if (res.ok) {
-      const newBanned = !banTarget.banned;
-      setCustomers(prev => prev.map(c => c.id === banTarget.id ? { ...c, banned: newBanned } : c));
-      setSelected(prev => prev?.id === banTarget.id ? { ...prev, banned: newBanned } : prev);
-      setBanTarget(null);
-    } else {
-      const err = await res.json().catch(() => ({})) as { error?: string };
-      setBanError(err.error ?? "Failed to update ban status. Please try again.");
+    if (!res.ok) {
+      toast.error(nextBanned ? "Couldn't ban customer. Try again." : "Couldn't unban customer. Try again.");
+      throw new Error("ban failed");
     }
-    setBanning(false);
+    setCustomers(prev => prev.map(c => c.id === banTarget.id ? { ...c, banned: nextBanned } : c));
+    setSelected(prev => prev?.id === banTarget.id ? { ...prev, banned: nextBanned } : prev);
+    toast.success(nextBanned ? `${banTarget.name} banned` : `${banTarget.name} unbanned`);
   }
 
   const filtered = useMemo(() => {
@@ -185,7 +181,7 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
                       </span>
                     </td>
                     <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => { setBanTarget(c); setBanError(""); }}
+                      <button onClick={() => { setBanTarget(c);}}
                         className="p-1.5 rounded hover:bg-paper-3 transition-colors duration-admin-fast" title={c.banned ? "Unban" : "Ban"}>
                         {c.banned
                           ? <ShieldCheck className="w-4 h-4 text-state-onhand" />
@@ -310,7 +306,7 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
             </div>
 
             <div className="px-5 py-4 shrink-0 flex gap-2.5 border-t border-line bg-paper-2">
-              <button onClick={() => { setBanTarget(selected); setBanError(""); }}
+              <button onClick={() => setBanTarget(selected)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-admin-sm font-medium rounded-md transition-colors duration-admin-fast ${
                   selected.banned ? "bg-state-onhand/10 text-state-onhand hover:bg-state-onhand/15" : "bg-state-error/10 text-state-error hover:bg-state-error/15"
                 }`}>
@@ -330,37 +326,19 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
         </>
       )}
 
-      {/* Ban confirmation modal */}
-      {banTarget && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink/50"
-          onClick={e => { if (e.target === e.currentTarget) setBanTarget(null); }}>
-          <div className="w-full max-w-xs rounded-md overflow-hidden bg-paper border border-line">
-            <div className="px-6 py-5">
-              <p className="text-admin-title text-ink mb-1">
-                {banTarget.banned ? "Unban customer?" : "Ban customer?"}
-              </p>
-              <p className="text-admin-sm text-ink-3">
-                {banTarget.banned
-                  ? `${banTarget.name} will be able to log in again.`
-                  : `${banTarget.name} will be blocked from logging in.`}
-              </p>
-              {banError && <p className="text-admin-sm text-state-error mt-3">{banError}</p>}
-            </div>
-            <div className="flex gap-2.5 px-6 pb-5">
-              <button onClick={executeBan} disabled={banning}
-                className={`flex-1 py-2.5 text-admin-sm font-medium rounded-md text-paper disabled:opacity-50 transition-opacity duration-admin-fast ${
-                  banTarget.banned ? "bg-state-onhand" : "bg-state-error"
-                }`}>
-                {banning ? "…" : banTarget.banned ? "Unban" : "Ban"}
-              </button>
-              <button onClick={() => setBanTarget(null)}
-                className="px-4 py-2.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!banTarget}
+        onClose={() => setBanTarget(null)}
+        onConfirm={executeBan}
+        title={banTarget?.banned ? "Unban this customer?" : "Ban this customer?"}
+        description={
+          banTarget?.banned
+            ? "They'll be able to place orders again."
+            : "They won't be able to place orders. You can unban them anytime."
+        }
+        confirmLabel={banTarget?.banned ? "Unban customer" : "Ban customer"}
+        variant={banTarget?.banned ? "default" : "destructive"}
+      />
     </div>
   );
 }

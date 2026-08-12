@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { SNEAKER_SIZES, BRANDS, GENDERS } from "@/lib/constants";
 import { ArrowLeft, ChevronDown, Check, Copy, Trash2 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
+import { useConfirmDialog } from "@/components/admin/ConfirmDialog";
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -67,6 +68,7 @@ export default function EditProductForm({ product }: { product: Product }) {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const { confirm: confirmDialog, dialog } = useConfirmDialog();
 
   const [brandOpen, setBrandOpen] = useState(false);
   const [genderOpen, setGenderOpen] = useState(false);
@@ -141,7 +143,13 @@ export default function EditProductForm({ product }: { product: Product }) {
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    const ok = await confirmDialog({
+      title: `Delete "${name}"?`,
+      description: "This cannot be undone.",
+      confirmLabel: "Delete product",
+      variant: "destructive",
+    });
+    if (!ok) return;
     setDeleting(true);
     const res = await fetch(`/api/admin/products/${product.id}`, { method: "DELETE" });
     if (res.ok) {
@@ -446,6 +454,7 @@ export default function EditProductForm({ product }: { product: Product }) {
           </button>
         </div>
       </form>
+      {dialog}
     </div>
   );
 }

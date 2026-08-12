@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { X, User, MapPin, Package, FileText, MessageCircle, ChevronDown, Check, Truck } from "lucide-react";
+import { X, User, MapPin, Package, FileText, MessageCircle, ChevronDown, Check, Truck, Trash2 } from "lucide-react";
 import { DP_RESERVE_FEE } from "@/lib/constants";
 import OrderStatusBadge, { STATUS_META, statusMeta, type RealStatus } from "./OrderStatusBadge";
 import OrderPaymentProof from "./OrderPaymentProof";
 import OrderShippingForm from "./OrderShippingForm";
+import { useConfirmDialog } from "./ConfirmDialog";
 
 type OrderItem = {
   product_name: string; brand: string; size: string; quantity: number; unit_price: number; payment_type: string;
@@ -34,13 +35,14 @@ function getStatusPath(order: Order, isCOD: boolean): RealStatus[] {
 export default function OrderDetailDrawer({
   order, onClose, isCOD, nextAction, saving, autoOpen,
   notesInput, onNotesInputChange, onSaveNotes,
-  onAdvanceStatus, onShip, onStatusSelect, onApprovePayment, onCancelOrder,
+  onAdvanceStatus, onShip, onStatusSelect, onApprovePayment, onCancelOrder, onDeleteOrder,
 }: {
   order: Order; onClose: () => void; isCOD: boolean;
   nextAction: { label: string; next: string } | null; saving: boolean; autoOpen?: "ship" | "cancel" | null;
   notesInput: string; onNotesInputChange: (v: string) => void; onSaveNotes: () => void;
   onAdvanceStatus: () => void; onShip: (trackingNumber: string) => void;
   onStatusSelect: (status: string) => void; onApprovePayment: () => void; onCancelOrder: (reason: string) => void;
+  onDeleteOrder: () => void | Promise<void>;
 }) {
   const [mounted, setMounted] = useState(false);
   const [dpOpen, setDpOpen] = useState(false);
@@ -48,14 +50,40 @@ export default function OrderDetailDrawer({
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [shipModalOpen, setShipModalOpen] = useState(autoOpen === "ship");
   const [shipDraft, setShipDraft] = useState(order.tracking_number ?? "");
-  const [cancelModalOpen, setCancelModalOpen] = useState(autoOpen === "cancel");
-  const [cancelReason, setCancelReason] = useState("");
   const statusDropdownRef = useRef<HTMLDivElement>(null);
+  const { confirm, dialog } = useConfirmDialog();
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 10);
     return () => clearTimeout(t);
   }, []);
+
+  useEffect(() => {
+    if (autoOpen === "cancel") handleCancelClick();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleCancelClick() {
+    const ok = await confirm({
+      title: "Cancel this order?",
+      description: "The customer will be notified. This can't be undone.",
+      confirmLabel: "Cancel order",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    onCancelOrder("");
+  }
+
+  async function handleDeleteClick() {
+    const ok = await confirm({
+      title: "Delete this order?",
+      description: "This permanently removes the order and all payment records. This can't be undone.",
+      confirmLabel: "Delete order",
+      variant: "destructive",
+    });
+    if (!ok) return;
+    onDeleteOrder();
+  }
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -341,11 +369,15 @@ export default function OrderDetailDrawer({
               )}
             </div>
             {order.status !== "cancelled" && order.status !== "delivered" && (
-              <button onClick={() => setCancelModalOpen(true)} disabled={saving}
+              <button onClick={handleCancelClick} disabled={saving}
                 className="px-4 py-2.5 text-admin-sm font-semibold rounded-md border border-state-error text-state-error hover:bg-state-error/5 disabled:opacity-50 transition-colors duration-admin-fast">
                 Cancel Order
               </button>
             )}
+            <button onClick={handleDeleteClick} disabled={saving}
+              className="flex items-center gap-1.5 px-4 py-2.5 text-admin-sm font-semibold rounded-md border border-line text-ink-3 hover:border-state-error hover:text-state-error disabled:opacity-50 transition-colors duration-admin-fast">
+              <Trash2 className="w-3.5 h-3.5" /> Delete Order
+            </button>
           </div>
         </div>
       </div>
@@ -375,40 +407,7 @@ export default function OrderDetailDrawer({
         </div>
       )}
 
-      {/* Cancel reason modal */}
-      {cancelModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-ink/50"
-          onClick={e => { if (e.target === e.currentTarget) { setCancelModalOpen(false); setCancelReason(""); } }}>
-          <div className="w-full max-w-sm rounded-md overflow-hidden bg-paper border border-line">
-            <div className="px-5 py-4 border-b border-line bg-paper-2">
-              <p className="text-admin-sm font-bold uppercase tracking-wide text-state-error">Cancel Order</p>
-              <p className="text-admin-micro text-ink-3 mt-0.5">{order.order_number}</p>
-            </div>
-            <div className="p-5">
-              <label className="block text-admin-eyebrow text-ink-3 mb-1.5">Reason for cancellation</label>
-              <textarea
-                value={cancelReason}
-                onChange={e => setCancelReason(e.target.value)}
-                placeholder="e.g. Customer requested, out of stock, duplicate order…"
-                rows={3}
-                autoFocus
-                className="w-full px-3 py-2.5 text-admin-sm bg-paper border border-line rounded-md text-ink focus:outline-none resize-none"
-              />
-              <p className="text-admin-micro text-ink-3 mt-1.5">Optional — stored in admin notes</p>
-            </div>
-            <div className="flex gap-3 px-5 pb-5">
-              <button onClick={() => { onCancelOrder(cancelReason); setCancelModalOpen(false); setCancelReason(""); }}
-                className="flex-1 py-2.5 text-admin-sm font-semibold uppercase tracking-wide rounded-md bg-state-error text-paper hover:opacity-90 transition-opacity duration-admin-fast">
-                Confirm Cancel
-              </button>
-              <button onClick={() => { setCancelModalOpen(false); setCancelReason(""); }}
-                className="px-4 py-2.5 text-admin-sm font-medium rounded-md border border-line text-ink-2">
-                Back
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {dialog}
     </>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Check, Trash2, Star, X, MessageSquare, ShieldCheck } from "lucide-react";
+import { useConfirmDialog } from "./ConfirmDialog";
 
 type Review = {
   id: string;
@@ -41,6 +42,7 @@ export default function AdminReviewsClient({ initialReviews }: { initialReviews:
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
   const [processing, setProcessing] = useState(false);
+  const { confirm: confirmDialog, dialog } = useConfirmDialog();
 
   const filtered = reviews.filter(r =>
     filter === "all" ? true : filter === "pending" ? !r.is_verified : r.is_verified
@@ -66,8 +68,14 @@ export default function AdminReviewsClient({ initialReviews }: { initialReviews:
     return res.ok;
   }
 
-  function handleDelete(id: string) {
-    if (!confirm("Delete this review? This cannot be undone.")) return;
+  async function handleDelete(id: string) {
+    const ok = await confirmDialog({
+      title: "Delete this review?",
+      description: "This permanently removes the review. Use Reject instead to keep an audit trail.",
+      confirmLabel: "Delete review",
+      variant: "destructive",
+    });
+    if (!ok) return;
     remove(id);
   }
 
@@ -222,6 +230,7 @@ export default function AdminReviewsClient({ initialReviews }: { initialReviews:
           </div>
         </div>
       )}
+      {dialog}
     </div>
   );
 }

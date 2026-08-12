@@ -9,6 +9,7 @@ import {
   ChevronDown, Check, Eye, EyeOff,
 } from "lucide-react";
 import { BRANDS } from "@/lib/constants";
+import { useConfirmDialog } from "./ConfirmDialog";
 
 type Row = Record<string, unknown> & {
   id: string; name: string; slug: string; brand: string; status: string;
@@ -33,6 +34,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
   const brandRef = useRef<HTMLDivElement>(null);
   const availRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const { confirm: confirmDialog, dialog } = useConfirmDialog();
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -64,7 +66,13 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
   }
 
   async function handleDelete(p: Row) {
-    if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
+    const ok = await confirmDialog({
+      title: `Delete "${p.name}"?`,
+      description: "This cannot be undone.",
+      confirmLabel: "Delete product",
+      variant: "destructive",
+    });
+    if (!ok) return;
     setMenuOpenId(null);
     const res = await fetch(`/api/admin/products/${p.id}`, { method: "DELETE" });
     if (res.ok) {
@@ -320,6 +328,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
           </div>
         )}
       </div>
+      {dialog}
     </div>
   );
 }
