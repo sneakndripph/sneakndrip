@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { UserPlus, Shield, User, Trash2, X, Eye, EyeOff, ChevronDown, Check } from "lucide-react";
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
-import ConfirmDialog from "@/components/admin/ConfirmDialog";
+import ConfirmDialog, { useConfirmDialog } from "@/components/admin/ConfirmDialog";
 
 type UserRow = {
   id: string;
@@ -82,6 +82,7 @@ export default function AdminUsersPage() {
   const [viewRoleOpen, setViewRoleOpen] = useState(false);
   const [viewRole, setViewRole] = useState("customer");
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const { confirm: confirmRoleChange, dialog: roleChangeDialog } = useConfirmDialog();
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
@@ -150,6 +151,14 @@ export default function AdminUsersPage() {
   async function handleViewRoleChange(role: string) {
     if (!viewUser) return;
     setViewRoleOpen(false);
+    const userName = viewUser.full_name || viewUser.email;
+    const ok = await confirmRoleChange({
+      title: `Change role to ${role}?`,
+      description: `${userName} will ${role === "admin" ? "gain admin access" : "lose admin access"}. This can be reverted later.`,
+      confirmLabel: "Change role",
+      variant: "default",
+    });
+    if (!ok) return;
     const res = await fetch("/api/admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -375,6 +384,7 @@ export default function AdminUsersPage() {
         confirmLabel="Delete user"
         variant="destructive"
       />
+      {roleChangeDialog}
     </div>
   );
 }
