@@ -4,24 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { rateLimit, getIP } from "@/lib/rate-limit";
 
 type StockItem = { product_id: string; size: string; quantity: number };
-
-async function refundStock(supabase: ReturnType<typeof createAdminClient>, items: StockItem[]) {
-  for (const item of items) {
-    const { data: row } = await supabase
-      .from("product_sizes")
-      .select("stock")
-      .eq("product_id", item.product_id)
-      .eq("size", item.size)
-      .single();
-    if (row) {
-      await supabase
-        .from("product_sizes")
-        .update({ stock: row.stock + item.quantity })
-        .eq("product_id", item.product_id)
-        .eq("size", item.size);
-    }
-  }
-}
+type StockFailure = { product_id: string; product_name: string; size: string; requested: number; available: number };
 
 export async function POST(req: NextRequest) {
   const { allowed } = rateLimit(getIP(req), 10, 60_000); // 10 orders/min per IP
@@ -55,7 +38,45 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminClient();
 
-    // Atomically check + deduct stock for all items in one DB transaction.
+    // Single transactional RPC: locks + checks + deducts stock, inserts the
+    // order and its items, all atomically. Any failure (insufficient stock,
+    // bad input, a constraint violation) rolls the whole thing back — no
+    // manual compensation/refund step needed.
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      "create_order_with_stock_check",
+      { p_order: order, p_items: items }
+    );
+
+    if (rpcError) {
+      if (rpcError.hint === "insufficient_stock") {
+        let failures: StockFailure[] = [];
+        try { failures = JSON.parse(rpcError.details ?? "[]"); } catch { /* leave empty */ }
+        return NextResponse.json(
+          {
+            error: failures.length
+              ? `${failures.map(f => `${f.product_name} (${f.size})`).join(", ")} sold out. Please remove it from your cart.`
+              : "One or more items just sold out. Please remove them from your cart.",
+            outOfStock: true,
+            items: failures,
+          },
+          { status: 409 }
+        );
+      }
+      if (rpcError.hint === "invalid_input") {
+        return NextResponse.json({ error: rpcError.details || "Invalid order data" }, { status: 400 });
+      }
+      console.error("Order creation error:", rpcError);
+      return NextResponse.json({ error: "Server error" }, { status: 500 });
+    }
+
+    const data = rpcResult as { id: string; order_number: string } | null;
+    if (!data?.id) {
+      console.error("Order creation error: RPC returned no id", rpcResult);
+      return NextResponse.json({ error: "Server error" }, { status: 500 });
+    }
+
+    // Stock is already deducted by the RPC — recompute the item list purely
+    // for the inventory_log fire-and-forget block below.
     const stockItems: StockItem[] = items
       .filter((i: Record<string, unknown>) => i.product_id)
       .map((i: Record<string, unknown>) => ({
@@ -63,58 +84,6 @@ export async function POST(req: NextRequest) {
         size: i.size as string,
         quantity: i.quantity as number,
       }));
-
-    if (stockItems.length > 0) {
-      const { data: stockResult, error: stockError } = await supabase.rpc(
-        "decrement_stock_for_order",
-        { p_items: stockItems }
-      );
-      if (stockError) {
-        console.error("Stock deduction error:", stockError);
-        return NextResponse.json({ error: "Failed to reserve stock" }, { status: 500 });
-      }
-      if (stockResult !== "ok") {
-        const size = String(stockResult).split(":")[1] ?? "this size";
-        return NextResponse.json(
-          { error: `Sorry, size ${size} just sold out. Please remove it from your cart.`, outOfStock: true },
-          { status: 409 }
-        );
-      }
-    }
-
-    // Extract payment_reference separately — column may not exist yet if migration hasn't been run
-    const { payment_reference, ...orderWithoutRef } = order as Record<string, unknown> & { payment_reference?: string };
-
-    // Insert order
-    const { data, error } = await supabase
-      .from("orders")
-      .insert(orderWithoutRef)
-      .select("id")
-      .single();
-
-    if (error) {
-      console.error("Order insert error:", error);
-      if (stockItems.length > 0) await refundStock(supabase, stockItems);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    // Store payment_reference if provided (silently fails if column doesn't exist yet)
-    if (payment_reference && data?.id) {
-      await supabase.from("orders").update({ payment_reference }).eq("id", data.id).then(
-        () => {}, () => {}
-      );
-    }
-
-    const { error: itemsError } = await supabase
-      .from("order_items")
-      .insert(items.map((item: Record<string, unknown>) => ({ ...item, order_id: data.id })));
-
-    if (itemsError) {
-      console.error("Order items insert error:", itemsError);
-      await supabase.from("orders").delete().eq("id", data.id);
-      if (stockItems.length > 0) await refundStock(supabase, stockItems);
-      return NextResponse.json({ error: itemsError.message }, { status: 500 });
-    }
 
     // Fire-and-forget: log stock changes to inventory_log
     if (stockItems.length > 0) {

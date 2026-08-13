@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cartStore";
 import { PAYMENT_METHODS, SHIPPING_FEE, DP_RESERVE_FEE } from "@/lib/constants";
 import Image from "next/image";
@@ -65,6 +66,7 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ name: "", email: "", mobile: "", street: "", barangay: "", city: "", province: "", postal: "" });
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
+  const [stockIssues, setStockIssues] = useState<Record<string, number>>({}); // `${product_id}-${size}` -> available
   const [showErrors, setShowErrors] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [couponData, setCouponData] = useState<{ id: string; code: string; type: string; value: number; discount: number } | null>(null);
@@ -205,6 +207,7 @@ export default function CheckoutPage() {
   async function handlePlaceOrder() {
     setPlacing(true);
     setOrderError("");
+    setStockIssues({});
     try {
       const num = `SND-${Date.now().toString().slice(-8)}`;
 
@@ -263,9 +266,25 @@ export default function CheckoutPage() {
       if (!createRes.ok) {
         const err = await createRes.json().catch(() => ({}));
         if (createRes.status === 409 && err.outOfStock) {
+          const failures: Array<{ product_id: string; product_name: string; size: string; requested: number; available: number }> = err.items ?? [];
+          if (failures.length) {
+            const issues: Record<string, number> = {};
+            for (const f of failures) {
+              toast.error(`${f.product_name} size ${f.size} is sold out — please remove it or choose another size.`);
+              issues[`${f.product_id}-${f.size}`] = f.available;
+            }
+            setStockIssues(issues);
+          } else {
+            toast.error(err.error || "One or more items just sold out.");
+          }
           setOrderError(err.error);
           setPlacing(false);
-          return;
+          return; // stay on checkout — no redirect
+        }
+        if (createRes.status === 400) {
+          setOrderError(err.error || "Please check your order details and try again.");
+          setPlacing(false);
+          return; // stay on checkout — no redirect
         }
         throw new Error(err.error || "Failed to create order");
       }
@@ -318,6 +337,7 @@ export default function CheckoutPage() {
       fetch("/api/cart/sync", { method: "DELETE" }).catch(() => {});
       router.push("/order-confirmation");
     } catch {
+      toast.error("Something went wrong. Try again.");
       setOrderError("Something went wrong placing your order. Please try again.");
       setPlacing(false);
     }
@@ -358,9 +378,11 @@ export default function CheckoutPage() {
         {items.map(item => {
           const isItemDP = item.payment_type === "downpayment";
           const displayPrice = isItemDP ? DP_RESERVE_FEE * item.quantity : item.unit_price * item.quantity;
+          const stockKey = `${item.product.id}-${item.size}`;
+          const soldOutAvailable = stockIssues[stockKey];
           return (
-            <div key={`${item.product.id}-${item.size}`} className="flex gap-2.5 min-w-0">
-              <div className={`w-11 h-11 shrink-0 rounded-md overflow-hidden relative border border-line ${!item.product.bg ? "bg-paper-2" : ""}`}
+            <div key={stockKey} className="flex gap-2.5 min-w-0">
+              <div className={`w-11 h-11 shrink-0 rounded-md overflow-hidden relative border ${soldOutAvailable !== undefined ? "border-state-error" : "border-line"} ${!item.product.bg ? "bg-paper-2" : ""}`}
                 style={item.product.bg ? { background: item.product.bg } : undefined}>
                 {item.product.images?.[0] ? (
                   <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" sizes="44px" />
@@ -372,7 +394,12 @@ export default function CheckoutPage() {
               </div>
               <div className="flex-1 min-w-0 overflow-hidden">
                 <p className="text-body-sm font-medium leading-snug truncate text-ink">{item.product.name}</p>
-                <p className="text-micro truncate text-ink-3">{item.size} · x{item.quantity}</p>
+                <p className="text-micro truncate text-ink-3">
+                  {item.size} · x{item.quantity}
+                  {soldOutAvailable !== undefined && (
+                    <span className="text-state-error font-medium ml-1">— sold out (only {soldOutAvailable} left)</span>
+                  )}
+                </p>
               </div>
               <div className="shrink-0 pl-1 text-right">
                 <p className="text-body-sm font-medium text-ink">₱{displayPrice.toLocaleString()}</p>
