@@ -11,7 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import EnvStatusBanner from "@/components/admin/EnvStatusBanner";
 
-type NotifCounts = { pendingOrders: number; pendingReviews: number; pendingReturns: number; lowStock: number };
+type NotifCounts = { pendingOrders: number; pendingReviews: number; pendingReturns: number; lowStock: number; unreadChats: number };
 type BadgeKey = keyof NotifCounts;
 type NavItem = { href: string; icon: React.ElementType; label: string; badgeKey: BadgeKey | null };
 
@@ -38,7 +38,7 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
   {
     label: "System",
     items: [
-      { href: "/admin/chat",     icon: MessageCircle, label: "Chat",     badgeKey: null },
+      { href: "/admin/chat",     icon: MessageCircle, label: "Chat",     badgeKey: "unreadChats" },
       { href: "/admin/content",  icon: FileText,      label: "Pages",    badgeKey: null },
       { href: "/admin/users",    icon: UserCog,       label: "Users",    badgeKey: null },
       { href: "/admin/activity", icon: Activity,      label: "Activity", badgeKey: null },
@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifs, setNotifs] = useState<NotifCounts>({
-    pendingOrders: 0, pendingReviews: 0, pendingReturns: 0, lowStock: 0,
+    pendingOrders: 0, pendingReviews: 0, pendingReturns: 0, lowStock: 0, unreadChats: 0,
   });
 
   useEffect(() => {
@@ -64,6 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           pendingReviews: d.pendingReviews ?? 0,
           pendingReturns: d.pendingReturns ?? 0,
           lowStock:       d.lowStock       ?? 0,
+          unreadChats:    d.unreadChats    ?? 0,
         }))
         .catch(() => {});
     }
@@ -74,6 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "reviews" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "return_requests" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, load)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
