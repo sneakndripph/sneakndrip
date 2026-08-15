@@ -1,14 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/store/cartStore";
 import { SHIPPING_FEE } from "@/lib/constants";
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, LogIn, CheckSquare, Square } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, LogIn, CheckSquare, Square, AlertCircle, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Product } from "@/lib/types";
+
+type StockCheck = {
+  product_id: string;
+  size: string;
+  current_stock: number;
+  requested_quantity: number;
+  status: "available" | "reduced" | "sold_out";
+};
 
 function TopProducts({ products }: { products: Product[] }) {
   if (!products.length) return null;
@@ -63,6 +71,44 @@ export default function CartPage() {
   const allSelected = items.length > 0 && items.every(i => selected.has(itemKey(i.product.id, i.size)));
   const selectedItems = items.filter(i => selected.has(itemKey(i.product.id, i.size)));
   const sub = selectedItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+
+  const [stockMap, setStockMap] = useState<Record<string, StockCheck>>({});
+  const itemsRef = useRef(items);
+  useEffect(() => { itemsRef.current = items; }, [items]);
+
+  const refreshStock = useCallback(() => {
+    const current = itemsRef.current;
+    if (current.length === 0) return;
+    fetch("/api/cart/refresh-stock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: current.map(i => ({ product_id: i.product.id, size: i.size, quantity: i.quantity })),
+      }),
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!data) return;
+        const map: Record<string, StockCheck> = {};
+        for (const check of (data.items ?? []) as StockCheck[]) {
+          map[itemKey(check.product_id, check.size)] = check;
+        }
+        setStockMap(map);
+      })
+      .catch(() => { /* silent -- non-critical background check */ });
+  }, []);
+
+  // Refresh on mount, and again whenever the user tabs back in -- another
+  // customer may have bought the last unit while this tab was in the background.
+  useEffect(() => {
+    refreshStock();
+    const onVisible = () => { if (document.visibilityState === "visible") refreshStock(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshStock]);
+
+  const hasSoldOut = selectedItems.some(i => stockMap[itemKey(i.product.id, i.size)]?.status === "sold_out");
+  const hasReduced = !hasSoldOut && selectedItems.some(i => stockMap[itemKey(i.product.id, i.size)]?.status === "reduced");
 
   useEffect(() => {
     const supabase = createClient();
@@ -166,6 +212,7 @@ export default function CartPage() {
               const key = itemKey(item.product.id, item.size);
               const isSelected = selected.has(key);
               const isPreOrder = item.product.status === "pre-order";
+              const stockCheck = stockMap[key];
               return (
               <div key={key}
                 className={`p-4 flex gap-4 rounded-md transition-opacity bg-paper border ${isSelected ? "border-ink opacity-100" : "border-line opacity-60"}`}>
@@ -230,6 +277,34 @@ export default function CartPage() {
                       ₱{(item.unit_price * item.quantity).toLocaleString()}
                     </p>
                   </div>
+
+                  {stockCheck && stockCheck.status !== "available" && (
+                    <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
+                      <span className={`flex items-center gap-1.5 text-admin ${stockCheck.status === "sold_out" ? "text-state-error" : "text-state-preorder"}`}>
+                        {stockCheck.status === "sold_out"
+                          ? <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          : <AlertTriangle className="w-3.5 h-3.5 shrink-0" />}
+                        {stockCheck.status === "sold_out"
+                          ? "This item is no longer available"
+                          : `Only ${stockCheck.current_stock} left`}
+                      </span>
+                      <button
+                        onClick={() => {
+                          if (stockCheck.status === "sold_out") {
+                            removeItem(item.product.id, item.size);
+                          } else {
+                            updateQuantity(item.product.id, item.size, stockCheck.current_stock);
+                            setStockMap(prev => ({
+                              ...prev,
+                              [key]: { ...stockCheck, status: "available", requested_quantity: stockCheck.current_stock },
+                            }));
+                          }
+                        }}
+                        className="shrink-0 px-2.5 py-1 rounded-md text-admin-sm bg-paper border border-line text-ink hover:bg-paper-2 transition-colors">
+                        {stockCheck.status === "sold_out" ? "Remove" : `Update quantity to ${stockCheck.current_stock}`}
+                      </button>
+                    </div>
+                  )}
 
                   <div className="flex items-center justify-between mt-4">
                     {/* Qty control */}
@@ -306,6 +381,17 @@ export default function CartPage() {
               {selectedItems.length === 0 && (
                 <p className="text-micro text-center mb-3 text-state-error">Select at least one item to checkout</p>
               )}
+              {hasSoldOut ? (
+                <p className="flex items-center justify-center gap-1.5 text-admin text-center mb-3 text-state-error">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  Remove unavailable items to continue.
+                </p>
+              ) : hasReduced && (
+                <p className="flex items-center justify-center gap-1.5 text-admin text-center mb-3 text-state-error">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  Update quantities to available amounts to continue.
+                </p>
+              )}
               {isLoggedIn === false ? (
                 <button
                   onClick={() => router.push("/login?redirect=/checkout")}
@@ -314,13 +400,13 @@ export default function CartPage() {
                 </button>
               ) : (
                 <button
-                  disabled={selectedItems.length === 0}
+                  disabled={selectedItems.length === 0 || hasSoldOut || hasReduced}
                   onClick={() => {
                     const keys = Array.from(selected);
                     sessionStorage.setItem("snd_checkout_keys", JSON.stringify(keys));
                     router.push("/checkout");
                   }}
-                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-md text-body-sm font-medium transition-colors bg-ink text-paper hover:bg-ink-2 disabled:opacity-40">
+                  className="flex items-center justify-center gap-2 w-full py-3.5 rounded-md text-body-sm font-medium transition-colors bg-ink text-paper hover:bg-ink-2 disabled:opacity-40 disabled:cursor-not-allowed">
                   Proceed to Checkout <ArrowRight className="w-4 h-4" />
                 </button>
               )}

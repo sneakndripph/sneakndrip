@@ -209,6 +209,40 @@ export default function CheckoutPage() {
     setOrderError("");
     setStockIssues({});
     try {
+      // Final stock check right before submitting -- catches items that sold
+      // out while the customer was on the checkout page. This is best-effort;
+      // the RPC's atomic stock check (create_order_with_stock_check) is the
+      // real guard against overselling, this just gives a nicer error earlier.
+      try {
+        const stockCheckRes = await fetch("/api/cart/refresh-stock", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: items.map(i => ({ product_id: i.product.id, size: i.size, quantity: i.quantity })),
+          }),
+        });
+        if (stockCheckRes.ok) {
+          const { items: checks } = await stockCheckRes.json() as {
+            items: Array<{ product_id: string; size: string; current_stock: number; status: "available" | "reduced" | "sold_out" }>;
+          };
+          const problems = (checks ?? []).filter(c => c.status !== "available");
+          if (problems.length > 0) {
+            for (const p of problems) {
+              const item = items.find(i => i.product.id === p.product_id && i.size === p.size);
+              const name = item?.product.name ?? "An item";
+              toast.error(
+                p.status === "sold_out"
+                  ? `${name} (${p.size}) is no longer available.`
+                  : `${name} (${p.size}) only has ${p.current_stock} left.`
+              );
+            }
+            setPlacing(false);
+            router.push("/cart");
+            return;
+          }
+        }
+      } catch { /* stock precheck is best-effort -- fall through to the atomic RPC check */ }
+
       const num = `SND-${Date.now().toString().slice(-8)}`;
 
       // Upload proof via service role API (bypasses storage RLS)
