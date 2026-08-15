@@ -113,6 +113,44 @@ function messages(data: OrderStatusUpdateData): Record<string, Content> {
         </p>
       `,
     },
+    cancelled: {
+      subject: `Order Cancelled — ${orderNumber} | Sneak N' Drip`,
+      body: `
+        <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
+        <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
+          Your order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has been cancelled.
+        </p>
+        <div style="background:${BRAND_BG};border-left:4px solid ${BRAND_TEAL};padding:16px 20px;border-radius:4px;margin-bottom:20px">
+          <p style="margin:0;color:${BRAND_BLACK};font-size:14px;font-weight:600">If you already paid</p>
+          <p style="margin:6px 0 0;color:#555;font-size:13px;line-height:1.8">
+            We'll process your refund within 3–5 business days to your original payment method.
+          </p>
+        </div>
+        <p style="color:#888;font-size:14px">
+          Questions? Message us on <a href="https://www.facebook.com/SneakNDrip/" style="color:${BRAND_TEAL}">Facebook</a> or
+          <a href="https://www.instagram.com/sneakndripph/" style="color:${BRAND_TEAL}">Instagram</a>.
+        </p>
+      `,
+    },
+    returned: {
+      subject: `Return Received — ${orderNumber} | Sneak N' Drip`,
+      body: `
+        <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">${greeting}</p>
+        <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
+          We've received your returned order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong>.
+        </p>
+        <div style="background:${BRAND_BG};border-left:4px solid ${BRAND_TEAL};padding:16px 20px;border-radius:4px;margin-bottom:20px">
+          <p style="margin:0;color:${BRAND_BLACK};font-size:14px;font-weight:600">What's next?</p>
+          <p style="margin:6px 0 0;color:#555;font-size:13px;line-height:1.8">
+            Our team will inspect the item and process your refund within 3–5 business days of approval.
+          </p>
+        </div>
+        <p style="color:#888;font-size:14px">
+          Questions? Message us on <a href="https://www.facebook.com/SneakNDrip/" style="color:${BRAND_TEAL}">Facebook</a> or
+          <a href="https://www.instagram.com/sneakndripph/" style="color:${BRAND_TEAL}">Instagram</a>.
+        </p>
+      `,
+    },
   };
 }
 
