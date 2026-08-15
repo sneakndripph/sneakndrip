@@ -3,6 +3,9 @@ import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { cookies } from "next/headers";
 import { validateEnv } from "@/lib/env";
+import { sendEmail } from "@/lib/email/send";
+import { returnApproved } from "@/lib/email/templates/returnApproved";
+import { returnDenied } from "@/lib/email/templates/returnDenied";
 
 async function requireAdmin() {
   try {
@@ -62,7 +65,7 @@ export async function PATCH(req: NextRequest) {
   // Get return request to find the order number
   const { data: returnReq } = await admin
     .from("return_requests")
-    .select("order_number")
+    .select("order_number, customer_name, customer_email, reason")
     .eq("id", id)
     .single();
 
@@ -89,6 +92,21 @@ export async function PATCH(req: NextRequest) {
     actor_email: caller.email ?? null,
     details: null,
   });
+
+  if (returnReq?.customer_email) {
+    const emailContent = status === "approved"
+      ? returnApproved({
+          orderNumber: returnReq.order_number,
+          customerName: returnReq.customer_name,
+          adminNote: admin_note ?? null,
+        })
+      : returnDenied({
+          orderNumber: returnReq.order_number,
+          customerName: returnReq.customer_name,
+          adminNote: admin_note ?? "",
+        });
+    void sendEmail(returnReq.customer_email, emailContent.subject, emailContent.html);
+  }
 
   return NextResponse.json({ ok: true });
 }
