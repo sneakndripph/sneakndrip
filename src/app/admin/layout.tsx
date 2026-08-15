@@ -9,6 +9,7 @@ import {
   TrendingUp, RotateCcw,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import EnvStatusBanner from "@/components/admin/EnvStatusBanner";
 
 type NotifCounts = { pendingOrders: number; pendingReviews: number; pendingReturns: number; lowStock: number };
 type BadgeKey = keyof NotifCounts;
@@ -204,7 +205,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Content */}
       <div className="lg:ml-56 pt-12 lg:pt-0 min-h-screen bg-paper">
-        <div className="p-6 md:p-8">{children}</div>
+        <div className="p-6 md:p-8">
+          <EnvStatusBanner />
+          {children}
+        </div>
       </div>
     </div>
   );

@@ -1,13 +1,15 @@
 import { requireAdmin } from "@/lib/supabase/require-admin";
 import { NextResponse } from "next/server";
+import { validateEnv } from "@/lib/env";
 
 // Temporary debug: shows exactly what the middleware reads from Supabase
 export async function GET() {
   const caller = await requireAdmin();
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  const env = validateEnv();
+  const anonKey = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
 
   // Exactly what middleware does
   const url = `${supabaseUrl}/rest/v1/store_settings?key=eq.maintenance_mode&select=value&limit=1`;

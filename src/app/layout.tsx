@@ -3,7 +3,12 @@ import { Inter, Inter_Tight } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import ProgressBar from "@/components/layout/ProgressBar";
 import SiteStructuredData from "@/components/SiteStructuredData";
+import { validateEnv } from "@/lib/env";
 import "./globals.css";
+
+// Runs once at server startup (build + first request). Throws with a clear message
+// if a REQUIRED env var is missing, instead of failing mysteriously deep in a route.
+validateEnv();
 
 const inter = Inter({
   variable: "--font-inter",
