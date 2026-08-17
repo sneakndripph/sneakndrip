@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -12,14 +14,14 @@ export default function ResetPasswordPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [ready, setReady] = useState(false);
+  const [status, setStatus] = useState<"checking" | "ready" | "expired">("checking");
 
   useEffect(() => {
-    // Supabase puts the session in the URL hash after the reset link is clicked.
-    // The client auto-detects it when the page loads.
+    // /auth/callback already verified the recovery link and set the session
+    // cookie server-side — just confirm the browser client picked it up.
     const supabase = createClient();
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setStatus(user ? "ready" : "expired");
     });
   }, []);
 
@@ -35,6 +37,7 @@ export default function ResetPasswordPage() {
       setError(err.message);
       setLoading(false);
     } else {
+      toast.success("Password updated");
       router.push("/account");
     }
   }
@@ -43,8 +46,17 @@ export default function ResetPasswordPage() {
     <div>
       <h1 className="text-display-s text-ink font-display font-medium mb-8">New password</h1>
 
-      {!ready ? (
+      {status === "checking" ? (
         <p className="text-body-sm text-ink-2">Verifying reset link…</p>
+      ) : status === "expired" ? (
+        <div className="text-center">
+          <p className="text-body-sm text-ink-2 mb-6 leading-relaxed">
+            This reset link is invalid or has expired. Request a new one.
+          </p>
+          <Link href="/forgot-password" className="text-body-sm text-ink underline hover:opacity-60 transition-opacity">
+            Request new link
+          </Link>
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
