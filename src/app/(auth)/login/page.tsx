@@ -4,18 +4,43 @@ import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SITE_URL } from "@/lib/constants";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+type EmailCheck = { exists: boolean; providers: string[] | null };
+
+async function checkEmail(email: string): Promise<EmailCheck | null> {
+  try {
+    const res = await fetch("/api/auth/check-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as EmailCheck;
+  } catch {
+    return null;
+  }
+}
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/shop";
+  const duplicateGoogle = searchParams.get("error") === "duplicate_google";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [emailHint, setEmailHint] = useState("");
+
+  async function handleEmailBlur() {
+    const trimmed = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) { setEmailHint(""); return; }
+    const result = await checkEmail(trimmed);
+    setEmailHint(result && !result.exists ? "No account with this email — register instead" : "");
+  }
 
   async function handleSocialLogin(provider: "google" | "facebook") {
     const supabase = createClient();
@@ -52,6 +77,13 @@ function LoginForm() {
         <Link href="/register" className="text-ink underline hover:opacity-60 transition-opacity">Create account</Link>
       </p>
 
+      {duplicateGoogle && (
+        <div className="bg-state-error/10 border-l-4 border-state-error text-ink px-4 py-3 mb-4 flex items-start gap-2">
+          <AlertCircle size={16} className="shrink-0 mt-0.5" />
+          <p className="text-body-sm">This email is already registered with a password. Sign in with your password instead.</p>
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 px-4 py-3 rounded-md bg-paper-2 border border-line">
           <p className="text-body-sm text-state-error">{error}</p>
@@ -64,9 +96,11 @@ function LoginForm() {
           <input
             id="login-email"
             type="email" value={email} onChange={e => setEmail(e.target.value)}
+            onBlur={handleEmailBlur}
             placeholder="juan@email.com" required
             className="w-full bg-paper-2 border-0 rounded-md px-4 py-3 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1"
           />
+          {emailHint && <p className="text-micro text-ink-3 mt-1">{emailHint}</p>}
         </div>
 
         <div>
