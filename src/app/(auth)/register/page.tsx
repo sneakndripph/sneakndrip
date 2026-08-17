@@ -6,6 +6,23 @@ import { useRouter } from "next/navigation";
 import { SITE_URL } from "@/lib/constants";
 import { Eye, EyeOff, CheckCircle, Check, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import toast from "react-hot-toast";
+
+type EmailCheck = { exists: boolean; providers: string[] | null };
+
+async function checkEmail(email: string): Promise<EmailCheck | null> {
+  try {
+    const res = await fetch("/api/auth/check-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as EmailCheck;
+  } catch {
+    return null;
+  }
+}
 
 const PW_RULES = [
   { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
@@ -37,12 +54,33 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [highlightGoogle, setHighlightGoogle] = useState(false);
+  const [emailHint, setEmailHint] = useState("");
 
   function field(key: keyof typeof form, value: string) {
     setForm(v => ({ ...v, [key]: value }));
+    if (key === "email") {
+      setEmailHint("");
+      setHighlightGoogle(false);
+    }
   }
   function touch(key: string) {
     setTouched(t => ({ ...t, [key]: true }));
+  }
+
+  async function handleEmailBlur() {
+    touch("email");
+    const email = form.email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setEmailHint(""); return; }
+    const result = await checkEmail(email);
+    if (!result?.exists) { setEmailHint(""); return; }
+    if (result.providers?.includes("email")) {
+      setEmailHint("Already registered — sign in instead");
+    } else if (result.providers?.includes("google")) {
+      setEmailHint("Registered with Google — sign in with Google");
+    } else {
+      setEmailHint("");
+    }
   }
 
   // Per-field inline error (only shown after blur)
@@ -66,6 +104,7 @@ export default function RegisterPage() {
   }
 
   async function handleGoogleLogin() {
+    setHighlightGoogle(false);
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
@@ -81,9 +120,27 @@ export default function RegisterPage() {
     if (err) { setError(err); return; }
     setError("");
     setLoading(true);
+
+    const trimmedEmail = form.email.trim();
+    const precheck = await checkEmail(trimmedEmail);
+    if (precheck?.exists) {
+      if (precheck.providers?.includes("email")) {
+        toast.error("This email is already registered. Sign in with your password instead.");
+        setLoading(false);
+        setTimeout(() => router.push("/login"), 2000);
+      } else {
+        toast.error("This email is registered with Google. Sign in with Google instead.");
+        setHighlightGoogle(true);
+        setLoading(false);
+      }
+      return;
+    }
+    // precheck === null (rate-limited/network error) falls through to signUp() below —
+    // the identities?.length === 0 check after it is the defense-in-depth backup.
+
     const supabase = createClient();
     const { data: signUpData, error: authError } = await supabase.auth.signUp({
-      email: form.email.trim(),
+      email: trimmedEmail,
       password: form.password,
       options: {
         data: { full_name: form.name.trim(), mobile: form.mobile },
@@ -181,10 +238,14 @@ export default function RegisterPage() {
             id="register-email"
             type="email" value={form.email} placeholder="juan@email.com" required
             onChange={e => field("email", e.target.value)}
-            onBlur={() => touch("email")}
+            onBlur={handleEmailBlur}
             className="w-full bg-paper-2 border-0 rounded-md px-4 py-3 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1"
           />
-          {fieldError("email") && <p className="text-micro text-state-error mt-1">{fieldError("email")}</p>}
+          {fieldError("email") ? (
+            <p className="text-micro text-state-error mt-1">{fieldError("email")}</p>
+          ) : emailHint ? (
+            <p className="text-micro text-ink-3 mt-1">{emailHint}</p>
+          ) : null}
         </div>
 
         {/* Mobile */}
@@ -282,7 +343,9 @@ export default function RegisterPage() {
 
       <button
         onClick={handleGoogleLogin}
-        className="w-full flex items-center justify-center gap-3 py-3.5 rounded-md text-body-sm font-medium border border-line text-ink hover:border-ink transition-colors"
+        className={`w-full flex items-center justify-center gap-3 py-3.5 rounded-md text-body-sm font-medium text-ink transition-colors ${
+          highlightGoogle ? "border-2 border-ink" : "border border-line hover:border-ink"
+        }`}
       >
         <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" /><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" /><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" /><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" /></svg>
         Continue with Google
