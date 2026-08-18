@@ -1,25 +1,29 @@
 "use client";
 
-import { BRAND, FONTS } from "@/lib/constants";
+import { usePathname, useRouter } from "next/navigation";
 
 const PERIODS = [
-  { value: "today", label: "Today" },
-  { value: "week",  label: "7 Days" },
-  { value: "month", label: "30 Days" },
-  { value: "year",  label: "Year" },
+  { key: "today", label: "Today" },
+  { key: "week",  label: "7D" },
+  { key: "month", label: "30D" },
+  { key: "year",  label: "Year" },
 ];
 
-export default function DashboardPeriodSelector({ current, onChange }: { current: string; onChange: (period: string) => void }) {
+export default function DashboardPeriodSelector({ active }: { active: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+
   return (
-    <div className="flex gap-1 p-1 rounded-lg" style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}` }}>
+    <div className="inline-flex bg-paper-2 rounded-md p-1">
       {PERIODS.map(p => (
-        <button key={p.value} onClick={() => onChange(p.value)}
-          className="px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wide transition-all"
-          style={{
-            background: current === p.value ? BRAND.black : "transparent",
-            color: current === p.value ? BRAND.bg : BRAND.muted,
-            fontFamily: FONTS.body,
-          }}>
+        <button
+          key={p.key}
+          type="button"
+          onClick={() => router.push(`${pathname}?period=${p.key}`)}
+          className={`text-admin-sm px-3 py-1.5 rounded transition-colors duration-admin-fast ${
+            active === p.key ? "bg-paper text-ink font-medium" : "text-ink-3 hover:text-ink"
+          }`}
+        >
           {p.label}
         </button>
       ))}

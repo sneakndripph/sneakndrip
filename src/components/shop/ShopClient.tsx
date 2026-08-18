@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { BRAND, FONTS, BRANDS, SNEAKER_SIZES } from "@/lib/constants";
+import { BRANDS, SNEAKER_SIZES } from "@/lib/constants";
+import { now } from "@/lib/utils";
 import ProductCard from "@/components/product/ProductCard";
 import { SlidersHorizontal, X, ChevronDown, Check } from "lucide-react";
 import type { Product } from "@/lib/types";
@@ -49,11 +50,13 @@ export default function ShopClient({
 
   // Sync filter + search state when URL params change
   useEffect(() => {
-    setAvailability(mapFilter(initialFilter));
-    setShowNewOnly(initialFilter === "new");
+    queueMicrotask(() => {
+      setAvailability(mapFilter(initialFilter));
+      setShowNewOnly(initialFilter === "new");
+    });
   }, [initialFilter]);
 
-  useEffect(() => { setSearch(initialSearch); }, [initialSearch]);
+  useEffect(() => { queueMicrotask(() => setSearch(initialSearch)); }, [initialSearch]);
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -75,7 +78,7 @@ export default function ShopClient({
     if (selectedSizes.length) list = list.filter(p => p.sizes.some(s => selectedSizes.includes(s.size) && s.stock > 0));
     if (availability !== "all") list = list.filter(p => p.status === availability);
     if (showNewOnly) {
-      const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const cutoff = now() - 30 * 24 * 60 * 60 * 1000;
       list = list.filter(p => new Date(p.created_at ?? 0).getTime() >= cutoff);
     }
     list = list.filter(p => p.full_payment_price <= maxPrice);
@@ -87,181 +90,194 @@ export default function ShopClient({
 
   const activeFilters = selectedBrands.length + selectedSizes.length + selectedGenders.length + (availability !== "all" ? 1 : 0) + (showNewOnly ? 1 : 0);
 
+  function clearFilters() {
+    setSelectedBrands([]);
+    setSelectedSizes([]);
+    setSelectedGenders([]);
+    setAvailability("all");
+    setShowNewOnly(false);
+    setMaxPrice(20000);
+  }
+
+  const filtersContent = (
+    <div className="space-y-7">
+      <div>
+        <p className="text-eyebrow text-ink-3 mb-3">Brand</p>
+        <div className="flex flex-wrap gap-1.5">
+          {BRANDS.map(b => (
+            <button key={b} onClick={() => setSelectedBrands(arr => toggleArr(arr, b))}
+              className={`text-micro px-3 py-1.5 rounded-sm border transition-colors ${
+                selectedBrands.includes(b) ? "border-ink bg-ink text-paper" : "border-line text-ink-2 hover:border-ink"
+              }`}>{b}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="text-eyebrow text-ink-3 mb-3">Gender</p>
+        <div className="flex flex-wrap gap-1.5">
+          {GENDERS.map(g => (
+            <button key={g} onClick={() => setSelectedGenders(arr => toggleArr(arr, g))}
+              className={`text-micro px-3 py-1.5 rounded-sm border transition-colors ${
+                selectedGenders.includes(g) ? "border-ink bg-ink text-paper" : "border-line text-ink-2 hover:border-ink"
+              }`}>{g}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="text-eyebrow text-ink-3 mb-3">Size</p>
+        <div className="flex flex-wrap gap-1.5">
+          {SNEAKER_SIZES.map(s => (
+            <button key={s} onClick={() => setSelectedSizes(arr => toggleArr(arr, s))}
+              className={`text-micro px-2.5 py-1.5 rounded-sm border transition-colors ${
+                selectedSizes.includes(s) ? "border-ink bg-ink text-paper" : "border-line text-ink-2 hover:border-ink"
+              }`}>{s}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="text-eyebrow text-ink-3 mb-3">Availability</p>
+        <div className="flex flex-col gap-2">
+          {[["all", "All"], ["on-hand", "On Hand"], ["pre-order", "Pre-Order"]].map(([v, l]) => (
+            <button key={v} onClick={() => setAvailability(v)}
+              className={`text-body-sm px-3 py-2 text-left rounded-md border transition-colors ${
+                availability === v ? "border-ink bg-ink text-paper" : "border-line text-ink-2 hover:border-ink"
+              }`}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="text-eyebrow text-ink-3 mb-3">
+          Max price <span className="text-ink">₱{maxPrice.toLocaleString()}</span>
+        </p>
+        <input type="range" min={1000} max={25000} step={500} value={maxPrice}
+          onChange={e => setMaxPrice(Number(e.target.value))}
+          className="w-full accent-ink" />
+        <div className="flex justify-between mt-1">
+          <span className="text-micro text-ink-3">₱1,000</span>
+          <span className="text-micro text-ink-3">₱25,000</span>
+        </div>
+      </div>
+      {activeFilters > 0 && (
+        <button onClick={clearFilters}
+          className="text-micro text-state-error flex items-center gap-1 pt-1">
+          <X className="w-3 h-3" /> Clear all filters
+        </button>
+      )}
+    </div>
+  );
+
   return (
-    <div style={{ background: BRAND.bg, minHeight: "100vh", fontFamily: FONTS.body }}>
-      <div className="py-12 pb-8" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <div className="flex items-end justify-between">
-            <div>
-              <p className="snd-label mb-3" style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}>Catalog</p>
-              <h1 style={{ fontFamily: FONTS.display, fontSize: "var(--text-display-md)", letterSpacing: "0.04em", color: BRAND.black, lineHeight: 1 }}>
-                ALL SNEAKERS
-              </h1>
-            </div>
-            <p className="snd-label pb-1" style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}>
-              {filtered.length} available
-            </p>
-          </div>
+    <div className="bg-paper min-h-screen">
+      <div className="py-10 pb-6 border-b border-line">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12">
+          <p className="text-eyebrow text-ink-3 mb-2">Catalog</p>
+          <h1 className="text-display-s md:text-display text-ink font-display font-medium leading-tight">All sneakers</h1>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-8">
-        <div className="flex items-center gap-3 mb-8 flex-wrap">
-          <div className="flex-1 min-w-[200px] relative">
-            <input value={search} onChange={e => {
-              const v = e.target.value;
-              setSearch(v);
-              const params = new URLSearchParams();
-              if (v) params.set("q", v);
-              router.replace(`/shop${v ? `?${params.toString()}` : ""}`, { scroll: false });
-            }}
-              placeholder="Search sneakers, brands…"
-              className="w-full px-4 py-3 pr-10 text-sm focus:outline-none"
-              style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }} />
-            {search && (
-              <button onClick={() => {
-                setSearch("");
-                router.replace("/shop", { scroll: false });
-              }} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          <button onClick={() => setFiltersOpen(!filtersOpen)}
-            className="flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors"
-            style={{
-              background: activeFilters > 0 ? BRAND.teal : BRAND.card,
-              color: activeFilters > 0 ? "#fff" : BRAND.black,
-              border: `1px solid ${activeFilters > 0 ? BRAND.teal : BRAND.border}`,
-            }}>
-            <SlidersHorizontal className="w-4 h-4" />
-            Filters {activeFilters > 0 && `(${activeFilters})`}
-          </button>
-          <div className="relative" ref={sortRef}>
-            <button
-              onClick={() => setSortOpen(o => !o)}
-              className="flex items-center gap-2 px-4 py-3 text-sm font-semibold min-w-[170px] justify-between"
-              style={{ background: BRAND.card, border: `1px solid ${sortOpen ? BRAND.teal : BRAND.border}`, color: BRAND.black }}>
-              <span>{SORT_OPTIONS.find(o => o.value === sort)?.label}</span>
-              <ChevronDown className="w-4 h-4 shrink-0 transition-transform" style={{ color: BRAND.muted, transform: sortOpen ? "rotate(180deg)" : "rotate(0deg)" }} />
-            </button>
-            {sortOpen && (
-              <div className="absolute right-0 top-full mt-1 z-50 min-w-[170px] overflow-hidden shadow-lg"
-                style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-                {SORT_OPTIONS.map(o => (
-                  <button key={o.value}
-                    onClick={() => { setSort(o.value); setSortOpen(false); }}
-                    className="w-full flex items-center justify-between px-4 py-3 text-sm text-left transition-colors hover:opacity-80"
-                    style={{
-                      background: sort === o.value ? `${BRAND.teal}10` : "transparent",
-                      color: sort === o.value ? BRAND.teal : BRAND.black,
-                      borderBottom: `1px solid ${BRAND.border}`,
-                      fontWeight: sort === o.value ? 700 : 500,
-                    }}>
-                    {o.label}
-                    {sort === o.value && <Check className="w-3.5 h-3.5 shrink-0" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-8">
+        <div className="lg:grid lg:grid-cols-[16rem_1fr] lg:gap-10 lg:items-start">
+          {/* Desktop sidebar */}
+          <aside className="hidden lg:block lg:sticky lg:top-24">
+            {filtersContent}
+          </aside>
 
-        {filtersOpen && (
-          <div className="p-6 mb-8" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Brand</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {BRANDS.map(b => (
-                    <button key={b} onClick={() => setSelectedBrands(arr => toggleArr(arr, b))}
-                      className="text-xs font-semibold px-3 py-1.5 transition-all"
-                      style={{
-                        background: selectedBrands.includes(b) ? BRAND.teal : "transparent",
-                        color: selectedBrands.includes(b) ? "#fff" : BRAND.muted,
-                        border: `1px solid ${selectedBrands.includes(b) ? BRAND.teal : BRAND.border}`,
-                      }}>{b}</button>
-                  ))}
-                </div>
+          <div>
+            <div className="flex items-center gap-3 mb-4 flex-wrap">
+              <div className="flex-1 min-w-[200px] relative">
+                <input value={search} onChange={e => {
+                  const v = e.target.value;
+                  setSearch(v);
+                  const params = new URLSearchParams();
+                  if (v) params.set("q", v);
+                  router.replace(`/shop${v ? `?${params.toString()}` : ""}`, { scroll: false });
+                }}
+                  placeholder="Search sneakers, brands…"
+                  className="w-full px-4 py-3 pr-10 text-body-sm text-ink bg-paper-2 border-0 rounded-md focus:outline-2 focus:outline-ink focus:outline-offset-1" />
+                {search && (
+                  <button onClick={() => {
+                    setSearch("");
+                    router.replace("/shop", { scroll: false });
+                  }} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
               </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Gender</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {GENDERS.map(g => (
-                    <button key={g} onClick={() => setSelectedGenders(arr => toggleArr(arr, g))}
-                      className="text-xs font-semibold px-3 py-1.5 transition-all"
-                      style={{
-                        background: selectedGenders.includes(g) ? BRAND.teal : "transparent",
-                        color: selectedGenders.includes(g) ? "#fff" : BRAND.muted,
-                        border: `1px solid ${selectedGenders.includes(g) ? BRAND.teal : BRAND.border}`,
-                      }}>{g}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Size</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {SNEAKER_SIZES.map(s => (
-                    <button key={s} onClick={() => setSelectedSizes(arr => toggleArr(arr, s))}
-                      className="text-xs font-semibold px-2.5 py-1.5 transition-all"
-                      style={{
-                        background: selectedSizes.includes(s) ? BRAND.teal : "transparent",
-                        color: selectedSizes.includes(s) ? "#fff" : BRAND.muted,
-                        border: `1px solid ${selectedSizes.includes(s) ? BRAND.teal : BRAND.border}`,
-                      }}>{s}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>Availability</p>
-                <div className="flex flex-col gap-2">
-                  {[["all", "All"], ["on-hand", "On Hand"], ["pre-order", "Pre-Order"]].map(([v, l]) => (
-                    <button key={v} onClick={() => setAvailability(v)}
-                      className="text-xs font-semibold px-3 py-2 text-left transition-all"
-                      style={{
-                        background: availability === v ? BRAND.teal : "transparent",
-                        color: availability === v ? "#fff" : BRAND.muted,
-                        border: `1px solid ${availability === v ? BRAND.teal : BRAND.border}`,
-                      }}>{l}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: BRAND.black }}>
-                  Max Price: <span style={{ color: BRAND.teal }}>₱{maxPrice.toLocaleString()}</span>
-                </p>
-                <input type="range" min={1000} max={25000} step={500} value={maxPrice}
-                  onChange={e => setMaxPrice(Number(e.target.value))}
-                  className="w-full" style={{ accentColor: BRAND.teal }} />
-                <div className="flex justify-between mt-1">
-                  <span className="text-xs" style={{ color: BRAND.muted }}>₱1,000</span>
-                  <span className="text-xs" style={{ color: BRAND.muted }}>₱25,000</span>
-                </div>
+              <div className="relative" ref={sortRef}>
+                <button
+                  onClick={() => setSortOpen(o => !o)}
+                  className="flex items-center gap-2 px-3 py-2 text-body-sm text-ink border border-line rounded-md min-w-[170px] justify-between hover:border-ink transition-colors">
+                  <span>{SORT_OPTIONS.find(o => o.value === sort)?.label}</span>
+                  <ChevronDown className={`w-4 h-4 shrink-0 transition-transform text-ink-3 ${sortOpen ? "rotate-180" : "rotate-0"}`} />
+                </button>
+                {sortOpen && (
+                  <div className="absolute right-0 top-full mt-1 z-50 min-w-[170px] overflow-hidden rounded-md shadow-lg bg-paper border border-line">
+                    {SORT_OPTIONS.map(o => (
+                      <button key={o.value}
+                        onClick={() => { setSort(o.value); setSortOpen(false); }}
+                        className={`w-full flex items-center justify-between px-4 py-3 text-body-sm text-left transition-colors hover:bg-paper-2 ${
+                          sort === o.value ? "text-ink font-medium bg-paper-2" : "text-ink-2"
+                        }`}>
+                        {o.label}
+                        {sort === o.value && <Check className="w-3.5 h-3.5 shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-            {activeFilters > 0 && (
-              <div className="mt-5 pt-4" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-                <button onClick={() => { setSelectedBrands([]); setSelectedSizes([]); setSelectedGenders([]); setAvailability("all"); setShowNewOnly(false); setMaxPrice(20000); }}
-                  className="text-xs font-bold uppercase tracking-wider flex items-center gap-1"
-                  style={{ color: BRAND.red }}>
-                  <X className="w-3 h-3" /> Clear all filters
+
+            <p className="text-micro text-ink-3 mb-5">
+              Showing {filtered.length} {filtered.length === 1 ? "product" : "products"}
+            </p>
+
+            {filtered.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+                {filtered.map(p => <ProductCard key={p.id} product={p} />)}
+              </div>
+            ) : (
+              <div className="text-center py-24">
+                <p className="text-body text-ink-2">No matches. Try clearing filters.</p>
+                <button onClick={clearFilters} className="mt-3 text-body-sm text-ink underline hover:opacity-60 transition-opacity">
+                  Clear filters
                 </button>
               </div>
             )}
           </div>
-        )}
-
-        {filtered.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
-            {filtered.map(p => <ProductCard key={p.id} product={p} />)}
-          </div>
-        ) : (
-          <div className="text-center py-24">
-            <p style={{ fontFamily: FONTS.display, fontSize: "2rem", color: BRAND.muted, letterSpacing: "0.04em" }}>NO RESULTS</p>
-            <p className="text-sm mt-2" style={{ color: BRAND.mutedLight }}>Try adjusting your filters.</p>
-          </div>
-        )}
+        </div>
       </div>
+
+      {/* Mobile floating filters button */}
+      <button
+        onClick={() => setFiltersOpen(true)}
+        className="lg:hidden fixed bottom-6 left-6 z-30 flex items-center gap-2 px-5 py-3 rounded-full bg-ink text-paper shadow-xl"
+      >
+        <SlidersHorizontal className="w-4 h-4" />
+        Filters {activeFilters > 0 && `(${activeFilters})`}
+      </button>
+
+      {/* Mobile filters bottom sheet */}
+      {filtersOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-ink/50" onClick={() => setFiltersOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 bg-paper rounded-t-xl p-6 pb-8 shadow-xl max-h-[85vh] overflow-y-auto">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-strong" />
+            <div className="flex items-center justify-between mb-5">
+              <p className="text-body font-display font-medium text-ink">Filters</p>
+              <button onClick={() => setFiltersOpen(false)} className="text-ink-3 hover:text-ink transition-colors">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            {filtersContent}
+            <button
+              onClick={() => setFiltersOpen(false)}
+              className="w-full mt-6 py-3.5 rounded-md text-body-sm font-medium bg-ink text-paper hover:bg-ink-2 transition-colors"
+            >
+              Show {filtered.length} results
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

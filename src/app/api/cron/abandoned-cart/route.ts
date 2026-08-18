@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { validateEnv } from "@/lib/env";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
@@ -94,10 +95,16 @@ function buildEmail(items: CartItem[], subtotal: number, isReminder: boolean): s
 }
 
 export async function GET(req: NextRequest) {
-  // Verify this is called by Vercel Cron (or our secret in dev)
+  // Verify this is called by Vercel Cron (or our secret in dev). Fail closed: an
+  // unset secret must refuse to run, not silently skip the auth check.
+  const env = validateEnv();
+  const secret = env.CRON_SECRET;
+  if (!secret) {
+    console.error("[cron/abandoned-cart] CRON_SECRET not configured — refusing to run");
+    return NextResponse.json({ error: "CRON_SECRET not configured — refusing to run" }, { status: 500 });
+  }
   const auth = req.headers.get("authorization");
-  const secret = process.env.CRON_SECRET;
-  if (secret && auth !== `Bearer ${secret}`) {
+  if (auth !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

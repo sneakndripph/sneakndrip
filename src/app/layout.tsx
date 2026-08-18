@@ -1,20 +1,26 @@
 import type { Metadata } from "next";
-import { Inter, Barlow_Condensed } from "next/font/google";
+import { Inter, Inter_Tight } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import ProgressBar from "@/components/layout/ProgressBar";
 import SiteStructuredData from "@/components/SiteStructuredData";
+import { validateEnv } from "@/lib/env";
 import "./globals.css";
+
+// Runs once at server startup (build + first request). Throws with a clear message
+// if a REQUIRED env var is missing, instead of failing mysteriously deep in a route.
+validateEnv();
 
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  weight: ["400", "500"],
   display: "swap",
 });
 
-const barlowCondensed = Barlow_Condensed({
-  variable: "--font-barlow",
+const interTight = Inter_Tight({
+  variable: "--font-inter-tight",
   subsets: ["latin"],
-  weight: ["600", "700", "800", "900"],
+  weight: ["500", "600"],
   display: "swap",
 });
 
@@ -55,18 +61,36 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${barlowCondensed.variable} h-full antialiased`}
+      className={`${inter.variable} ${interTight.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-paper font-body text-ink">
         <SiteStructuredData />
         <ProgressBar />
         {children}
         <Toaster
-          position="bottom-center"
+          position="top-right"
+          gutter={8}
+          containerStyle={{ top: 72, right: 16 }}
           toastOptions={{
-            duration: 3000,
-            style: { fontFamily: "var(--font-inter), sans-serif", fontSize: "0.875rem" },
-            success: { iconTheme: { primary: "#5BB8B4", secondary: "#fff" } },
+            duration: 3200,
+            style: {
+              background: "var(--ink)",
+              color: "var(--paper)",
+              fontFamily: "var(--font-body)",
+              fontSize: "13px",
+              lineHeight: "1.4",
+              padding: "12px 16px",
+              borderRadius: "6px",
+              boxShadow: "0 8px 24px rgba(10, 10, 10, 0.14)",
+              minWidth: "280px",
+              maxWidth: "320px",
+            },
+            success: {
+              iconTheme: { primary: "var(--state-onhand)", secondary: "var(--paper)" },
+            },
+            error: {
+              iconTheme: { primary: "var(--state-error)", secondary: "var(--paper)" },
+            },
           }}
         />
       </body>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { BRAND, BRANDS, FONTS } from "@/lib/constants";
+import { BRANDS } from "@/lib/constants";
 
 const FOOTER_LINKS = {
   Shop: [
@@ -11,17 +11,17 @@ const FOOTER_LINKS = {
     { label: "On Hand",      href: "/shop?filter=on-hand" },
     { label: "Sale",         href: "/shop?filter=sale" },
   ],
-  Help: [
+  Company: [
+    { label: "Our Story",  href: "/about" },
+    { label: "Contact Us", href: "/contact" },
+    { label: "Privacy",    href: "/privacy" },
+    { label: "Terms",      href: "/terms" },
+  ],
+  Support: [
     { label: "Track My Order", href: "/account" },
     { label: "Shipping Info",  href: "/shipping" },
     { label: "Returns Policy", href: "/returns" },
     { label: "Authenticity",   href: "/authenticity" },
-  ],
-  About: [
-    { label: "Our Story",  href: "/about" },
-    { label: "Contact Us", href: "/contact" },
-    { label: "Instagram",  href: "https://www.instagram.com/sneakndripph/" },
-    { label: "TikTok",     href: "https://www.tiktok.com/@sneakyjuls" },
   ],
 };
 
@@ -49,23 +49,39 @@ function TikTokIcon() {
   );
 }
 
+const SOCIAL_LINKS = [
+  { name: "Instagram", href: "https://www.instagram.com/sneakndripph/", Icon: InstagramIcon },
+  { name: "TikTok",    href: "https://www.tiktok.com/@sneakyjuls",       Icon: TikTokIcon },
+  { name: "Facebook",  href: "https://www.facebook.com/SneakNDrip/",     Icon: FacebookIcon },
+];
+
 export default function Footer() {
   return (
-    <footer style={{ background: BRAND.black, fontFamily: FONTS.body }}>
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-16 pb-8">
+    <footer className="bg-paper border-t border-line">
+      <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 pt-16 pb-8">
 
-        {/* Brands marquee strip */}
-        <div
-          className="overflow-x-auto pb-8 mb-8"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-        >
+        {/* Brand */}
+        <div className="mb-12">
+          <Image
+            src="/sneakndrip-logo.gif"
+            alt="Sneak N' Drip"
+            width={130}
+            height={52}
+            className="object-contain mb-4"
+          />
+          <p className="text-body-sm text-ink-2 leading-relaxed max-w-sm">
+            Philippines&apos; trusted source for 100% authentic sneakers. On hand and pre-order.
+          </p>
+        </div>
+
+        {/* Brands strip */}
+        <div className="overflow-x-auto pb-8 mb-8 border-b border-line">
           <div className="flex items-center gap-8 min-w-max">
             {BRANDS.map(b => (
               <Link
                 key={b}
                 href={`/shop?brand=${b}`}
-                className="snd-label whitespace-nowrap transition-opacity hover:opacity-60"
-                style={{ color: "rgba(255,255,255,0.15)", fontFamily: FONTS.body }}
+                className="text-eyebrow text-ink-3 whitespace-nowrap transition-colors hover:text-ink"
               >
                 {b}
               </Link>
@@ -74,71 +90,14 @@ export default function Footer() {
         </div>
 
         {/* Main grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-12"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-
-          {/* Brand column */}
-          <div className="col-span-2 md:col-span-1">
-            <div className="inline-block mb-6">
-              <Image
-                src="/sneakndrip-logo.gif"
-                alt="Sneak N' Drip"
-                width={130}
-                height={52}
-                className="object-contain"
-              />
-            </div>
-            <p
-              className="text-sm leading-relaxed mb-6"
-              style={{ color: "rgba(255,255,255,0.3)" }}
-            >
-              Philippines&apos; trusted source for 100% authentic sneakers. On hand and pre-order.
-            </p>
-            <div className="flex gap-3">
-              {[
-                { name: "Facebook",  href: "https://www.facebook.com/SneakNDrip/",       Icon: FacebookIcon },
-                { name: "Instagram", href: "https://www.instagram.com/sneakndripph/",     Icon: InstagramIcon },
-                { name: "TikTok",    href: "https://www.tiktok.com/@sneakyjuls",           Icon: TikTokIcon },
-              ].map(({ name, href, Icon }) => (
-                <a
-                  key={name}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 flex items-center justify-center transition-all hover:opacity-80"
-                  style={{
-                    background: "rgba(255,255,255,0.07)",
-                    color: "rgba(255,255,255,0.5)",
-                  }}
-                  aria-label={name}
-                  onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.12)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
-                >
-                  <Icon />
-                </a>
-              ))}
-            </div>
-          </div>
-
-          {/* Link columns */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-line">
           {Object.entries(FOOTER_LINKS).map(([heading, links]) => (
             <div key={heading}>
-              <h4
-                className="snd-label mb-5"
-                style={{ color: "rgba(255,255,255,0.5)" }}
-              >
-                {heading}
-              </h4>
+              <h4 className="text-eyebrow text-ink-3 mb-5">{heading}</h4>
               <ul className="space-y-3">
                 {links.map(l => (
                   <li key={l.href}>
-                    <Link
-                      href={l.href}
-                      className="text-sm transition-colors"
-                      style={{ color: "rgba(255,255,255,0.3)" }}
-                      onMouseEnter={e => (e.currentTarget.style.color = BRAND.teal)}
-                      onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}
-                    >
+                    <Link href={l.href} className="text-body-sm text-ink-2 transition-colors hover:text-ink">
                       {l.label}
                     </Link>
                   </li>
@@ -146,30 +105,33 @@ export default function Footer() {
               </ul>
             </div>
           ))}
+
+          {/* Follow */}
+          <div>
+            <h4 className="text-eyebrow text-ink-3 mb-5">Follow</h4>
+            <div className="flex gap-3">
+              {SOCIAL_LINKS.map(({ name, href, Icon }) => (
+                <a
+                  key={name}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 flex items-center justify-center rounded-md border border-line text-ink-3 transition-colors hover:text-ink hover:border-ink"
+                  aria-label={name}
+                >
+                  <Icon />
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Payment methods */}
-        <div
-          className="py-7"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-        >
-          <p
-            className="snd-label mb-4"
-            style={{ color: "rgba(255,255,255,0.2)", fontFamily: FONTS.body }}
-          >
-            We Accept
-          </p>
+        <div className="py-7 border-b border-line">
+          <p className="text-eyebrow text-ink-3 mb-4">We Accept</p>
           <div className="flex flex-wrap gap-2">
             {["GCash", "Maya", "Bank Transfer", "Cash on Delivery"].map(m => (
-              <span
-                key={m}
-                className="text-xs font-semibold px-3 py-1.5"
-                style={{
-                  background: "rgba(255,255,255,0.05)",
-                  color: "rgba(255,255,255,0.3)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                }}
-              >
+              <span key={m} className="text-micro text-ink-2 px-3 py-1.5 bg-paper-2 border border-line rounded-sm">
                 {m}
               </span>
             ))}
@@ -178,51 +140,14 @@ export default function Footer() {
 
         {/* Bottom row */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6">
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.2)" }}>
+          <p className="text-micro text-ink-3">
             © 2025 Sneak N&apos; Drip. All Rights Reserved.
           </p>
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.15)" }}>
+          <p className="text-micro text-ink-3">
             100% Authentic &nbsp;·&nbsp; Philippines-wide Shipping
           </p>
-          <div className="flex gap-5">
-            {[
-              { label: "Privacy",  href: "/privacy" },
-              { label: "Terms",    href: "/terms" },
-            ].map(l => (
-              <Link
-                key={l.label}
-                href={l.href}
-                className="text-xs transition-colors"
-                style={{ color: "rgba(255,255,255,0.2)" }}
-                onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.5)")}
-                onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.2)")}
-              >
-                {l.label}
-              </Link>
-            ))}
-          </div>
         </div>
       </div>
-
-      {/* Messenger chat button */}
-      <a
-        href="https://m.me/SneakNDrip"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-40 w-13 h-13 flex items-center justify-center text-white shadow-2xl transition-transform hover:scale-105"
-        style={{
-          background: "linear-gradient(135deg, #0084ff, #00c6ff)",
-          boxShadow: "0 4px 20px rgba(0,132,255,0.4)",
-          width: "52px",
-          height: "52px",
-        }}
-        title="Chat with us on Messenger"
-        aria-label="Chat with us on Messenger"
-      >
-        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.906 1.42 5.503 3.653 7.214V22l3.33-1.833c.89.247 1.832.38 2.017.38 5.523 0 10-4.145 10-9.244C21 6.145 17.523 2 12 2zm1.013 12.453l-2.55-2.72-4.975 2.72 5.474-5.81 2.61 2.72 4.914-2.72-5.473 5.81z" />
-        </svg>
-      </a>
     </footer>
   );
 }

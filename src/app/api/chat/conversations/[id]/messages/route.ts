@@ -14,6 +14,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     .eq("conversation_id", id)
     .order("created_at", { ascending: true });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Admin viewing a conversation clears its unread badge server-side (customers
+  // reading their own conversation must not be able to clear the admin's badge).
+  if (viewer.app_metadata?.role === "admin") {
+    void admin.from("conversations").update({ unread_admin: 0 }).eq("id", id);
+  }
+
   return NextResponse.json(data ?? []);
 }
 

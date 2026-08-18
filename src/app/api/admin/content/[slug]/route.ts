@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import { validateEnv } from "@/lib/env";
 
 const TITLES: Record<string, string> = {
   shipping:     "Shipping Information",
@@ -14,9 +15,10 @@ const TITLES: Record<string, string> = {
 
 async function getRequestingUser() {
   const cookieStore = await cookies();
+  const env = validateEnv();
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
   );
   const { data: { user } } = await supabase.auth.getUser();

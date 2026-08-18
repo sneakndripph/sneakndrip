@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BRAND, FONTS, BRANDS } from "@/lib/constants";
+import { BRANDS } from "@/lib/constants";
 import { getProducts } from "@/lib/supabase/products";
 import BrandLogo from "@/components/brands/BrandLogo";
 import type { Metadata } from "next";
@@ -39,20 +39,16 @@ export default async function BrandsPage() {
   const sortedBrands = [...brandsWithProducts, ...brandsEmpty];
 
   return (
-    <div style={{ background: BRAND.bg, fontFamily: FONTS.body, minHeight: "80vh" }}>
+    <div className="bg-paper" style={{ minHeight: "80vh" }}>
       {/* Header */}
-      <div className="py-14" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+      <div className="py-14 border-b border-line">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-          <p className="snd-label mb-4" style={{ color: BRAND.teal, fontFamily: FONTS.body }}>
-            Shop by Brand
-          </p>
+          <p className="text-eyebrow text-ink-3 mb-4">Shop by Brand</p>
           <div className="flex items-end justify-between">
-            <h1 style={{ fontFamily: FONTS.display, fontSize: "var(--text-display-md)", letterSpacing: "0.04em", color: BRAND.black, lineHeight: 1 }}>
-              ALL BRANDS
+            <h1 className="text-display text-ink font-display leading-tight tracking-[-0.03em]">
+              All Brands
             </h1>
-            <p className="snd-label pb-1" style={{ color: BRAND.mutedLight, fontFamily: FONTS.body }}>
-              {brandsWithProducts.length} brands
-            </p>
+            <p className="text-eyebrow text-ink-3 pb-1">{brandsWithProducts.length} brands</p>
           </div>
         </div>
       </div>
@@ -62,16 +58,12 @@ export default async function BrandsPage() {
           {sortedBrands.map(b => {
             const count = brandCounts[b];
             const isEmpty = count === 0;
-            const brandColor = BRAND_COLORS[b] ?? BRAND.black;
+            const brandColor = BRAND_COLORS[b] ?? "#0D0D0D";
             return (
               <Link
                 key={b}
                 href={`/shop?brand=${encodeURIComponent(b)}`}
-                className={`brand-card-hover flex flex-col items-center justify-center p-8 text-center ${isEmpty ? "pointer-events-none opacity-30" : ""}`}
-                style={{
-                  background: BRAND.card,
-                  border: `1px solid ${BRAND.border}`,
-                }}
+                className={`flex flex-col items-center justify-center p-8 text-center bg-paper-2 border border-line transition-opacity hover:opacity-80 ${isEmpty ? "pointer-events-none opacity-30" : ""}`}
               >
                 {/* Logo area */}
                 <div
@@ -80,16 +72,14 @@ export default async function BrandsPage() {
                     width: 80,
                     height: 56,
                     background: isEmpty ? "rgba(13,13,13,0.04)" : `${brandColor}10`,
-                    color: isEmpty ? BRAND.muted : brandColor,
+                    color: isEmpty ? "#8A8580" : brandColor,
                   }}
                 >
                   <BrandLogo brand={b} color={brandColor} size={28} />
                 </div>
 
-                <p className="font-black text-sm uppercase tracking-wide mb-1" style={{ color: BRAND.black }}>
-                  {b}
-                </p>
-                <p className="text-xs" style={{ color: BRAND.muted }}>
+                <p className="text-body-sm text-ink font-medium mb-1">{b}</p>
+                <p className="text-micro text-ink-3">
                   {isEmpty ? "Coming soon" : `${count} pair${count === 1 ? "" : "s"}`}
                 </p>
               </Link>

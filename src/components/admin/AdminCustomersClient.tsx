@@ -3,13 +3,10 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { BRAND, FONTS } from "@/lib/constants";
 import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldCheck, Download, MessageCircle } from "lucide-react";
-
-const STATUS_COLORS: Record<string, string> = {
-  pending: "#D97706", paid: BRAND.teal, processing: "#6366F1",
-  shipped: "#3B82F6", delivered: "#10B981", cancelled: BRAND.red,
-};
+import toast from "react-hot-toast";
+import OrderStatusBadge from "./OrderStatusBadge";
+import ConfirmDialog from "./ConfirmDialog";
 
 type CustomerOrder = {
   order_number: string;
@@ -34,44 +31,62 @@ type Customer = {
   recentOrders: CustomerOrder[];
 };
 
+type StatusFilter = "all" | "active" | "banned";
+
+const FILTERS: { id: StatusFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "banned", label: "Banned" },
+];
+
 export default function AdminCustomersClient({ customers: initialCustomers, initialSearch = "" }: { customers: Customer[]; initialSearch?: string }) {
   const [customers, setCustomers] = useState(initialCustomers);
   const [search, setSearch] = useState(initialSearch);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [selected, setSelected] = useState<Customer | null>(null);
-  const [banning, setBanning] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [banTarget, setBanTarget] = useState<Customer | null>(null);
-  const [banError, setBanError] = useState("");
+
+  function openDrawer(c: Customer) {
+    setSelected(c);
+    setTimeout(() => setMounted(true), 10);
+  }
+  function closeDrawer() {
+    setMounted(false);
+    setTimeout(() => setSelected(null), 200);
+  }
 
   async function executeBan() {
     if (!banTarget) return;
-    setBanning(true);
-    setBanError("");
+    const nextBanned = !banTarget.banned;
     const userId = banTarget.authUserId ?? banTarget.id;
     const res = await fetch("/api/admin/customers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, ban: !banTarget.banned }),
+      body: JSON.stringify({ userId, ban: nextBanned }),
     });
-    if (res.ok) {
-      const newBanned = !banTarget.banned;
-      setCustomers(prev => prev.map(c => c.id === banTarget.id ? { ...c, banned: newBanned } : c));
-      setSelected(prev => prev?.id === banTarget.id ? { ...prev, banned: newBanned } : prev);
-      setBanTarget(null);
-    } else {
-      const err = await res.json().catch(() => ({})) as { error?: string };
-      setBanError(err.error ?? "Failed to update ban status. Please try again.");
+    if (!res.ok) {
+      toast.error(nextBanned ? "Couldn't ban customer. Try again." : "Couldn't unban customer. Try again.");
+      throw new Error("ban failed");
     }
-    setBanning(false);
+    setCustomers(prev => prev.map(c => c.id === banTarget.id ? { ...c, banned: nextBanned } : c));
+    setSelected(prev => prev?.id === banTarget.id ? { ...prev, banned: nextBanned } : prev);
+    toast.success(nextBanned ? `${banTarget.name} banned` : `${banTarget.name} unbanned`);
   }
 
   const filtered = useMemo(() => {
-    if (!search) return customers;
-    const q = search.toLowerCase();
-    return customers.filter(c =>
-      c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) ||
-      c.city.toLowerCase().includes(q) || c.mobile.includes(q)
-    );
-  }, [customers, search]);
+    let list = customers;
+    if (statusFilter === "active") list = list.filter(c => !c.banned);
+    if (statusFilter === "banned") list = list.filter(c => c.banned);
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(c =>
+        c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q) ||
+        c.city.toLowerCase().includes(q) || c.mobile.includes(q)
+      );
+    }
+    return list;
+  }, [customers, search, statusFilter]);
 
   function exportCSV() {
     const rows = [
@@ -92,249 +107,238 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
   }
 
   return (
-    <div style={{ fontFamily: FONTS.body }}>
-      <div className="flex items-center justify-between mb-6">
+    <div>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Management</p>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>CUSTOMERS</h1>
-          <p className="text-sm mt-1" style={{ color: BRAND.muted }}>{customers.length} registered accounts</p>
+          <p className="text-admin-eyebrow text-ink-3 mb-1">Management</p>
+          <h1 className="text-admin-hero text-ink font-display font-medium tracking-[-0.02em]">Customers</h1>
+          <p className="text-admin text-ink-3 mt-1">{customers.length} registered accounts</p>
         </div>
         <button onClick={exportCSV}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-opacity hover:opacity-70"
-          style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+          className="flex items-center gap-1.5 px-3 py-2 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
           <Download className="w-3.5 h-3.5" /> Export CSV
         </button>
       </div>
 
-      <div className="relative mb-6 max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: BRAND.muted }} />
-        <input
-          value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name, email or mobile…"
-          className="w-full pl-10 pr-4 py-3 text-sm focus:outline-none"
-          style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
-        />
+      {/* Filter bar */}
+      <div className="flex items-center gap-3 mb-6 flex-wrap">
+        <div className="relative flex-1 min-w-[220px] max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
+          <input
+            value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search by name, email or mobile…"
+            className="w-full pl-10 pr-4 py-2.5 text-admin bg-paper border border-line rounded-md text-ink placeholder:text-ink-3 focus:outline-none focus:border-line-strong transition-colors duration-admin-fast"
+          />
+        </div>
+        <div className="inline-flex bg-paper-2 rounded-md p-1">
+          {FILTERS.map(f => (
+            <button key={f.id} onClick={() => setStatusFilter(f.id)}
+              className={`text-admin-sm px-3.5 py-1.5 rounded transition-colors duration-admin-fast ${
+                statusFilter === f.id ? "bg-paper text-ink font-medium" : "text-ink-3 hover:text-ink"
+              }`}>
+              {f.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-xl py-20 text-center" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-          <Users className="w-10 h-10 mx-auto mb-3 opacity-20" style={{ color: BRAND.black }} />
-          <p style={{ fontFamily: FONTS.display, fontSize: "1.5rem", color: BRAND.muted, letterSpacing: "0.04em" }}>
-            {search ? "NO RESULTS" : "NO CUSTOMERS YET"}
+        <div className="bg-paper border border-line rounded-md py-20 text-center">
+          <Users className="w-9 h-9 mx-auto mb-3 text-ink-3" />
+          <p className="text-admin-title text-ink">
+            {search || statusFilter !== "all" ? "No results" : "No customers yet"}
           </p>
-          <p className="text-sm mt-2" style={{ color: BRAND.mutedLight }}>
-            {search ? "Try a different name or email." : "Customers will appear here once they register."}
+          <p className="text-admin-sm text-ink-3 mt-1">
+            {search || statusFilter !== "all" ? "Try a different search or filter." : "Customers will appear here once they register."}
           </p>
         </div>
       ) : (
-        <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+        <div className="bg-paper border border-line rounded-md overflow-hidden">
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                  {["Customer", "Contact", "Location", "Orders", "Total Spent", "Joined", "Last Order"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[10px] font-black uppercase tracking-widest"
-                      style={{ color: BRAND.muted }}>{h}</th>
+                <tr className="bg-paper-2 border-b border-line-strong">
+                  {["Name", "Email", "Orders", "Total spent", "Status", ""].map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line">
                 {filtered.map(c => (
-                  <tr key={c.id}
-                    className="transition-colors hover:bg-black/[0.02] cursor-pointer"
-                    style={{ borderBottom: `1px solid ${BRAND.border}` }}
-                    onClick={() => setSelected(c)}>
-                    <td className="px-4 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold" style={{ color: BRAND.black }}>{c.name}</p>
-                        {c.banned && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: `${BRAND.red}12`, color: BRAND.red }}>Banned</span>}
-                      </div>
-                      <p className="text-xs" style={{ color: BRAND.muted }}>{c.email}</p>
-                    </td>
-                    <td className="px-4 py-3.5 text-xs" style={{ color: c.mobile ? BRAND.black : BRAND.muted }}>
-                      {c.mobile || "—"}
-                    </td>
-                    <td className="px-4 py-3.5 text-xs" style={{ color: c.city ? BRAND.black : BRAND.muted }}>
-                      {c.city || "—"}
+                  <tr key={c.id} onClick={() => openDrawer(c)}
+                    className="cursor-pointer even:bg-paper-2 hover:bg-admin-row-hover transition-colors duration-admin-fast">
+                    <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">{c.name}</td>
+                    <td className="px-4 py-3.5 text-admin-sm text-ink-3">{c.email}</td>
+                    <td className="px-4 py-3.5 text-admin-sm text-ink">{c.orders}</td>
+                    <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">
+                      {c.total > 0 ? `₱${c.total.toLocaleString()}` : "—"}
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="text-sm font-bold" style={{ color: c.orders > 0 ? BRAND.teal : BRAND.muted }}>
-                        {c.orders}
+                      <span className={`text-admin-micro font-medium px-2 py-0.5 rounded-full ${
+                        c.banned ? "text-state-error bg-state-error/10" : "text-state-onhand bg-state-onhand/10"
+                      }`}>
+                        {c.banned ? "Banned" : "Active"}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5">
-                      <span className="text-sm font-bold" style={{ color: BRAND.black }}>
-                        {c.total > 0 ? `₱${c.total.toLocaleString()}` : "—"}
-                      </span>
+                    <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
+                      <button onClick={() => { setBanTarget(c);}}
+                        className="p-1.5 rounded hover:bg-paper-3 transition-colors duration-admin-fast" title={c.banned ? "Unban" : "Ban"}>
+                        {c.banned
+                          ? <ShieldCheck className="w-4 h-4 text-state-onhand" />
+                          : <Ban className="w-4 h-4 text-state-error" />}
+                      </button>
                     </td>
-                    <td className="px-4 py-3.5 text-xs" style={{ color: BRAND.muted }}>{c.joined}</td>
-                    <td className="px-4 py-3.5 text-xs" style={{ color: BRAND.muted }}>{c.lastOrder || "—"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <div className="md:hidden divide-y divide-line">
+            {filtered.map(c => (
+              <div key={c.id} onClick={() => openDrawer(c)} className="px-4 py-3.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-admin-sm font-semibold text-ink">{c.name}</p>
+                  <span className={`text-admin-micro font-medium px-2 py-0.5 rounded-full ${
+                    c.banned ? "text-state-error bg-state-error/10" : "text-state-onhand bg-state-onhand/10"
+                  }`}>
+                    {c.banned ? "Banned" : "Active"}
+                  </span>
+                </div>
+                <p className="text-admin-micro text-ink-3 mt-0.5">{c.email}</p>
+                <p className="text-admin-micro text-ink-3 mt-1">
+                  {c.orders} order{c.orders !== 1 ? "s" : ""} · {c.total > 0 ? `₱${c.total.toLocaleString()}` : "₱0"} spent
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Customer detail modal */}
+      {/* Customer detail drawer */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}>
-          <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, maxHeight: "90vh" }}>
-            {/* Header */}
-            <div className="flex items-start justify-between px-6 py-5 shrink-0" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
+        <>
+          <div className={`fixed inset-0 z-40 bg-ink/40 transition-opacity duration-admin-base ${mounted ? "opacity-100" : "opacity-0"}`}
+            onClick={closeDrawer} />
+          <div className={`fixed z-50 bg-paper flex flex-col
+              inset-0 sm:inset-auto sm:right-0 sm:top-0 sm:bottom-0 sm:w-[480px] sm:border-l sm:border-line sm:shadow-xl
+              transition-transform duration-200 ease-smooth ${mounted ? "translate-x-0" : "translate-x-full"}`}>
+            <div className="flex items-start justify-between px-5 py-4 shrink-0 border-b border-line bg-paper-2">
               <div>
-                <p className="font-black text-lg" style={{ color: BRAND.black, fontFamily: FONTS.display, letterSpacing: "0.04em" }}>
-                  {selected.name}
-                </p>
-                <p className="text-sm mt-0.5" style={{ color: BRAND.muted }}>{selected.email}</p>
+                <p className="text-admin-sm font-bold text-ink">{selected.name}</p>
+                <p className="text-admin-micro text-ink-3 mt-0.5">{selected.email}</p>
               </div>
-              <button onClick={() => setSelected(null)} className="transition-opacity hover:opacity-60 mt-1">
-                <X className="w-5 h-5" style={{ color: BRAND.muted }} />
+              <button onClick={closeDrawer} className="p-1.5 rounded-md hover:bg-admin-row-hover transition-colors duration-admin-fast">
+                <X className="w-4 h-4 text-ink-3" />
               </button>
             </div>
 
-            {/* Details row */}
-            <div className="px-6 py-4 grid grid-cols-2 gap-4 shrink-0" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-              <div className="flex items-start gap-3">
-                <Phone className="w-4 h-4 mt-0.5 shrink-0" style={{ color: BRAND.teal }} />
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>Contact</p>
-                  <p className="text-sm font-semibold" style={{ color: selected.mobile ? BRAND.black : BRAND.muted }}>
-                    {selected.mobile || "Not provided"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 mt-0.5 shrink-0" style={{ color: BRAND.teal }} />
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>Location</p>
-                  <p className="text-sm font-semibold" style={{ color: selected.city ? BRAND.black : BRAND.muted }}>
-                    {selected.city || "Not provided"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <ShoppingBag className="w-4 h-4 mt-0.5 shrink-0" style={{ color: BRAND.teal }} />
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>Orders</p>
-                  <p className="text-sm font-semibold" style={{ color: BRAND.black }}>
-                    {selected.orders} order{selected.orders !== 1 ? "s" : ""} · {selected.total > 0 ? `₱${selected.total.toLocaleString()}` : "₱0"}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <Calendar className="w-4 h-4 mt-0.5 shrink-0" style={{ color: BRAND.teal }} />
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-0.5" style={{ color: BRAND.muted }}>Joined</p>
-                  <p className="text-sm font-semibold" style={{ color: BRAND.black }}>{selected.joined}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Orders list */}
-            <div className="flex-1 overflow-y-auto">
-              {selected.recentOrders.length === 0 ? (
-                <p className="text-sm text-center py-8" style={{ color: BRAND.muted }}>No orders yet.</p>
-              ) : (
-                <>
-                  <div className="px-6 pt-3 pb-1">
-                    <p className="text-xs font-bold uppercase tracking-widest" style={{ color: BRAND.muted }}>Order History</p>
+            <div className="overflow-y-auto flex-1 divide-y divide-line">
+              {/* Profile */}
+              <div className="px-5 py-4 grid grid-cols-2 gap-4">
+                <div className="flex items-start gap-2.5">
+                  <Phone className="w-3.5 h-3.5 mt-0.5 shrink-0 text-ink-3" />
+                  <div>
+                    <p className="text-admin-eyebrow text-ink-3 mb-0.5">Contact</p>
+                    <p className="text-admin-sm font-medium text-ink">{selected.mobile || "Not provided"}</p>
                   </div>
-                  {selected.recentOrders.map((o, i) => (
-                    <Link key={o.order_number}
-                      href={`/admin/orders?q=${o.order_number}`}
-                      onClick={() => setSelected(null)}
-                      className="flex items-center gap-3 px-6 py-3 transition-colors hover:bg-black/[0.03]"
-                      style={{ borderBottom: i < selected.recentOrders.length - 1 ? `1px solid ${BRAND.border}` : "none" }}>
-                      {/* Product image thumbnails */}
-                      {o.images.length > 0 && (
-                        <div className="flex shrink-0 -space-x-2">
-                          {o.images.slice(0, 3).map((img, j) => (
-                            <div key={j} className="w-9 h-9 rounded-md overflow-hidden relative border-2"
-                              style={{ borderColor: BRAND.card, background: BRAND.border }}>
-                              <Image src={img} alt="" fill className="object-cover" sizes="36px" />
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-ink-3" />
+                  <div>
+                    <p className="text-admin-eyebrow text-ink-3 mb-0.5">Location</p>
+                    <p className="text-admin-sm font-medium text-ink">{selected.city || "Not provided"}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <ShoppingBag className="w-3.5 h-3.5 mt-0.5 shrink-0 text-ink-3" />
+                  <div>
+                    <p className="text-admin-eyebrow text-ink-3 mb-0.5">Orders</p>
+                    <p className="text-admin-sm font-medium text-ink">
+                      {selected.orders} · {selected.total > 0 ? `₱${selected.total.toLocaleString()}` : "₱0"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <Calendar className="w-3.5 h-3.5 mt-0.5 shrink-0 text-ink-3" />
+                  <div>
+                    <p className="text-admin-eyebrow text-ink-3 mb-0.5">Joined</p>
+                    <p className="text-admin-sm font-medium text-ink">{selected.joined}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Order history */}
+              <div>
+                {selected.recentOrders.length === 0 ? (
+                  <p className="text-admin-sm text-ink-3 text-center py-8">No orders yet.</p>
+                ) : (
+                  <>
+                    <p className="text-admin-eyebrow text-ink-3 px-5 pt-3 pb-1">Order history</p>
+                    <div className="divide-y divide-line">
+                      {selected.recentOrders.map(o => (
+                        <Link key={o.order_number} href={`/admin/orders?q=${o.order_number}`} onClick={closeDrawer}
+                          className="flex items-center gap-3 px-5 py-3 hover:bg-admin-row-hover transition-colors duration-admin-fast">
+                          {o.images.length > 0 && (
+                            <div className="flex shrink-0 -space-x-2">
+                              {o.images.slice(0, 3).map((img, j) => (
+                                <div key={j} className="w-9 h-9 rounded-md overflow-hidden relative border-2 border-paper bg-paper-2">
+                                  <Image src={img} alt="" fill className="object-cover" sizes="36px" />
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold" style={{ color: BRAND.black }}>{o.order_number}</p>
-                        <p className="text-xs" style={{ color: BRAND.muted }}>
-                          {new Date(o.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0">
-                        <span className="text-[10px] font-bold px-2 py-0.5 capitalize rounded-full"
-                          style={{
-                            background: `${STATUS_COLORS[o.status] ?? "#999"}18`,
-                            color: STATUS_COLORS[o.status] ?? "#999",
-                          }}>
-                          {o.status}
-                        </span>
-                        <p className="text-sm font-black" style={{ color: BRAND.black }}>₱{Number(o.total).toLocaleString()}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </>
-              )}
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-admin-sm font-semibold text-ink">{o.order_number}</p>
+                            <p className="text-admin-micro text-ink-3">
+                              {new Date(o.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            <OrderStatusBadge status={o.status} />
+                            <p className="text-admin-sm font-bold text-ink">₱{Number(o.total).toLocaleString()}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
-            <div className="px-6 py-4 shrink-0 flex gap-3" style={{ borderTop: `1px solid ${BRAND.border}` }}>
-              <button onClick={() => { setBanTarget(selected); setBanError(""); }}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80"
-                style={{ background: selected.banned ? `${BRAND.teal}15` : `${BRAND.red}12`, color: selected.banned ? BRAND.teal : BRAND.red }}>
+            <div className="px-5 py-4 shrink-0 flex gap-2.5 border-t border-line bg-paper-2">
+              <button onClick={() => setBanTarget(selected)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-admin-sm font-medium rounded-md transition-colors duration-admin-fast ${
+                  selected.banned ? "bg-state-onhand/10 text-state-onhand hover:bg-state-onhand/15" : "bg-state-error/10 text-state-error hover:bg-state-error/15"
+                }`}>
                 {selected.banned ? <ShieldCheck className="w-3.5 h-3.5" /> : <Ban className="w-3.5 h-3.5" />}
                 {selected.banned ? "Unban" : "Ban"}
               </button>
               <a href={`/admin/chat?email=${encodeURIComponent(selected.email)}`}
-                className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-80"
-                style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>
+                className="flex items-center gap-2 px-4 py-2.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
                 <MessageCircle className="w-3.5 h-3.5" /> Message
               </a>
-              <button onClick={() => setSelected(null)}
-                className="flex-1 py-2.5 text-sm font-bold uppercase tracking-wide transition-opacity hover:opacity-70"
-                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+              <button onClick={closeDrawer}
+                className="flex-1 py-2.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
                 Close
               </button>
             </div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Ban confirmation modal */}
-      {banTarget && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={e => { if (e.target === e.currentTarget) setBanTarget(null); }}>
-          <div className="w-full max-w-xs rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-            <div className="px-6 py-5">
-              <p className="font-black text-base mb-1" style={{ color: BRAND.black }}>
-                {banTarget.banned ? "Unban Customer?" : "Ban Customer?"}
-              </p>
-              <p className="text-sm" style={{ color: BRAND.muted }}>
-                {banTarget.banned
-                  ? `${banTarget.name} will be able to log in again.`
-                  : `${banTarget.name} will be blocked from logging in.`}
-              </p>
-              {banError && (
-                <p className="text-xs mt-3 font-semibold" style={{ color: BRAND.red }}>{banError}</p>
-              )}
-            </div>
-            <div className="flex gap-3 px-6 pb-5">
-              <button onClick={executeBan} disabled={banning}
-                className="flex-1 py-2.5 text-sm font-black uppercase tracking-wide disabled:opacity-50"
-                style={{ background: banTarget.banned ? BRAND.teal : BRAND.red, color: "#fff" }}>
-                {banning ? "…" : banTarget.banned ? "Unban" : "Ban"}
-              </button>
-              <button onClick={() => setBanTarget(null)}
-                className="px-4 py-2.5 text-sm font-bold"
-                style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!banTarget}
+        onClose={() => setBanTarget(null)}
+        onConfirm={executeBan}
+        title={banTarget?.banned ? "Unban this customer?" : "Ban this customer?"}
+        description={
+          banTarget?.banned
+            ? "They'll be able to place orders again."
+            : "They won't be able to place orders. You can unban them anytime."
+        }
+        confirmLabel={banTarget?.banned ? "Unban customer" : "Ban customer"}
+        variant={banTarget?.banned ? "default" : "destructive"}
+      />
     </div>
   );
 }

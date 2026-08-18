@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { BRAND, FONTS } from "@/lib/constants";
 import { Eye, EyeOff } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -13,14 +14,14 @@ export default function ResetPasswordPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [ready, setReady] = useState(false);
+  const [status, setStatus] = useState<"checking" | "ready" | "expired">("checking");
 
   useEffect(() => {
-    // Supabase puts the session in the URL hash after the reset link is clicked.
-    // The client auto-detects it when the page loads.
+    // /auth/callback already verified the recovery link and set the session
+    // cookie server-side — just confirm the browser client picked it up.
     const supabase = createClient();
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setStatus(user ? "ready" : "expired");
     });
   }, []);
 
@@ -36,72 +37,65 @@ export default function ResetPasswordPage() {
       setError(err.message);
       setLoading(false);
     } else {
+      toast.success("Password updated");
       router.push("/account");
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: BRAND.bg, fontFamily: FONTS.body }}>
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: BRAND.teal }}>Sneak N&apos; Drip</p>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>
-            NEW PASSWORD
-          </h1>
+    <div>
+      <h1 className="text-display-s text-ink font-display font-medium mb-8">New password</h1>
+
+      {status === "checking" ? (
+        <p className="text-body-sm text-ink-2">Verifying reset link…</p>
+      ) : status === "expired" ? (
+        <div className="text-center">
+          <p className="text-body-sm text-ink-2 mb-6 leading-relaxed">
+            This reset link is invalid or has expired. Request a new one.
+          </p>
+          <Link href="/forgot-password" className="text-body-sm text-ink underline hover:opacity-60 transition-opacity">
+            Request new link
+          </Link>
         </div>
-
-        {!ready ? (
-          <div className="p-6 rounded-xl text-center" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-            <p className="text-sm" style={{ color: BRAND.muted }}>Verifying reset link…</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="p-6 rounded-xl space-y-4"
-            style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                New Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPw ? "text" : "password"} required
-                  value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="At least 8 characters"
-                  className="w-full px-4 py-3 pr-10 text-sm focus:outline-none"
-                  style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
-                />
-                <button type="button" onClick={() => setShowPw(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: BRAND.muted }}>
-                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: BRAND.black }}>
-                Confirm Password
-              </label>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="reset-password" className="block text-eyebrow text-ink-3 mb-1.5">New password</label>
+            <div className="relative">
               <input
+                id="reset-password"
                 type={showPw ? "text" : "password"} required
-                value={confirm} onChange={e => setConfirm(e.target.value)}
-                placeholder="Re-enter password"
-                className="w-full px-4 py-3 text-sm focus:outline-none"
-                style={{ background: BRAND.bg, border: `1px solid ${BRAND.border}`, color: BRAND.black }}
+                value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                className="w-full bg-paper-2 border-0 rounded-md px-4 py-3 pr-12 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1"
               />
+              <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink transition-colors">
+                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
+          </div>
 
-            {error && (
-              <p className="text-xs font-semibold" style={{ color: BRAND.red }}>{error}</p>
-            )}
+          <div>
+            <label htmlFor="reset-confirm" className="block text-eyebrow text-ink-3 mb-1.5">Confirm password</label>
+            <input
+              id="reset-confirm"
+              type={showPw ? "text" : "password"} required
+              value={confirm} onChange={e => setConfirm(e.target.value)}
+              placeholder="Re-enter password"
+              className="w-full bg-paper-2 border-0 rounded-md px-4 py-3 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1"
+            />
+          </div>
 
-            <button type="submit" disabled={loading}
-              className="w-full py-4 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{ background: BRAND.black, color: BRAND.bg }}>
-              {loading ? "Updating…" : "Set New Password"}
-            </button>
-          </form>
-        )}
-      </div>
+          {error && <p className="text-body-sm text-state-error">{error}</p>}
+
+          <button
+            type="submit" disabled={loading}
+            className="w-full py-3.5 rounded-md text-body-sm font-medium bg-ink text-paper hover:bg-ink-2 transition-colors disabled:opacity-50"
+          >
+            {loading ? "Updating…" : "Set new password"}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

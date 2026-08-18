@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/supabase/require-admin";
+import { validateEnv } from "@/lib/env";
 
 export async function GET() {
   const caller = await requireAdmin();
@@ -11,13 +12,14 @@ export async function GET() {
   const admin = createAdminClient();
   const { data } = await admin
     .from("products")
-    .select("id, name, brand, status, full_payment_price, sale_price, sale_start, sale_end, product_sizes(size, stock)")
+    .select("id, name, brand, status, images, full_payment_price, sale_price, sale_start, sale_end, product_sizes(size, stock)")
     .order("name");
   const products = (data ?? []).map(p => ({
     id: p.id,
     name: p.name,
     brand: p.brand,
     status: p.status,
+    images: p.images ?? null,
     full_payment_price: p.full_payment_price,
     sale_price: p.sale_price ?? null,
     sale_start: p.sale_start ?? null,
@@ -31,10 +33,10 @@ export async function GET() {
 async function getRequestingUser() {
   try {
     const cookieStore = await cookies();
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
+    const env = validateEnv();
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      anonKey,
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
       { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
     );
     const { data: { user } } = await supabase.auth.getUser();

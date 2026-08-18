@@ -7,11 +7,12 @@ export async function GET() {
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const admin = createAdminClient();
-  const [{ count: pendingOrders }, { count: pendingReviews }, { count: pendingReturns }, { data: lowStockRows }] = await Promise.all([
+  const [{ count: pendingOrders }, { count: pendingReviews }, { count: pendingReturns }, { data: lowStockRows }, { count: unreadChats }] = await Promise.all([
     admin.from("orders").select("*", { count: "exact", head: true }).eq("status", "pending"),
     admin.from("reviews").select("*", { count: "exact", head: true }).eq("is_verified", false),
     admin.from("return_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
     admin.from("product_sizes").select("product_id").lte("stock", 3).gt("stock", 0),
+    admin.from("conversations").select("*", { count: "exact", head: true }).gt("unread_admin", 0),
   ]);
   const lowStock = new Set((lowStockRows ?? []).map(r => r.product_id)).size;
   return NextResponse.json({
@@ -19,6 +20,7 @@ export async function GET() {
     pendingReviews: pendingReviews ?? 0,
     pendingReturns: pendingReturns ?? 0,
     lowStock,
+    unreadChats: unreadChats ?? 0,
     total: (pendingOrders ?? 0) + (pendingReviews ?? 0) + (pendingReturns ?? 0),
   });
 }

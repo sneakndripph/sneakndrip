@@ -9,6 +9,13 @@ const PUBLIC_KEYS = new Set([
   "cod_enabled", "cod_areas",
   "free_shipping_threshold", "metro_shipping_fee", "provincial_shipping_fee",
   "cod_metro_sm", "cod_metro_lg", "cod_vm_sm", "cod_vm_lg",
+  "chat_widget_enabled",
+  "context_bar_enabled",
+  "new_arrivals_enabled",
+  "buying_floor_enabled",
+  "trending_enabled",
+  "reviews_enabled",
+  "newsletter_enabled",
 ]);
 
 export async function GET() {

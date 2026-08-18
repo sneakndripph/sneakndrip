@@ -14,16 +14,17 @@ const PAGE_DEFS = [
 export default async function AdminContentPage() {
   noStore();
 
-  let dbRows: Array<{ slug: string; content: string }> = [];
+  let dbRows: Array<{ slug: string; content: string; updated_at: string | null }> = [];
   try {
     const admin = createAdminClient();
-    const { data } = await admin.from("site_pages").select("slug, content");
+    const { data } = await admin.from("site_pages").select("slug, content, updated_at");
     dbRows = data ?? [];
   } catch { /* table not yet created — show empty editors */ }
 
   const pages = PAGE_DEFS.map(def => ({
     ...def,
     content: dbRows.find(r => r.slug === def.slug)?.content ?? "",
+    updatedAt: dbRows.find(r => r.slug === def.slug)?.updated_at ?? null,
   }));
 
   return <AdminContentClient pages={pages} />;

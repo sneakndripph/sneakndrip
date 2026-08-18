@@ -2,15 +2,17 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
+import { validateEnv } from "@/lib/env";
+import { sendEmail } from "@/lib/email/send";
+import { restockAlert } from "@/lib/email/templates/restockAlert";
 
 async function getRequestingUser() {
   try {
     const cookieStore = await cookies();
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
+    const env = validateEnv();
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      anonKey,
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
       { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
     );
     const { data: { user } } = await supabase.auth.getUser();
@@ -21,11 +23,8 @@ async function getRequestingUser() {
 }
 
 async function sendRestockEmails(productId: string, restockedSizes: string[], productName: string, productSlug: string) {
-  if (!process.env.RESEND_API_KEY || restockedSizes.length === 0) return;
+  if (restockedSizes.length === 0) return;
   const admin = createAdminClient();
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
-  const productUrl = `https://sneakndrip.ph/shop/${productSlug}`;
 
   for (const size of restockedSizes) {
     const { data: notifs } = await admin
@@ -37,23 +36,26 @@ async function sendRestockEmails(productId: string, restockedSizes: string[], pr
     if (!notifs?.length) continue;
 
     const emails = notifs.map(n => n.email).filter(Boolean);
-    for (const email of emails) {
-      await resend.emails.send({
-        from: `Sneak N' Drip <${FROM_EMAIL}>`,
-        to: email,
-        subject: `${productName} (${size}) is back in stock!`,
-        html: `
-          <div style="max-width:500px;margin:0 auto;font-family:Arial,sans-serif;padding:24px">
-            <h2 style="color:#0D0D0D">Back In Stock!</h2>
-            <p style="color:#555;font-size:15px">Good news! <strong>${productName}</strong> in size <strong>${size}</strong> is now available.</p>
-            <a href="${productUrl}" style="display:inline-block;background:#5BB8B4;color:#fff;padding:12px 24px;text-decoration:none;font-weight:bold;margin-top:12px">Grab It Now →</a>
-            <p style="color:#aaa;font-size:12px;margin-top:24px">You requested to be notified when this item restocked. Reply to unsubscribe.</p>
-          </div>`,
-      }).catch(() => {});
-    }
+    const { subject, html } = restockAlert({ productName, productSlug, size });
 
-    await admin.from("restock_notifications").delete()
-      .eq("product_id", productId).eq("size", size);
+    const results = await Promise.allSettled(
+      emails.map(email => sendEmail(email, subject, html)),
+    );
+
+    const successfulEmails: string[] = [];
+    const failedEmails: string[] = [];
+    results.forEach((result, i) => {
+      const ok = result.status === "fulfilled" && result.value.ok && !result.value.skipped;
+      (ok ? successfulEmails : failedEmails).push(emails[i]);
+    });
+
+    console.log(`Restock emails for ${productName} (${size}): ${successfulEmails.length} sent, ${failedEmails.length} failed`);
+
+    if (successfulEmails.length > 0) {
+      await admin.from("restock_notifications").delete()
+        .eq("product_id", productId).eq("size", size)
+        .in("email", successfulEmails);
+    }
   }
 }
 

@@ -1,31 +1,31 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { BRAND, FONTS } from "@/lib/constants";
-import { TrendingUp, ShoppingBag, Banknote, XCircle, Download, RefreshCw, X, Package } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
+import { Download, RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, PieChart, Pie, Cell, Legend, CartesianGrid,
+  AreaChart, Area, BarChart, Bar, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 
 type Period = "today" | "7d" | "30d" | "90d" | "all";
 
 const PERIODS: { id: Period; label: string }[] = [
   { id: "today", label: "Today" },
-  { id: "7d",    label: "7 Days" },
-  { id: "30d",   label: "30 Days" },
-  { id: "90d",   label: "90 Days" },
-  { id: "all",   label: "All Time" },
+  { id: "7d", label: "7D" },
+  { id: "30d", label: "30D" },
+  { id: "90d", label: "90D" },
+  { id: "all", label: "All" },
 ];
 
-const STATUS_COLORS: Record<string, string> = {
-  pending: "#D97706", paid: BRAND.teal, processing: "#6366F1",
-  shipped: "#3B82F6", delivered: "#10B981", cancelled: BRAND.red,
+const MONO = ["#0A0A0A", "#3A3A35", "#4A4A45", "#5C5C56", "#6B6B65", "#83837B", "#9B9B91", "#B3B3A8"];
+
+const tooltipProps = {
+  contentStyle: {
+    background: "var(--ink)", border: "none", borderRadius: "6px",
+    padding: "8px 12px", color: "var(--paper)", fontSize: "12px",
+  },
 };
-const PIE_COLORS = [BRAND.teal, "#6366F1", "#3B82F6", "#10B981", "#D97706", BRAND.red, "#8B5CF6", "#EC4899"];
 
 type Metrics = {
   totalRevenue: number; totalCost: number; totalProfit: number;
@@ -34,15 +34,16 @@ type Metrics = {
 };
 type PaymentOrder = { order_number: string; customer_name: string; total: number; status: string; created_at: string };
 type TopProduct = { name: string; revenue: number; units: number; profit: number | null; image: string | null; slug: string | null };
-type TopCustomer = { name: string; email: string; revenue: number; orders: number };
 type SalesData = {
   metrics: Metrics;
   revenueByDay: { date: string; revenue: number; orders: number }[];
   topProducts: TopProduct[];
   byPayment: { method: string; revenue: number; orders: PaymentOrder[] }[];
   byStatus: { status: string; count: number }[];
-  topCustomers: TopCustomer[];
 };
+
+type SaleRow = PaymentOrder & { payment_method: string };
+type SortKey = "order_number" | "customer_name" | "payment_method" | "total" | "status" | "created_at";
 
 function periodToRange(p: Period): { from?: string; to?: string } {
   const now = new Date();
@@ -57,38 +58,53 @@ function periodToRange(p: Period): { from?: string; to?: string } {
   return { from: from.toISOString(), to };
 }
 
-function fmt(n: number) { return `₱${Number(n).toLocaleString("en-PH", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`; }
+function fmt(n: number) { return `₱${Number(n).toLocaleString("en-PH", { maximumFractionDigits: 0 })}`; }
 
-function MetricCard({ label, value, sub, icon: Icon, color, bg, href, onClick }: {
-  label: string; value: string; sub?: string;
-  icon: React.ElementType; color: string; bg: string; href?: string; onClick?: () => void;
-}) {
+function StatCard({ label, value, sub, href }: { label: string; value: string; sub?: string; href?: string }) {
   const inner = (
     <>
-      <div className="flex items-start justify-between mb-4">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: bg }}>
-          <Icon className="w-5 h-5" style={{ color }} />
-        </div>
-        {sub && <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: `${color}12`, color }}>{sub}</span>}
-      </div>
-      <p style={{ fontFamily: FONTS.display, fontSize: "1.8rem", color: BRAND.black, letterSpacing: "0.03em", lineHeight: 1 }}>{value}</p>
-      <p className="text-xs mt-1 uppercase tracking-widest font-semibold" style={{ color: BRAND.muted }}>{label}</p>
+      <p className="text-admin-eyebrow text-ink-3 mb-2">{label}</p>
+      <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em] truncate">{value}</p>
+      {sub && <p className="text-admin-micro text-ink-3 mt-2">{sub}</p>}
     </>
   );
-  if (href) return <Link href={href} className="block p-5 rounded-xl transition-opacity hover:opacity-80" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>{inner}</Link>;
-  if (onClick) return <button onClick={onClick} className="w-full text-left p-5 rounded-xl transition-opacity hover:opacity-80" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>{inner}</button>;
-  return <div className="p-5 rounded-xl" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>{inner}</div>;
+  if (href) {
+    return (
+      <Link href={href} className="bg-paper border border-line rounded-md p-5 block hover:border-line-strong transition-colors duration-admin-fast">
+        {inner}
+      </Link>
+    );
+  }
+  return <div className="bg-paper border border-line rounded-md p-5">{inner}</div>;
+}
+
+function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-paper border border-line rounded-md p-5">
+      <p className="text-admin-title text-ink mb-4">{title}</p>
+      {children}
+    </div>
+  );
+}
+
+function SortHeader({ label, sortField, activeKey, activeDir, onSort }: {
+  label: string; sortField: SortKey; activeKey: SortKey; activeDir: "asc" | "desc"; onSort: (key: SortKey) => void;
+}) {
+  const Icon = activeKey !== sortField ? ChevronsUpDown : activeDir === "asc" ? ChevronUp : ChevronDown;
+  return (
+    <button onClick={() => onSort(sortField)}
+      className={`flex items-center gap-1 text-admin-eyebrow transition-colors duration-admin-fast ${activeKey === sortField ? "text-ink" : "text-ink-3 hover:text-ink-2"}`}>
+      {label} <Icon className="w-3 h-3" />
+    </button>
+  );
 }
 
 export default function AdminSalesPage() {
-  const router = useRouter();
   const [period, setPeriod] = useState<Period>("30d");
   const [data, setData] = useState<SalesData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentModal, setPaymentModal] = useState<{ method: string; orders: PaymentOrder[] } | null>(null);
-  const [topProductModal, setTopProductModal] = useState<TopProduct | null>(null);
-  const [netIncomeModal, setNetIncomeModal] = useState(false);
-  const [topCustomerModal, setTopCustomerModal] = useState<TopCustomer | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const load = useCallback(async (p: Period) => {
     setLoading(true);
@@ -101,15 +117,34 @@ export default function AdminSalesPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(period); }, [period, load]);
+  useEffect(() => { queueMicrotask(() => load(period)); }, [period, load]);
+
+  const rows: SaleRow[] = useMemo(() => {
+    if (!data) return [];
+    return data.byPayment.flatMap(pm => pm.orders.map(o => ({ ...o, payment_method: pm.method })));
+  }, [data]);
+
+  const sortedRows = useMemo(() => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...rows].sort((a, b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+  }, [rows, sortKey, sortDir]);
+
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) { setSortDir(d => d === "asc" ? "desc" : "asc"); return; }
+    setSortKey(key); setSortDir("desc");
+  }
 
   function exportCSV() {
-    if (!data) return;
-    const rows = [
-      ["Product", "Revenue (₱)", "Units Sold"],
-      ...data.topProducts.map(p => [p.name, p.revenue, p.units]),
+    if (!sortedRows.length) return;
+    const rowsCsv = [
+      ["Order", "Customer", "Payment", "Total", "Status", "Date"],
+      ...sortedRows.map(r => [r.order_number, r.customer_name, r.payment_method, r.total, r.status, r.created_at]),
     ];
-    const csv = rows.map(r => r.join(",")).join("\n");
+    const csv = rowsCsv.map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = "sales-report.csv"; a.click();
@@ -117,367 +152,195 @@ export default function AdminSalesPage() {
   }
 
   const m = data?.metrics;
+  const best = data?.topProducts[0];
+  const xAxisInterval = (data?.revenueByDay.length ?? 0) > 20 ? 4 : (data?.revenueByDay.length ?? 0) > 10 ? 1 : 0;
 
   return (
-    <div style={{ fontFamily: FONTS.body }}>
-      {/* Payment Method Orders Modal */}
-      {paymentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={() => setPaymentModal(null)}>
-          <div className="w-full max-w-lg rounded-2xl overflow-hidden flex flex-col" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, maxHeight: "80vh" }}
-            onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 shrink-0" style={{ background: BRAND.black }}>
-              <div>
-                <h2 style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: "#fff" }}>ORDERS — {paymentModal.method.toUpperCase()}</h2>
-                <p className="text-xs mt-0.5" style={{ color: "#999" }}>{paymentModal.orders.length} paid orders</p>
-              </div>
-              <button onClick={() => setPaymentModal(null)} className="opacity-60 hover:opacity-100"><X className="w-5 h-5 text-white" /></button>
-            </div>
-            <div className="flex-1 overflow-y-auto divide-y" style={{ borderColor: BRAND.border }}>
-              {paymentModal.orders.map(o => (
-                <Link key={o.order_number}
-                  href={`/admin/orders?q=${encodeURIComponent(o.order_number)}`}
-                  onClick={() => setPaymentModal(null)}
-                  className="flex items-center justify-between px-5 py-3 transition-colors hover:bg-black/[0.02]">
-                  <div>
-                    <p className="text-sm font-bold" style={{ color: BRAND.black }}>{o.order_number}</p>
-                    <p className="text-xs" style={{ color: BRAND.muted }}>{o.customer_name}</p>
-                    <p className="text-[10px]" style={{ color: BRAND.mutedLight }}>{new Date(o.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black" style={{ color: BRAND.black }}>{fmt(o.total)}</p>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded capitalize"
-                      style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>{o.status}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Top Product Modal */}
-      {topProductModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={() => setTopProductModal(null)}>
-          <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}
-            onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4" style={{ background: BRAND.black }}>
-              <h2 style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: "#fff", letterSpacing: "0.04em" }}>TOP PRODUCT</h2>
-              <button onClick={() => setTopProductModal(null)} className="opacity-60 hover:opacity-100"><X className="w-5 h-5 text-white" /></button>
-            </div>
-            <div className="p-5">
-              {topProductModal.image ? (
-                <div className="relative aspect-square w-full rounded-xl overflow-hidden mb-4" style={{ background: BRAND.bg }}>
-                  <Image src={topProductModal.image} alt={topProductModal.name} fill className="object-contain p-2" sizes="320px" />
-                </div>
-              ) : (
-                <div className="aspect-square w-full rounded-xl flex items-center justify-center mb-4" style={{ background: BRAND.bg }}>
-                  <Package className="w-12 h-12 opacity-20" style={{ color: BRAND.black }} />
-                </div>
-              )}
-              <p className="font-black text-base mb-4" style={{ color: BRAND.black }}>{topProductModal.name}</p>
-              <div className="space-y-2">
-                {[
-                  { label: "Revenue", value: fmt(topProductModal.revenue), color: BRAND.teal },
-                  { label: "Units Sold", value: String(topProductModal.units), color: BRAND.black },
-                  ...(topProductModal.profit !== null ? [{ label: "Profit", value: fmt(topProductModal.profit), color: "#10B981" }] : []),
-                ].map(r => (
-                  <div key={r.label} className="flex justify-between items-center px-4 py-2.5 rounded-lg" style={{ background: BRAND.bg }}>
-                    <span className="text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>{r.label}</span>
-                    <span className="text-sm font-black" style={{ color: r.color }}>{r.value}</span>
-                  </div>
-                ))}
-              </div>
-              {topProductModal.slug && (
-                <Link href={`/admin/products`}
-                  onClick={() => setTopProductModal(null)}
-                  className="block mt-4 text-center text-xs font-bold uppercase tracking-wide py-2.5 transition-opacity hover:opacity-80"
-                  style={{ background: BRAND.teal, color: "#fff" }}>
-                  View in Products →
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Net Income Modal */}
-      {netIncomeModal && m && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={() => setNetIncomeModal(false)}>
-          <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}
-            onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4" style={{ background: BRAND.black }}>
-              <h2 style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: "#fff", letterSpacing: "0.04em" }}>NET INCOME</h2>
-              <button onClick={() => setNetIncomeModal(false)} className="opacity-60 hover:opacity-100"><X className="w-5 h-5 text-white" /></button>
-            </div>
-            <div className="p-6 space-y-3">
-              <div className="flex justify-between items-center py-2.5 px-4 rounded-lg" style={{ background: BRAND.bg }}>
-                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>Total Revenue</span>
-                <span className="text-sm font-black" style={{ color: BRAND.teal }}>{fmt(m.totalRevenue)}</span>
-              </div>
-              <div className="flex justify-between items-center py-2.5 px-4 rounded-lg" style={{ background: BRAND.bg }}>
-                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>Total Cost</span>
-                <span className="text-sm font-black" style={{ color: BRAND.red }}>−{fmt(m.totalCost)}</span>
-              </div>
-              <div className="flex justify-between items-center py-3 px-4 rounded-xl" style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)" }}>
-                <span className="text-sm font-black uppercase tracking-wide" style={{ color: BRAND.black }}>Net Income</span>
-                <span className="text-lg font-black" style={{ color: "#10B981" }}>{fmt(m.totalProfit)}</span>
-              </div>
-              {m.totalRevenue > 0 && (
-                <p className="text-xs text-center pt-1" style={{ color: BRAND.muted }}>
-                  {((m.totalProfit / m.totalRevenue) * 100).toFixed(1)}% profit margin
-                </p>
-              )}
-              {m.totalCost === 0 && (
-                <p className="text-xs text-center" style={{ color: BRAND.mutedLight }}>
-                  Add cost prices in Products to see accurate figures.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Top Customer Modal */}
-      {topCustomerModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.6)" }}
-          onClick={() => setTopCustomerModal(null)}>
-          <div className="w-full max-w-xs rounded-2xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}
-            onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4" style={{ background: BRAND.black }}>
-              <h2 style={{ fontFamily: FONTS.display, fontSize: "1.1rem", color: "#fff", letterSpacing: "0.04em" }}>TOP CUSTOMER</h2>
-              <button onClick={() => setTopCustomerModal(null)} className="opacity-60 hover:opacity-100"><X className="w-5 h-5 text-white" /></button>
-            </div>
-            <div className="p-5 space-y-3">
-              <div>
-                <p className="font-black text-base" style={{ color: BRAND.black }}>{topCustomerModal.name}</p>
-                <p className="text-xs" style={{ color: BRAND.muted }}>{topCustomerModal.email}</p>
-              </div>
-              {[
-                { label: "Total Spent", value: fmt(topCustomerModal.revenue), color: BRAND.teal },
-                { label: "Orders", value: String(topCustomerModal.orders), color: BRAND.black },
-              ].map(r => (
-                <div key={r.label} className="flex justify-between items-center px-4 py-2.5 rounded-lg" style={{ background: BRAND.bg }}>
-                  <span className="text-xs font-bold uppercase tracking-wide" style={{ color: BRAND.muted }}>{r.label}</span>
-                  <span className="text-sm font-black" style={{ color: r.color }}>{r.value}</span>
-                </div>
-              ))}
-              <Link href={`/admin/customers?q=${encodeURIComponent(topCustomerModal.email)}`}
-                onClick={() => setTopCustomerModal(null)}
-                className="block mt-2 text-center text-xs font-bold uppercase tracking-wide py-2.5 transition-opacity hover:opacity-80"
-                style={{ background: BRAND.teal, color: "#fff" }}>
-                View Customer →
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+    <div>
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: BRAND.teal }}>Analytics</p>
-          <h1 style={{ fontFamily: FONTS.display, fontSize: "2.5rem", letterSpacing: "0.04em", color: BRAND.black }}>SALES</h1>
+          <h1 className="text-admin-hero text-ink font-display font-medium tracking-[-0.02em]">Sales</h1>
+          <p className="text-admin text-ink-3 mt-1.5">Revenue and order performance</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          {/* Period selector */}
-          <div className="flex rounded-lg overflow-hidden" style={{ border: `1px solid ${BRAND.border}` }}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex bg-paper-2 rounded-md p-1">
             {PERIODS.map(p => (
-              <button key={p.id} onClick={() => setPeriod(p.id)}
-                className="px-3 py-2 text-xs font-bold transition-colors"
-                style={{
-                  background: period === p.id ? BRAND.black : "transparent",
-                  color: period === p.id ? "#fff" : BRAND.muted,
-                }}>
+              <button key={p.id} type="button" onClick={() => setPeriod(p.id)}
+                className={`text-admin-sm px-3 py-1.5 rounded transition-colors duration-admin-fast ${
+                  period === p.id ? "bg-paper text-ink font-medium" : "text-ink-3 hover:text-ink"
+                }`}>
                 {p.label}
               </button>
             ))}
           </div>
           <button onClick={() => load(period)} disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-opacity hover:opacity-70 disabled:opacity-40"
-            style={{ border: `1px solid ${BRAND.border}`, color: BRAND.muted }}>
+            className="flex items-center gap-1.5 px-3 py-2 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong disabled:opacity-40 transition-colors duration-admin-fast">
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh
           </button>
           <button onClick={exportCSV} disabled={!data}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition-opacity hover:opacity-70 disabled:opacity-40"
-            style={{ background: BRAND.teal, color: "#fff" }}>
+            className="flex items-center gap-1.5 px-3 py-2 text-admin-sm font-medium rounded-md bg-ink text-paper hover:bg-ink-2 disabled:opacity-40 transition-colors duration-admin-fast">
             <Download className="w-3.5 h-3.5" /> Export CSV
           </button>
         </div>
       </div>
 
       {loading && !data ? (
-        <div className="py-24 text-center text-sm" style={{ color: BRAND.muted }}>Loading sales data…</div>
-      ) : !data ? (
-        <div className="py-24 text-center text-sm" style={{ color: BRAND.muted }}>Failed to load data. Refresh to try again.</div>
+        <div className="py-24 text-center text-admin text-ink-3">Loading sales data…</div>
+      ) : !data || !m ? (
+        <div className="py-24 text-center text-admin text-ink-3">Failed to load data. Refresh to try again.</div>
       ) : (
-        <div className="space-y-6">
-          {/* Metrics */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <MetricCard label="Total Revenue" value={fmt(m!.totalRevenue)} sub={`${m!.paidOrders} orders`}
-              icon={TrendingUp} color={BRAND.teal} bg={`rgba(91,184,180,0.12)`} href="/admin/orders?status=delivered" />
-            <MetricCard label="Net Income"
-              value={m!.totalCost > 0 ? fmt(m!.totalProfit) : "—"}
-              sub={m!.totalCost > 0 ? `${m!.totalRevenue > 0 ? ((m!.totalProfit / m!.totalRevenue) * 100).toFixed(1) : "0"}% margin` : "Add cost prices"}
-              icon={Banknote} color="#10B981" bg="rgba(16,185,129,0.1)"
-              onClick={m!.totalCost > 0 ? () => setNetIncomeModal(true) : undefined} />
-            <MetricCard label="Total Orders" value={String(m!.totalOrders)} sub={`${m!.pendingOrders} pending`}
-              icon={ShoppingBag} color={BRAND.black} bg="rgba(13,13,13,0.08)" href="/admin/orders" />
-            <MetricCard label="Avg Order Value" value={fmt(m!.avgOrder)}
-              icon={Banknote} color="#6366F1" bg="rgba(99,102,241,0.1)" />
-            <MetricCard label="Cancellation Rate" value={`${m!.cancelRate.toFixed(1)}%`} sub={`${m!.cancelledOrders} orders`}
-              icon={XCircle} color={BRAND.red} bg={`rgba(217,79,61,0.1)`} href="/admin/orders?status=cancelled" />
+        <div className="space-y-4">
+          {/* Stat cards */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatCard label="Total revenue" value={fmt(m.totalRevenue)} sub={`${m.paidOrders} paid orders`} href="/admin/orders?status=delivered" />
+            <StatCard label="Total orders" value={String(m.totalOrders)} sub={`${m.pendingOrders} pending`} href="/admin/orders" />
+            <StatCard label="Avg. order value" value={fmt(m.avgOrder)} />
+            <StatCard label="Best selling product" value={best ? best.name : "—"} sub={best ? `${fmt(best.revenue)} · ${best.units} sold` : undefined} href="/admin/products" />
           </div>
 
-          {/* Revenue Trend */}
-          <div className="rounded-xl p-5" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-            <h2 className="font-black text-sm uppercase tracking-widest mb-4" style={{ color: BRAND.black }}>Revenue Trend</h2>
+          {/* Revenue trend */}
+          <ChartCard title="Revenue over time">
             {data.revenueByDay.length === 0 ? (
-              <p className="text-sm text-center py-8" style={{ color: BRAND.muted }}>No paid orders in this period.</p>
+              <p className="text-admin text-ink-3 text-center py-8">No paid orders in this period.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={data.revenueByDay} margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={BRAND.border} />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false}
-                    tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} width={48} />
-                  <Tooltip
-                    formatter={(v) => [fmt(Number(v ?? 0)), "Revenue"]}
-                    contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }} />
-                  <Line type="monotone" dataKey="revenue" stroke={BRAND.teal} strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: BRAND.teal }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <>
+                <ResponsiveContainer width="100%" height={220}>
+                  <AreaChart data={data.revenueByDay} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--ink-3)" }}
+                      axisLine={{ stroke: "var(--line-strong)" }} tickLine={false} interval={xAxisInterval} />
+                    <YAxis tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--line-strong)" }}
+                      tickLine={false} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} width={48} />
+                    <Tooltip {...tooltipProps} formatter={v => [fmt(Number(v)), "Revenue"]} />
+                    <Area type="monotone" dataKey="revenue" stroke="var(--ink)" strokeWidth={2}
+                      fill="var(--ink)" fillOpacity={0.06} dot={false} activeDot={{ r: 4 }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </>
             )}
-          </div>
+          </ChartCard>
 
-          {/* Top Products + Status Pie */}
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Top Products */}
-            <div className="rounded-xl p-5" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <h2 className="font-black text-sm uppercase tracking-widest mb-4" style={{ color: BRAND.black }}>Top Products by Revenue</h2>
-              {data.topProducts.length === 0 ? (
-                <p className="text-sm text-center py-8" style={{ color: BRAND.muted }}>No data.</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={data.topProducts} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
-                    onClick={e => {
-                      const name = e?.activeLabel;
-                      const prod = data.topProducts.find(p => p.name === name);
-                      if (prod) setTopProductModal(prod);
-                    }}
-                    style={{ cursor: "pointer" }}>
-                    <XAxis type="number" tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false}
-                      tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} />
-                    <YAxis type="category" dataKey="name" tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false} width={120} />
-                    <Tooltip
-                      formatter={(v) => [fmt(Number(v ?? 0)), "Revenue"]}
-                      contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }}
-                      cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-                    <Bar dataKey="revenue" fill={BRAND.teal} radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-
-            {/* Orders by Status */}
-            <div className="rounded-xl p-5" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <h2 className="font-black text-sm uppercase tracking-widest mb-4" style={{ color: BRAND.black }}>Orders by Status</h2>
-              <p className="text-[11px] mb-2" style={{ color: BRAND.mutedLight }}>Click a slice to view those orders</p>
+          <div className="grid lg:grid-cols-2 gap-4">
+            {/* Orders by status */}
+            <ChartCard title="Orders by status">
               {data.byStatus.length === 0 ? (
-                <p className="text-sm text-center py-8" style={{ color: BRAND.muted }}>No data.</p>
+                <p className="text-admin text-ink-3 text-center py-8">No data.</p>
               ) : (
-                <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie data={data.byStatus} dataKey="count" nameKey="status" cx="50%" cy="50%"
-                      outerRadius={100} innerRadius={55} paddingAngle={2}
-                      label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
-                      labelLine={false}
-                      style={{ cursor: "pointer" }}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      onClick={(data: any) => {
-                        if (data?.status) router.push(`/admin/orders?status=${encodeURIComponent(String(data.status).toLowerCase())}`);
-                      }}>
-                      {data.byStatus.map((entry, i) => (
-                        <Cell key={entry.status} fill={STATUS_COLORS[entry.status] ?? PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(v, name) => [Number(v ?? 0) + " orders", String(name)]}
-                      contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }} />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, color: BRAND.muted }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </div>
-
-          {/* Payment Methods + Top Customers */}
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Payment Methods */}
-            <div className="rounded-xl p-5" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <h2 className="font-black text-sm uppercase tracking-widest mb-4" style={{ color: BRAND.black }}>Revenue by Payment Method</h2>
-              {data.byPayment.length === 0 ? (
-                <p className="text-sm text-center py-8" style={{ color: BRAND.muted }}>No data.</p>
-              ) : (
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={data.byPayment} margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
-                    onClick={e => {
-                      const item = data.byPayment.find(p => p.method === e?.activeLabel);
-                      if (item) setPaymentModal({ method: item.method, orders: item.orders });
-                    }}
-                    style={{ cursor: "pointer" }}>
-                    <XAxis dataKey="method" tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 10, fill: BRAND.muted }} tickLine={false} axisLine={false}
-                      tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} width={48} />
-                    <Tooltip
-                      formatter={(v) => [fmt(Number(v ?? 0)), "Revenue"]}
-                      contentStyle={{ background: BRAND.card, border: `1px solid ${BRAND.border}`, borderRadius: 8, fontSize: 12 }}
-                      cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-                    <Bar dataKey="revenue" fill="#6366F1" radius={[4, 4, 0, 0]}>
-                      {data.byPayment.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={data.byStatus} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+                    <XAxis dataKey="status" tick={{ fontSize: 11, fill: "var(--ink-3)" }}
+                      axisLine={{ stroke: "var(--line-strong)" }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--line-strong)" }} tickLine={false} allowDecimals={false} />
+                    <Tooltip {...tooltipProps} formatter={v => [`${v} orders`, ""]} cursor={{ fill: "var(--paper-2)" }} />
+                    <Bar dataKey="count" radius={[3, 3, 0, 0]} maxBarSize={40}>
+                      {data.byStatus.map((s, i) => <Cell key={s.status} fill={MONO[i % MONO.length]} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               )}
-            </div>
+            </ChartCard>
 
-            {/* Top Customers */}
-            <div className="rounded-xl overflow-hidden" style={{ background: BRAND.card, border: `1px solid ${BRAND.border}` }}>
-              <div className="px-5 py-4" style={{ borderBottom: `1px solid ${BRAND.border}` }}>
-                <h2 className="font-black text-sm uppercase tracking-widest" style={{ color: BRAND.black }}>Top Customers</h2>
-              </div>
-              {data.topCustomers.length === 0 ? (
-                <p className="text-sm text-center py-8" style={{ color: BRAND.muted }}>No data.</p>
+            {/* Sales by payment method */}
+            <ChartCard title="Sales by payment method">
+              {data.byPayment.length === 0 ? (
+                <p className="text-admin text-ink-3 text-center py-8">No data.</p>
               ) : (
-                <div>
-                  {data.topCustomers.map((c, i) => (
-                    <button key={c.email}
-                      onClick={() => setTopCustomerModal(c)}
-                      className="w-full flex items-center justify-between px-5 py-3 transition-colors hover:bg-black/[0.02] text-left"
-                      style={{ borderBottom: i < data.topCustomers.length - 1 ? `1px solid ${BRAND.border}` : "none" }}>
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0"
-                          style={{ background: `${BRAND.teal}15`, color: BRAND.teal }}>
-                          {i + 1}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate" style={{ color: BRAND.black }}>{c.name}</p>
-                          <p className="text-xs truncate" style={{ color: BRAND.muted }}>{c.email}</p>
-                        </div>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={data.byPayment} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
+                    <XAxis dataKey="method" tick={{ fontSize: 11, fill: "var(--ink-3)" }}
+                      axisLine={{ stroke: "var(--line-strong)" }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--line-strong)" }}
+                      tickLine={false} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} width={48} />
+                    <Tooltip {...tooltipProps} formatter={v => [fmt(Number(v)), "Revenue"]} cursor={{ fill: "var(--paper-2)" }} />
+                    <Bar dataKey="revenue" radius={[3, 3, 0, 0]} maxBarSize={40}>
+                      {data.byPayment.map((p, i) => <Cell key={p.method} fill={MONO[i % MONO.length]} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </ChartCard>
+          </div>
+
+          {/* Top products */}
+          <ChartCard title="Top products by revenue">
+            {data.topProducts.length === 0 ? (
+              <p className="text-admin text-ink-3 text-center py-8">No data.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={Math.max(160, data.topProducts.length * 32)}>
+                <BarChart data={data.topProducts} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--line-strong)" }}
+                    tickLine={false} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} />
+                  <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11, fill: "var(--ink-3)" }}
+                    axisLine={{ stroke: "var(--line-strong)" }} tickLine={false} />
+                  <Tooltip {...tooltipProps} formatter={v => [fmt(Number(v)), "Revenue"]} cursor={{ fill: "var(--paper-2)" }} />
+                  <Bar dataKey="revenue" fill="var(--ink)" radius={[0, 3, 3, 0]} maxBarSize={16} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          {/* Data table */}
+          <div className="bg-paper border border-line rounded-md overflow-hidden">
+            <div className="px-5 py-4 border-b border-line">
+              <p className="text-admin-title text-ink">Sales entries</p>
+            </div>
+            {sortedRows.length === 0 ? (
+              <p className="text-admin text-ink-3 text-center py-12">No paid orders in this period.</p>
+            ) : (
+              <>
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-paper-2 border-b border-line-strong">
+                        <th className="px-4 py-3 text-left"><SortHeader label="Order" sortField="order_number" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
+                        <th className="px-4 py-3 text-left"><SortHeader label="Customer" sortField="customer_name" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
+                        <th className="px-4 py-3 text-left"><SortHeader label="Payment" sortField="payment_method" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
+                        <th className="px-4 py-3 text-left"><SortHeader label="Total" sortField="total" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
+                        <th className="px-4 py-3 text-left"><SortHeader label="Status" sortField="status" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
+                        <th className="px-4 py-3 text-left"><SortHeader label="Date" sortField="created_at" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-line">
+                      {sortedRows.map(r => (
+                        <tr key={r.order_number}
+                          className="even:bg-paper-2 hover:bg-admin-row-hover transition-colors duration-admin-fast">
+                          <td className="px-4 py-3 text-admin-sm font-semibold text-ink">
+                            <Link href={`/admin/orders?q=${encodeURIComponent(r.order_number)}`} className="hover:text-ink-2">
+                              {r.order_number}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 text-admin-sm text-ink-2">{r.customer_name}</td>
+                          <td className="px-4 py-3 text-admin-sm text-ink-3 capitalize">{r.payment_method}</td>
+                          <td className="px-4 py-3 text-admin-sm font-semibold text-ink">{fmt(r.total)}</td>
+                          <td className="px-4 py-3 text-admin-sm text-ink-3 capitalize">{r.status}</td>
+                          <td className="px-4 py-3 text-admin-sm text-ink-3">
+                            {new Date(r.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="md:hidden divide-y divide-line">
+                  {sortedRows.map(r => (
+                    <Link key={r.order_number} href={`/admin/orders?q=${encodeURIComponent(r.order_number)}`}
+                      className="flex items-center justify-between gap-3 px-4 py-3.5">
+                      <div className="min-w-0">
+                        <p className="text-admin-sm font-semibold text-ink">{r.order_number}</p>
+                        <p className="text-admin-micro text-ink-3 mt-0.5 truncate">{r.customer_name} · {r.payment_method}</p>
                       </div>
-                      <div className="text-right shrink-0 ml-3">
-                        <p className="text-sm font-black" style={{ color: BRAND.black }}>{fmt(c.revenue)}</p>
-                        <p className="text-xs" style={{ color: BRAND.muted }}>{c.orders} order{c.orders !== 1 ? "s" : ""}</p>
+                      <div className="text-right shrink-0">
+                        <p className="text-admin-sm font-semibold text-ink">{fmt(r.total)}</p>
+                        <p className="text-admin-micro text-ink-3 capitalize">{r.status}</p>
                       </div>
-                    </button>
+                    </Link>
                   ))}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
         </div>
       )}

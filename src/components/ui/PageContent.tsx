@@ -1,4 +1,3 @@
-import { BRAND, FONTS } from "@/lib/constants";
 
 function renderInline(text: string): React.ReactNode {
   const parts: React.ReactNode[] = [];
@@ -23,13 +22,12 @@ function renderInline(text: string): React.ReactNode {
 export function PageContent({ text }: { text: string }) {
   const paragraphs = text.split("\n\n").filter(Boolean);
   return (
-    <div style={{ fontFamily: FONTS.body }}>
+    <div>
       {paragraphs.map((p, i) => {
         // H1 — big heading
         if (p.startsWith("# ")) {
           return (
-            <p key={i} className="mt-8 mb-3 first:mt-0"
-              style={{ fontSize: "1.5rem", fontWeight: 700, color: BRAND.black, letterSpacing: "0.01em", lineHeight: 1.3 }}>
+            <p key={i} className="text-display-s text-ink font-display font-medium mt-12 mb-4 first:mt-0">
               {renderInline(p.slice(2))}
             </p>
           );
@@ -38,8 +36,7 @@ export function PageContent({ text }: { text: string }) {
         // H3 — sub-heading (medium, precedes ## to avoid prefix collision)
         if (p.startsWith("### ")) {
           return (
-            <p key={i} className="mt-6 mb-2 first:mt-0"
-              style={{ fontSize: "1rem", fontWeight: 600, color: BRAND.black }}>
+            <p key={i} className="text-body text-ink font-medium mt-6 mb-2 first:mt-0">
               {renderInline(p.slice(4))}
             </p>
           );
@@ -48,14 +45,7 @@ export function PageContent({ text }: { text: string }) {
         // H2 — tiny uppercase section label (original ## behaviour)
         if (p.startsWith("## ")) {
           return (
-            <p key={i} className="mt-8 mb-2 first:mt-0"
-              style={{
-                fontSize: "0.65rem",
-                fontWeight: 600,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: BRAND.mutedLight,
-              }}>
+            <p key={i} className="text-display-s text-ink font-display font-medium mt-12 mb-4 first:mt-0">
               {p.slice(3)}
             </p>
           );
@@ -73,9 +63,8 @@ export function PageContent({ text }: { text: string }) {
           return (
             <ul key={i} className="space-y-2 mb-5">
               {lines.map((l, j) => (
-                <li key={j} className="flex gap-2 text-sm leading-relaxed"
-                  style={{ color: BRAND.muted, fontWeight: 400 }}>
-                  <span style={{ color: BRAND.teal, flexShrink: 0, lineHeight: "1.6" }}>–</span>
+                <li key={j} className="flex gap-2 text-body text-ink-2 leading-relaxed">
+                  <span className="text-ink-3" style={{ flexShrink: 0, lineHeight: "1.6" }}>–</span>
                   <span>{renderInline(l.replace(/^[•\-] /, ""))}</span>
                 </li>
               ))}
@@ -84,8 +73,7 @@ export function PageContent({ text }: { text: string }) {
         }
 
         return (
-          <p key={i} className="text-sm leading-relaxed mb-5"
-            style={{ color: BRAND.muted, fontWeight: 400, textAlign: align }}>
+          <p key={i} className="text-body text-ink-2 leading-relaxed mb-5" style={{ textAlign: align }}>
             {renderInline(content)}
           </p>
         );

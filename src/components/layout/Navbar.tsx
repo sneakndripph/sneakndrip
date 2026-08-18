@@ -4,23 +4,54 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
-import { BRAND, FONTS } from "@/lib/constants";
-import { ShoppingBag, Search, User, Menu, X, Heart, Bell } from "lucide-react";
+import { ShoppingBag, Search, User, Menu, X, Bell, Heart } from "lucide-react";
 
-const NAV_LINKS = [
-  { label: "Shop",        href: "/shop" },
-  { label: "New Arrivals", href: "/shop?filter=new" },
-  { label: "On Hand",     href: "/shop?filter=on-hand" },
-  { label: "Pre-Orders",  href: "/shop?filter=pre-order" },
-  { label: "Brands",      href: "/brands" },
-  { label: "About",       href: "/about" },
+const PRIMARY_LINKS = [
+  { label: "Shop", href: "/shop" },
+  { label: "New",  href: "/shop?filter=new" },
+  { label: "About", href: "/about" },
 ];
+
+const SECONDARY_LINKS = [
+  { label: "On Hand",    href: "/shop?filter=on-hand" },
+  { label: "Pre-Orders", href: "/shop?filter=pre-order" },
+  { label: "Brands",     href: "/brands" },
+  { label: "Wishlist",   href: "/wishlist" },
+];
+
+const EASE_SMOOTH = [0.16, 1, 0.3, 1] as const;
 
 type SearchProduct = {
   id: string; name: string; brand: string; slug: string;
-  images: string[] | null; bg: string | null; full_payment_price: number;
+  images: string[] | null; full_payment_price: number;
 };
+
+type NotifItem = {
+  id: string; title: string; message: string;
+  order_number: string | null; is_read: boolean; created_at: string;
+};
+
+function NotificationList({ notifications }: { notifications: NotifItem[] }) {
+  if (notifications.length === 0) {
+    return <p className="px-5 py-8 text-body-sm text-center text-ink-3">No notifications yet</p>;
+  }
+  return (
+    <div className="max-h-80 overflow-y-auto">
+      {notifications.map((n, i) => (
+        <div
+          key={n.id}
+          className={`px-5 py-3.5 ${i < notifications.length - 1 ? "border-b border-line" : ""} ${n.is_read ? "" : "bg-paper-2"}`}
+        >
+          <p className="text-body-sm font-medium mb-0.5 text-ink">{n.title}</p>
+          <p className="text-micro leading-relaxed text-ink-3">{n.message}</p>
+          {n.order_number && <p className="text-eyebrow mt-1.5 text-ink-3">{n.order_number}</p>}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Navbar() {
   const router = useRouter();
@@ -31,19 +62,18 @@ export default function Navbar() {
   const [mounted, setMounted]       = useState(false);
   const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
   const [showResults, setShowResults]     = useState(false);
-  const [notifications, setNotifications] = useState<{
-    id: string; title: string; message: string;
-    order_number: string | null; is_read: boolean; created_at: string;
-  }[]>([]);
+  const [notifications, setNotifications] = useState<NotifItem[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  const itemCount    = useCartStore(s => s.itemCount());
+  const itemCount      = useCartStore(s => s.itemCount());
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchBoxRef   = useRef<HTMLDivElement>(null);
   const notifRef       = useRef<HTMLDivElement>(null);
+  const drawerRef      = useRef<HTMLDivElement>(null);
+  const closeBtnRef    = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
     const handler = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
@@ -66,7 +96,9 @@ export default function Navbar() {
 
   useEffect(() => {
     if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50);
-    if (!searchOpen) { setSearchResults([]); setShowResults(false); setSearchQuery(""); }
+    if (!searchOpen) {
+      queueMicrotask(() => { setSearchResults([]); setShowResults(false); setSearchQuery(""); });
+    }
   }, [searchOpen]);
 
   useEffect(() => {
@@ -79,7 +111,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const q = searchQuery.trim();
-    if (!q) { setSearchResults([]); setShowResults(false); return; }
+    if (!q) { queueMicrotask(() => { setSearchResults([]); setShowResults(false); }); return; }
     let cancelled = false;
     fetch(`/api/search?q=${encodeURIComponent(q)}`)
       .then(res => res.ok ? res.json() as Promise<{ products: SearchProduct[] }> : null)
@@ -89,6 +121,30 @@ export default function Navbar() {
       .catch(() => {});
     return () => { cancelled = true; };
   }, [searchQuery]);
+
+  // Body scroll lock while the mobile drawer is open
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [menuOpen]);
+
+  // Focus trap for the mobile drawer
+  useEffect(() => {
+    if (!menuOpen) return;
+    closeBtnRef.current?.focus();
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { setMenuOpen(false); return; }
+      if (e.key !== "Tab" || !drawerRef.current) return;
+      const focusable = drawerRef.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled])");
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [menuOpen]);
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -121,371 +177,291 @@ export default function Navbar() {
     }
   }
 
+  const focusRing = "focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2";
+  const wordmark = "font-display font-semibold text-[15px] tracking-[-0.01em] text-ink";
+
   return (
-    <nav
-      className="sticky top-0 z-50"
-      style={{
-        background: scrolled ? "rgba(242,240,239,0.97)" : "rgba(242,240,239,0.96)",
-        backdropFilter: "blur(16px)",
-        borderBottom: `1px solid ${BRAND.border}`,
-        boxShadow: scrolled ? "var(--shadow-sm)" : "none",
-        fontFamily: FONTS.body,
-        transition: "box-shadow 0.3s var(--ease-out)",
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-        <div className="flex items-center justify-between h-16">
+    <header className={`sticky top-0 z-50 bg-paper border-b transition-colors duration-fast ${scrolled ? "border-line-strong" : "border-line"}`}>
+      <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
+        <div className="grid grid-cols-3 items-center h-14 md:flex md:items-center md:justify-between md:h-16">
+          {/* Left */}
+          <div className="flex items-center">
+            <button
+              onClick={() => setMenuOpen(true)}
+              className={`md:hidden w-11 h-11 -ml-2 flex items-center justify-center text-ink ${focusRing}`}
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <Link href="/" prefetch={false} className={`hidden md:block ${wordmark} ${focusRing}`}>
+              SNEAK N&apos; DRIP
+            </Link>
+          </div>
 
-          {/* Logo */}
-          <Link href="/" prefetch={false} className="shrink-0">
-            <Image
-              src="/sneakndrip-logo.gif"
-              alt="Sneak N' Drip"
-              width={120}
-              height={48}
-              className="object-contain"
-              priority
-            />
-          </Link>
+          {/* Mobile wordmark — centered */}
+          <div className="flex justify-center md:hidden">
+            <Link href="/" prefetch={false} className={`${wordmark} ${focusRing}`}>
+              SNEAK N&apos; DRIP
+            </Link>
+          </div>
 
-          {/* Desktop Links */}
-          <div className="hidden lg:flex items-center gap-7">
-            {NAV_LINKS.map(l => (
+          {/* Desktop primary nav — centered */}
+          <nav className="hidden md:flex items-center justify-center gap-8" aria-label="Primary">
+            {PRIMARY_LINKS.map(l => (
               <Link
                 key={l.href}
                 href={l.href}
-                className="text-sm font-medium transition-colors"
-                style={{ color: BRAND.muted }}
-                onMouseEnter={e => (e.currentTarget.style.color = BRAND.black)}
-                onMouseLeave={e => (e.currentTarget.style.color = BRAND.muted)}
+                className={`group/link relative text-body-sm text-ink hover:text-ink-3 transition-colors duration-fast ${focusRing}`}
               >
                 {l.label}
+                <span className="absolute left-0 -bottom-1 h-px w-0 bg-line-strong transition-all duration-150 group-hover/link:w-full" />
               </Link>
             ))}
-          </div>
+          </nav>
 
-          {/* Action icons */}
-          <div className="flex items-center gap-1">
+          {/* Right — icons */}
+          <div className="flex items-center justify-end gap-0.5 md:gap-1">
             <button
               onClick={() => setSearchOpen(o => !o)}
-              className="p-2.5 transition-opacity hover:opacity-60"
-              style={{ color: searchOpen ? BRAND.teal : BRAND.muted }}
-              aria-label="Search"
+              className={`w-11 h-11 flex items-center justify-center transition-colors ${searchOpen ? "text-ink" : "text-ink-3 hover:text-ink"} ${focusRing}`}
+              aria-label={searchOpen ? "Close search" : "Search"}
             >
-              {searchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
+              {searchOpen ? <X className="w-[18px] h-[18px]" /> : <Search className="w-[18px] h-[18px]" />}
             </button>
 
-            <Link
-              href="/account"
-              className="p-2.5 transition-opacity hover:opacity-60"
-              style={{ color: BRAND.muted }}
-              aria-label="Account"
-            >
-              <User className="w-4 h-4" />
-            </Link>
-
-            {/* Notifications */}
-            <div className="relative" ref={notifRef}>
+            {/* Notifications — desktop only */}
+            <div className="hidden md:block relative" ref={notifRef}>
               <button
                 onClick={openNotifications}
-                className="relative p-2.5 transition-opacity hover:opacity-60"
-                style={{ color: notifOpen ? BRAND.teal : BRAND.muted }}
-                aria-label="Notifications"
+                className={`relative w-11 h-11 flex items-center justify-center transition-colors ${notifOpen ? "text-ink" : "text-ink-3 hover:text-ink"} ${focusRing}`}
+                aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
               >
-                <Bell className="w-4 h-4" />
+                <Bell className="w-[18px] h-[18px]" />
                 {mounted && unreadCount > 0 && (
-                  <span
-                    className="absolute top-1 right-1 text-white flex items-center justify-center font-black"
-                    style={{
-                      background: BRAND.red,
-                      fontSize: "9px",
-                      width: "14px",
-                      height: "14px",
-                      lineHeight: 1,
-                    }}
-                  >
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
+                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-state-error" />
                 )}
               </button>
 
-              {notifOpen && (
-                <div
-                  className="absolute right-0 top-full mt-2 w-80 z-[60] overflow-hidden animate-slide-down"
-                  style={{
-                    background: BRAND.card,
-                    border: `1px solid ${BRAND.border}`,
-                    boxShadow: "var(--shadow-lg)",
-                  }}
-                >
-                  <div
-                    className="px-5 py-3.5"
-                    style={{ borderBottom: `1px solid ${BRAND.border}` }}
+              <AnimatePresence>
+                {notifOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-80 z-[60] overflow-hidden rounded-md bg-paper border border-line shadow-[var(--shadow-lg)]"
                   >
-                    <p
-                      className="snd-label"
-                      style={{ color: BRAND.black }}
-                    >
-                      Notifications
-                    </p>
-                  </div>
-
-                  {notifications.length === 0 ? (
-                    <p className="px-5 py-8 text-sm text-center" style={{ color: BRAND.muted }}>
-                      No notifications yet
-                    </p>
-                  ) : (
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.map((n, i) => (
-                        <div
-                          key={n.id}
-                          className="px-5 py-3.5"
-                          style={{
-                            borderBottom: i < notifications.length - 1 ? `1px solid ${BRAND.border}` : "none",
-                            background: n.is_read ? "transparent" : `${BRAND.teal}06`,
-                          }}
-                        >
-                          <p className="text-xs font-bold mb-0.5" style={{ color: BRAND.black }}>
-                            {n.title}
-                          </p>
-                          <p className="text-xs leading-relaxed" style={{ color: BRAND.muted }}>
-                            {n.message}
-                          </p>
-                          {n.order_number && (
-                            <p
-                              className="snd-label mt-1.5"
-                              style={{ color: BRAND.teal, fontFamily: FONTS.body }}
-                            >
-                              {n.order_number}
-                            </p>
-                          )}
-                        </div>
-                      ))}
+                    <div className="px-5 py-3.5 border-b border-line">
+                      <p className="text-eyebrow text-ink-3">Notifications</p>
                     </div>
-                  )}
-
-                  <div
-                    className="px-5 py-3"
-                    style={{ borderTop: `1px solid ${BRAND.border}` }}
-                  >
-                    <Link
-                      href="/account"
-                      onClick={() => setNotifOpen(false)}
-                      className="text-xs font-bold block text-center transition-opacity hover:opacity-70"
-                      style={{ color: BRAND.teal }}
-                    >
-                      View Orders →
-                    </Link>
-                  </div>
-                </div>
-              )}
+                    <NotificationList notifications={notifications} />
+                    <div className="px-5 py-3 border-t border-line">
+                      <Link
+                        href="/account"
+                        onClick={() => setNotifOpen(false)}
+                        className={`text-body-sm font-medium block text-center text-ink hover:text-ink-3 transition-colors ${focusRing}`}
+                      >
+                        View Orders →
+                      </Link>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <Link
               href="/wishlist"
-              className="p-2.5 transition-opacity hover:opacity-60"
-              style={{ color: BRAND.muted }}
+              className={`hidden md:inline-flex w-11 h-11 items-center justify-center text-ink hover:text-ink-3 transition-colors ${focusRing}`}
               aria-label="Wishlist"
             >
-              <Heart className="w-4 h-4" />
+              <Heart className="w-5 h-5" />
+            </Link>
+
+            <Link
+              href="/account"
+              className={`hidden md:inline-flex w-11 h-11 items-center justify-center text-ink hover:text-ink-3 transition-colors ${focusRing}`}
+              aria-label="Account"
+            >
+              <User className="w-5 h-5" />
             </Link>
 
             <Link
               href="/cart"
-              className="relative p-2.5 transition-opacity hover:opacity-70"
-              style={{ color: BRAND.black }}
-              aria-label="Cart"
+              className={`relative w-11 h-11 flex items-center justify-center text-ink ${focusRing}`}
+              aria-label={mounted && itemCount > 0 ? `Cart, ${itemCount} items` : "Cart"}
             >
               <ShoppingBag className="w-5 h-5" />
               {mounted && itemCount > 0 && (
-                <span
-                  className="absolute top-1 right-0.5 text-white flex items-center justify-center font-black"
-                  style={{
-                    background: BRAND.teal,
-                    fontSize: "9px",
-                    width: "14px",
-                    height: "14px",
-                    lineHeight: 1,
-                  }}
-                >
+                <span className="absolute top-1.5 right-1.5 bg-ink text-paper rounded-full text-[10px] w-4 h-4 flex items-center justify-center leading-none">
                   {itemCount > 9 ? "9+" : itemCount}
                 </span>
               )}
             </Link>
-
-            <button
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="lg:hidden p-2.5 ml-1"
-              style={{ color: BRAND.black }}
-              aria-label={menuOpen ? "Close menu" : "Open menu"}
-            >
-              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
           </div>
         </div>
       </div>
 
-      {/* Search bar */}
-      {searchOpen && (
-        <div
-          className="animate-slide-down"
-          style={{
-            borderTop: `1px solid ${BRAND.border}`,
-            background: BRAND.bg,
-          }}
-        >
-          <form
-            onSubmit={handleSearch}
-            className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-4 flex gap-3"
+      {/* Search overlay */}
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: EASE_SMOOTH }}
+            className="overflow-hidden border-b border-line bg-paper"
           >
-            <div className="relative flex-1" ref={searchBoxRef}>
-              <Search
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4"
-                style={{ color: BRAND.muted }}
-              />
-              <input
-                ref={searchInputRef}
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search sneakers, brands…"
-                className="w-full pl-11 pr-4 py-3 text-sm focus:outline-none"
-                style={{
-                  background: BRAND.card,
-                  border: `1px solid ${BRAND.border}`,
-                  color: BRAND.black,
-                  fontFamily: FONTS.body,
-                }}
-                onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
-              />
+            <form onSubmit={handleSearch} className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-3 md:py-4 flex gap-2 md:gap-3">
+              <div className="relative flex-1" ref={searchBoxRef}>
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
+                <input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search sneakers, brands…"
+                  aria-label="Search sneakers and brands"
+                  className={`w-full pl-10 pr-4 py-2.5 md:py-3 text-body-sm bg-paper-2 border border-line rounded-sm text-ink placeholder:text-ink-3 focus:outline-none ${focusRing}`}
+                  onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
+                />
 
-              {/* Live results */}
-              {showResults && (
-                <div
-                  className="absolute top-full left-0 right-0 mt-1 z-[60] overflow-hidden animate-slide-down"
-                  style={{
-                    background: BRAND.card,
-                    border: `1px solid ${BRAND.border}`,
-                    boxShadow: "var(--shadow-lg)",
-                  }}
-                >
-                  {searchResults.length === 0 ? (
-                    <p className="px-5 py-3.5 text-sm" style={{ color: BRAND.muted }}>
-                      No results for &ldquo;{searchQuery}&rdquo;
-                    </p>
-                  ) : (
-                    <>
-                      {searchResults.map((p, i) => (
-                        <Link
-                          key={p.id}
-                          href={`/shop/${p.slug}`}
-                          onClick={closeSearch}
-                          className="flex items-center gap-3.5 px-5 py-3 transition-opacity hover:opacity-75"
-                          style={{
-                            borderBottom: i < searchResults.length - 1 ? `1px solid ${BRAND.border}` : "none",
-                          }}
-                        >
-                          <div
-                            className="w-10 h-10 shrink-0 overflow-hidden relative"
-                            style={{ background: p.bg || "#EDE9E3" }}
+                {showResults && (
+                  <div className="absolute top-full left-0 right-0 mt-1 z-[60] overflow-hidden rounded-md bg-paper border border-line shadow-[var(--shadow-lg)]">
+                    {searchResults.length === 0 ? (
+                      <p className="px-4 py-3.5 text-body-sm text-ink-3">
+                        No results for &ldquo;{searchQuery}&rdquo;
+                      </p>
+                    ) : (
+                      <>
+                        {searchResults.map((p, i) => (
+                          <Link
+                            key={p.id}
+                            href={`/shop/${p.slug}`}
+                            onClick={closeSearch}
+                            className={`flex items-center gap-3 px-4 py-3 hover:bg-paper-2 transition-colors ${i < searchResults.length - 1 ? "border-b border-line" : ""}`}
                           >
-                            {p.images?.[0] && (
-                              <Image
-                                src={p.images[0]}
-                                alt={p.name}
-                                fill
-                                className="object-cover"
-                                sizes="40px"
-                              />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className="text-sm font-semibold truncate"
-                              style={{ color: BRAND.black }}
-                            >
-                              {p.name}
-                            </p>
-                            <p className="text-xs" style={{ color: BRAND.muted }}>
-                              {p.brand} &nbsp;·&nbsp; ₱{p.full_payment_price.toLocaleString()}
-                            </p>
-                          </div>
-                        </Link>
-                      ))}
-                      <button
-                        type="submit"
-                        className="w-full text-xs font-bold px-5 py-3 text-center transition-opacity hover:opacity-70"
-                        style={{
-                          color: BRAND.teal,
-                          borderTop: `1px solid ${BRAND.border}`,
-                        }}
-                      >
-                        See all results for &ldquo;{searchQuery}&rdquo; →
-                      </button>
-                    </>
-                  )}
+                            <div className="w-10 h-10 shrink-0 overflow-hidden relative rounded-sm bg-paper-2">
+                              {p.images?.[0] && (
+                                <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="40px" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-body-sm font-medium truncate text-ink">{p.name}</p>
+                              <p className="text-micro text-ink-3">
+                                {p.brand} · ₱{p.full_payment_price.toLocaleString()}
+                              </p>
+                            </div>
+                          </Link>
+                        ))}
+                        <button
+                          type="submit"
+                          className="w-full text-body-sm font-medium px-4 py-3 text-center text-ink hover:text-ink-3 transition-colors border-t border-line"
+                        >
+                          See all results for &ldquo;{searchQuery}&rdquo; →
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className={`hidden md:block px-6 py-3 text-body-sm font-medium bg-ink text-paper hover:bg-ink-2 transition-colors rounded-sm ${focusRing}`}
+              >
+                Search
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile drawer */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
+            transition={{ duration: 0.28, ease: EASE_SMOOTH }}
+            className="fixed inset-0 z-[70] bg-paper md:hidden flex flex-col"
+          >
+            <div className="flex items-center justify-between h-14 px-4 border-b border-line shrink-0">
+              <span className={wordmark}>SNEAK N&apos; DRIP</span>
+              <button
+                ref={closeBtnRef}
+                onClick={() => setMenuOpen(false)}
+                className={`w-11 h-11 -mr-2 flex items-center justify-center text-ink ${focusRing}`}
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-8">
+              <div className="flex flex-col gap-1">
+                {PRIMARY_LINKS.map(l => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={() => setMenuOpen(false)}
+                    className={`text-display-s font-display text-ink py-2 ${focusRing}`}
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+
+              <div className="flex flex-col gap-0.5 mt-8 pt-8 border-t border-line">
+                {SECONDARY_LINKS.map(l => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    onClick={() => setMenuOpen(false)}
+                    className={`text-body-sm text-ink-2 py-2.5 ${focusRing}`}
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+
+              {notifOpen && (
+                <div className="mt-8 pt-8 border-t border-line">
+                  <p className="text-eyebrow text-ink-3 mb-2">Notifications</p>
+                  <NotificationList notifications={notifications} />
                 </div>
               )}
             </div>
 
-            <button
-              type="submit"
-              className="px-7 py-3 text-sm font-black uppercase tracking-widest transition-opacity hover:opacity-80"
-              style={{ background: BRAND.black, color: BRAND.bg }}
-            >
-              Search
-            </button>
-          </form>
-        </div>
-      )}
-
-      {/* Mobile menu */}
-      {menuOpen && (
-        <div
-          className="lg:hidden animate-slide-down"
-          style={{
-            borderTop: `1px solid ${BRAND.border}`,
-            background: BRAND.bg,
-          }}
-        >
-          <div className="px-6 py-5">
-            {NAV_LINKS.map((l, i) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                onClick={() => setMenuOpen(false)}
-                className="block py-3.5 text-sm font-medium"
-                style={{
-                  color: BRAND.muted,
-                  borderBottom: i < NAV_LINKS.length - 1 ? `1px solid ${BRAND.border}` : "none",
-                }}
+            <div className="border-t border-line px-6 py-4 flex items-center justify-between shrink-0">
+              <button
+                onClick={openNotifications}
+                className={`relative flex items-center gap-2 text-body-sm text-ink ${focusRing}`}
+                aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
               >
-                {l.label}
-              </Link>
-            ))}
-            <div className="flex gap-3 pt-6">
+                <Bell className="w-[18px] h-[18px]" />
+                Notifications
+                {mounted && unreadCount > 0 && (
+                  <span className="bg-ink text-paper rounded-full text-[10px] w-4 h-4 flex items-center justify-center leading-none">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
               <Link
                 href="/account"
                 onClick={() => setMenuOpen(false)}
-                className="flex-1 py-3.5 text-center text-sm font-bold uppercase tracking-wider transition-opacity hover:opacity-80"
-                style={{
-                  border: `1.5px solid ${BRAND.border}`,
-                  color: BRAND.black,
-                }}
+                className={`flex items-center gap-2 text-body-sm text-ink ${focusRing}`}
               >
+                <User className="w-[18px] h-[18px]" />
                 Account
               </Link>
-              <Link
-                href="/cart"
-                onClick={() => setMenuOpen(false)}
-                className="flex-1 py-3.5 text-center text-sm font-bold uppercase tracking-wider text-white transition-opacity hover:opacity-90"
-                style={{ background: BRAND.teal }}
-              >
-                Cart {mounted && itemCount > 0 && `(${itemCount})`}
-              </Link>
             </div>
-          </div>
-        </div>
-      )}
-    </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
   );
 }

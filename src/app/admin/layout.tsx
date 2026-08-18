@@ -1,20 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, Users, Settings, Menu, X, LogOut,
-  MessageSquare, MessageCircle, UserCog, FileText, Tag, BarChart2, History,
+  Star, MessageCircle, UserCog, FileText, Tag, Warehouse, Activity,
   TrendingUp, RotateCcw,
 } from "lucide-react";
-import { BRAND, FONTS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
+import EnvStatusBanner from "@/components/admin/EnvStatusBanner";
 
-type NotifCounts = { pendingOrders: number; pendingReviews: number; pendingReturns: number; lowStock: number };
-type BadgeKey = "pendingOrders" | "pendingReviews" | "pendingReturns" | "lowStock";
+type NotifCounts = { pendingOrders: number; pendingReviews: number; pendingReturns: number; lowStock: number; unreadChats: number };
+type BadgeKey = keyof NotifCounts;
 type NavItem = { href: string; icon: React.ElementType; label: string; badgeKey: BadgeKey | null };
 
 const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
@@ -30,20 +28,20 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
   {
     label: "Growth",
     items: [
-      { href: "/admin/sales",     icon: TrendingUp,    label: "Sales",     badgeKey: null },
-      { href: "/admin/coupons",   icon: Tag,           label: "Marketing", badgeKey: null },
-      { href: "/admin/inventory", icon: BarChart2,     label: "Inventory", badgeKey: "lowStock" as BadgeKey },
-      { href: "/admin/reviews",   icon: MessageSquare, label: "Reviews",   badgeKey: "pendingReviews" },
-      { href: "/admin/returns",   icon: RotateCcw,     label: "Returns",   badgeKey: "pendingReturns" as BadgeKey },
+      { href: "/admin/sales",     icon: TrendingUp, label: "Sales",     badgeKey: null },
+      { href: "/admin/coupons",   icon: Tag,         label: "Marketing", badgeKey: null },
+      { href: "/admin/inventory", icon: Warehouse,   label: "Inventory", badgeKey: "lowStock" },
+      { href: "/admin/reviews",   icon: Star,        label: "Reviews",   badgeKey: "pendingReviews" },
+      { href: "/admin/returns",   icon: RotateCcw,   label: "Returns",   badgeKey: "pendingReturns" },
     ],
   },
   {
     label: "System",
     items: [
-      { href: "/admin/chat",     icon: MessageCircle, label: "Chat",     badgeKey: null },
+      { href: "/admin/chat",     icon: MessageCircle, label: "Chat",     badgeKey: "unreadChats" },
       { href: "/admin/content",  icon: FileText,      label: "Pages",    badgeKey: null },
       { href: "/admin/users",    icon: UserCog,       label: "Users",    badgeKey: null },
-      { href: "/admin/activity", icon: History,       label: "Activity", badgeKey: null },
+      { href: "/admin/activity", icon: Activity,      label: "Activity", badgeKey: null },
       { href: "/admin/settings", icon: Settings,      label: "Settings", badgeKey: null },
     ],
   },
@@ -52,12 +50,9 @@ const NAV_SECTIONS: { label: string | null; items: NavItem[] }[] = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-
-  if (pathname === "/admin/login") return <>{children}</>;
-
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [notifs, setNotifs] = useState<NotifCounts>({
-    pendingOrders: 0, pendingReviews: 0, pendingReturns: 0, lowStock: 0,
+    pendingOrders: 0, pendingReviews: 0, pendingReturns: 0, lowStock: 0, unreadChats: 0,
   });
 
   useEffect(() => {
@@ -69,6 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           pendingReviews: d.pendingReviews ?? 0,
           pendingReturns: d.pendingReturns ?? 0,
           lowStock:       d.lowStock       ?? 0,
+          unreadChats:    d.unreadChats    ?? 0,
         }))
         .catch(() => {});
     }
@@ -79,9 +75,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "reviews" }, load)
       .on("postgres_changes", { event: "*", schema: "public", table: "return_requests" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, load)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = drawerOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [drawerOpen]);
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -89,193 +91,124 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push("/login");
   }
 
+  if (pathname === "/admin/login") return <>{children}</>;
+
   const totalAlerts = notifs.pendingOrders + notifs.pendingReviews + notifs.pendingReturns;
 
-  const Sidebar = () => (
-    <aside
-      className="flex flex-col h-full"
-      style={{
-        background: "#111111",
-        borderRight: "1px solid rgba(255,255,255,0.05)",
-      }}
-    >
-      {/* Logo */}
-      <div
-        className="px-5 h-14 flex items-center gap-3 shrink-0"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+  function renderNavLink(item: NavItem) {
+    const Icon = item.icon;
+    const active = pathname === item.href;
+    const count = item.badgeKey ? notifs[item.badgeKey] : 0;
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={() => setDrawerOpen(false)}
+        className={`flex items-center gap-3 px-4 py-2.5 text-admin-sm transition-colors duration-admin-fast relative ${
+          active
+            ? "bg-admin-sidebar-active text-admin-sidebar-fg before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:bg-admin-sidebar-fg"
+            : "text-admin-sidebar-fg-muted hover:bg-admin-sidebar-hover hover:text-admin-sidebar-fg"
+        }`}
       >
-        <div style={{ background: BRAND.bg, padding: "3px 6px" }}>
-          <Image
-            src="/sneakndrip-logo.gif"
-            alt="SND"
-            width={68}
-            height={26}
-            className="object-contain"
-          />
-        </div>
-        <span
-          className="snd-label"
-          style={{ color: "rgba(255,255,255,0.25)", fontFamily: FONTS.body }}
-        >
-          Admin
-        </span>
-      </div>
+        <Icon size={16} strokeWidth={1.75} />
+        <span className="flex-1">{item.label}</span>
+        {count > 0 && (
+          <span className="bg-state-error text-paper text-[10px] rounded-full min-w-[16px] h-4 px-1.5 flex items-center justify-center">
+            {count > 99 ? "99+" : count}
+          </span>
+        )}
+      </Link>
+    );
+  }
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+  function renderNavSections() {
+    return (
+      <nav className="flex-1 overflow-y-auto pb-4">
         {NAV_SECTIONS.map((section, si) => (
-          <div key={si} className={si > 0 ? "mt-6" : ""}>
+          <div key={si}>
             {section.label && (
-              <p
-                className="snd-label px-2 mb-2"
-                style={{ color: "rgba(255,255,255,0.2)", fontFamily: FONTS.body }}
-              >
-                {section.label}
-              </p>
+              <p className="text-admin-eyebrow text-admin-sidebar-fg-muted px-4 pt-6 pb-2">{section.label}</p>
             )}
-            <div className="space-y-px">
-              {section.items.map(item => {
-                const Icon = item.icon;
-                const active = pathname === item.href;
-                const count = item.badgeKey ? notifs[item.badgeKey] : 0;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className="flex items-center justify-between px-3 py-2 text-sm transition-all"
-                    style={{
-                      color: active ? "#fff" : "rgba(255,255,255,0.38)",
-                      background: active ? "rgba(255,255,255,0.07)" : "transparent",
-                      borderLeft: active ? `2px solid ${BRAND.teal}` : "2px solid transparent",
-                    }}
-                    onMouseEnter={e => {
-                      if (!active) e.currentTarget.style.color = "rgba(255,255,255,0.7)";
-                    }}
-                    onMouseLeave={e => {
-                      if (!active) e.currentTarget.style.color = "rgba(255,255,255,0.38)";
-                    }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Icon
-                        className="w-[14px] h-[14px] shrink-0"
-                        style={{ opacity: active ? 1 : 0.6 }}
-                      />
-                      <span className="font-medium text-[13px]">{item.label}</span>
-                    </div>
-                    {count > 0 && (
-                      <span
-                        className="font-black text-white"
-                        style={{
-                          fontSize: "9px",
-                          padding: "2px 5px",
-                          background: item.badgeKey === "lowStock" ? "#D97706" : BRAND.red,
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        {count > 99 ? "99+" : count}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </div>
+            {section.items.map(renderNavLink)}
           </div>
         ))}
       </nav>
-
-      {/* Bottom */}
-      <div
-        className="px-3 py-3 shrink-0"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
-      >
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-2.5 px-3 py-2 w-full text-[13px] transition-colors"
-          style={{ color: "rgba(255,255,255,0.25)" }}
-          onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.6)")}
-          onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          Sign Out
-        </button>
-      </div>
-    </aside>
-  );
+    );
+  }
 
   return (
-    <div
-      className="min-h-screen flex"
-      style={{ fontFamily: FONTS.body, background: "#F5F3F1" }}
-    >
+    <div className="min-h-screen bg-paper">
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex flex-col w-52 shrink-0 h-screen sticky top-0">
-        <Sidebar />
+      <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-56 bg-admin-sidebar-bg">
+        <div className="px-4 pt-6 pb-4">
+          <p className="text-admin-eyebrow tracking-[0.14em] text-admin-sidebar-fg">SNEAK N&apos; DRIP · ADMIN</p>
+        </div>
+        {renderNavSections()}
+        <div className="p-4 border-t border-white/5">
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-2 text-admin-sm text-admin-sidebar-fg-muted hover:text-admin-sidebar-fg transition-colors duration-admin-fast"
+          >
+            <LogOut size={16} strokeWidth={1.75} />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* Mobile topbar */}
+      <div className="lg:hidden fixed top-0 inset-x-0 z-40 h-12 bg-paper border-b border-line flex items-center justify-between px-4">
+        <button onClick={() => setDrawerOpen(true)} aria-label="Open menu" className="text-ink">
+          <Menu size={20} strokeWidth={1.75} />
+        </button>
+        <span className="text-admin-eyebrow text-ink">ADMIN</span>
+        {totalAlerts > 0 ? (
+          <Link
+            href="/admin/orders?status=pending"
+            className="text-[10px] font-bold rounded-full bg-state-error text-paper min-w-[18px] h-[18px] px-1.5 flex items-center justify-center"
+          >
+            {totalAlerts > 99 ? "99+" : totalAlerts}
+          </Link>
+        ) : (
+          <span className="w-5" />
+        )}
       </div>
 
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div
-            className="absolute inset-0 bg-black/60 animate-fade-in"
-            onClick={() => setSidebarOpen(false)}
-          />
-          <div className="absolute left-0 top-0 bottom-0 w-52 animate-slide-up">
-            <Sidebar />
-          </div>
-        </div>
-      )}
+      {/* Mobile drawer backdrop */}
+      <div
+        className={`lg:hidden fixed inset-0 z-50 bg-ink/60 transition-opacity duration-admin-base ${
+          drawerOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={() => setDrawerOpen(false)}
+      />
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Mobile topbar */}
-        <div
-          className="lg:hidden flex items-center justify-between px-5 h-14 sticky top-0 z-40"
-          style={{
-            background: "#111111",
-            borderBottom: "1px solid rgba(255,255,255,0.06)",
-          }}
-        >
-          <button
-            onClick={() => setSidebarOpen(true)}
-            style={{ color: "rgba(255,255,255,0.5)" }}
-          >
-            <Menu className="w-5 h-5" />
+      {/* Mobile drawer */}
+      <aside
+        className={`lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-admin-sidebar-bg flex flex-col transition-transform duration-admin-base ease-smooth ${
+          drawerOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="px-4 pt-6 pb-4 flex items-center justify-between">
+          <p className="text-admin-eyebrow tracking-[0.14em] text-admin-sidebar-fg">SNEAK N&apos; DRIP · ADMIN</p>
+          <button onClick={() => setDrawerOpen(false)} aria-label="Close menu" className="text-admin-sidebar-fg">
+            <X size={18} strokeWidth={1.75} />
           </button>
-          <span
-            style={{
-              fontFamily: FONTS.display,
-              fontSize: "1.1rem",
-              color: "#fff",
-              letterSpacing: "0.1em",
-            }}
-          >
-            ADMIN
-          </span>
-          <div className="flex items-center gap-2">
-            {totalAlerts > 0 && (
-              <Link
-                href="/admin/orders?status=pending"
-                className="snd-label px-2.5 py-1"
-                style={{
-                  background: `${BRAND.red}18`,
-                  color: BRAND.red,
-                  fontFamily: FONTS.body,
-                }}
-              >
-                {totalAlerts} pending
-              </Link>
-            )}
-            {sidebarOpen ? (
-              <button onClick={() => setSidebarOpen(false)} style={{ color: "rgba(255,255,255,0.5)" }}>
-                <X className="w-5 h-5" />
-              </button>
-            ) : null}
-          </div>
         </div>
+        {renderNavSections()}
+        <div className="p-4 border-t border-white/5">
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-2 text-admin-sm text-admin-sidebar-fg-muted hover:text-admin-sidebar-fg transition-colors duration-admin-fast"
+          >
+            <LogOut size={16} strokeWidth={1.75} />
+            Sign Out
+          </button>
+        </div>
+      </aside>
 
-        {/* Page content */}
-        <div className="flex-1 p-5 sm:p-6 lg:p-8">
+      {/* Content */}
+      <div className="lg:ml-56 pt-12 lg:pt-0 min-h-screen bg-paper">
+        <div className="p-6 md:p-8">
+          <EnvStatusBanner />
           {children}
         </div>
       </div>
