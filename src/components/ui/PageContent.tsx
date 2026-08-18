@@ -28,7 +28,7 @@ export function PageContent({ text }: { text: string }) {
         // H1 — big heading
         if (p.startsWith("# ")) {
           return (
-            <p key={i} className="text-display-s text-ink font-display font-medium mt-12 mb-4 first:mt-0">
+            <p key={i} className="text-display text-ink font-display leading-tight tracking-[-0.03em] mt-12 mb-4 first:mt-0">
               {renderInline(p.slice(2))}
             </p>
           );
