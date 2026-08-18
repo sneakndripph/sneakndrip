@@ -20,7 +20,8 @@ function renderInline(text: string): React.ReactNode {
 }
 
 export function PageContent({ text }: { text: string }) {
-  const paragraphs = text.split("\n\n").filter(Boolean);
+  const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const paragraphs = normalized.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
   return (
     <div>
       {paragraphs.map((p, i) => {
