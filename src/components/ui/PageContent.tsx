@@ -21,7 +21,10 @@ function renderInline(text: string): React.ReactNode {
 
 export function PageContent({ text }: { text: string }) {
   const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  const paragraphs = normalized.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+  // Force heading marker lines (#, ##, ###) to stand alone as their own paragraph,
+  // even when the author didn't leave a blank line before/after them.
+  const withHeadingBoundaries = normalized.replace(/(^|\n)(#{1,3} [^\n]*)/g, "$1\n\n$2\n\n");
+  const paragraphs = withHeadingBoundaries.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
   return (
     <div>
       {paragraphs.map((p, i) => {
