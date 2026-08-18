@@ -73,7 +73,7 @@ export default function AdminReturnsPage() {
     setLoading(false);
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { queueMicrotask(() => load()); }, []);
 
   function toggleExpanded(id: string) {
     setExpandedIds(prev => {

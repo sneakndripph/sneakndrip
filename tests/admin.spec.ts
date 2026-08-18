@@ -1,6 +1,6 @@
-﻿import { test, expect } from '@playwright/test';
+﻿import { test, expect, type Page } from '@playwright/test';
 
-async function loginAsAdmin(page: any) {
+async function loginAsAdmin(page: Page) {
   await page.goto('/login');
   await page.getByPlaceholder('juan@email.com').fill('donjulio263@gmail.com');
   await page.getByPlaceholder(/password/i).fill(process.env.ADMIN_PASSWORD || '');

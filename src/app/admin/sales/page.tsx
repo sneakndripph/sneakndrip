@@ -87,6 +87,18 @@ function ChartCard({ title, children }: { title: string; children: React.ReactNo
   );
 }
 
+function SortHeader({ label, sortField, activeKey, activeDir, onSort }: {
+  label: string; sortField: SortKey; activeKey: SortKey; activeDir: "asc" | "desc"; onSort: (key: SortKey) => void;
+}) {
+  const Icon = activeKey !== sortField ? ChevronsUpDown : activeDir === "asc" ? ChevronUp : ChevronDown;
+  return (
+    <button onClick={() => onSort(sortField)}
+      className={`flex items-center gap-1 text-admin-eyebrow transition-colors duration-admin-fast ${activeKey === sortField ? "text-ink" : "text-ink-3 hover:text-ink-2"}`}>
+      {label} <Icon className="w-3 h-3" />
+    </button>
+  );
+}
+
 export default function AdminSalesPage() {
   const [period, setPeriod] = useState<Period>("30d");
   const [data, setData] = useState<SalesData | null>(null);
@@ -105,7 +117,7 @@ export default function AdminSalesPage() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(period); }, [period, load]);
+  useEffect(() => { queueMicrotask(() => load(period)); }, [period, load]);
 
   const rows: SaleRow[] = useMemo(() => {
     if (!data) return [];
@@ -124,16 +136,6 @@ export default function AdminSalesPage() {
   function toggleSort(key: SortKey) {
     if (sortKey === key) { setSortDir(d => d === "asc" ? "desc" : "asc"); return; }
     setSortKey(key); setSortDir("desc");
-  }
-
-  function SortHeader({ label, sortField }: { label: string; sortField: SortKey }) {
-    const Icon = sortKey !== sortField ? ChevronsUpDown : sortDir === "asc" ? ChevronUp : ChevronDown;
-    return (
-      <button onClick={() => toggleSort(sortField)}
-        className={`flex items-center gap-1 text-admin-eyebrow transition-colors duration-admin-fast ${sortKey === sortField ? "text-ink" : "text-ink-3 hover:text-ink-2"}`}>
-        {label} <Icon className="w-3 h-3" />
-      </button>
-    );
   }
 
   function exportCSV() {
@@ -293,12 +295,12 @@ export default function AdminSalesPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="bg-paper-2 border-b border-line-strong">
-                        <th className="px-4 py-3 text-left"><SortHeader label="Order" sortField="order_number" /></th>
-                        <th className="px-4 py-3 text-left"><SortHeader label="Customer" sortField="customer_name" /></th>
-                        <th className="px-4 py-3 text-left"><SortHeader label="Payment" sortField="payment_method" /></th>
-                        <th className="px-4 py-3 text-left"><SortHeader label="Total" sortField="total" /></th>
-                        <th className="px-4 py-3 text-left"><SortHeader label="Status" sortField="status" /></th>
-                        <th className="px-4 py-3 text-left"><SortHeader label="Date" sortField="created_at" /></th>
+                        <th className="px-4 py-3 text-left"><SortHeader label="Order" sortField="order_number" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
+                        <th className="px-4 py-3 text-left"><SortHeader label="Customer" sortField="customer_name" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
+                        <th className="px-4 py-3 text-left"><SortHeader label="Payment" sortField="payment_method" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
+                        <th className="px-4 py-3 text-left"><SortHeader label="Total" sortField="total" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
+                        <th className="px-4 py-3 text-left"><SortHeader label="Status" sortField="status" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
+                        <th className="px-4 py-3 text-left"><SortHeader label="Date" sortField="created_at" activeKey={sortKey} activeDir={sortDir} onSort={toggleSort} /></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-line">

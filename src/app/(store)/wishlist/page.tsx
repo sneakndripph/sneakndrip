@@ -23,7 +23,7 @@ export default function WishlistPage() {
 
   useEffect(() => {
     if (!authChecked || wishlistLoading || wishlist.length === 0) {
-      setProducts([]);
+      queueMicrotask(() => setProducts([]));
       return;
     }
     fetch(`/api/wishlist/products?ids=${wishlist.join(",")}`)

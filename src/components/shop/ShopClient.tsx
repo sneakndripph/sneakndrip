@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { BRANDS, SNEAKER_SIZES } from "@/lib/constants";
+import { now } from "@/lib/utils";
 import ProductCard from "@/components/product/ProductCard";
 import { SlidersHorizontal, X, ChevronDown, Check } from "lucide-react";
 import type { Product } from "@/lib/types";
@@ -49,11 +50,13 @@ export default function ShopClient({
 
   // Sync filter + search state when URL params change
   useEffect(() => {
-    setAvailability(mapFilter(initialFilter));
-    setShowNewOnly(initialFilter === "new");
+    queueMicrotask(() => {
+      setAvailability(mapFilter(initialFilter));
+      setShowNewOnly(initialFilter === "new");
+    });
   }, [initialFilter]);
 
-  useEffect(() => { setSearch(initialSearch); }, [initialSearch]);
+  useEffect(() => { queueMicrotask(() => setSearch(initialSearch)); }, [initialSearch]);
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -75,7 +78,7 @@ export default function ShopClient({
     if (selectedSizes.length) list = list.filter(p => p.sizes.some(s => selectedSizes.includes(s.size) && s.stock > 0));
     if (availability !== "all") list = list.filter(p => p.status === availability);
     if (showNewOnly) {
-      const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const cutoff = now() - 30 * 24 * 60 * 60 * 1000;
       list = list.filter(p => new Date(p.created_at ?? 0).getTime() >= cutoff);
     }
     list = list.filter(p => p.full_payment_price <= maxPrice);

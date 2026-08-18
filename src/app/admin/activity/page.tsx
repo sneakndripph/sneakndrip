@@ -121,7 +121,7 @@ export default function AdminActivityPage() {
     return rows;
   }, [log, search, actionFilter, dateFrom, dateTo]);
 
-  useEffect(() => { setPage(1); }, [search, actionFilter, dateFrom, dateTo]);
+  useEffect(() => { queueMicrotask(() => setPage(1)); }, [search, actionFilter, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

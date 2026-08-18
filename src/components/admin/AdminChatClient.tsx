@@ -21,7 +21,7 @@ export default function AdminChatClient({ initialConvs }: { initialConvs: Conver
     fetch(`/api/chat/conversations/${activeId}/messages`)
       .then(r => r.json())
       .then((data: Message[]) => { if (Array.isArray(data)) setMessages(data); });
-    setConvs(prev => prev.map(c => c.id === activeId ? { ...c, unread_admin: 0 } : c));
+    queueMicrotask(() => setConvs(prev => prev.map(c => c.id === activeId ? { ...c, unread_admin: 0 } : c)));
   }, [activeId]);
 
   useEffect(() => {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cartStore";
 import { PAYMENT_METHODS, SHIPPING_FEE, DP_RESERVE_FEE } from "@/lib/constants";
+import { now } from "@/lib/utils";
 import Image from "next/image";
 import { Upload, CheckCircle, AlertCircle, ChevronRight, ChevronDown, Wallet, Landmark, Truck, CreditCard } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
@@ -107,12 +108,14 @@ export default function CheckoutPage() {
   const totalDueNow = subNow + shipping - discount;
 
   useEffect(() => {
-    setMounted(true);
-    const keys = sessionStorage.getItem("snd_checkout_keys");
-    if (keys) {
-      try { setCheckoutKeys(new Set(JSON.parse(keys))); } catch { /* ignore */ }
-      sessionStorage.removeItem("snd_checkout_keys");
-    }
+    queueMicrotask(() => {
+      setMounted(true);
+      const keys = sessionStorage.getItem("snd_checkout_keys");
+      if (keys) {
+        try { setCheckoutKeys(new Set(JSON.parse(keys))); } catch { /* ignore */ }
+        sessionStorage.removeItem("snd_checkout_keys");
+      }
+    });
     // Fetch active promo codes for display
     fetch("/api/coupons/active").then(r => r.json()).then(data => { if (Array.isArray(data)) setActiveCoupons(data); }).catch(() => {});
     // Fetch dynamic shipping config + COD toggle from admin settings
@@ -165,9 +168,12 @@ export default function CheckoutPage() {
   }, [router]);
 
   useEffect(() => {
-    if (!proofFile || !proofFile.type.startsWith("image/")) { setProofPreview(null); return; }
+    if (!proofFile || !proofFile.type.startsWith("image/")) {
+      queueMicrotask(() => setProofPreview(null));
+      return;
+    }
     const url = URL.createObjectURL(proofFile);
-    setProofPreview(url);
+    queueMicrotask(() => setProofPreview(url));
     return () => URL.revokeObjectURL(url);
   }, [proofFile]);
 
@@ -243,7 +249,7 @@ export default function CheckoutPage() {
         }
       } catch { /* stock precheck is best-effort -- fall through to the atomic RPC check */ }
 
-      const num = `SND-${Date.now().toString().slice(-8)}`;
+      const num = `SND-${now().toString().slice(-8)}`;
 
       // Upload proof via service role API (bypasses storage RLS)
       let proofUrl: string | null = null;

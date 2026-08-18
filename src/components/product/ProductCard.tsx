@@ -6,6 +6,7 @@ import { Product } from "@/lib/types";
 import { useState, useMemo } from "react";
 import { Heart } from "lucide-react";
 import { useWishlist } from "@/hooks/useWishlist";
+import { now } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
@@ -20,9 +21,9 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const isOnSale = useMemo(() => {
     if (product.sale_price == null) return false;
-    const now = Date.now();
-    return (!product.sale_start || new Date(product.sale_start).getTime() <= now) &&
-           (!product.sale_end   || new Date(product.sale_end).getTime()   >= now);
+    const nowTs = now();
+    return (!product.sale_start || new Date(product.sale_start).getTime() <= nowTs) &&
+           (!product.sale_end   || new Date(product.sale_end).getTime()   >= nowTs);
   }, [product.sale_price, product.sale_start, product.sale_end]);
   const displayPrice = isOnSale ? product.sale_price! : product.full_payment_price;
 

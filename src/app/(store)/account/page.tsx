@@ -212,7 +212,7 @@ export default function AccountPage() {
     if (!match) return;
     const dpItems = match.order_items.filter(i => i.payment_type === "downpayment");
     const dpBalance = dpItems.reduce((s, i) => s + (i.unit_price - DP_RESERVE_FEE) * i.quantity, 0);
-    setPayBalanceModal({ orderNumber: match.order_number, balance: dpBalance });
+    queueMicrotask(() => setPayBalanceModal({ orderNumber: match.order_number, balance: dpBalance }));
   }, [orders]);
 
   async function handleSignOut() {

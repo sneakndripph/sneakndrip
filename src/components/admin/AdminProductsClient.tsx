@@ -9,6 +9,7 @@ import {
   ChevronDown, Check, Eye, EyeOff,
 } from "lucide-react";
 import { BRANDS } from "@/lib/constants";
+import { now } from "@/lib/utils";
 import { useConfirmDialog } from "./ConfirmDialog";
 
 type Row = Record<string, unknown> & {
@@ -106,7 +107,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
     fd.append("product", JSON.stringify({
       ...rest,
       name: `${p.name} (Copy)`,
-      slug: `${String(slug)}-copy-${Date.now().toString(36)}`,
+      slug: `${String(slug)}-copy-${now().toString(36)}`,
       is_published: false,
     }));
     fd.append("sizes", JSON.stringify(sizes));

@@ -73,7 +73,7 @@ export default function Navbar() {
   const closeBtnRef    = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    setMounted(true);
+    queueMicrotask(() => setMounted(true));
     const handler = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handler);
     return () => window.removeEventListener("scroll", handler);
@@ -96,7 +96,9 @@ export default function Navbar() {
 
   useEffect(() => {
     if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50);
-    if (!searchOpen) { setSearchResults([]); setShowResults(false); setSearchQuery(""); }
+    if (!searchOpen) {
+      queueMicrotask(() => { setSearchResults([]); setShowResults(false); setSearchQuery(""); });
+    }
   }, [searchOpen]);
 
   useEffect(() => {
@@ -109,7 +111,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const q = searchQuery.trim();
-    if (!q) { setSearchResults([]); setShowResults(false); return; }
+    if (!q) { queueMicrotask(() => { setSearchResults([]); setShowResults(false); }); return; }
     let cancelled = false;
     fetch(`/api/search?q=${encodeURIComponent(q)}`)
       .then(res => res.ok ? res.json() as Promise<{ products: SearchProduct[] }> : null)

@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cartStore";
 import { useWishlist } from "@/hooks/useWishlist";
 import { DP_RESERVE_FEE } from "@/lib/constants";
+import { now } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
 const PAYMENT_METHODS = ["GCash", "Maya", "Bank Transfer", "COD"];
@@ -38,9 +39,9 @@ export default function ProductCTA({
 
   const isOnSale = useMemo(() => {
     if (product.sale_price == null) return false;
-    const now = Date.now();
-    return (!product.sale_start || new Date(product.sale_start).getTime() <= now) &&
-           (!product.sale_end   || new Date(product.sale_end).getTime()   >= now);
+    const nowTs = now();
+    return (!product.sale_start || new Date(product.sale_start).getTime() <= nowTs) &&
+           (!product.sale_end   || new Date(product.sale_end).getTime()   >= nowTs);
   }, [product.sale_price, product.sale_start, product.sale_end]);
   const effectiveFullPrice = isOnSale ? product.sale_price! : product.full_payment_price;
   const price = effectivePaymentType === "full_payment" ? effectiveFullPrice : product.downpayment_price;

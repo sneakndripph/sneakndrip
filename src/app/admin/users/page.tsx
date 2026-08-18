@@ -98,7 +98,7 @@ export default function AdminUsersPage() {
     setLoading(false);
   }
 
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => { queueMicrotask(() => loadUsers()); }, []);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();

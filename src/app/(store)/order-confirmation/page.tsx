@@ -128,7 +128,7 @@ export default function OrderConfirmationPage() {
     const stored = sessionStorage.getItem("lastOrder");
     if (stored) {
       const parsed: OrderData = JSON.parse(stored);
-      setOrder(parsed);
+      queueMicrotask(() => setOrder(parsed));
       sessionStorage.removeItem("lastOrder");
 
       // Fetch live status from DB
