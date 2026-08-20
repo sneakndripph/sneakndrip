@@ -13,6 +13,25 @@ function matches(i: CartItem, productId: string, size: string, paymentType: Paym
   return i.product.id === productId && i.size === size && (i.payment_type ?? DEFAULT_PAYMENT_TYPE) === paymentType;
 }
 
+// Moves `moving` to wherever `apply` puts it, unless that collides with an
+// existing line (`collision`), in which case they're merged: quantities are
+// combined (capped at available stock, if known) and `moving` is dropped.
+function mergeOrMove(
+  items: CartItem[],
+  moving: CartItem,
+  collision: CartItem | undefined,
+  apply: (item: CartItem) => CartItem
+): CartItem[] {
+  if (!collision) {
+    return items.map(i => (i === moving ? apply(i) : i));
+  }
+  const maxStock = moving.product.sizes.find(s => s.size === collision.size)?.stock;
+  const mergedQty = maxStock != null
+    ? Math.min(collision.quantity + moving.quantity, maxStock)
+    : collision.quantity + moving.quantity;
+  return items.filter(i => i !== moving).map(i => (i === collision ? { ...i, quantity: mergedQty } : i));
+}
+
 interface CartState {
   items: CartItem[];
   cartUserId: string | null;
@@ -76,13 +95,10 @@ export const useCartStore = create<CartState>()(
       updateSize: (productId, oldSize, newSize, paymentType) => {
         if (oldSize === newSize) return;
         set(state => {
-          const conflict = state.items.find(i => matches(i, productId, newSize, paymentType));
-          if (conflict) return state;
-          return {
-            items: state.items.map(i =>
-              matches(i, productId, oldSize, paymentType) ? { ...i, size: newSize } : i
-            ),
-          };
+          const moving = state.items.find(i => matches(i, productId, oldSize, paymentType));
+          if (!moving) return state;
+          const collision = state.items.find(i => matches(i, productId, newSize, paymentType));
+          return { items: mergeOrMove(state.items, moving, collision, i => ({ ...i, size: newSize })) };
         });
       },
 
@@ -93,16 +109,20 @@ export const useCartStore = create<CartState>()(
           items: state.items.filter(i => !keys.some(k => matches(i, k.productId, k.size, k.paymentType))),
         })),
 
-      updatePaymentType: (productId, size, paymentType, newPaymentType) =>
-        set(state => ({
-          items: state.items.map(i => {
-            if (!matches(i, productId, size, paymentType)) return i;
-            const unit_price = newPaymentType === "full_payment"
-              ? i.product.full_payment_price
-              : i.product.downpayment_price;
-            return { ...i, payment_type: newPaymentType, unit_price };
-          }),
-        })),
+      updatePaymentType: (productId, size, paymentType, newPaymentType) => {
+        if (paymentType === newPaymentType) return;
+        set(state => {
+          const moving = state.items.find(i => matches(i, productId, size, paymentType));
+          if (!moving) return state;
+          const unit_price = newPaymentType === "full_payment"
+            ? moving.product.full_payment_price
+            : moving.product.downpayment_price;
+          const collision = state.items.find(i => matches(i, productId, size, newPaymentType));
+          return {
+            items: mergeOrMove(state.items, moving, collision, i => ({ ...i, payment_type: newPaymentType, unit_price })),
+          };
+        });
+      },
 
       itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
 
