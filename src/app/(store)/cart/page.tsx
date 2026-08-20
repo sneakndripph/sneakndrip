@@ -8,6 +8,8 @@ import { useCartStore } from "@/store/cartStore";
 import { SHIPPING_FEE } from "@/lib/constants";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, LogIn, CheckSquare, Square, AlertCircle, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useMinimumLoadingTime } from "@/hooks/useMinimumLoadingTime";
+import CartLoading from "./loading";
 import type { Product } from "@/lib/types";
 
 type StockCheck = {
@@ -75,6 +77,19 @@ export default function CartPage() {
   const [stockMap, setStockMap] = useState<Record<string, StockCheck>>({});
   const itemsRef = useRef(items);
   useEffect(() => { itemsRef.current = items; }, [items]);
+
+  // Cart is persisted to localStorage; on first mount it hasn't hydrated yet,
+  // so `items` is briefly [] even for a returning customer with a full cart.
+  // `.persist` is only available client-side, so it must never be touched
+  // during the render/useState-initializer phase (which also runs on the server).
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    const persistApi = useCartStore.persist;
+    if (!persistApi) { queueMicrotask(() => setHydrated(true)); return; }
+    if (persistApi.hasHydrated()) { queueMicrotask(() => setHydrated(true)); return; }
+    return persistApi.onFinishHydration(() => setHydrated(true));
+  }, []);
+  const showLoading = useMinimumLoadingTime(!hydrated, 800);
 
   const refreshStock = useCallback(() => {
     const current = itemsRef.current;
@@ -152,6 +167,10 @@ export default function CartPage() {
         }
       });
   }, [items]);
+
+  if (showLoading) {
+    return <CartLoading />;
+  }
 
   if (items.length === 0) {
     return (
