@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Inter_Tight } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import ProgressBar from "@/components/layout/ProgressBar";
+import SiteSplash from "@/components/ui/SiteSplash";
 import SiteStructuredData from "@/components/SiteStructuredData";
 import { validateEnv } from "@/lib/env";
 import "./globals.css";
@@ -65,6 +66,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-paper font-body text-ink">
         <SiteStructuredData />
+        <SiteSplash />
         <ProgressBar />
         {children}
         <Toaster
