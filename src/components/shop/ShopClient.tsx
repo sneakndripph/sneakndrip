@@ -5,8 +5,11 @@ import { useRouter } from "next/navigation";
 import { BRANDS, SNEAKER_SIZES } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import ProductCard from "@/components/product/ProductCard";
+import ProductCardSkeleton from "@/components/ui/ProductCardSkeleton";
 import { SlidersHorizontal, X, ChevronDown, Check } from "lucide-react";
 import type { Product } from "@/lib/types";
+
+const PAGE_SIZE = 24;
 
 const SORT_OPTIONS = [
   { value: "featured", label: "Featured" },
@@ -87,6 +90,40 @@ export default function ShopClient({
     if (sort === "newest") list.sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
     return list;
   }, [products, search, selectedBrands, selectedSizes, availability, showNewOnly, maxPrice, sort]);
+
+  // Infinite scroll windowing — filters/sort operate on the full in-memory
+  // list above; this only controls how much of that result is rendered.
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingMoreRef = useRef(false);
+
+  useEffect(() => {
+    queueMicrotask(() => setVisibleCount(PAGE_SIZE));
+  }, [search, selectedBrands, selectedGenders, selectedSizes, availability, showNewOnly, maxPrice, sort]);
+
+  const visibleProducts = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
+  useEffect(() => {
+    if (!hasMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    let cancelled = false;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || loadingMoreRef.current) return;
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+      setTimeout(() => {
+        if (cancelled) return;
+        setVisibleCount(c => Math.min(c + PAGE_SIZE, filtered.length));
+        setLoadingMore(false);
+        loadingMoreRef.current = false;
+      }, 400);
+    }, { rootMargin: "480px 0px" });
+    observer.observe(el);
+    return () => { cancelled = true; observer.disconnect(); };
+  }, [hasMore, filtered.length, visibleCount]);
 
   const activeFilters = selectedBrands.length + selectedSizes.length + selectedGenders.length + (availability !== "all" ? 1 : 0) + (showNewOnly ? 1 : 0);
 
@@ -232,9 +269,20 @@ export default function ShopClient({
             </p>
 
             {filtered.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-                {filtered.map(p => <ProductCard key={p.id} product={p} />)}
-              </div>
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+                  {visibleProducts.map(p => <ProductCard key={p.id} product={p} />)}
+                </div>
+                {loadingMore && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6 mt-4 lg:mt-6">
+                    {Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+                  </div>
+                )}
+                {hasMore && <div ref={sentinelRef} aria-hidden="true" className="h-px" />}
+                {!hasMore && filtered.length > PAGE_SIZE && (
+                  <p className="text-center text-micro text-ink-3 py-8">You&apos;ve reached the end</p>
+                )}
+              </>
             ) : (
               <div className="text-center py-24">
                 <p className="text-body text-ink-2">No matches. Try clearing filters.</p>
