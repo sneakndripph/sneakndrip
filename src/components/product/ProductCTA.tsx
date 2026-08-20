@@ -51,7 +51,7 @@ export default function ProductCTA({
   }
   function getInCart() {
     return useCartStore.getState().items
-      .find(i => i.product.id === product.id && i.size === selectedSize)?.quantity ?? 0;
+      .find(i => i.product.id === product.id && i.size === selectedSize && i.payment_type === effectivePaymentType)?.quantity ?? 0;
   }
   function checkStock() {
     if (!selectedSize) { toast.error("Please select a size"); return false; }

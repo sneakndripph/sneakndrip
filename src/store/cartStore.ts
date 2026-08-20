@@ -4,16 +4,25 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { CartItem, Product, PaymentType } from "@/lib/types";
 
+const DEFAULT_PAYMENT_TYPE: PaymentType = "full_payment";
+
+// Cart item identity is product + size + payment_type -- two lines can share
+// a product and size if their payment_type differs. Persisted items from
+// before payment_type existed are treated as full_payment.
+function matches(i: CartItem, productId: string, size: string, paymentType: PaymentType) {
+  return i.product.id === productId && i.size === size && (i.payment_type ?? DEFAULT_PAYMENT_TYPE) === paymentType;
+}
+
 interface CartState {
   items: CartItem[];
   cartUserId: string | null;
   addItem: (product: Product, size: string, paymentType: PaymentType, qty?: number) => void;
-  removeItem: (productId: string, size: string) => void;
-  updateQuantity: (productId: string, size: string, quantity: number) => void;
-  updateSize: (productId: string, oldSize: string, newSize: string) => void;
+  removeItem: (productId: string, size: string, paymentType: PaymentType) => void;
+  updateQuantity: (productId: string, size: string, paymentType: PaymentType, quantity: number) => void;
+  updateSize: (productId: string, oldSize: string, newSize: string, paymentType: PaymentType) => void;
   clearCart: () => void;
-  removeItems: (keys: Array<{ productId: string; size: string }>) => void;
-  updatePaymentType: (productId: string, size: string, paymentType: PaymentType) => void;
+  removeItems: (keys: Array<{ productId: string; size: string; paymentType: PaymentType }>) => void;
+  updatePaymentType: (productId: string, size: string, paymentType: PaymentType, newPaymentType: PaymentType) => void;
   itemCount: () => number;
   subtotal: () => number;
   initForUser: (userId: string | null) => void;
@@ -31,13 +40,11 @@ export const useCartStore = create<CartState>()(
           : product.downpayment_price;
 
         set(state => {
-          const existing = state.items.find(
-            i => i.product.id === product.id && i.size === size
-          );
+          const existing = state.items.find(i => matches(i, product.id, size, paymentType));
           if (existing) {
             return {
               items: state.items.map(i =>
-                i.product.id === product.id && i.size === size
+                matches(i, product.id, size, paymentType)
                   ? { ...i, quantity: i.quantity + qty }
                   : i
               ),
@@ -49,31 +56,31 @@ export const useCartStore = create<CartState>()(
         });
       },
 
-      removeItem: (productId, size) =>
+      removeItem: (productId, size, paymentType) =>
         set(state => ({
-          items: state.items.filter(i => !(i.product.id === productId && i.size === size)),
+          items: state.items.filter(i => !matches(i, productId, size, paymentType)),
         })),
 
-      updateQuantity: (productId, size, quantity) => {
+      updateQuantity: (productId, size, paymentType, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(productId, size);
+          get().removeItem(productId, size, paymentType);
           return;
         }
         set(state => ({
           items: state.items.map(i =>
-            i.product.id === productId && i.size === size ? { ...i, quantity } : i
+            matches(i, productId, size, paymentType) ? { ...i, quantity } : i
           ),
         }));
       },
 
-      updateSize: (productId, oldSize, newSize) => {
+      updateSize: (productId, oldSize, newSize, paymentType) => {
         if (oldSize === newSize) return;
         set(state => {
-          const conflict = state.items.find(i => i.product.id === productId && i.size === newSize);
+          const conflict = state.items.find(i => matches(i, productId, newSize, paymentType));
           if (conflict) return state;
           return {
             items: state.items.map(i =>
-              i.product.id === productId && i.size === oldSize ? { ...i, size: newSize } : i
+              matches(i, productId, oldSize, paymentType) ? { ...i, size: newSize } : i
             ),
           };
         });
@@ -83,17 +90,17 @@ export const useCartStore = create<CartState>()(
 
       removeItems: (keys) =>
         set(state => ({
-          items: state.items.filter(i => !keys.some(k => k.productId === i.product.id && k.size === i.size)),
+          items: state.items.filter(i => !keys.some(k => matches(i, k.productId, k.size, k.paymentType))),
         })),
 
-      updatePaymentType: (productId, size, paymentType) =>
+      updatePaymentType: (productId, size, paymentType, newPaymentType) =>
         set(state => ({
           items: state.items.map(i => {
-            if (i.product.id !== productId || i.size !== size) return i;
-            const unit_price = paymentType === "full_payment"
+            if (!matches(i, productId, size, paymentType)) return i;
+            const unit_price = newPaymentType === "full_payment"
               ? i.product.full_payment_price
               : i.product.downpayment_price;
-            return { ...i, payment_type: paymentType, unit_price };
+            return { ...i, payment_type: newPaymentType, unit_price };
           }),
         })),
 
@@ -113,6 +120,18 @@ export const useCartStore = create<CartState>()(
           return { cartUserId: userId };
         }),
     }),
-    { name: "snd-cart" }
+    {
+      name: "snd-cart",
+      version: 1,
+      // v0 -> v1: payment_type didn't exist yet, so items persisted before this
+      // change may be missing it -- default them to full_payment.
+      migrate: (persistedState) => {
+        const state = persistedState as { items?: CartItem[]; cartUserId?: string | null };
+        return {
+          cartUserId: state.cartUserId ?? null,
+          items: (state.items ?? []).map(i => ({ ...i, payment_type: i.payment_type ?? DEFAULT_PAYMENT_TYPE })),
+        } as CartState;
+      },
+    }
   )
 );

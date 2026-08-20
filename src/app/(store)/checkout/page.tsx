@@ -373,7 +373,7 @@ export default function CheckoutPage() {
         proofUrl,
       }));
 
-      removeItems(items.map(i => ({ productId: i.product.id, size: i.size })));
+      removeItems(items.map(i => ({ productId: i.product.id, size: i.size, paymentType: i.payment_type })));
       fetch("/api/cart/sync", { method: "DELETE" }).catch(() => {});
       router.push("/order-confirmation");
     } catch {

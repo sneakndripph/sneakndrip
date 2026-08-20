@@ -68,10 +68,14 @@ export default function CartPage() {
   const { items, removeItem, removeItems, updateQuantity, updateSize, updatePaymentType, subtotal } = useCartStore();
   const [topProducts, setTopProducts] = useState<Product[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const itemKey = (id: string, size: string) => `${id}-${size}`;
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(items.map(i => itemKey(i.product.id, i.size))));
-  const allSelected = items.length > 0 && items.every(i => selected.has(itemKey(i.product.id, i.size)));
-  const selectedItems = items.filter(i => selected.has(itemKey(i.product.id, i.size)));
+  // Cart line identity includes payment_type -- two lines can share a product+size.
+  const lineKey = (id: string, size: string, paymentType: string) => `${id}-${size}-${paymentType}`;
+  // Physical stock is per product+size regardless of payment_type, so lines that
+  // only differ by payment_type intentionally share the same stock lookup key.
+  const stockKey = (id: string, size: string) => `${id}-${size}`;
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(items.map(i => lineKey(i.product.id, i.size, i.payment_type))));
+  const allSelected = items.length > 0 && items.every(i => selected.has(lineKey(i.product.id, i.size, i.payment_type)));
+  const selectedItems = items.filter(i => selected.has(lineKey(i.product.id, i.size, i.payment_type)));
   const sub = selectedItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
 
   const [stockMap, setStockMap] = useState<Record<string, StockCheck>>({});
@@ -106,7 +110,7 @@ export default function CartPage() {
         if (!data) return;
         const map: Record<string, StockCheck> = {};
         for (const check of (data.items ?? []) as StockCheck[]) {
-          map[itemKey(check.product_id, check.size)] = check;
+          map[stockKey(check.product_id, check.size)] = check;
         }
         setStockMap(map);
       })
@@ -122,8 +126,8 @@ export default function CartPage() {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refreshStock]);
 
-  const hasSoldOut = selectedItems.some(i => stockMap[itemKey(i.product.id, i.size)]?.status === "sold_out");
-  const hasReduced = !hasSoldOut && selectedItems.some(i => stockMap[itemKey(i.product.id, i.size)]?.status === "reduced");
+  const hasSoldOut = selectedItems.some(i => stockMap[stockKey(i.product.id, i.size)]?.status === "sold_out");
+  const hasReduced = !hasSoldOut && selectedItems.some(i => stockMap[stockKey(i.product.id, i.size)]?.status === "reduced");
 
   useEffect(() => {
     const supabase = createClient();
@@ -210,7 +214,7 @@ export default function CartPage() {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between pb-2">
               <button
-                onClick={() => setSelected(allSelected ? new Set() : new Set(items.map(i => itemKey(i.product.id, i.size))))}
+                onClick={() => setSelected(allSelected ? new Set() : new Set(items.map(i => lineKey(i.product.id, i.size, i.payment_type))))}
                 className="flex items-center gap-1.5 text-body-sm text-ink-3 transition-colors hover:text-ink">
                 {allSelected ? <CheckSquare className="w-4 h-4 text-ink" /> : <Square className="w-4 h-4" />}
                 {allSelected ? "Deselect All" : "Select All"}
@@ -218,7 +222,7 @@ export default function CartPage() {
               {selected.size > 0 && (
                 <button
                   onClick={() => {
-                    removeItems(items.filter(i => selected.has(itemKey(i.product.id, i.size))).map(i => ({ productId: i.product.id, size: i.size })));
+                    removeItems(items.filter(i => selected.has(lineKey(i.product.id, i.size, i.payment_type))).map(i => ({ productId: i.product.id, size: i.size, paymentType: i.payment_type })));
                     setSelected(new Set());
                   }}
                   className="flex items-center gap-1.5 text-body-sm text-state-error transition-opacity hover:opacity-70">
@@ -228,10 +232,10 @@ export default function CartPage() {
               )}
             </div>
             {items.map(item => {
-              const key = itemKey(item.product.id, item.size);
+              const key = lineKey(item.product.id, item.size, item.payment_type);
               const isSelected = selected.has(key);
               const isPreOrder = item.product.status === "pre-order";
-              const stockCheck = stockMap[key];
+              const stockCheck = stockMap[stockKey(item.product.id, item.size)];
               return (
               <div key={key}
                 className={`p-4 flex gap-4 rounded-md transition-opacity bg-paper border ${isSelected ? "border-ink opacity-100" : "border-line opacity-60"}`}>
@@ -265,7 +269,7 @@ export default function CartPage() {
                       <div className="flex items-center gap-2 mt-1.5">
                         <select
                           value={item.size}
-                          onChange={e => updateSize(item.product.id, item.size, e.target.value)}
+                          onChange={e => updateSize(item.product.id, item.size, e.target.value, item.payment_type)}
                           className="text-micro px-2 py-0.5 rounded-sm cursor-pointer focus:outline-none border border-line text-ink-3 bg-paper-2">
                           {item.product.sizes
                             .filter(s => s.stock > 0 || s.size === item.size)
@@ -277,7 +281,7 @@ export default function CartPage() {
                           <div className="flex flex-wrap gap-1">
                             {(["full_payment", "downpayment"] as const).map(pt => (
                               <button key={pt} type="button"
-                                onClick={() => updatePaymentType(item.product.id, item.size, pt)}
+                                onClick={() => updatePaymentType(item.product.id, item.size, item.payment_type, pt)}
                                 className={`px-2 py-0.5 text-micro rounded-sm transition-colors whitespace-nowrap border ${
                                   item.payment_type === pt ? "bg-ink text-paper border-ink" : "bg-transparent text-ink-3 border-line"
                                 }`}>
@@ -310,12 +314,12 @@ export default function CartPage() {
                       <button
                         onClick={() => {
                           if (stockCheck.status === "sold_out") {
-                            removeItem(item.product.id, item.size);
+                            removeItem(item.product.id, item.size, item.payment_type);
                           } else {
-                            updateQuantity(item.product.id, item.size, stockCheck.current_stock);
+                            updateQuantity(item.product.id, item.size, item.payment_type, stockCheck.current_stock);
                             setStockMap(prev => ({
                               ...prev,
-                              [key]: { ...stockCheck, status: "available", requested_quantity: stockCheck.current_stock },
+                              [stockKey(item.product.id, item.size)]: { ...stockCheck, status: "available", requested_quantity: stockCheck.current_stock },
                             }));
                           }
                         }}
@@ -332,7 +336,7 @@ export default function CartPage() {
                         const maxStock = item.product.sizes.find(s => s.size === item.size)?.stock ?? 99;
                         return (
                           <>
-                            <button onClick={() => updateQuantity(item.product.id, item.size, item.quantity - 1)}
+                            <button onClick={() => updateQuantity(item.product.id, item.size, item.payment_type, item.quantity - 1)}
                               className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60">
                               <Minus className="w-3 h-3" />
                             </button>
@@ -344,12 +348,12 @@ export default function CartPage() {
                               onChange={e => {
                                 const val = parseInt(e.target.value.replace(/\D/g, ""), 10);
                                 if (!isNaN(val) && val >= 1) {
-                                  updateQuantity(item.product.id, item.size, Math.min(val, maxStock));
+                                  updateQuantity(item.product.id, item.size, item.payment_type, Math.min(val, maxStock));
                                 }
                               }}
                               className="w-10 text-center text-body-sm text-ink focus:outline-none bg-transparent"
                             />
-                            <button onClick={() => updateQuantity(item.product.id, item.size, Math.min(item.quantity + 1, maxStock))}
+                            <button onClick={() => updateQuantity(item.product.id, item.size, item.payment_type, Math.min(item.quantity + 1, maxStock))}
                               disabled={item.quantity >= maxStock}
                               className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60 disabled:opacity-30">
                               <Plus className="w-3 h-3" />
@@ -359,7 +363,7 @@ export default function CartPage() {
                       })()}
                     </div>
 
-                    <button onClick={() => removeItem(item.product.id, item.size)}
+                    <button onClick={() => removeItem(item.product.id, item.size, item.payment_type)}
                       className="flex items-center gap-1 text-body-sm text-state-error transition-opacity hover:opacity-60">
                       <Trash2 className="w-3 h-3" /> Remove
                     </button>
