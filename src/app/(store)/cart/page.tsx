@@ -109,7 +109,7 @@ export default function CartPage() {
     const persistApi = useCartStore.persist;
     if (!persistApi) { queueMicrotask(() => setHydrated(true)); return; }
     if (persistApi.hasHydrated()) { queueMicrotask(() => setHydrated(true)); return; }
-    return persistApi.onFinishHydration(() => setHydrated(true));
+    return persistApi.onFinishHydration(() => queueMicrotask(() => setHydrated(true)));
   }, []);
   const showLoading = useMinimumLoadingTime(!hydrated, 800);
 

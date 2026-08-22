@@ -19,7 +19,7 @@ export default function WishlistPage() {
   useEffect(() => {
     createClient().auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.push("/login?redirect=/wishlist"); return; }
-      setAuthChecked(true);
+      queueMicrotask(() => setAuthChecked(true));
     });
   }, [router]);
 
@@ -30,7 +30,7 @@ export default function WishlistPage() {
     }
     fetch(`/api/wishlist/products?ids=${wishlist.join(",")}`)
       .then(r => r.ok ? r.json() : { products: [] })
-      .then(d => setProducts(d.products ?? []));
+      .then(d => queueMicrotask(() => setProducts(d.products ?? [])));
   }, [wishlist, wishlistLoading, authChecked]);
 
   const loading = !authChecked || wishlistLoading;

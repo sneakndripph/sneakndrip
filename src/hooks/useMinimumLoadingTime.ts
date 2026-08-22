@@ -19,7 +19,7 @@ export function useMinimumLoadingTime(isLoading: boolean, minMs = 800): boolean 
     }
     const elapsed = startedAt.current ? Date.now() - startedAt.current : minMs;
     const remaining = Math.max(0, minMs - elapsed);
-    const timer = setTimeout(() => setShowLoading(false), remaining);
+    const timer = setTimeout(() => queueMicrotask(() => setShowLoading(false)), remaining);
     return () => clearTimeout(timer);
   }, [isLoading, minMs]);
 

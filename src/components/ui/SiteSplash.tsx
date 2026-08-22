@@ -25,8 +25,8 @@ export default function SiteSplash() {
       const elapsed = Date.now() - shownAt;
       const remaining = Math.max(0, MIN_DISPLAY_MS - elapsed);
       setTimeout(() => {
-        setFadingOut(true);
-        setTimeout(() => setVisible(false), FADE_OUT_MS);
+        queueMicrotask(() => setFadingOut(true));
+        setTimeout(() => queueMicrotask(() => setVisible(false)), FADE_OUT_MS);
       }, remaining);
     }
 
