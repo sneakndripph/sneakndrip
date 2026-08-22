@@ -259,7 +259,6 @@ export default function CartPage() {
             </div>
             {items.map(item => {
               const isSelected = selected.has(item.id);
-              const isPreOrder = item.product.status === "pre-order";
               const stockCheck = stockMap[stockKey(item.product.id, item.size)];
               return (
               <div key={item.id}
@@ -302,23 +301,17 @@ export default function CartPage() {
                               <option key={s.size} value={s.size}>{s.size}</option>
                             ))}
                         </select>
-                        {isPreOrder ? (
-                          <div className="flex flex-wrap gap-1">
-                            {(["full_payment", "downpayment"] as const).map(pt => (
-                              <button key={pt} type="button"
-                                onClick={() => applyMergeResult(item.id, updatePaymentType(item.product.id, item.size, item.payment_type, pt))}
-                                className={`px-2 py-0.5 text-micro rounded-sm transition-colors whitespace-nowrap border ${
-                                  item.payment_type === pt ? "bg-ink text-paper border-ink" : "bg-transparent text-ink-3 border-line"
-                                }`}>
-                                {pt === "full_payment" ? `Full ₱${item.product.full_payment_price.toLocaleString()}` : `DP ₱${item.product.downpayment_price.toLocaleString()}`}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-micro px-2 py-0.5 rounded-sm bg-paper-2 text-ink-3">
-                            Full Payment
-                          </span>
-                        )}
+                        <div className="flex flex-wrap gap-1">
+                          {(["full_payment", "downpayment"] as const).map(pt => (
+                            <button key={pt} type="button"
+                              onClick={() => applyMergeResult(item.id, updatePaymentType(item.product.id, item.size, item.payment_type, pt))}
+                              className={`px-2 py-0.5 text-micro rounded-sm transition-colors whitespace-nowrap border ${
+                                item.payment_type === pt ? "bg-ink text-paper border-ink" : "bg-transparent text-ink-3 border-line"
+                              }`}>
+                              {pt === "full_payment" ? `Full ₱${item.product.full_payment_price.toLocaleString()}` : `DP ₱${item.product.downpayment_price.toLocaleString()}`}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                     <p className="text-body font-display font-medium shrink-0 text-ink">
