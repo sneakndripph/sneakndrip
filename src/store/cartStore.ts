@@ -32,16 +32,23 @@ function mergeOrMove(
   return items.filter(i => i !== moving).map(i => (i === collision ? { ...i, quantity: mergedQty } : i));
 }
 
+// Returned by actions that can merge one line into another (updateSize,
+// updatePaymentType), so callers can carry per-line UI state (e.g. cart page
+// selection) across the identity change: `id` is the line's id after the
+// operation -- unchanged unless `merged` is true, in which case it's the
+// absorbing line's id and the original line's id no longer exists.
+export type LineMergeResult = { id: string; merged: boolean } | null;
+
 interface CartState {
   items: CartItem[];
   cartUserId: string | null;
   addItem: (product: Product, size: string, paymentType: PaymentType, qty?: number) => void;
   removeItem: (productId: string, size: string, paymentType: PaymentType) => void;
   updateQuantity: (productId: string, size: string, paymentType: PaymentType, quantity: number) => void;
-  updateSize: (productId: string, oldSize: string, newSize: string, paymentType: PaymentType) => void;
+  updateSize: (productId: string, oldSize: string, newSize: string, paymentType: PaymentType) => LineMergeResult;
   clearCart: () => void;
   removeItems: (keys: Array<{ productId: string; size: string; paymentType: PaymentType }>) => void;
-  updatePaymentType: (productId: string, size: string, paymentType: PaymentType, newPaymentType: PaymentType) => void;
+  updatePaymentType: (productId: string, size: string, paymentType: PaymentType, newPaymentType: PaymentType) => LineMergeResult;
   itemCount: () => number;
   subtotal: () => number;
   initForUser: (userId: string | null) => void;
@@ -70,7 +77,7 @@ export const useCartStore = create<CartState>()(
             };
           }
           return {
-            items: [...state.items, { product, size, quantity: qty, payment_type: paymentType, unit_price: price }],
+            items: [...state.items, { id: crypto.randomUUID(), product, size, quantity: qty, payment_type: paymentType, unit_price: price }],
           };
         });
       },
@@ -93,13 +100,16 @@ export const useCartStore = create<CartState>()(
       },
 
       updateSize: (productId, oldSize, newSize, paymentType) => {
-        if (oldSize === newSize) return;
+        if (oldSize === newSize) return null;
+        let result: LineMergeResult = null;
         set(state => {
           const moving = state.items.find(i => matches(i, productId, oldSize, paymentType));
           if (!moving) return state;
           const collision = state.items.find(i => matches(i, productId, newSize, paymentType));
+          result = { id: collision ? collision.id : moving.id, merged: !!collision };
           return { items: mergeOrMove(state.items, moving, collision, i => ({ ...i, size: newSize })) };
         });
+        return result;
       },
 
       clearCart: () => set({ items: [], cartUserId: null }),
@@ -110,7 +120,8 @@ export const useCartStore = create<CartState>()(
         })),
 
       updatePaymentType: (productId, size, paymentType, newPaymentType) => {
-        if (paymentType === newPaymentType) return;
+        if (paymentType === newPaymentType) return null;
+        let result: LineMergeResult = null;
         set(state => {
           const moving = state.items.find(i => matches(i, productId, size, paymentType));
           if (!moving) return state;
@@ -118,10 +129,12 @@ export const useCartStore = create<CartState>()(
             ? moving.product.full_payment_price
             : moving.product.downpayment_price;
           const collision = state.items.find(i => matches(i, productId, size, newPaymentType));
+          result = { id: collision ? collision.id : moving.id, merged: !!collision };
           return {
             items: mergeOrMove(state.items, moving, collision, i => ({ ...i, payment_type: newPaymentType, unit_price })),
           };
         });
+        return result;
       },
 
       itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
@@ -142,14 +155,20 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "snd-cart",
-      version: 1,
+      version: 2,
       // v0 -> v1: payment_type didn't exist yet, so items persisted before this
       // change may be missing it -- default them to full_payment.
+      // v1 -> v2: items didn't have a stable id yet -- backfill one so React
+      // keys and UI selection state can be decoupled from mutable fields.
       migrate: (persistedState) => {
         const state = persistedState as { items?: CartItem[]; cartUserId?: string | null };
         return {
           cartUserId: state.cartUserId ?? null,
-          items: (state.items ?? []).map(i => ({ ...i, payment_type: i.payment_type ?? DEFAULT_PAYMENT_TYPE })),
+          items: (state.items ?? []).map(i => ({
+            ...i,
+            payment_type: i.payment_type ?? DEFAULT_PAYMENT_TYPE,
+            id: i.id ?? crypto.randomUUID(),
+          })),
         } as CartState;
       },
     }

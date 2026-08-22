@@ -54,7 +54,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items: allItems, removeItems } = useCartStore();
   const [checkoutKeys, setCheckoutKeys] = useState<Set<string> | null>(null);
-  const items = checkoutKeys ? allItems.filter(i => checkoutKeys.has(`${i.product.id}-${i.size}`)) : allItems;
+  const items = checkoutKeys ? allItems.filter(i => checkoutKeys.has(i.id)) : allItems;
   const sub = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
 
   const [mounted, setMounted] = useState(false);
