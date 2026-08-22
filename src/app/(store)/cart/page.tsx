@@ -9,7 +9,7 @@ import { SHIPPING_FEE } from "@/lib/constants";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, LogIn, CheckSquare, Square, AlertCircle, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useMinimumLoadingTime } from "@/hooks/useMinimumLoadingTime";
-import CartLoading from "./loading";
+import CartSkeleton from "./CartSkeleton";
 import type { Product } from "@/lib/types";
 
 type StockCheck = {
@@ -199,7 +199,7 @@ export default function CartPage() {
   }, [items]);
 
   if (showLoading) {
-    return <CartLoading />;
+    return <CartSkeleton />;
   }
 
   if (items.length === 0) {

@@ -1,4 +1,4 @@
-export default function CartLoading() {
+export default function CartSkeleton() {
   return (
     <div className="bg-paper min-h-[80vh]">
       <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-12">

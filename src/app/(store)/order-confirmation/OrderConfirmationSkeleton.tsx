@@ -1,4 +1,4 @@
-export default function OrderConfirmationLoading() {
+export default function OrderConfirmationSkeleton() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-20 bg-paper font-body">
       <div className="max-w-md w-full">

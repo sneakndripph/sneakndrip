@@ -5,6 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle, Package, MessageCircle, Clock, Truck, MapPin, User } from "lucide-react";
 import { DP_RESERVE_FEE } from "@/lib/constants";
+import { useMinimumLoadingTime } from "@/hooks/useMinimumLoadingTime";
+import OrderConfirmationSkeleton from "./OrderConfirmationSkeleton";
 
 type OrderItem = {
   name: string;
@@ -123,6 +125,7 @@ export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [liveStatus, setLiveStatus] = useState<OrderStatus | null>(null);
   const [proofImageUrl, setProofImageUrl] = useState<string | null>(null);
+  const [checkedStorage, setCheckedStorage] = useState(false);
 
   useEffect(() => {
     const stored = sessionStorage.getItem("lastOrder");
@@ -145,11 +148,17 @@ export default function OrderConfirmationPage() {
           .catch(() => {});
       }
     }
+    queueMicrotask(() => setCheckedStorage(true));
   }, []);
 
+  const showLoading = useMinimumLoadingTime(!checkedStorage, 800);
   const displayStatus: OrderStatus = liveStatus ?? "pending";
 
   const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-PH", { month: "long", day: "numeric", year: "numeric" });
+
+  if (showLoading) {
+    return <OrderConfirmationSkeleton />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-20 bg-paper font-body">

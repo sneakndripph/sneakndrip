@@ -8,7 +8,7 @@ import { useMinimumLoadingTime } from "@/hooks/useMinimumLoadingTime";
 import { createClient } from "@/lib/supabase/client";
 import { Heart } from "lucide-react";
 import type { Product } from "@/lib/types";
-import WishlistLoading from "./loading";
+import WishlistSkeleton from "./WishlistSkeleton";
 
 export default function WishlistPage() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function WishlistPage() {
   const showLoading = useMinimumLoadingTime(loading, 800);
   const visibleProducts = products.filter(p => wishlist.includes(p.id));
 
-  if (showLoading) return <WishlistLoading />;
+  if (showLoading) return <WishlistSkeleton />;
 
   return (
     <div className="bg-paper min-h-screen font-body">

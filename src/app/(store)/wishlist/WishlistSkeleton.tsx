@@ -1,6 +1,6 @@
 import ProductCardSkeleton from "@/components/ui/ProductCardSkeleton";
 
-export default function WishlistLoading() {
+export default function WishlistSkeleton() {
   return (
     <div className="bg-paper min-h-screen font-body">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
