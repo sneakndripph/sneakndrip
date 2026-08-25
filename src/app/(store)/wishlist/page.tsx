@@ -8,12 +8,12 @@ import { useMinimumLoadingTime } from "@/hooks/useMinimumLoadingTime";
 import { createClient } from "@/lib/supabase/client";
 import { Heart } from "lucide-react";
 import type { Product } from "@/lib/types";
-import WishlistSkeleton from "./WishlistSkeleton";
 
 export default function WishlistPage() {
   const router = useRouter();
   const { wishlist, loading: wishlistLoading } = useWishlist();
   const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
@@ -24,20 +24,31 @@ export default function WishlistPage() {
   }, [router]);
 
   useEffect(() => {
-    if (!authChecked || wishlistLoading || wishlist.length === 0) {
-      queueMicrotask(() => setProducts([]));
+    if (!authChecked || wishlistLoading) return;
+    if (wishlist.length === 0) {
+      queueMicrotask(() => { setProducts([]); setProductsLoading(false); });
       return;
     }
+    queueMicrotask(() => setProductsLoading(true));
     fetch(`/api/wishlist/products?ids=${wishlist.join(",")}`)
       .then(r => r.ok ? r.json() : { products: [] })
-      .then(d => queueMicrotask(() => setProducts(d.products ?? [])));
+      .then(d => queueMicrotask(() => { setProducts(d.products ?? []); setProductsLoading(false); }))
+      .catch(() => queueMicrotask(() => { setProducts([]); setProductsLoading(false); }));
   }, [wishlist, wishlistLoading, authChecked]);
 
-  const loading = !authChecked || wishlistLoading;
+  const loading = !authChecked || wishlistLoading || productsLoading;
   const showLoading = useMinimumLoadingTime(loading, 800);
   const visibleProducts = products.filter(p => wishlist.includes(p.id));
 
-  if (showLoading) return <WishlistSkeleton />;
+  if (showLoading) {
+    return (
+      <div className="bg-paper min-h-screen font-body">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 min-h-screen flex items-center justify-center">
+          <p className="text-body text-ink-3">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-paper min-h-screen font-body">
