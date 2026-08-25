@@ -44,6 +44,7 @@ export default function ProductDetail({
   }, [product.id]);
 
   const isPreOrder = product.status === "pre-order";
+  const effectivePaymentType = isPreOrder ? paymentType : "full_payment";
   const otherRecentItems = recentItems.filter(i => i.id !== product.id);
 
   function handleViewReviews() {
@@ -75,6 +76,7 @@ export default function ProductDetail({
               isPreOrder={isPreOrder}
               paymentType={paymentType}
               setPaymentType={setPaymentType}
+              effectivePaymentType={effectivePaymentType}
             />
 
             <ProductTabs

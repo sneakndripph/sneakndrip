@@ -20,6 +20,7 @@ export default function ProductCTA({
   isPreOrder,
   paymentType,
   setPaymentType,
+  effectivePaymentType,
 }: {
   product: Product;
   selectedSize: string | null;
@@ -28,6 +29,7 @@ export default function ProductCTA({
   isPreOrder: boolean;
   paymentType: "full_payment" | "downpayment";
   setPaymentType: Dispatch<SetStateAction<"full_payment" | "downpayment">>;
+  effectivePaymentType: "full_payment" | "downpayment";
 }) {
   const [expanded, setExpanded] = useState(false);
   const router = useRouter();
@@ -42,14 +44,14 @@ export default function ProductCTA({
            (!product.sale_end   || new Date(product.sale_end).getTime()   >= nowTs);
   }, [product.sale_price, product.sale_start, product.sale_end]);
   const effectiveFullPrice = isOnSale ? product.sale_price! : product.full_payment_price;
-  const price = paymentType === "full_payment" ? effectiveFullPrice : product.downpayment_price;
+  const price = effectivePaymentType === "full_payment" ? effectiveFullPrice : product.downpayment_price;
 
   function getStock() {
     return product.sizes.find(s => s.size === selectedSize)?.stock ?? 0;
   }
   function getInCart() {
     return useCartStore.getState().items
-      .find(i => i.product.id === product.id && i.size === selectedSize && i.payment_type === paymentType)?.quantity ?? 0;
+      .find(i => i.product.id === product.id && i.size === selectedSize && i.payment_type === effectivePaymentType)?.quantity ?? 0;
   }
   function checkStock() {
     if (!selectedSize) { toast.error("Please select a size"); return false; }
@@ -72,13 +74,13 @@ export default function ProductCTA({
 
   function handleAddToCart() {
     if (!checkStock()) return;
-    addItem(product, selectedSize!, paymentType, quantity);
+    addItem(product, selectedSize!, effectivePaymentType, quantity);
     toast.success(`${product.name} added to cart`);
   }
 
   function handleBuyNow() {
     if (!checkStock()) return;
-    addItem(product, selectedSize!, paymentType, quantity);
+    addItem(product, selectedSize!, effectivePaymentType, quantity);
     router.push("/cart");
   }
 
@@ -108,29 +110,31 @@ export default function ProductCTA({
       </div>
 
       {/* Payment type toggle */}
-      <div className="mb-4">
-        <div className="grid grid-cols-2 gap-2">
-          {(["full_payment", "downpayment"] as const).map(type => (
-            <button
-              key={type}
-              onClick={() => setPaymentType(type)}
-              className={`py-3 px-3 text-center rounded-md border transition-colors ${
-                paymentType === type ? "border-ink bg-ink text-paper" : "border-line text-ink hover:border-ink"
-              }`}
-            >
-              <p className="text-micro uppercase tracking-wide">{type === "full_payment" ? "Full payment" : "Downpayment"}</p>
-              <p className="text-body-sm font-medium">
-                ₱{(type === "full_payment" ? product.full_payment_price : DP_RESERVE_FEE).toLocaleString()}{type === "downpayment" && " now"}
-              </p>
-            </button>
-          ))}
+      {isPreOrder && (
+        <div className="mb-4">
+          <div className="grid grid-cols-2 gap-2">
+            {(["full_payment", "downpayment"] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => setPaymentType(type)}
+                className={`py-3 px-3 text-center rounded-md border transition-colors ${
+                  paymentType === type ? "border-ink bg-ink text-paper" : "border-line text-ink hover:border-ink"
+                }`}
+              >
+                <p className="text-micro uppercase tracking-wide">{type === "full_payment" ? "Full payment" : "Downpayment"}</p>
+                <p className="text-body-sm font-medium">
+                  ₱{(type === "full_payment" ? product.full_payment_price : DP_RESERVE_FEE).toLocaleString()}{type === "downpayment" && " now"}
+                </p>
+              </button>
+            ))}
+          </div>
+          {paymentType === "downpayment" && (
+            <p className="text-micro text-ink-3 text-center mt-2">
+              ₱{DP_RESERVE_FEE.toLocaleString()} reserve now · ₱{(product.downpayment_price - DP_RESERVE_FEE).toLocaleString()} balance upon arrival
+            </p>
+          )}
         </div>
-        {paymentType === "downpayment" && (
-          <p className="text-micro text-ink-3 text-center mt-2">
-            ₱{DP_RESERVE_FEE.toLocaleString()} reserve now · ₱{(product.downpayment_price - DP_RESERVE_FEE).toLocaleString()} balance before shipping
-          </p>
-        )}
-      </div>
+      )}
 
       {selectedSize && <p className="text-micro text-ink-3 mb-4">Size {selectedSize} selected</p>}
 
