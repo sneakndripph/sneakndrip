@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LoadingMonogram from "@/components/ui/LoadingMonogram";
 
 const SESSION_KEY = "site_splash_shown";
 const MIN_DISPLAY_MS = 800;
@@ -42,20 +43,13 @@ export default function SiteSplash() {
 
   return (
     <div
-      role="status"
-      aria-live="polite"
-      aria-label="Loading site"
-      className="fixed inset-0 z-[9999] bg-paper flex items-center justify-center transition-opacity"
+      className="fixed inset-0 z-[9999] transition-opacity"
       style={{
         opacity: fadingOut ? 0 : 1,
         transitionDuration: `${FADE_OUT_MS}ms`,
       }}
     >
-      <span
-        className="text-display-s text-ink font-display font-medium tracking-[-0.03em] motion-safe:animate-[splash-pulse_1.5s_ease-in-out_infinite]"
-      >
-        SNEAKNDRIP
-      </span>
+      <LoadingMonogram fullScreen />
     </div>
   );
 }

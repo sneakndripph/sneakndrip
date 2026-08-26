@@ -7,6 +7,7 @@ import { useWishlist } from "@/hooks/useWishlist";
 import { useMinimumLoadingTime } from "@/hooks/useMinimumLoadingTime";
 import { createClient } from "@/lib/supabase/client";
 import { Heart } from "lucide-react";
+import LoadingMonogram from "@/components/ui/LoadingMonogram";
 import type { Product } from "@/lib/types";
 
 export default function WishlistPage() {
@@ -44,7 +45,7 @@ export default function WishlistPage() {
     return (
       <div className="bg-paper min-h-screen font-body">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 min-h-screen flex items-center justify-center">
-          <p className="text-body text-ink-3">Loading...</p>
+          <LoadingMonogram />
         </div>
       </div>
     );
