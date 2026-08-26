@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useWishlistStore } from "@/store/wishlistStore";
 
 export function useWishlist() {
   const { items: wishlist, loaded, setItems, addItem, removeItem, reset } = useWishlistStore();
+  const prevUserIdRef = useRef<string | undefined>(undefined);
 
   // Load once — re-runs when `loaded` flips back to false (e.g. on auth change)
   useEffect(() => {
@@ -15,11 +16,22 @@ export function useWishlist() {
       .catch(() => setItems([]));
   }, [loaded, setItems]);
 
-  // Auth state change → reset only on real sign-in/sign-out (not INITIAL_SESSION or token refresh)
+  // Auth state change → reset only on a real identity change: signing out, or
+  // signing in as a different user. Supabase re-emits SIGNED_IN with the same
+  // user on every tab focus (session recovery), which must NOT clear the
+  // wishlist — otherwise switching tabs and back re-triggers a fetch/loading flash.
   useEffect(() => {
     const supabase = createClient();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN" || event === "SIGNED_OUT") reset();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const userId = session?.user?.id;
+      const prevUserId = prevUserIdRef.current;
+      prevUserIdRef.current = userId;
+
+      if (event === "SIGNED_OUT") {
+        reset();
+      } else if (event === "SIGNED_IN" && userId !== prevUserId) {
+        reset();
+      }
     });
     return () => subscription.unsubscribe();
   }, [reset]);
