@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { BRANDS, SNEAKER_SIZES } from "@/lib/constants";
 import { now } from "@/lib/utils";
@@ -39,6 +40,7 @@ export default function ShopClient({
   initialGender?: string;
 }) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState(initialSearch);
   const [sort, setSort] = useState("featured");
@@ -58,6 +60,8 @@ export default function ShopClient({
       setShowNewOnly(initialFilter === "new");
     });
   }, [initialFilter]);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => { queueMicrotask(() => setSearch(initialSearch)); }, [initialSearch]);
 
@@ -303,36 +307,41 @@ export default function ShopClient({
         </div>
       </div>
 
-      {/* Mobile floating filters button */}
-      <button
-        onClick={() => setFiltersOpen(true)}
-        className="lg:hidden fixed bottom-6 left-6 z-30 flex items-center gap-2 px-5 py-3 rounded-full bg-ink text-paper shadow-xl"
-      >
-        <SlidersHorizontal className="w-4 h-4" />
-        Filters {activeFilters > 0 && `(${activeFilters})`}
-      </button>
+      {/* Mobile floating filters button + bottom sheet, portaled to document.body to
+          escape the transform containing block created by RouteTransition's motion.main */}
+      {mounted && createPortal(
+        <>
+          <button
+            onClick={() => setFiltersOpen(true)}
+            className="lg:hidden fixed bottom-6 left-6 z-30 flex items-center gap-2 px-5 py-3 rounded-full bg-ink text-paper shadow-xl"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters {activeFilters > 0 && `(${activeFilters})`}
+          </button>
 
-      {/* Mobile filters bottom sheet */}
-      {filtersOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-ink/50" onClick={() => setFiltersOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 bg-paper rounded-t-xl p-6 pb-8 shadow-xl max-h-[85vh] overflow-y-auto">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-strong" />
-            <div className="flex items-center justify-between mb-5">
-              <p className="text-body font-display font-medium text-ink">Filters</p>
-              <button onClick={() => setFiltersOpen(false)} className="text-ink-3 hover:text-ink transition-colors">
-                <X className="w-4 h-4" />
-              </button>
+          {filtersOpen && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div className="absolute inset-0 bg-ink/50" onClick={() => setFiltersOpen(false)} />
+              <div className="fixed inset-x-0 bottom-0 bg-paper rounded-t-xl p-6 pb-8 shadow-xl max-h-[85vh] overflow-y-auto">
+                <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-strong" />
+                <div className="flex items-center justify-between mb-5">
+                  <p className="text-body font-display font-medium text-ink">Filters</p>
+                  <button onClick={() => setFiltersOpen(false)} className="text-ink-3 hover:text-ink transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                {filtersContent}
+                <button
+                  onClick={() => setFiltersOpen(false)}
+                  className="w-full mt-6 py-3.5 rounded-md text-body-sm font-medium bg-ink text-paper hover:bg-ink-2 transition-colors"
+                >
+                  Show {filtered.length} results
+                </button>
+              </div>
             </div>
-            {filtersContent}
-            <button
-              onClick={() => setFiltersOpen(false)}
-              className="w-full mt-6 py-3.5 rounded-md text-body-sm font-medium bg-ink text-paper hover:bg-ink-2 transition-colors"
-            >
-              Show {filtered.length} results
-            </button>
-          </div>
-        </div>
+          )}
+        </>,
+        document.body
       )}
     </div>
   );
