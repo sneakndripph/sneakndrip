@@ -61,6 +61,14 @@ export default function ShopClient({
 
   useEffect(() => { queueMicrotask(() => setSearch(initialSearch)); }, [initialSearch]);
 
+  useEffect(() => {
+    queueMicrotask(() => setSelectedBrands(initialBrand ? [initialBrand] : []));
+  }, [initialBrand]);
+
+  useEffect(() => {
+    queueMicrotask(() => setSelectedGenders(initialGender ? [initialGender] : []));
+  }, [initialGender]);
+
   // Close sort dropdown on outside click
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -89,7 +97,7 @@ export default function ShopClient({
     if (sort === "price-desc") list.sort((a, b) => b.full_payment_price - a.full_payment_price);
     if (sort === "newest") list.sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
     return list;
-  }, [products, search, selectedBrands, selectedSizes, availability, showNewOnly, maxPrice, sort]);
+  }, [products, search, selectedBrands, selectedGenders, selectedSizes, availability, showNewOnly, maxPrice, sort]);
 
   // Infinite scroll windowing — filters/sort operate on the full in-memory
   // list above; this only controls how much of that result is rendered.
