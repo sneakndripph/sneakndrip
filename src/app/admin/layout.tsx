@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -84,6 +84,49 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     document.body.style.overflow = drawerOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [drawerOpen]);
+
+  const checkStillAdmin = useCallback(async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.app_metadata?.role !== "admin") {
+      await supabase.auth.signOut();
+      router.push("/admin/login");
+    }
+  }, [router]);
+
+  // Defense-in-depth: catches a role downgrade that happens while the admin
+  // tab is open, since the session cookie itself stays valid until it expires.
+  useEffect(() => {
+    if (pathname === "/admin/login") return;
+    const interval = setInterval(checkStillAdmin, 60_000);
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") checkStillAdmin();
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [pathname, checkStillAdmin]);
+
+  // Second layer: a downgraded admin's API calls start 401ing before the
+  // next periodic/focus check runs, so react to that immediately too.
+  useEffect(() => {
+    if (pathname === "/admin/login") return;
+    const originalFetch = window.fetch;
+    window.fetch = async (...args: Parameters<typeof fetch>) => {
+      const response = await originalFetch(...args);
+      const input = args[0];
+      const url = input instanceof Request ? input.url : input.toString();
+      if (response.status === 401 && url.includes("/api/admin/")) {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        router.push("/admin/login");
+      }
+      return response;
+    };
+    return () => { window.fetch = originalFetch; };
+  }, [pathname, router]);
 
   async function handleSignOut() {
     const supabase = createClient();
