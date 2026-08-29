@@ -34,6 +34,7 @@ type Order = {
   order_number: string;
   created_at: string;
   status: string;
+  delivered_at?: string | null;
   total: number;
   subtotal?: number;
   shipping_fee?: number;
@@ -69,6 +70,14 @@ const STEPS_COD = [
   { key: "shipped",    label: "Shipped" },
   { key: "delivered",  label: "Collected" },
 ];
+
+const RETURN_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+// Orders delivered before delivered_at existed have no recorded delivery date —
+// treat them as always eligible rather than guessing.
+function isReturnWindowOpen(deliveredAt: string | null | undefined) {
+  if (!deliveredAt) return true;
+  return Date.now() - new Date(deliveredAt).getTime() < RETURN_WINDOW_MS;
+}
 
 export default function AccountPage() {
   const router = useRouter();
@@ -902,19 +911,23 @@ export default function AccountPage() {
                                 </button>
                               )}
                               {order.status === "delivered" && !returnedOrders.has(order.order_number) && order.payment_type !== "downpayment" && (
-                                <button
-                                  onClick={() => {
-                                    setReturnModalOrder(order);
-                                    setReturnReason("");
-                                    setReturnError("");
-                                    setReturnSuccess(false);
-                                    setReturnPhotoFiles([]);
-                                    setReturnPhotoPreviews([]);
-                                  }}
-                                  className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-line text-ink-2">
-                                  <RotateCcw className="w-3 h-3" />
-                                  Request Return
-                                </button>
+                                isReturnWindowOpen(order.delivered_at) ? (
+                                  <button
+                                    onClick={() => {
+                                      setReturnModalOrder(order);
+                                      setReturnReason("");
+                                      setReturnError("");
+                                      setReturnSuccess(false);
+                                      setReturnPhotoFiles([]);
+                                      setReturnPhotoPreviews([]);
+                                    }}
+                                    className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-line text-ink-2">
+                                    <RotateCcw className="w-3 h-3" />
+                                    Request Return
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-ink-3">Return window has expired</span>
+                                )
                               )}
                               {order.status === "delivered" && returnedOrders.has(order.order_number) && (() => {
                                 const ret = returnedOrders.get(order.order_number)!;

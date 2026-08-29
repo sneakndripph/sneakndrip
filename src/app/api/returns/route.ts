@@ -52,13 +52,18 @@ export async function POST(req: NextRequest) {
     // Verify the order belongs to this customer
     const { data: order } = await admin
       .from("orders")
-      .select("id, status, customer_email, customer_name")
+      .select("id, status, delivered_at, customer_email, customer_name")
       .eq("order_number", order_number)
       .single();
 
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
     if (order.customer_email !== user.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (order.status !== "delivered") return NextResponse.json({ error: "Only delivered orders can be returned" }, { status: 400 });
+    // Orders delivered before delivered_at existed have no recorded delivery date —
+    // allow them through, matching the client-side fallback behavior.
+    if (order.delivered_at && Date.now() - new Date(order.delivered_at).getTime() > 7 * 24 * 60 * 60 * 1000) {
+      return NextResponse.json({ error: "Return window has expired" }, { status: 400 });
+    }
 
     // Check for duplicate
     const { data: existing } = await admin
