@@ -8,16 +8,11 @@ export async function GET(req: NextRequest) {
 
   const from = req.nextUrl.searchParams.get("from");
   const to = req.nextUrl.searchParams.get("to");
+  if (!from || !to) return NextResponse.json({ error: "Missing from/to" }, { status: 400 });
 
   const admin = createAdminClient();
-  let query = admin.from("page_views").select("session_id");
-
-  if (from) query = query.gte("created_at", from);
-  if (to) query = query.lte("created_at", to);
-
-  const { data, error } = await query;
+  const { data, error } = await admin.rpc("count_unique_page_view_sessions", { range_start: from, range_end: to });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const unique = new Set((data ?? []).map(v => v.session_id)).size;
-  return NextResponse.json({ count: unique });
+  return NextResponse.json({ count: data ?? 0 });
 }
