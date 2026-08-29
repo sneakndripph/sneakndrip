@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Star, X } from "lucide-react";
 import type { Review } from "@/lib/types";
+import PhotoLightbox from "@/components/ui/PhotoLightbox";
 
 function Stars({ rating, size = "w-3 h-3" }: { rating: number; size?: string }) {
   return (
@@ -17,6 +18,7 @@ function Stars({ rating, size = "w-3 h-3" }: { rating: number; size?: string }) 
 
 export default function ProductReviews({ reviews }: { reviews: Review[] }) {
   const [lightboxReview, setLightboxReview] = useState<Review | null>(null);
+  const [zoomPhoto, setZoomPhoto] = useState<string | null>(null);
 
   return (<>
     <div className="space-y-5">
@@ -41,7 +43,11 @@ export default function ProductReviews({ reviews }: { reviews: Review[] }) {
             {r.title && <p className="text-body-sm font-medium mb-1 text-ink">{r.title}</p>}
             <p className="text-body-sm text-ink-2">{r.body}</p>
             {r.image_url && (
-              <div className="mt-3 relative overflow-hidden rounded-md border border-line" style={{ width: 120, height: 120 }}>
+              <div
+                className="mt-3 relative overflow-hidden rounded-md border border-line cursor-zoom-in"
+                style={{ width: 120, height: 120 }}
+                onClick={e => { e.stopPropagation(); setZoomPhoto(r.image_url!); }}
+              >
                 <Image src={r.image_url} alt="Review photo" fill className="object-cover" sizes="120px" />
               </div>
             )}
@@ -74,7 +80,10 @@ export default function ProductReviews({ reviews }: { reviews: Review[] }) {
             )}
             <p className="text-body-sm leading-relaxed text-ink-2">{lightboxReview.body}</p>
             {lightboxReview.image_url && (
-              <div className="relative w-full aspect-square overflow-hidden rounded-md border border-line">
+              <div
+                className="relative w-full aspect-square overflow-hidden rounded-md border border-line cursor-zoom-in"
+                onClick={() => setZoomPhoto(lightboxReview.image_url!)}
+              >
                 <Image src={lightboxReview.image_url} alt="Review photo" fill className="object-cover" sizes="400px" />
               </div>
             )}
@@ -87,5 +96,12 @@ export default function ProductReviews({ reviews }: { reviews: Review[] }) {
         </div>
       </div>
     )}
+
+    <PhotoLightbox
+      src={zoomPhoto ?? ""}
+      alt="Review photo"
+      isOpen={!!zoomPhoto}
+      onClose={() => setZoomPhoto(null)}
+    />
   </>);
 }
