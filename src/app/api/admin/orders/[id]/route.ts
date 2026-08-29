@@ -56,6 +56,12 @@ export async function PATCH(
   if (body.status === "paid" && !isCODOrder) update.payment_status = "paid";
   if (body.status === "delivered" && isCODOrder) update.payment_status = "paid";
 
+  // Stamp delivered_at only on the transition into "delivered" — never cleared
+  // on a later status change, so it stays a record of when delivery happened.
+  if (body.status === "delivered" && currentOrder?.status !== "delivered") {
+    update.delivered_at = new Date().toISOString();
+  }
+
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
