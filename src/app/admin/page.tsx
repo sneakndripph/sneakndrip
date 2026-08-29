@@ -79,8 +79,6 @@ export default async function AdminDashboard({
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
-  const todayStartISO = todayStart.toISOString();
-  const yesterdayStartISO = new Date(todayStart.getTime() - 86400000).toISOString();
 
   const periodStartDate = (() => {
     if (period === "today") return todayStart;
@@ -98,8 +96,8 @@ export default async function AdminDashboard({
     { data: previousOrders },
     { data: recentOrders },
     { data: topProductsRaw },
-    { data: todayVisitorCount },
-    { data: yesterdayVisitorCount },
+    { data: currentVisitorCount },
+    { data: previousVisitorCount },
   ] = await Promise.all([
     admin.from("orders")
       .select("total, status, created_at")
@@ -114,12 +112,12 @@ export default async function AdminDashboard({
       .order("created_at", { ascending: false })
       .limit(5),
     admin.rpc("top_products_by_period", { period_start: periodStartISO, result_limit: 5 }),
-    admin.rpc("count_unique_page_view_sessions", { range_start: todayStartISO, range_end: now.toISOString() }),
-    admin.rpc("count_unique_page_view_sessions", { range_start: yesterdayStartISO, range_end: todayStartISO }),
+    admin.rpc("count_unique_page_view_sessions", { range_start: periodStartISO, range_end: now.toISOString() }),
+    admin.rpc("count_unique_page_view_sessions", { range_start: prevStartISO, range_end: periodStartISO }),
   ]);
 
-  const todayVisitors     = todayVisitorCount ?? 0;
-  const yesterdayVisitors = yesterdayVisitorCount ?? 0;
+  const visitorsCurrent  = currentVisitorCount ?? 0;
+  const visitorsPrevious = previousVisitorCount ?? 0;
 
   // Revenue chart slots
   const slotMap = new Map<string, { revenue: number; orders: number }>();
@@ -199,7 +197,7 @@ export default async function AdminDashboard({
           delta={pctDelta(revenueCurrent, revenuePrevious)} href="/admin/sales" />
         <StatCard label="Orders" value={ordersCountCurrent.toLocaleString()}
           delta={pctDelta(ordersCountCurrent, ordersCountPrevious)} href="/admin/orders" />
-        <DashboardVisitorsCard initialToday={todayVisitors} initialYesterday={yesterdayVisitors} />
+        <DashboardVisitorsCard current={visitorsCurrent} previous={visitorsPrevious} />
         <StatCard label="Avg. order value" value={`₱${Math.round(aovCurrent).toLocaleString()}`}
           delta={pctDelta(aovCurrent, aovPrevious)} />
       </div>
