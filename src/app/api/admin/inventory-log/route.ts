@@ -1,29 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
-import { Resend } from "resend";
 import { requireAdmin } from "@/lib/supabase/require-admin";
-
-async function sendRestockEmails(productId: string, productName: string, size: string) {
-  if (!process.env.RESEND_API_KEY) return;
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const admin = createAdminClient();
-  const { data: notifs } = await admin
-    .from("restock_notifications")
-    .select("email")
-    .eq("product_id", productId)
-    .eq("size", size);
-  if (!notifs?.length) return;
-  for (const n of notifs) {
-    if (!n.email) continue;
-    await resend.emails.send({
-      from: `Sneak N' Drip <${process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev"}>`,
-      to: n.email,
-      subject: `${productName} (${size}) is back in stock!`,
-      html: `<div style="max-width:500px;margin:0 auto;font-family:Arial,sans-serif;padding:24px"><h2 style="color:#0D0D0D">Back In Stock!</h2><p style="color:#555;font-size:15px">Good news! <strong>${productName}</strong> in size <strong>${size}</strong> is now available.</p><a href="https://sneakndrip.ph/shop" style="display:inline-block;background:#5BB8B4;color:#fff;padding:12px 24px;text-decoration:none;font-weight:bold;margin-top:12px">Shop Now</a><p style="color:#aaa;font-size:12px;margin-top:24px">You requested to be notified when this item restocked. Reply to unsubscribe.</p></div>`,
-    }).catch(() => {});
-  }
-  await admin.from("restock_notifications").delete().eq("product_id", productId).eq("size", size);
-}
+import { sendRestockEmailsForSize } from "@/lib/email/restock";
 
 export async function GET() {
   const caller = await requireAdmin();
@@ -79,7 +57,10 @@ export async function POST(req: NextRequest) {
   });
 
   if (old_stock === 0 && new_stock > 0) {
-    void sendRestockEmails(product_id, product_name ?? "", size);
+    void (async () => {
+      const { data: productRow } = await admin.from("products").select("slug, images").eq("id", product_id).single();
+      await sendRestockEmailsForSize(product_id, size, product_name ?? "", productRow?.slug ?? product_id, productRow?.images?.[0]);
+    })();
   }
 
   return NextResponse.json({ ok: true, old_stock, new_stock });
