@@ -80,6 +80,13 @@ export default function CartPage() {
   const allSelected = items.length > 0 && items.every(i => selected.has(i.id));
   const selectedItems = items.filter(i => selected.has(i.id));
   const sub = selectedItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  // SRP discount is an attribute of the product's selling price, not of how
+  // much is due now -- always priced off full_payment_price so it reads the
+  // same whether a line is paying in full or on a downpayment.
+  const savings = selectedItems.reduce(
+    (s, i) => s + Math.max(0, i.product.srp_price - i.product.full_payment_price) * i.quantity,
+    0
+  );
 
   // updateSize/updatePaymentType can merge `prevId`'s line into an existing one;
   // when that happens, carry `prevId`'s selection state over to the surviving id
@@ -302,7 +309,7 @@ export default function CartPage() {
                               <option key={s.size} value={s.size}>{s.size}</option>
                             ))}
                         </select>
-                        {isPreOrder ? (
+                        {isPreOrder && (
                           <div className="flex flex-wrap gap-1">
                             {(["full_payment", "downpayment"] as const).map(pt => (
                               <button key={pt} type="button"
@@ -314,12 +321,14 @@ export default function CartPage() {
                               </button>
                             ))}
                           </div>
-                        ) : (
-                          <span className="px-2 py-0.5 text-micro rounded-sm whitespace-nowrap border bg-ink text-paper border-ink">
-                            Full Payment
-                          </span>
                         )}
                       </div>
+                      {item.product.srp_price > item.product.full_payment_price && (
+                        <p className="flex items-center gap-1.5 text-micro mt-1">
+                          <span className="text-ink-3 line-through">₱{item.product.srp_price.toLocaleString()}</span>
+                          <span className="text-ink-3">₱{item.product.full_payment_price.toLocaleString()}</span>
+                        </p>
+                      )}
                     </div>
                     <p className="text-body font-display font-medium shrink-0 text-ink">
                       ₱{(item.unit_price * item.quantity).toLocaleString()}
@@ -412,6 +421,12 @@ export default function CartPage() {
                   </span>
                   <span className="text-ink">₱{sub.toLocaleString()}</span>
                 </div>
+                {savings > 0 && (
+                  <div className="flex justify-between text-body-sm">
+                    <span className="text-state-onhand">You save</span>
+                    <span className="text-state-onhand">₱{savings.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-body-sm">
                   <span className="text-ink-3">Shipping</span>
                   <span className="text-ink-3">Computed at checkout</span>
