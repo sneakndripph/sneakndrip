@@ -42,6 +42,9 @@ export type LineMergeResult = { id: string; merged: boolean } | null;
 interface CartState {
   items: CartItem[];
   cartUserId: string | null;
+  // Per-user carts stashed while another user (or no one) is signed in on
+  // this browser -- keyed by user id, restored on that user's next sign-in.
+  savedCarts: Record<string, CartItem[]>;
   addItem: (product: Product, size: string, paymentType: PaymentType, qty?: number) => void;
   removeItem: (productId: string, size: string, paymentType: PaymentType) => void;
   updateQuantity: (productId: string, size: string, paymentType: PaymentType, quantity: number) => void;
@@ -59,6 +62,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       cartUserId: null,
+      savedCarts: {},
 
       addItem: (product, size, paymentType, qty = 1) => {
         const price = paymentType === "full_payment"
@@ -142,36 +146,79 @@ export const useCartStore = create<CartState>()(
       subtotal: () =>
         get().items.reduce((sum, i) => sum + i.unit_price * i.quantity, 0),
 
-      // Call on auth state change. Only wipes the cart when swapping between
-      // two different signed-in users on the same browser -- a transition to
-      // or from null (sign-out / fresh sign-in) leaves items intact so a
-      // user's cart survives a sign-out/sign-in cycle.
+      // Call on auth state change. Carts are namespaced per user in
+      // savedCarts so switching accounts on the same browser never leaks
+      // one user's items to another, while each user's own cart still
+      // survives a sign-out/sign-in cycle.
       initForUser: (userId) =>
         set(state => {
           const stored = state.cartUserId;
-          if (stored !== null && userId !== null && stored !== userId) {
-            return { items: [], cartUserId: userId };
+
+          if (userId === stored) {
+            // Same user re-emitted (session recovery) or guest -> guest.
+            return state;
           }
-          return { cartUserId: userId };
+
+          if (stored !== null && userId === null) {
+            // Sign-out: stash the visible cart under its owner and clear it
+            // so the badge and page go empty immediately.
+            return {
+              items: [],
+              cartUserId: null,
+              savedCarts: { ...state.savedCarts, [stored]: state.items },
+            };
+          }
+
+          if (stored === null && userId !== null) {
+            // Sign-in from signed-out state: restore this user's stashed
+            // cart if there is one, otherwise adopt any guest cart that was
+            // built up while signed out.
+            const saved = state.savedCarts[userId];
+            const savedCarts = { ...state.savedCarts };
+            delete savedCarts[userId];
+            return {
+              items: saved ?? state.items,
+              cartUserId: userId,
+              savedCarts,
+            };
+          }
+
+          // Switching between two different signed-in users: stash the
+          // outgoing user's cart, restore the incoming user's if saved.
+          const savedCarts = { ...state.savedCarts, [stored as string]: state.items };
+          const saved = savedCarts[userId as string];
+          delete savedCarts[userId as string];
+          return {
+            items: saved ?? [],
+            cartUserId: userId,
+            savedCarts,
+          };
         }),
     }),
     {
       name: "snd-cart",
-      version: 2,
+      version: 3,
       // v0 -> v1: payment_type didn't exist yet, so items persisted before this
       // change may be missing it -- default them to full_payment.
       // v1 -> v2: items didn't have a stable id yet -- backfill one so React
       // keys and UI selection state can be decoupled from mutable fields.
+      // v2 -> v3: carts weren't namespaced by user yet -- if the persisted
+      // cart belonged to a signed-in user, stash it under savedCarts so it
+      // doesn't leak to the next user who signs in on this browser.
       migrate: (persistedState) => {
-        const state = persistedState as { items?: CartItem[]; cartUserId?: string | null };
-        return {
-          cartUserId: state.cartUserId ?? null,
-          items: (state.items ?? []).map(i => ({
-            ...i,
-            payment_type: i.payment_type ?? DEFAULT_PAYMENT_TYPE,
-            id: i.id ?? crypto.randomUUID(),
-          })),
-        } as CartState;
+        const state = persistedState as {
+          items?: CartItem[];
+          cartUserId?: string | null;
+          savedCarts?: Record<string, CartItem[]>;
+        };
+        const cartUserId = state.cartUserId ?? null;
+        const items = (state.items ?? []).map(i => ({
+          ...i,
+          payment_type: i.payment_type ?? DEFAULT_PAYMENT_TYPE,
+          id: i.id ?? crypto.randomUUID(),
+        }));
+        const savedCarts = state.savedCarts ?? (cartUserId ? { [cartUserId]: items } : {});
+        return { items, cartUserId, savedCarts } as CartState;
       },
     }
   )
