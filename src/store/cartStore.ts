@@ -13,6 +13,13 @@ function matches(i: CartItem, productId: string, size: string, paymentType: Paym
   return i.product.id === productId && i.size === size && (i.payment_type ?? DEFAULT_PAYMENT_TYPE) === paymentType;
 }
 
+// Combined quantity for two lines being merged into one, capped at available
+// stock for that size if known.
+function mergedQuantity(a: CartItem, b: CartItem): number {
+  const maxStock = a.product.sizes.find(s => s.size === b.size)?.stock;
+  return maxStock != null ? Math.min(a.quantity + b.quantity, maxStock) : a.quantity + b.quantity;
+}
+
 // Moves `moving` to wherever `apply` puts it, unless that collides with an
 // existing line (`collision`), in which case they're merged: quantities are
 // combined (capped at available stock, if known) and `moving` is dropped.
@@ -25,11 +32,21 @@ function mergeOrMove(
   if (!collision) {
     return items.map(i => (i === moving ? apply(i) : i));
   }
-  const maxStock = moving.product.sizes.find(s => s.size === collision.size)?.stock;
-  const mergedQty = maxStock != null
-    ? Math.min(collision.quantity + moving.quantity, maxStock)
-    : collision.quantity + moving.quantity;
-  return items.filter(i => i !== moving).map(i => (i === collision ? { ...i, quantity: mergedQty } : i));
+  return items.filter(i => i !== moving).map(i => (i === collision ? { ...i, quantity: mergedQuantity(collision, moving) } : i));
+}
+
+// Folds `incoming` lines into `base`, combining quantities (same identity +
+// stock-cap rule as mergeOrMove) where a line already exists in `base` and
+// appending the rest. Used to merge a guest cart into a returning user's
+// stashed cart on sign-in -- `base`'s line ids survive collisions.
+function mergeCarts(base: CartItem[], incoming: CartItem[]): CartItem[] {
+  return incoming.reduce((acc, item) => {
+    const collision = acc.find(i => matches(i, item.product.id, item.size, item.payment_type ?? DEFAULT_PAYMENT_TYPE));
+    if (!collision) {
+      return [...acc, item];
+    }
+    return acc.map(i => (i === collision ? { ...i, quantity: mergedQuantity(collision, item) } : i));
+  }, base);
 }
 
 // Returned by actions that can merge one line into another (updateSize,
@@ -171,16 +188,15 @@ export const useCartStore = create<CartState>()(
 
           if (stored === null && userId !== null) {
             // Sign-in from signed-out state: restore this user's stashed
-            // cart if there is one, otherwise adopt any guest cart that was
-            // built up while signed out.
+            // cart if there is one, merging in any guest cart built up while
+            // signed out; with no stashed cart, adopt the guest cart as-is.
             const saved = state.savedCarts[userId];
             const savedCarts = { ...state.savedCarts };
             delete savedCarts[userId];
-            return {
-              items: saved ?? state.items,
-              cartUserId: userId,
-              savedCarts,
-            };
+            const items = saved
+              ? (state.items.length > 0 ? mergeCarts(saved, state.items) : saved)
+              : state.items;
+            return { items, cartUserId: userId, savedCarts };
           }
 
           // Switching between two different signed-in users: stash the
