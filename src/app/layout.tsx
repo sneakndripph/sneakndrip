@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Inter_Tight } from "next/font/google";
-import { Toaster } from "react-hot-toast";
+import AppToaster from "@/components/layout/AppToaster";
 import ProgressBar from "@/components/layout/ProgressBar";
 import SiteSplash from "@/components/ui/SiteSplash";
 import SiteStructuredData from "@/components/SiteStructuredData";
@@ -69,32 +69,7 @@ export default function RootLayout({
         <SiteSplash />
         <ProgressBar />
         {children}
-        <Toaster
-          position="top-right"
-          gutter={8}
-          containerStyle={{ top: 72, right: 16 }}
-          toastOptions={{
-            duration: 3200,
-            style: {
-              background: "var(--ink)",
-              color: "var(--paper)",
-              fontFamily: "var(--font-body)",
-              fontSize: "13px",
-              lineHeight: "1.4",
-              padding: "12px 16px",
-              borderRadius: "6px",
-              boxShadow: "0 8px 24px rgba(10, 10, 10, 0.14)",
-              minWidth: "280px",
-              maxWidth: "320px",
-            },
-            success: {
-              iconTheme: { primary: "var(--state-onhand)", secondary: "var(--paper)" },
-            },
-            error: {
-              iconTheme: { primary: "var(--state-error)", secondary: "var(--paper)" },
-            },
-          }}
-        />
+        <AppToaster />
       </body>
     </html>
   );
