@@ -10,6 +10,7 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, LogIn, CheckSquare, Squar
 import { createClient } from "@/lib/supabase/client";
 import { useMinimumLoadingTime } from "@/hooks/useMinimumLoadingTime";
 import CartSkeleton from "./CartSkeleton";
+import ConfirmRemoveDialog from "@/components/ui/ConfirmRemoveDialog";
 import type { Product } from "@/lib/types";
 
 type StockCheck = {
@@ -77,6 +78,9 @@ export default function CartPage() {
   // see the hydration effect below.
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const hasInitializedSelection = useRef(false);
+  // Which line's remove-confirmation modal is open, keyed by line id.
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+  const removingItem = items.find(i => i.id === removingItemId) ?? null;
   const allSelected = items.length > 0 && items.every(i => selected.has(i.id));
   const selectedItems = items.filter(i => selected.has(i.id));
   const sub = selectedItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
@@ -370,7 +374,13 @@ export default function CartPage() {
                         const maxStock = item.product.sizes.find(s => s.size === item.size)?.stock ?? 99;
                         return (
                           <>
-                            <button onClick={() => updateQuantity(item.product.id, item.size, item.payment_type, item.quantity - 1)}
+                            <button onClick={() => {
+                                if (item.quantity <= 1) {
+                                  setRemovingItemId(item.id);
+                                } else {
+                                  updateQuantity(item.product.id, item.size, item.payment_type, item.quantity - 1);
+                                }
+                              }}
                               className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60">
                               <Minus className="w-3 h-3" />
                             </button>
@@ -397,7 +407,7 @@ export default function CartPage() {
                       })()}
                     </div>
 
-                    <button onClick={() => removeItem(item.product.id, item.size, item.payment_type)}
+                    <button onClick={() => setRemovingItemId(item.id)}
                       className="flex items-center gap-1 text-body-sm text-state-error transition-opacity hover:opacity-60">
                       <Trash2 className="w-3 h-3" /> Remove
                     </button>
@@ -483,6 +493,16 @@ export default function CartPage() {
 
         <TopProducts products={topProducts} />
       </div>
+
+      <ConfirmRemoveDialog
+        open={removingItem != null}
+        productName={removingItem?.product.name ?? ""}
+        onClose={() => setRemovingItemId(null)}
+        onConfirm={() => {
+          if (removingItem) removeItem(removingItem.product.id, removingItem.size, removingItem.payment_type);
+          setRemovingItemId(null);
+        }}
+      />
     </div>
   );
 }
