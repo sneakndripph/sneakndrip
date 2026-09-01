@@ -295,11 +295,11 @@ export default function CartPage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
+                  <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-4">
+                    <div className="min-w-0 flex-1">
                       <p className="text-eyebrow text-ink-3 mb-0.5">{item.product.brand}</p>
-                      <Link href={`/shop/${item.product.slug}`} className="text-body-sm text-ink leading-snug hover:underline underline-offset-2">{item.product.name}</Link>
-                      <div className="flex items-center gap-2 mt-1.5">
+                      <Link href={`/shop/${item.product.slug}`} className="text-body-sm text-ink leading-snug break-words hover:underline underline-offset-2">{item.product.name}</Link>
+                      <div className="flex flex-wrap items-center gap-2 mt-1.5">
                         <select
                           value={item.size}
                           onChange={e => applyMergeResult(item.id, updateSize(item.product.id, item.size, e.target.value, item.payment_type))}
@@ -325,7 +325,7 @@ export default function CartPage() {
                         )}
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
+                    <div className="w-full sm:w-auto text-right shrink-0">
                       {item.product.srp_price > item.product.full_payment_price && (
                         <p className="text-micro text-ink-3 line-through">₱{item.product.srp_price.toLocaleString()}</p>
                       )}
