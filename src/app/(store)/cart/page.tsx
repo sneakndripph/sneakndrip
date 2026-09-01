@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -10,7 +10,7 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, LogIn, CheckSquare, Squar
 import { createClient } from "@/lib/supabase/client";
 import { useMinimumLoadingTime } from "@/hooks/useMinimumLoadingTime";
 import CartSkeleton from "./CartSkeleton";
-import type { Product } from "@/lib/types";
+import type { Product, CartItem } from "@/lib/types";
 
 type StockCheck = {
   product_id: string;
@@ -185,6 +185,7 @@ export default function CartPage() {
               slug: p.slug as string,
               brand: p.brand as string,
               colorway: (p.colorway as string) ?? "",
+              sku: (p.sku as string) ?? null,
               gender: (p.gender as string) ?? "Unisex",
               description: (p.description as string) ?? "",
               status: p.status as Product["status"],
@@ -232,6 +233,145 @@ export default function CartPage() {
     );
   }
 
+  const renderCheckbox = (item: CartItem, isSelected: boolean) => (
+    <button
+      onClick={() => setSelected(prev => { const n = new Set(prev); n.has(item.id) ? n.delete(item.id) : n.add(item.id); return n; })}
+      className="shrink-0">
+      {isSelected
+        ? <CheckSquare className="w-5 h-5 text-ink" />
+        : <Square className="w-5 h-5 text-line-strong" />}
+    </button>
+  );
+
+  const renderThumbnail = (item: CartItem, size: number) => (
+    <Link href={`/shop/${item.product.slug}`}
+      className={`shrink-0 flex items-center justify-center relative overflow-hidden rounded-md transition-opacity hover:opacity-80 border border-line ${!item.product.bg ? "bg-paper-2" : ""}`}
+      style={{ width: size, height: size, ...(item.product.bg ? { background: item.product.bg } : {}) }}>
+      {item.product.images?.[0] ? (
+        <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover object-center" sizes={`${size}px`} />
+      ) : (
+        <span className="font-display text-ink opacity-5 text-[1.5rem]">
+          {item.product.brand.charAt(0)}
+        </span>
+      )}
+    </Link>
+  );
+
+  const renderProductDetails = (item: CartItem, selectClassName: string) => (
+    <div className="min-w-0">
+      <p className="text-eyebrow text-ink-3 mb-0.5">{item.product.brand}</p>
+      {item.product.sku && <p className="text-micro text-ink-3 mb-0.5">{item.product.sku}</p>}
+      <Link href={`/shop/${item.product.slug}`} className="text-body-sm text-ink leading-snug hover:underline underline-offset-2">{item.product.name}</Link>
+      <div>
+        <select
+          value={item.size}
+          onChange={e => applyMergeResult(item.id, updateSize(item.product.id, item.size, e.target.value, item.payment_type))}
+          className={`text-micro px-2 py-0.5 rounded-sm cursor-pointer focus:outline-none border border-line text-ink-3 bg-paper-2 mt-1.5 ${selectClassName}`}>
+          {item.product.sizes
+            .filter(s => s.stock > 0 || s.size === item.size)
+            .map(s => (
+              <option key={s.size} value={s.size}>{s.size}</option>
+            ))}
+        </select>
+      </div>
+    </div>
+  );
+
+  const renderStockWarning = (item: CartItem, stockCheck: StockCheck | undefined) => {
+    if (!stockCheck || stockCheck.status === "available") return null;
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
+        <span className={`flex items-center gap-1.5 text-admin ${stockCheck.status === "sold_out" ? "text-state-error" : "text-state-preorder"}`}>
+          {stockCheck.status === "sold_out"
+            ? <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            : <AlertTriangle className="w-3.5 h-3.5 shrink-0" />}
+          {stockCheck.status === "sold_out"
+            ? "This item is no longer available"
+            : `Only ${stockCheck.current_stock} left`}
+        </span>
+        <button
+          onClick={() => {
+            if (stockCheck.status === "sold_out") {
+              removeItem(item.product.id, item.size, item.payment_type);
+            } else {
+              updateQuantity(item.product.id, item.size, item.payment_type, stockCheck.current_stock);
+              setStockMap(prev => ({
+                ...prev,
+                [stockKey(item.product.id, item.size)]: { ...stockCheck, status: "available", requested_quantity: stockCheck.current_stock },
+              }));
+            }
+          }}
+          className="shrink-0 px-2.5 py-1 rounded-md text-admin-sm bg-paper border border-line text-ink hover:bg-paper-2 transition-colors">
+          {stockCheck.status === "sold_out" ? "Remove" : `Update quantity to ${stockCheck.current_stock}`}
+        </button>
+      </div>
+    );
+  };
+
+  const renderQtyControl = (item: CartItem) => {
+    const maxStock = item.product.sizes.find(s => s.size === item.size)?.stock ?? 99;
+    return (
+      <div className="flex items-center gap-0 border border-line rounded-md">
+        <button onClick={() => updateQuantity(item.product.id, item.size, item.payment_type, item.quantity - 1)}
+          className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60">
+          <Minus className="w-3 h-3" />
+        </button>
+        <input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={item.quantity}
+          onChange={e => {
+            const val = parseInt(e.target.value.replace(/\D/g, ""), 10);
+            if (!isNaN(val) && val >= 1) {
+              updateQuantity(item.product.id, item.size, item.payment_type, Math.min(val, maxStock));
+            }
+          }}
+          className="w-10 text-center text-body-sm text-ink focus:outline-none bg-transparent"
+        />
+        <button onClick={() => updateQuantity(item.product.id, item.size, item.payment_type, Math.min(item.quantity + 1, maxStock))}
+          disabled={item.quantity >= maxStock}
+          className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60 disabled:opacity-30">
+          <Plus className="w-3 h-3" />
+        </button>
+      </div>
+    );
+  };
+
+  const renderPriceStack = (item: CartItem, align: "left" | "right") => (
+    <div className={align === "right" ? "text-right" : ""}>
+      {item.product.srp_price > item.product.full_payment_price && (
+        <p className="text-micro text-ink-3 line-through">₱{item.product.srp_price.toLocaleString()}</p>
+      )}
+      <p className="text-body-sm font-medium text-ink">₱{item.product.full_payment_price.toLocaleString()}</p>
+    </div>
+  );
+
+  const renderTotal = (item: CartItem) => (
+    <p className="text-body font-display font-medium text-ink">₱{(item.unit_price * item.quantity).toLocaleString()}</p>
+  );
+
+  const renderPaymentToggle = (item: CartItem) => (
+    <div className="flex flex-wrap gap-1">
+      {(["full_payment", "downpayment"] as const).map(pt => (
+        <button key={pt} type="button"
+          onClick={() => applyMergeResult(item.id, updatePaymentType(item.product.id, item.size, item.payment_type, pt))}
+          className={`px-2 py-0.5 text-micro rounded-sm transition-colors whitespace-nowrap border ${
+            item.payment_type === pt ? "bg-ink text-paper border-ink" : "bg-transparent text-ink-3 border-line"
+          }`}>
+          {pt === "full_payment" ? `Full ₱${item.product.full_payment_price.toLocaleString()}` : `DP ₱${item.product.downpayment_price.toLocaleString()}`}
+        </button>
+      ))}
+    </div>
+  );
+
+  const renderRemoveButton = (item: CartItem) => (
+    <button onClick={() => removeItem(item.product.id, item.size, item.payment_type)}
+      className="flex items-center gap-1 text-body-sm text-state-error transition-opacity hover:opacity-60 shrink-0">
+      <Trash2 className="w-3 h-3" /> Remove
+    </button>
+  );
+
   return (
     <div className="bg-paper min-h-[80vh]">
       <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-12">
@@ -244,7 +384,7 @@ export default function CartPage() {
 
         <div className="grid lg:grid-cols-3 gap-8 items-start">
           {/* Items */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2">
             <div className="flex items-center justify-between pb-2">
               <button
                 onClick={() => setSelected(allSelected ? new Set() : new Set(items.map(i => i.id)))}
@@ -264,148 +404,85 @@ export default function CartPage() {
                 </button>
               )}
             </div>
-            {items.map(item => {
-              const isSelected = selected.has(item.id);
-              const isPreOrder = item.product.status === "pre-order";
-              const stockCheck = stockMap[stockKey(item.product.id, item.size)];
-              return (
-              <div key={item.id}
-                className={`p-4 flex gap-4 rounded-md transition-opacity bg-paper border ${isSelected ? "border-ink opacity-100" : "border-line opacity-60"}`}>
-                {/* Checkbox */}
-                <button
-                  onClick={() => setSelected(prev => { const n = new Set(prev); n.has(item.id) ? n.delete(item.id) : n.add(item.id); return n; })}
-                  className="shrink-0 self-start mt-0.5">
-                  {isSelected
-                    ? <CheckSquare className="w-5 h-5 text-ink" />
-                    : <Square className="w-5 h-5 text-line-strong" />}
-                </button>
 
-                {/* Image — clickable */}
-                <Link href={`/shop/${item.product.slug}`} className={`w-20 h-20 shrink-0 flex items-center justify-center relative overflow-hidden rounded-md transition-opacity hover:opacity-80 border border-line ${!item.product.bg ? "bg-paper-2" : ""}`}
-                  style={item.product.bg ? { background: item.product.bg } : undefined}>
-                  {item.product.images?.[0] ? (
-                    <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover object-center" sizes="80px" />
-                  ) : (
-                    <span className="font-display text-ink opacity-5 text-[1.5rem]">
-                      {item.product.brand.charAt(0)}
-                    </span>
-                  )}
-                </Link>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="text-eyebrow text-ink-3 mb-0.5">{item.product.brand}</p>
-                      <Link href={`/shop/${item.product.slug}`} className="text-body-sm text-ink leading-snug hover:underline underline-offset-2">{item.product.name}</Link>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        <select
-                          value={item.size}
-                          onChange={e => applyMergeResult(item.id, updateSize(item.product.id, item.size, e.target.value, item.payment_type))}
-                          className="text-micro px-2 py-0.5 rounded-sm cursor-pointer focus:outline-none border border-line text-ink-3 bg-paper-2">
-                          {item.product.sizes
-                            .filter(s => s.stock > 0 || s.size === item.size)
-                            .map(s => (
-                              <option key={s.size} value={s.size}>{s.size}</option>
-                            ))}
-                        </select>
-                        {isPreOrder && (
-                          <div className="flex flex-wrap gap-1">
-                            {(["full_payment", "downpayment"] as const).map(pt => (
-                              <button key={pt} type="button"
-                                onClick={() => applyMergeResult(item.id, updatePaymentType(item.product.id, item.size, item.payment_type, pt))}
-                                className={`px-2 py-0.5 text-micro rounded-sm transition-colors whitespace-nowrap border ${
-                                  item.payment_type === pt ? "bg-ink text-paper border-ink" : "bg-transparent text-ink-3 border-line"
-                                }`}>
-                                {pt === "full_payment" ? `Full ₱${item.product.full_payment_price.toLocaleString()}` : `DP ₱${item.product.downpayment_price.toLocaleString()}`}
-                              </button>
-                            ))}
+            {/* Desktop table (>= md) */}
+            <table className="hidden md:table w-full border-collapse">
+              <thead>
+                <tr className="border-b border-line">
+                  <th className="w-8"></th>
+                  <th className="text-left text-eyebrow text-ink-3 font-normal pb-3">Product</th>
+                  <th className="text-center text-eyebrow text-ink-3 font-normal pb-3 w-36">Qty</th>
+                  <th className="text-right text-eyebrow text-ink-3 font-normal pb-3 w-24">Price</th>
+                  <th className="text-right text-eyebrow text-ink-3 font-normal pb-3 w-24">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map(item => {
+                  const isSelected = selected.has(item.id);
+                  const isPreOrder = item.product.status === "pre-order";
+                  const stockCheck = stockMap[stockKey(item.product.id, item.size)];
+                  return (
+                    <Fragment key={item.id}>
+                      <tr className={`border-b border-line align-top transition-opacity ${isSelected ? "" : "opacity-60"}`}>
+                        <td className="pt-4 pb-2 pr-2">{renderCheckbox(item, isSelected)}</td>
+                        <td className="pt-4 pb-2 pr-4">
+                          <div className="flex gap-3">
+                            {renderThumbnail(item, 60)}
+                            {renderProductDetails(item, "")}
                           </div>
-                        )}
-                      </div>
-                      {item.product.srp_price > item.product.full_payment_price && (
-                        <p className="flex items-center gap-1.5 text-micro mt-1">
-                          <span className="text-ink-3 line-through">₱{item.product.srp_price.toLocaleString()}</span>
-                          <span className="text-ink-3">₱{item.product.full_payment_price.toLocaleString()}</span>
-                        </p>
-                      )}
+                          {renderStockWarning(item, stockCheck)}
+                        </td>
+                        <td className="pt-4 pb-2 text-center">{renderQtyControl(item)}</td>
+                        <td className="pt-4 pb-2">{renderPriceStack(item, "right")}</td>
+                        <td className="pt-4 pb-2 text-right">{renderTotal(item)}</td>
+                      </tr>
+                      <tr className={`border-b border-line transition-opacity ${isSelected ? "" : "opacity-60"}`}>
+                        <td></td>
+                        <td colSpan={4} className="pb-4">
+                          <div className="flex items-center justify-between">
+                            {isPreOrder ? renderPaymentToggle(item) : <span />}
+                            {renderRemoveButton(item)}
+                          </div>
+                        </td>
+                      </tr>
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* Mobile cards (< md) */}
+            <div className="md:hidden space-y-4 mt-2">
+              {items.map(item => {
+                const isSelected = selected.has(item.id);
+                const isPreOrder = item.product.status === "pre-order";
+                const stockCheck = stockMap[stockKey(item.product.id, item.size)];
+                return (
+                  <div key={item.id}
+                    className={`p-4 rounded-md transition-opacity bg-paper border ${isSelected ? "border-ink opacity-100" : "border-line opacity-60"}`}>
+                    <div className="flex items-start gap-3">
+                      {renderCheckbox(item, isSelected)}
+                      {renderThumbnail(item, 80)}
                     </div>
-                    <p className="text-body font-display font-medium shrink-0 text-ink">
-                      ₱{(item.unit_price * item.quantity).toLocaleString()}
-                    </p>
+                    <div className="mt-3">
+                      {renderProductDetails(item, "w-full")}
+                    </div>
+                    {renderStockWarning(item, stockCheck)}
+                    <div className="flex items-end justify-between gap-3 mt-3">
+                      {renderQtyControl(item)}
+                      {renderPriceStack(item, "right")}
+                    </div>
+                    <div className="flex justify-end mt-2">
+                      {renderTotal(item)}
+                    </div>
+                    {isPreOrder && <div className="mt-3">{renderPaymentToggle(item)}</div>}
+                    <div className="flex justify-end mt-3">
+                      {renderRemoveButton(item)}
+                    </div>
                   </div>
-
-                  {stockCheck && stockCheck.status !== "available" && (
-                    <div className="flex flex-wrap items-center justify-between gap-2 mt-2">
-                      <span className={`flex items-center gap-1.5 text-admin ${stockCheck.status === "sold_out" ? "text-state-error" : "text-state-preorder"}`}>
-                        {stockCheck.status === "sold_out"
-                          ? <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                          : <AlertTriangle className="w-3.5 h-3.5 shrink-0" />}
-                        {stockCheck.status === "sold_out"
-                          ? "This item is no longer available"
-                          : `Only ${stockCheck.current_stock} left`}
-                      </span>
-                      <button
-                        onClick={() => {
-                          if (stockCheck.status === "sold_out") {
-                            removeItem(item.product.id, item.size, item.payment_type);
-                          } else {
-                            updateQuantity(item.product.id, item.size, item.payment_type, stockCheck.current_stock);
-                            setStockMap(prev => ({
-                              ...prev,
-                              [stockKey(item.product.id, item.size)]: { ...stockCheck, status: "available", requested_quantity: stockCheck.current_stock },
-                            }));
-                          }
-                        }}
-                        className="shrink-0 px-2.5 py-1 rounded-md text-admin-sm bg-paper border border-line text-ink hover:bg-paper-2 transition-colors">
-                        {stockCheck.status === "sold_out" ? "Remove" : `Update quantity to ${stockCheck.current_stock}`}
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between mt-4">
-                    {/* Qty control */}
-                    <div className="flex items-center gap-0 border border-line rounded-md">
-                      {(() => {
-                        const maxStock = item.product.sizes.find(s => s.size === item.size)?.stock ?? 99;
-                        return (
-                          <>
-                            <button onClick={() => updateQuantity(item.product.id, item.size, item.payment_type, item.quantity - 1)}
-                              className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60">
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              value={item.quantity}
-                              onChange={e => {
-                                const val = parseInt(e.target.value.replace(/\D/g, ""), 10);
-                                if (!isNaN(val) && val >= 1) {
-                                  updateQuantity(item.product.id, item.size, item.payment_type, Math.min(val, maxStock));
-                                }
-                              }}
-                              className="w-10 text-center text-body-sm text-ink focus:outline-none bg-transparent"
-                            />
-                            <button onClick={() => updateQuantity(item.product.id, item.size, item.payment_type, Math.min(item.quantity + 1, maxStock))}
-                              disabled={item.quantity >= maxStock}
-                              className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60 disabled:opacity-30">
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </>
-                        );
-                      })()}
-                    </div>
-
-                    <button onClick={() => removeItem(item.product.id, item.size, item.payment_type)}
-                      className="flex items-center gap-1 text-body-sm text-state-error transition-opacity hover:opacity-60">
-                      <Trash2 className="w-3 h-3" /> Remove
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-            })}
+                );
+              })}
+            </div>
           </div>
 
           {/* Summary */}

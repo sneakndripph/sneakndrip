@@ -15,6 +15,7 @@ export interface Product {
   slug: string;
   brand: string;
   colorway?: string;
+  sku: string | null;
   gender: string;
   description?: string;
   status: ProductStatus;
