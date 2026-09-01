@@ -345,6 +345,8 @@ export default function AccountPage() {
         .upload(filePath, reviewImageFile, { upsert: false });
       if (!upErr && uploadData) {
         image_url = supabase.storage.from("review-photos").getPublicUrl(uploadData.path).data.publicUrl;
+      } else {
+        toast.error("Failed to upload photo. Try again.");
       }
     }
 
@@ -1321,6 +1323,11 @@ export default function AccountPage() {
                           onChange={e => {
                             const f = e.target.files?.[0];
                             if (!f) return;
+                            if (f.size > 5 * 1024 * 1024 || !["image/jpeg", "image/png"].includes(f.type)) {
+                              toast.error("Photo must be under 5MB and JPG/PNG");
+                              e.target.value = "";
+                              return;
+                            }
                             setReviewImageFile(f);
                             setReviewImagePreview(URL.createObjectURL(f));
                           }} />
