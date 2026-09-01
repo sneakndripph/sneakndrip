@@ -324,16 +324,15 @@ export default function CartPage() {
                           </div>
                         )}
                       </div>
-                      {item.product.srp_price > item.product.full_payment_price && (
-                        <p className="flex items-center gap-1.5 text-micro mt-1">
-                          <span className="text-ink-3 line-through">₱{item.product.srp_price.toLocaleString()}</span>
-                          <span className="text-ink-3">₱{item.product.full_payment_price.toLocaleString()}</span>
-                        </p>
-                      )}
                     </div>
-                    <p className="text-body font-display font-medium shrink-0 text-ink">
-                      ₱{(item.unit_price * item.quantity).toLocaleString()}
-                    </p>
+                    <div className="text-right shrink-0">
+                      {item.product.srp_price > item.product.full_payment_price && (
+                        <p className="text-micro text-ink-3 line-through">₱{item.product.srp_price.toLocaleString()}</p>
+                      )}
+                      <p className="text-body font-display font-medium text-ink">
+                        ₱{(item.unit_price * item.quantity).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
 
                   {stockCheck && stockCheck.status !== "available" && (
