@@ -2,6 +2,7 @@
 import { useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useWishlistStore } from "@/store/wishlistStore";
+import toast from "react-hot-toast";
 
 export function useWishlist() {
   const { items: wishlist, loaded, setItems, addItem, removeItem, reset } = useWishlistStore();
@@ -40,18 +41,26 @@ export function useWishlist() {
     const isIn = wishlist.includes(productId);
     if (isIn) {
       removeItem(productId);
-      await fetch("/api/wishlist", {
+      const res = await fetch("/api/wishlist", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId }),
       });
+      if (res.status === 401) {
+        addItem(productId);
+        toast("Sign in to save to wishlist");
+      }
     } else {
       addItem(productId);
-      await fetch("/api/wishlist", {
+      const res = await fetch("/api/wishlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId }),
       });
+      if (res.status === 401) {
+        removeItem(productId);
+        toast("Sign in to save to wishlist");
+      }
     }
   }, [wishlist, addItem, removeItem]);
 

@@ -9,6 +9,7 @@ import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, E
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import toast from "react-hot-toast";
 
 const STATUS_CONFIG = {
   pending:       { icon: Clock,       color: "#8A8580", label: "Pending",        bg: "rgba(138,133,128,0.12)" },
@@ -227,6 +228,7 @@ export default function AccountPage() {
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    toast.success("Signed out");
     router.push("/");
     router.refresh();
   }
@@ -306,6 +308,7 @@ export default function AccountPage() {
     if (!error) {
       setAddressSuccess(true);
       setTimeout(() => setAddressSuccess(false), 3000);
+      toast.success("Address updated");
     }
     setSavingAddress(false);
   }
