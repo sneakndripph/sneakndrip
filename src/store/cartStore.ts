@@ -142,12 +142,14 @@ export const useCartStore = create<CartState>()(
       subtotal: () =>
         get().items.reduce((sum, i) => sum + i.unit_price * i.quantity, 0),
 
-      // Call on auth state change. Clears cart if a different user is detected.
+      // Call on auth state change. Only wipes the cart when swapping between
+      // two different signed-in users on the same browser -- a transition to
+      // or from null (sign-out / fresh sign-in) leaves items intact so a
+      // user's cart survives a sign-out/sign-in cycle.
       initForUser: (userId) =>
         set(state => {
           const stored = state.cartUserId;
-          // Different known user logged in → wipe the previous user's cart
-          if (stored !== null && stored !== userId) {
+          if (stored !== null && userId !== null && stored !== userId) {
             return { items: [], cartUserId: userId };
           }
           return { cartUserId: userId };
