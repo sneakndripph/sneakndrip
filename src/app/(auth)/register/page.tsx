@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { SITE_URL } from "@/lib/constants";
 import { Eye, EyeOff, CheckCircle, Check, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { toastError } from "@/lib/toast";
+import toast from "react-hot-toast";
 
 type EmailCheck = { exists: boolean; providers: string[] | null };
 
@@ -125,11 +125,11 @@ export default function RegisterPage() {
     const precheck = await checkEmail(trimmedEmail);
     if (precheck?.exists) {
       if (precheck.providers?.includes("email")) {
-        toastError("This email is already registered. Sign in with your password instead.");
+        toast.error("This email is already registered. Sign in with your password instead.");
         setLoading(false);
         setTimeout(() => router.push("/login"), 2000);
       } else {
-        toastError("This email is registered with Google. Sign in with Google instead.");
+        toast.error("This email is registered with Google. Sign in with Google instead.");
         setHighlightGoogle(true);
         setLoading(false);
       }

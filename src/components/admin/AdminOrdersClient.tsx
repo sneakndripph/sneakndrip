@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { toastSuccess, toastError } from "@/lib/toast";
+import toast from "react-hot-toast";
 import { Download } from "lucide-react";
 import OrdersFilterBar, { periodStart, type Period } from "./OrdersFilterBar";
 import OrdersList from "./OrdersList";
@@ -101,7 +101,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
     const res = await fetch("/api/admin/orders/bulk", {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, status }),
     });
-    res.ok ? toastSuccess(`${ids.length} order${ids.length !== 1 ? "s" : ""} updated`) : toastError("Failed to update orders");
+    res.ok ? toast.success(`${ids.length} order${ids.length !== 1 ? "s" : ""} updated`) : toast.error("Failed to update orders");
   }
 
   async function updateStatus(id: string, status: string, adminNotes?: string) {
@@ -112,7 +112,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status, ...(adminNotes ? { admin_notes: adminNotes } : {}) }),
     });
     setSaving(false);
-    res.ok ? toastSuccess(`Order marked as ${statusMeta(status).label}`) : toastError("Failed to update order");
+    res.ok ? toast.success(`Order marked as ${statusMeta(status).label}`) : toast.error("Failed to update order");
   }
 
   async function shipOrder(id: string, trackingNumber: string) {
@@ -125,7 +125,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "shipped", tracking_number: trk }),
     });
     setSaving(false);
-    res.ok ? toastSuccess("Order marked as shipped") : toastError("Failed to update order");
+    res.ok ? toast.success("Order marked as shipped") : toast.error("Failed to update order");
   }
 
   async function executeCancelOrder(id: string, reason: string) {
@@ -141,9 +141,9 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
     if (res.ok) {
       setOrders(prev => prev.filter(o => o.id !== id));
       if (selected?.id === id) setSelected(null);
-      toastSuccess(`Order ${orderNumber} deleted`);
+      toast.success(`Order ${orderNumber} deleted`);
     } else {
-      toastError("Couldn't delete order. Try again.");
+      toast.error("Couldn't delete order. Try again.");
     }
   }
 
@@ -155,7 +155,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ admin_notes: notesInput }),
     });
     setSaving(false);
-    res.ok ? toastSuccess("Notes saved") : toastError("Failed to save notes");
+    res.ok ? toast.success("Notes saved") : toast.error("Failed to save notes");
   }
 
   function itemsSummary(items: OrderItem[]) {

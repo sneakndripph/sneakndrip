@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toastSuccess, toastError } from "@/lib/toast";
+import toast from "react-hot-toast";
 import { SNEAKER_SIZES, BRANDS, GENDERS } from "@/lib/constants";
 import { ArrowLeft, ChevronDown, Check, Copy, Trash2 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
@@ -100,7 +100,7 @@ export default function EditProductForm({ product }: { product: Product }) {
     : null;
 
   function copyId() {
-    navigator.clipboard.writeText(product.id).then(() => toastSuccess("Product ID copied"));
+    navigator.clipboard.writeText(product.id).then(() => toast.success("Product ID copied"));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -134,7 +134,7 @@ export default function EditProductForm({ product }: { product: Product }) {
       const result = await res.json().catch(() => ({})) as { error?: string };
       if (!res.ok) { setError(result.error ?? "Failed to save"); setSaving(false); return; }
 
-      toastSuccess("Product updated");
+      toast.success("Product updated");
       router.push("/admin/products");
     } catch (err) {
       setError(String(err));
@@ -153,10 +153,10 @@ export default function EditProductForm({ product }: { product: Product }) {
     setDeleting(true);
     const res = await fetch(`/api/admin/products/${product.id}`, { method: "DELETE" });
     if (res.ok) {
-      toastSuccess("Product deleted");
+      toast.success("Product deleted");
       router.push("/admin/products");
     } else {
-      toastError("Failed to delete product");
+      toast.error("Failed to delete product");
       setDeleting(false);
     }
   }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { toastError } from "@/lib/toast";
+import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cartStore";
 import { PAYMENT_METHODS, SHIPPING_FEE, DP_RESERVE_FEE } from "@/lib/constants";
 import { now } from "@/lib/utils";
@@ -236,7 +236,7 @@ export default function CheckoutPage() {
             for (const p of problems) {
               const item = items.find(i => i.product.id === p.product_id && i.size === p.size);
               const name = item?.product.name ?? "An item";
-              toastError(
+              toast.error(
                 p.status === "sold_out"
                   ? `${name} (${p.size}) is no longer available.`
                   : `${name} (${p.size}) only has ${p.current_stock} left.`
@@ -310,12 +310,12 @@ export default function CheckoutPage() {
           if (failures.length) {
             const issues: Record<string, number> = {};
             for (const f of failures) {
-              toastError(`${f.product_name} size ${f.size} is sold out — please remove it or choose another size.`);
+              toast.error(`${f.product_name} size ${f.size} is sold out — please remove it or choose another size.`);
               issues[`${f.product_id}-${f.size}`] = f.available;
             }
             setStockIssues(issues);
           } else {
-            toastError(err.error || "One or more items just sold out.");
+            toast.error(err.error || "One or more items just sold out.");
           }
           setOrderError(err.error);
           setPlacing(false);
@@ -377,7 +377,7 @@ export default function CheckoutPage() {
       fetch("/api/cart/sync", { method: "DELETE" }).catch(() => {});
       router.push("/order-confirmation");
     } catch {
-      toastError("Something went wrong. Try again.");
+      toast.error("Something went wrong. Try again.");
       setOrderError("Something went wrong placing your order. Please try again.");
       setPlacing(false);
     }

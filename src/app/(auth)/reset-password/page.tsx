@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff } from "lucide-react";
-import { toastSuccess } from "@/lib/toast";
+import toast from "react-hot-toast";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
       setError(err.message);
       setLoading(false);
     } else {
-      toastSuccess("Password updated");
+      toast.success("Password updated");
       router.push("/account");
     }
   }

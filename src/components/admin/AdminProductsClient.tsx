@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toastSuccess, toastError } from "@/lib/toast";
+import toast from "react-hot-toast";
 import {
   Plus, Search, MoreVertical, Pencil, Copy, Trash2, Package,
   ChevronDown, Check, Eye, EyeOff,
@@ -78,9 +78,9 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
     const res = await fetch(`/api/admin/products/${p.id}`, { method: "DELETE" });
     if (res.ok) {
       setProducts(prev => prev.filter(row => row.id !== p.id));
-      toastSuccess("Product deleted");
+      toast.success("Product deleted");
     } else {
-      toastError("Failed to delete product");
+      toast.error("Failed to delete product");
     }
   }
 
@@ -93,9 +93,9 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
     const res = await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", body: fd });
     if (res.ok) {
       setProducts(prev => prev.map(row => row.id === p.id ? { ...row, is_published: next } : row));
-      toastSuccess(next ? "Product published" : "Product unpublished");
+      toast.success(next ? "Product published" : "Product unpublished");
     } else {
-      toastError("Failed to update product");
+      toast.error("Failed to update product");
     }
   }
 
@@ -113,8 +113,8 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
     fd.append("sizes", JSON.stringify(sizes));
     const res = await fetch("/api/admin/products", { method: "POST", body: fd });
     const result = await res.json().catch(() => ({})) as { error?: string; id?: string };
-    if (!res.ok || !result.id) { toastError(result.error ?? "Failed to duplicate product"); return; }
-    toastSuccess("Product duplicated");
+    if (!res.ok || !result.id) { toast.error(result.error ?? "Failed to duplicate product"); return; }
+    toast.success("Product duplicated");
     router.push(`/admin/products/${result.id}`);
   }
 

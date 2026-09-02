@@ -2,7 +2,7 @@
 import { useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useWishlistStore } from "@/store/wishlistStore";
-import { toastInfo } from "@/lib/toast";
+import toast from "react-hot-toast";
 
 export function useWishlist() {
   const { items: wishlist, loaded, setItems, addItem, removeItem, reset } = useWishlistStore();
@@ -48,7 +48,7 @@ export function useWishlist() {
       });
       if (res.status === 401) {
         addItem(productId);
-        toastInfo("Sign in to save to wishlist");
+        toast("Sign in to save to wishlist");
       }
     } else {
       addItem(productId);
@@ -59,7 +59,7 @@ export function useWishlist() {
       });
       if (res.status === 401) {
         removeItem(productId);
-        toastInfo("Sign in to save to wishlist");
+        toast("Sign in to save to wishlist");
       }
     }
   }, [wishlist, addItem, removeItem]);

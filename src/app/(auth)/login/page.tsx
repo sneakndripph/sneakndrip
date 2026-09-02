@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { SITE_URL } from "@/lib/constants";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { toastSuccess } from "@/lib/toast";
+import toast from "react-hot-toast";
 
 type EmailCheck = { exists: boolean; providers: string[] | null };
 
@@ -62,7 +62,7 @@ function LoginForm() {
       setLoading(false);
       return;
     }
-    toastSuccess("Signed in");
+    toast.success("Signed in");
     if (data.user?.user_metadata?.role === "admin") {
       router.push("/admin");
     } else {

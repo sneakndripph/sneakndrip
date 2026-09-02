@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { toastSuccess, toastError } from "@/lib/toast";
+import toast from "react-hot-toast";
 import { PageContent } from "@/components/ui/PageContent";
 import {
   FileText, Save, Check, ExternalLink, Eye, Edit3, List,
@@ -132,10 +132,10 @@ export default function AdminContentClient({ pages }: { pages: PageDef[] }) {
       setSaved(true);
       setLastSaved(prev => ({ ...prev, [active]: new Date().toISOString() }));
       setTimeout(() => setSaved(false), 2500);
-      toastSuccess(`${sectionLabel} page saved`);
+      toast.success(`${sectionLabel} page saved`);
     } else {
       setSaveError("Save failed — run migration 009 in Supabase first.");
-      toastError(`Couldn't save ${sectionLabel} page. Try again.`);
+      toast.error(`Couldn't save ${sectionLabel} page. Try again.`);
     }
   }
 

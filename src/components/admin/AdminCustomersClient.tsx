@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldCheck, Download, MessageCircle } from "lucide-react";
-import { toastSuccess, toastError } from "@/lib/toast";
+import toast from "react-hot-toast";
 import OrderStatusBadge from "./OrderStatusBadge";
 import ConfirmDialog from "./ConfirmDialog";
 
@@ -66,12 +66,12 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
       body: JSON.stringify({ userId, ban: nextBanned }),
     });
     if (!res.ok) {
-      toastError(nextBanned ? "Couldn't ban customer. Try again." : "Couldn't unban customer. Try again.");
+      toast.error(nextBanned ? "Couldn't ban customer. Try again." : "Couldn't unban customer. Try again.");
       throw new Error("ban failed");
     }
     setCustomers(prev => prev.map(c => c.id === banTarget.id ? { ...c, banned: nextBanned } : c));
     setSelected(prev => prev?.id === banTarget.id ? { ...prev, banned: nextBanned } : prev);
-    toastSuccess(nextBanned ? `${banTarget.name} banned` : `${banTarget.name} unbanned`);
+    toast.success(nextBanned ? `${banTarget.name} banned` : `${banTarget.name} unbanned`);
   }
 
   const filtered = useMemo(() => {
