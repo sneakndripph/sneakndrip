@@ -79,8 +79,6 @@ export default async function AdminDashboard({
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
-  const todayStartISO = todayStart.toISOString();
-  const yesterdayStartISO = new Date(todayStart.getTime() - 86400000).toISOString();
 
   const periodStartDate = (() => {
     if (period === "today") return todayStart;
@@ -97,9 +95,9 @@ export default async function AdminDashboard({
     { data: currentOrders },
     { data: previousOrders },
     { data: recentOrders },
-    { data: topItemsRaw },
-    { data: todayViews },
-    { data: yesterdayViews },
+    { data: topProductsRaw },
+    { data: currentVisitorCount },
+    { data: previousVisitorCount },
   ] = await Promise.all([
     admin.from("orders")
       .select("total, status, created_at")
@@ -113,13 +111,13 @@ export default async function AdminDashboard({
       .select("order_number, customer_name, total, status, created_at, order_items(product_name, size, products(images, bg))")
       .order("created_at", { ascending: false })
       .limit(5),
-    admin.from("order_items").select("product_name, quantity, unit_price"),
-    admin.from("page_views").select("session_id").gte("created_at", todayStartISO),
-    admin.from("page_views").select("session_id").gte("created_at", yesterdayStartISO).lt("created_at", todayStartISO),
+    admin.rpc("top_products_by_period", { period_start: periodStartISO, result_limit: 5 }),
+    admin.rpc("count_unique_page_view_sessions", { range_start: periodStartISO, range_end: now.toISOString() }),
+    admin.rpc("count_unique_page_view_sessions", { range_start: prevStartISO, range_end: periodStartISO }),
   ]);
 
-  const todayVisitors     = new Set((todayViews ?? []).map(v => v.session_id)).size;
-  const yesterdayVisitors = new Set((yesterdayViews ?? []).map(v => v.session_id)).size;
+  const visitorsCurrent  = currentVisitorCount ?? 0;
+  const visitorsPrevious = previousVisitorCount ?? 0;
 
   // Revenue chart slots
   const slotMap = new Map<string, { revenue: number; orders: number }>();
@@ -161,18 +159,10 @@ export default async function AdminDashboard({
     color: STATUS_COLORS[name] ?? "var(--ink-3)",
   }));
 
-  const productRevMap = new Map<string, number>();
-  for (const item of topItemsRaw ?? []) {
-    const rev = Number(item.unit_price) * Number(item.quantity);
-    productRevMap.set(item.product_name, (productRevMap.get(item.product_name) ?? 0) + rev);
-  }
-  const topProducts = Array.from(productRevMap.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([name, revenue]) => ({
-      name: name.length > 22 ? name.slice(0, 22) + "…" : name,
-      revenue,
-    }));
+  const topProducts = (topProductsRaw ?? []).map((p: { product_name: string; revenue: number }) => ({
+    name: p.product_name.length > 22 ? p.product_name.slice(0, 22) + "…" : p.product_name,
+    revenue: Number(p.revenue),
+  }));
 
   const paidCurrent  = (currentOrders ?? []).filter(o => !["pending", "cancelled"].includes(o.status));
   const paidPrevious = (previousOrders ?? []).filter(o => !["pending", "cancelled"].includes(o.status));
@@ -207,7 +197,7 @@ export default async function AdminDashboard({
           delta={pctDelta(revenueCurrent, revenuePrevious)} href="/admin/sales" />
         <StatCard label="Orders" value={ordersCountCurrent.toLocaleString()}
           delta={pctDelta(ordersCountCurrent, ordersCountPrevious)} href="/admin/orders" />
-        <DashboardVisitorsCard initialToday={todayVisitors} initialYesterday={yesterdayVisitors} />
+        <DashboardVisitorsCard current={visitorsCurrent} previous={visitorsPrevious} />
         <StatCard label="Avg. order value" value={`₱${Math.round(aovCurrent).toLocaleString()}`}
           delta={pctDelta(aovCurrent, aovPrevious)} />
       </div>

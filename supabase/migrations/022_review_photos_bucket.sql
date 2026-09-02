@@ -1,7 +1,7 @@
 -- Public bucket for customer review photos
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('review-photos', 'review-photos', true)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET public = EXCLUDED.public;
 
 -- Anyone (authenticated or anon) can upload their own review photo
 CREATE POLICY "Public can upload review photos"

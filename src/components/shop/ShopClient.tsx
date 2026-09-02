@@ -1,12 +1,16 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { BRANDS, SNEAKER_SIZES } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import ProductCard from "@/components/product/ProductCard";
+import ProductCardSkeleton from "@/components/ui/ProductCardSkeleton";
 import { SlidersHorizontal, X, ChevronDown, Check } from "lucide-react";
 import type { Product } from "@/lib/types";
+
+const PAGE_SIZE = 24;
 
 const SORT_OPTIONS = [
   { value: "featured", label: "Featured" },
@@ -36,6 +40,7 @@ export default function ShopClient({
   initialGender?: string;
 }) {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [search, setSearch] = useState(initialSearch);
   const [sort, setSort] = useState("featured");
@@ -56,7 +61,17 @@ export default function ShopClient({
     });
   }, [initialFilter]);
 
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => { queueMicrotask(() => setSearch(initialSearch)); }, [initialSearch]);
+
+  useEffect(() => {
+    queueMicrotask(() => setSelectedBrands(initialBrand ? [initialBrand] : []));
+  }, [initialBrand]);
+
+  useEffect(() => {
+    queueMicrotask(() => setSelectedGenders(initialGender ? [initialGender] : []));
+  }, [initialGender]);
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -86,7 +101,41 @@ export default function ShopClient({
     if (sort === "price-desc") list.sort((a, b) => b.full_payment_price - a.full_payment_price);
     if (sort === "newest") list.sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
     return list;
-  }, [products, search, selectedBrands, selectedSizes, availability, showNewOnly, maxPrice, sort]);
+  }, [products, search, selectedBrands, selectedGenders, selectedSizes, availability, showNewOnly, maxPrice, sort]);
+
+  // Infinite scroll windowing — filters/sort operate on the full in-memory
+  // list above; this only controls how much of that result is rendered.
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingMoreRef = useRef(false);
+
+  useEffect(() => {
+    queueMicrotask(() => setVisibleCount(PAGE_SIZE));
+  }, [search, selectedBrands, selectedGenders, selectedSizes, availability, showNewOnly, maxPrice, sort]);
+
+  const visibleProducts = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
+  useEffect(() => {
+    if (!hasMore) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    let cancelled = false;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting || loadingMoreRef.current) return;
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+      setTimeout(() => {
+        if (cancelled) return;
+        setVisibleCount(c => Math.min(c + PAGE_SIZE, filtered.length));
+        setLoadingMore(false);
+        loadingMoreRef.current = false;
+      }, 400);
+    }, { rootMargin: "480px 0px" });
+    observer.observe(el);
+    return () => { cancelled = true; observer.disconnect(); };
+  }, [hasMore, filtered.length, visibleCount]);
 
   const activeFilters = selectedBrands.length + selectedSizes.length + selectedGenders.length + (availability !== "all" ? 1 : 0) + (showNewOnly ? 1 : 0);
 
@@ -232,9 +281,20 @@ export default function ShopClient({
             </p>
 
             {filtered.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-                {filtered.map(p => <ProductCard key={p.id} product={p} />)}
-              </div>
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+                  {visibleProducts.map(p => <ProductCard key={p.id} product={p} />)}
+                </div>
+                {loadingMore && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6 mt-4 lg:mt-6">
+                    {Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)}
+                  </div>
+                )}
+                {hasMore && <div ref={sentinelRef} aria-hidden="true" className="h-px" />}
+                {!hasMore && filtered.length > PAGE_SIZE && (
+                  <p className="text-center text-micro text-ink-3 py-8">You&apos;ve reached the end</p>
+                )}
+              </>
             ) : (
               <div className="text-center py-24">
                 <p className="text-body text-ink-2">No matches. Try clearing filters.</p>
@@ -247,36 +307,41 @@ export default function ShopClient({
         </div>
       </div>
 
-      {/* Mobile floating filters button */}
-      <button
-        onClick={() => setFiltersOpen(true)}
-        className="lg:hidden fixed bottom-6 left-6 z-30 flex items-center gap-2 px-5 py-3 rounded-full bg-ink text-paper shadow-xl"
-      >
-        <SlidersHorizontal className="w-4 h-4" />
-        Filters {activeFilters > 0 && `(${activeFilters})`}
-      </button>
+      {/* Mobile floating filters button + bottom sheet, portaled to document.body to
+          escape the transform containing block created by RouteTransition's motion.main */}
+      {mounted && createPortal(
+        <>
+          <button
+            onClick={() => setFiltersOpen(true)}
+            className="lg:hidden fixed bottom-6 left-6 z-30 flex items-center gap-2 px-5 py-3 rounded-full bg-ink text-paper shadow-xl"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            Filters {activeFilters > 0 && `(${activeFilters})`}
+          </button>
 
-      {/* Mobile filters bottom sheet */}
-      {filtersOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-ink/50" onClick={() => setFiltersOpen(false)} />
-          <div className="fixed inset-x-0 bottom-0 bg-paper rounded-t-xl p-6 pb-8 shadow-xl max-h-[85vh] overflow-y-auto">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-strong" />
-            <div className="flex items-center justify-between mb-5">
-              <p className="text-body font-display font-medium text-ink">Filters</p>
-              <button onClick={() => setFiltersOpen(false)} className="text-ink-3 hover:text-ink transition-colors">
-                <X className="w-4 h-4" />
-              </button>
+          {filtersOpen && (
+            <div className="fixed inset-0 z-50 lg:hidden">
+              <div className="absolute inset-0 bg-ink/50" onClick={() => setFiltersOpen(false)} />
+              <div className="fixed inset-x-0 bottom-0 bg-paper rounded-t-xl p-6 pb-8 shadow-xl max-h-[85vh] overflow-y-auto">
+                <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-line-strong" />
+                <div className="flex items-center justify-between mb-5">
+                  <p className="text-body font-display font-medium text-ink">Filters</p>
+                  <button onClick={() => setFiltersOpen(false)} className="text-ink-3 hover:text-ink transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                {filtersContent}
+                <button
+                  onClick={() => setFiltersOpen(false)}
+                  className="w-full mt-6 py-3.5 rounded-md text-body-sm font-medium bg-ink text-paper hover:bg-ink-2 transition-colors"
+                >
+                  Show {filtered.length} results
+                </button>
+              </div>
             </div>
-            {filtersContent}
-            <button
-              onClick={() => setFiltersOpen(false)}
-              className="w-full mt-6 py-3.5 rounded-md text-body-sm font-medium bg-ink text-paper hover:bg-ink-2 transition-colors"
-            >
-              Show {filtered.length} results
-            </button>
-          </div>
-        </div>
+          )}
+        </>,
+        document.body
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { UserPlus, Shield, User, Trash2, X, Eye, EyeOff, ChevronDown, Check } fr
 import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import ConfirmDialog, { useConfirmDialog } from "@/components/admin/ConfirmDialog";
+import ConfirmPasswordDialog from "@/components/admin/ConfirmPasswordDialog";
 
 type UserRow = {
   id: string;
@@ -83,6 +84,8 @@ export default function AdminUsersPage() {
   const [viewRole, setViewRole] = useState("customer");
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
   const { confirm: confirmRoleChange, dialog: roleChangeDialog } = useConfirmDialog();
+  const [pwDialogOpen, setPwDialogOpen] = useState(false);
+  const [pendingRole, setPendingRole] = useState<string | null>(null);
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
@@ -159,15 +162,29 @@ export default function AdminUsersPage() {
       variant: "default",
     });
     if (!ok) return;
+    setPendingRole(role);
+    setPwDialogOpen(true);
+  }
+
+  function closePasswordDialog() {
+    setPwDialogOpen(false);
+    setPendingRole(null);
+  }
+
+  async function handleRoleChangePasswordConfirm(password: string) {
+    if (!viewUser || !pendingRole) return;
+    const role = pendingRole;
     const res = await fetch("/api/admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: viewUser.id, role, full_name: viewUser.full_name }),
+      body: JSON.stringify({ id: viewUser.id, role, full_name: viewUser.full_name, password }),
     });
     if (!res.ok) {
-      toast.error("Couldn't change role. Try again.");
-      return;
+      const body = await res.json().catch(() => ({}));
+      throw new Error(res.status === 401 ? "Incorrect password" : (body.error || "Couldn't change role. Try again."));
     }
+    setPwDialogOpen(false);
+    setPendingRole(null);
     setViewRole(role);
     setUsers(prev => prev.map(u => u.id === viewUser.id ? { ...u, role } : u));
     setViewUser(prev => prev ? { ...prev, role } : null);
@@ -385,6 +402,18 @@ export default function AdminUsersPage() {
         variant="destructive"
       />
       {roleChangeDialog}
+      <ConfirmPasswordDialog
+        open={pwDialogOpen}
+        onClose={closePasswordDialog}
+        onConfirm={handleRoleChangePasswordConfirm}
+        title="Confirm your password"
+        description={
+          pendingRole && viewUser
+            ? `Enter your password to change ${viewUser.full_name || viewUser.email}'s role to ${pendingRole}.`
+            : undefined
+        }
+        confirmLabel="Confirm"
+      />
     </div>
   );
 }

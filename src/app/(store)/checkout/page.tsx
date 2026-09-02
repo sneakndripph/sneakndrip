@@ -54,7 +54,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items: allItems, removeItems } = useCartStore();
   const [checkoutKeys, setCheckoutKeys] = useState<Set<string> | null>(null);
-  const items = checkoutKeys ? allItems.filter(i => checkoutKeys.has(`${i.product.id}-${i.size}`)) : allItems;
+  const items = checkoutKeys ? allItems.filter(i => checkoutKeys.has(i.id)) : allItems;
   const sub = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
 
   const [mounted, setMounted] = useState(false);
@@ -337,7 +337,7 @@ export default function CheckoutPage() {
           orderNumber: num,
           customer: { name: form.name, email: form.email, mobile: form.mobile },
           items: items.map(i => ({
-            name: i.product.name, size: i.size, quantity: i.quantity,
+            productId: i.product.id, name: i.product.name, size: i.size, quantity: i.quantity,
             price: i.unit_price * i.quantity, payment_type: i.payment_type,
           })),
           subtotal: sub, shipping, total, paymentMethod,
@@ -373,7 +373,7 @@ export default function CheckoutPage() {
         proofUrl,
       }));
 
-      removeItems(items.map(i => ({ productId: i.product.id, size: i.size })));
+      removeItems(items.map(i => ({ productId: i.product.id, size: i.size, paymentType: i.payment_type })));
       fetch("/api/cart/sync", { method: "DELETE" }).catch(() => {});
       router.push("/order-confirmation");
     } catch {

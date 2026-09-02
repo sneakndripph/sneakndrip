@@ -15,6 +15,7 @@ export interface Product {
   slug: string;
   brand: string;
   colorway?: string;
+  sku: string | null;
   gender: string;
   description?: string;
   status: ProductStatus;
@@ -36,6 +37,7 @@ export interface Product {
 }
 
 export interface CartItem {
+  id: string;
   product: Product;
   size: string;
   quantity: number;

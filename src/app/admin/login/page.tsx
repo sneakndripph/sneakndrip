@@ -19,15 +19,16 @@ export default function AdminLoginPage() {
     setError("");
     setLoading(true);
     const supabase = createClient();
-    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
     if (authError) {
       setError(authError.message);
       setLoading(false);
       return;
     }
-    if (data.user?.user_metadata?.role !== "admin") {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.app_metadata?.role !== "admin") {
       await supabase.auth.signOut();
-      setError("Access denied. This portal is for admin accounts only.");
+      setError("This account does not have admin access.");
       setLoading(false);
       return;
     }

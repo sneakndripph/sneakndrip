@@ -17,6 +17,7 @@ function mapRow(p: Record<string, unknown>, newArrivalCutoffMs?: number): Produc
     slug: p.slug as string,
     brand: p.brand as string,
     colorway: (p.colorway as string) ?? "",
+    sku: (p.sku as string) ?? null,
     gender: (p.gender as string) ?? "Unisex",
     description: (p.description as string) ?? "",
     status: p.status as Product["status"],

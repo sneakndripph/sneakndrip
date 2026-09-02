@@ -3,8 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { validateEnv } from "@/lib/env";
-import { sendEmail } from "@/lib/email/send";
-import { restockAlert } from "@/lib/email/templates/restockAlert";
+import { sendRestockEmailsForSize } from "@/lib/email/restock";
 
 async function getRequestingUser() {
   try {
@@ -19,43 +18,6 @@ async function getRequestingUser() {
     return user;
   } catch {
     return null;
-  }
-}
-
-async function sendRestockEmails(productId: string, restockedSizes: string[], productName: string, productSlug: string) {
-  if (restockedSizes.length === 0) return;
-  const admin = createAdminClient();
-
-  for (const size of restockedSizes) {
-    const { data: notifs } = await admin
-      .from("restock_notifications")
-      .select("email")
-      .eq("product_id", productId)
-      .eq("size", size);
-
-    if (!notifs?.length) continue;
-
-    const emails = notifs.map(n => n.email).filter(Boolean);
-    const { subject, html } = restockAlert({ productName, productSlug, size });
-
-    const results = await Promise.allSettled(
-      emails.map(email => sendEmail(email, subject, html)),
-    );
-
-    const successfulEmails: string[] = [];
-    const failedEmails: string[] = [];
-    results.forEach((result, i) => {
-      const ok = result.status === "fulfilled" && result.value.ok && !result.value.skipped;
-      (ok ? successfulEmails : failedEmails).push(emails[i]);
-    });
-
-    console.log(`Restock emails for ${productName} (${size}): ${successfulEmails.length} sent, ${failedEmails.length} failed`);
-
-    if (successfulEmails.length > 0) {
-      await admin.from("restock_notifications").delete()
-        .eq("product_id", productId).eq("size", size)
-        .in("email", successfulEmails);
-    }
   }
 }
 
@@ -108,11 +70,14 @@ export async function PATCH(
 
   const productName = (product as { name?: string }).name ?? "Product";
   const productSlug = (product as { slug?: string }).slug ?? id;
+  const productImageUrl = (product as { images?: string[] }).images?.[0];
   if (sizes.length > 0) {
     const restockedSizes = sizes
       .filter(s => s.stock > 0 && (oldStockMap.get(s.size) ?? 0) === 0)
       .map(s => s.size);
-    await sendRestockEmails(id, restockedSizes, productName, productSlug);
+    for (const size of restockedSizes) {
+      await sendRestockEmailsForSize(id, size, productName, productSlug, productImageUrl);
+    }
   }
 
   void admin.from("activity_log").insert({

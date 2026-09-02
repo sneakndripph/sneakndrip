@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -84,6 +84,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     document.body.style.overflow = drawerOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [drawerOpen]);
+
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
+
+  const checkStillAdmin = useCallback(async () => {
+    if (pathnameRef.current === "/admin/login") return;
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || user.app_metadata?.role !== "admin") {
+      await supabase.auth.signOut();
+      router.push("/admin/login");
+    }
+  }, [router]);
+
+  // Defense-in-depth: catches a role downgrade that happens while the admin
+  // tab is open, since the session cookie itself stays valid until it expires.
+  // Runs for AdminLayout's full mounted lifetime rather than per-route, so the
+  // 60s countdown actually accumulates instead of resetting on every navigation.
+  useEffect(() => {
+    const interval = setInterval(checkStillAdmin, 60_000);
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") checkStillAdmin();
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [checkStillAdmin]);
 
   async function handleSignOut() {
     const supabase = createClient();

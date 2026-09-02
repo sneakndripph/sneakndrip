@@ -20,14 +20,18 @@ function renderInline(text: string): React.ReactNode {
 }
 
 export function PageContent({ text }: { text: string }) {
-  const paragraphs = text.split("\n\n").filter(Boolean);
+  const normalized = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  // Force heading marker lines (#, ##, ###) to stand alone as their own paragraph,
+  // even when the author didn't leave a blank line before/after them.
+  const withHeadingBoundaries = normalized.replace(/(^|\n)(#{1,3} [^\n]*)/g, "$1\n\n$2\n\n");
+  const paragraphs = withHeadingBoundaries.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
   return (
     <div>
       {paragraphs.map((p, i) => {
         // H1 — big heading
         if (p.startsWith("# ")) {
           return (
-            <p key={i} className="text-display-s text-ink font-display font-medium mt-12 mb-4 first:mt-0">
+            <p key={i} className="text-display text-ink font-display leading-tight tracking-[-0.03em] mt-12 mb-4 first:mt-0">
               {renderInline(p.slice(2))}
             </p>
           );

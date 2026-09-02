@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Check, Trash2, Star, X, MessageSquare, ShieldCheck } from "lucide-react";
 import { useConfirmDialog } from "./ConfirmDialog";
+import PhotoLightbox from "@/components/ui/PhotoLightbox";
 
 type Review = {
   id: string;
@@ -42,6 +43,7 @@ export default function AdminReviewsClient({ initialReviews }: { initialReviews:
   const [rejectReason, setRejectReason] = useState("");
   const [rejectError, setRejectError] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [zoomPhoto, setZoomPhoto] = useState<string | null>(null);
   const { confirm: confirmDialog, dialog } = useConfirmDialog();
 
   const filtered = reviews.filter(r =>
@@ -163,10 +165,10 @@ export default function AdminReviewsClient({ initialReviews }: { initialReviews:
                   {r.image_url.toLowerCase().endsWith(".mp4") ? (
                     <video src={r.image_url} controls className="w-full max-w-xs rounded-md max-h-56 bg-paper-2" />
                   ) : (
-                    <a href={r.image_url} target="_blank" rel="noopener noreferrer"
-                      className="block relative w-28 h-28 rounded-md overflow-hidden border border-line hover:opacity-80 transition-opacity duration-admin-fast">
+                    <button type="button" onClick={() => setZoomPhoto(r.image_url!)}
+                      className="block relative w-28 h-28 rounded-md overflow-hidden border border-line hover:opacity-80 transition-opacity duration-admin-fast cursor-zoom-in">
                       <Image src={r.image_url} alt="Review attachment" fill className="object-cover" sizes="112px" />
-                    </a>
+                    </button>
                   )}
                 </div>
               )}
@@ -231,6 +233,13 @@ export default function AdminReviewsClient({ initialReviews }: { initialReviews:
         </div>
       )}
       {dialog}
+
+      <PhotoLightbox
+        src={zoomPhoto ?? ""}
+        alt="Review attachment"
+        isOpen={!!zoomPhoto}
+        onClose={() => setZoomPhoto(null)}
+      />
     </div>
   );
 }

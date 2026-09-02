@@ -51,7 +51,7 @@ export default function ProductCTA({
   }
   function getInCart() {
     return useCartStore.getState().items
-      .find(i => i.product.id === product.id && i.size === selectedSize)?.quantity ?? 0;
+      .find(i => i.product.id === product.id && i.size === selectedSize && i.payment_type === effectivePaymentType)?.quantity ?? 0;
   }
   function checkStock() {
     if (!selectedSize) { toast.error("Please select a size"); return false; }
@@ -109,7 +109,7 @@ export default function ProductCTA({
         <p className="text-display-s text-ink font-display font-medium">₱{price.toLocaleString()}</p>
       </div>
 
-      {/* Pre-order payment toggle */}
+      {/* Payment type toggle */}
       {isPreOrder && (
         <div className="mb-4">
           <div className="grid grid-cols-2 gap-2">

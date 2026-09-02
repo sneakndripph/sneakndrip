@@ -18,15 +18,28 @@ export async function PATCH(req: NextRequest) {
 
   const { data: targetOrders } = await admin
     .from("orders")
-    .select("id, order_number, customer_name, customer_email, payment_method, tracking_number")
+    .select("id, order_number, customer_name, customer_email, payment_method, tracking_number, status")
     .in("id", ids);
 
-  const { error } = await admin
-    .from("orders")
-    .update({ status })
-    .in("id", ids);
+  if (status === "delivered") {
+    const newlyDeliveredIds = (targetOrders ?? []).filter(o => o.status !== "delivered").map(o => o.id);
+    const alreadyDeliveredIds = (targetOrders ?? []).filter(o => o.status === "delivered").map(o => o.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (newlyDeliveredIds.length) {
+      const { error } = await admin
+        .from("orders")
+        .update({ status, delivered_at: new Date().toISOString() })
+        .in("id", newlyDeliveredIds);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    if (alreadyDeliveredIds.length) {
+      const { error } = await admin.from("orders").update({ status }).in("id", alreadyDeliveredIds);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+  } else {
+    const { error } = await admin.from("orders").update({ status }).in("id", ids);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   if (targetOrders?.length) {
     void (async () => {

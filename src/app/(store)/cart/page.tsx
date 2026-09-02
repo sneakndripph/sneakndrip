@@ -4,10 +4,14 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useCartStore } from "@/store/cartStore";
+import { useCartStore, type LineMergeResult } from "@/store/cartStore";
 import { SHIPPING_FEE } from "@/lib/constants";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, LogIn, CheckSquare, Square, AlertCircle, AlertTriangle } from "lucide-react";
+import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
+import { useMinimumLoadingTime } from "@/hooks/useMinimumLoadingTime";
+import CartSkeleton from "./CartSkeleton";
+import ConfirmRemoveDialog from "@/components/ui/ConfirmRemoveDialog";
 import type { Product } from "@/lib/types";
 
 type StockCheck = {
@@ -63,18 +67,71 @@ function TopProducts({ products }: { products: Product[] }) {
 
 export default function CartPage() {
   const router = useRouter();
-  const { items, removeItem, removeItems, updateQuantity, updateSize, updatePaymentType, subtotal } = useCartStore();
+  const { items, addItem, removeItem, removeItems, updateQuantity, updateSize, updatePaymentType, subtotal } = useCartStore();
   const [topProducts, setTopProducts] = useState<Product[]>([]);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const itemKey = (id: string, size: string) => `${id}-${size}`;
-  const [selected, setSelected] = useState<Set<string>>(() => new Set(items.map(i => itemKey(i.product.id, i.size))));
-  const allSelected = items.length > 0 && items.every(i => selected.has(itemKey(i.product.id, i.size)));
-  const selectedItems = items.filter(i => selected.has(itemKey(i.product.id, i.size)));
+  // Physical stock is per product+size regardless of payment_type, so lines that
+  // only differ by payment_type intentionally share the same stock lookup key.
+  const stockKey = (id: string, size: string) => `${id}-${size}`;
+  // Selection is keyed by each line's stable id, not its mutable fields, so
+  // changing size/payment_type never resets it. Starts empty and is populated
+  // once (select-all, matching prior UX) after the persisted cart hydrates --
+  // see the hydration effect below.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const hasInitializedSelection = useRef(false);
+  // Which line's remove-confirmation modal is open, keyed by line id.
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+  const removingItem = items.find(i => i.id === removingItemId) ?? null;
+  const allSelected = items.length > 0 && items.every(i => selected.has(i.id));
+  const selectedItems = items.filter(i => selected.has(i.id));
   const sub = selectedItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
+  // SRP discount is an attribute of the product's selling price, not of how
+  // much is due now -- always priced off full_payment_price so it reads the
+  // same whether a line is paying in full or on a downpayment.
+  const savings = selectedItems.reduce(
+    (s, i) => s + Math.max(0, i.product.srp_price - i.product.full_payment_price) * i.quantity,
+    0
+  );
+
+  // updateSize/updatePaymentType can merge `prevId`'s line into an existing one;
+  // when that happens, carry `prevId`'s selection state over to the surviving id
+  // so a checked line stays checked (union of both lines' prior state) instead
+  // of silently losing its selection because its id disappeared.
+  const applyMergeResult = useCallback((prevId: string, result: LineMergeResult) => {
+    if (!result || result.id === prevId) return;
+    setSelected(prev => {
+      if (!prev.has(prevId)) return prev;
+      const next = new Set(prev);
+      next.delete(prevId);
+      next.add(result.id);
+      return next;
+    });
+  }, []);
 
   const [stockMap, setStockMap] = useState<Record<string, StockCheck>>({});
   const itemsRef = useRef(items);
   useEffect(() => { itemsRef.current = items; }, [items]);
+
+  // Cart is persisted to localStorage; on first mount it hasn't hydrated yet,
+  // so `items` is briefly [] even for a returning customer with a full cart.
+  // `.persist` is only available client-side, so it must never be touched
+  // during the render/useState-initializer phase (which also runs on the server).
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    const persistApi = useCartStore.persist;
+    if (!persistApi) { queueMicrotask(() => setHydrated(true)); return; }
+    if (persistApi.hasHydrated()) { queueMicrotask(() => setHydrated(true)); return; }
+    return persistApi.onFinishHydration(() => queueMicrotask(() => setHydrated(true)));
+  }, []);
+  const showLoading = useMinimumLoadingTime(!hydrated, 800);
+
+  // Select all items by default, once, after the persisted cart has hydrated
+  // (items is [] before that, so doing this on first render would select nothing).
+  useEffect(() => {
+    if (!hydrated || hasInitializedSelection.current) return;
+    hasInitializedSelection.current = true;
+    setSelected(new Set(items.map(i => i.id)));
+  }, [hydrated, items]);
 
   const refreshStock = useCallback(() => {
     const current = itemsRef.current;
@@ -91,7 +148,7 @@ export default function CartPage() {
         if (!data) return;
         const map: Record<string, StockCheck> = {};
         for (const check of (data.items ?? []) as StockCheck[]) {
-          map[itemKey(check.product_id, check.size)] = check;
+          map[stockKey(check.product_id, check.size)] = check;
         }
         setStockMap(map);
       })
@@ -107,8 +164,8 @@ export default function CartPage() {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [refreshStock]);
 
-  const hasSoldOut = selectedItems.some(i => stockMap[itemKey(i.product.id, i.size)]?.status === "sold_out");
-  const hasReduced = !hasSoldOut && selectedItems.some(i => stockMap[itemKey(i.product.id, i.size)]?.status === "reduced");
+  const hasSoldOut = selectedItems.some(i => stockMap[stockKey(i.product.id, i.size)]?.status === "sold_out");
+  const hasReduced = !hasSoldOut && selectedItems.some(i => stockMap[stockKey(i.product.id, i.size)]?.status === "reduced");
 
   useEffect(() => {
     const supabase = createClient();
@@ -133,6 +190,7 @@ export default function CartPage() {
               slug: p.slug as string,
               brand: p.brand as string,
               colorway: (p.colorway as string) ?? "",
+              sku: (p.sku as string) ?? null,
               gender: (p.gender as string) ?? "Unisex",
               description: (p.description as string) ?? "",
               status: p.status as Product["status"],
@@ -152,6 +210,10 @@ export default function CartPage() {
         }
       });
   }, [items]);
+
+  if (showLoading) {
+    return <CartSkeleton />;
+  }
 
   if (items.length === 0) {
     return (
@@ -191,7 +253,7 @@ export default function CartPage() {
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between pb-2">
               <button
-                onClick={() => setSelected(allSelected ? new Set() : new Set(items.map(i => itemKey(i.product.id, i.size))))}
+                onClick={() => setSelected(allSelected ? new Set() : new Set(items.map(i => i.id)))}
                 className="flex items-center gap-1.5 text-body-sm text-ink-3 transition-colors hover:text-ink">
                 {allSelected ? <CheckSquare className="w-4 h-4 text-ink" /> : <Square className="w-4 h-4" />}
                 {allSelected ? "Deselect All" : "Select All"}
@@ -199,7 +261,7 @@ export default function CartPage() {
               {selected.size > 0 && (
                 <button
                   onClick={() => {
-                    removeItems(items.filter(i => selected.has(itemKey(i.product.id, i.size))).map(i => ({ productId: i.product.id, size: i.size })));
+                    removeItems(items.filter(i => selected.has(i.id)).map(i => ({ productId: i.product.id, size: i.size, paymentType: i.payment_type })));
                     setSelected(new Set());
                   }}
                   className="flex items-center gap-1.5 text-body-sm text-state-error transition-opacity hover:opacity-70">
@@ -209,16 +271,15 @@ export default function CartPage() {
               )}
             </div>
             {items.map(item => {
-              const key = itemKey(item.product.id, item.size);
-              const isSelected = selected.has(key);
+              const isSelected = selected.has(item.id);
               const isPreOrder = item.product.status === "pre-order";
-              const stockCheck = stockMap[key];
+              const stockCheck = stockMap[stockKey(item.product.id, item.size)];
               return (
-              <div key={key}
+              <div key={item.id}
                 className={`p-4 flex gap-4 rounded-md transition-opacity bg-paper border ${isSelected ? "border-ink opacity-100" : "border-line opacity-60"}`}>
                 {/* Checkbox */}
                 <button
-                  onClick={() => setSelected(prev => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; })}
+                  onClick={() => setSelected(prev => { const n = new Set(prev); n.has(item.id) ? n.delete(item.id) : n.add(item.id); return n; })}
                   className="shrink-0 self-start mt-0.5">
                   {isSelected
                     ? <CheckSquare className="w-5 h-5 text-ink" />
@@ -239,14 +300,19 @@ export default function CartPage() {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
+                  <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-4">
+                    <div className="min-w-0 flex-1">
                       <p className="text-eyebrow text-ink-3 mb-0.5">{item.product.brand}</p>
-                      <Link href={`/shop/${item.product.slug}`} className="text-body-sm text-ink leading-snug hover:underline underline-offset-2">{item.product.name}</Link>
-                      <div className="flex items-center gap-2 mt-1.5">
+                      <Link href={`/shop/${item.product.slug}`} className="text-body-sm text-ink leading-snug break-words hover:underline underline-offset-2">{item.product.name}</Link>
+                      <div className="flex flex-wrap items-center gap-2 mt-1.5">
                         <select
                           value={item.size}
-                          onChange={e => updateSize(item.product.id, item.size, e.target.value)}
+                          onChange={e => {
+                            const newSize = e.target.value;
+                            const result = updateSize(item.product.id, item.size, newSize, item.payment_type);
+                            applyMergeResult(item.id, result);
+                            if (result) toast.success(`Size updated to ${newSize}`);
+                          }}
                           className="text-micro px-2 py-0.5 rounded-sm cursor-pointer focus:outline-none border border-line text-ink-3 bg-paper-2">
                           {item.product.sizes
                             .filter(s => s.stock > 0 || s.size === item.size)
@@ -254,11 +320,15 @@ export default function CartPage() {
                               <option key={s.size} value={s.size}>{s.size}</option>
                             ))}
                         </select>
-                        {isPreOrder ? (
+                        {isPreOrder && (
                           <div className="flex flex-wrap gap-1">
                             {(["full_payment", "downpayment"] as const).map(pt => (
                               <button key={pt} type="button"
-                                onClick={() => updatePaymentType(item.product.id, item.size, pt)}
+                                onClick={() => {
+                                  const result = updatePaymentType(item.product.id, item.size, item.payment_type, pt);
+                                  applyMergeResult(item.id, result);
+                                  if (result) toast.success("Payment type updated");
+                                }}
                                 className={`px-2 py-0.5 text-micro rounded-sm transition-colors whitespace-nowrap border ${
                                   item.payment_type === pt ? "bg-ink text-paper border-ink" : "bg-transparent text-ink-3 border-line"
                                 }`}>
@@ -266,16 +336,17 @@ export default function CartPage() {
                               </button>
                             ))}
                           </div>
-                        ) : (
-                          <span className="text-micro px-2 py-0.5 rounded-sm bg-paper-2 text-ink-3">
-                            Full Payment
-                          </span>
                         )}
                       </div>
                     </div>
-                    <p className="text-body font-display font-medium shrink-0 text-ink">
-                      ₱{(item.unit_price * item.quantity).toLocaleString()}
-                    </p>
+                    <div className="w-full sm:w-auto text-right shrink-0">
+                      {item.product.srp_price > item.product.full_payment_price && (
+                        <p className="text-micro text-ink-3 line-through">₱{item.product.srp_price.toLocaleString()}</p>
+                      )}
+                      <p className="text-body font-display font-medium text-ink">
+                        ₱{(item.unit_price * item.quantity).toLocaleString()}
+                      </p>
+                    </div>
                   </div>
 
                   {stockCheck && stockCheck.status !== "available" && (
@@ -291,12 +362,12 @@ export default function CartPage() {
                       <button
                         onClick={() => {
                           if (stockCheck.status === "sold_out") {
-                            removeItem(item.product.id, item.size);
+                            removeItem(item.product.id, item.size, item.payment_type);
                           } else {
-                            updateQuantity(item.product.id, item.size, stockCheck.current_stock);
+                            updateQuantity(item.product.id, item.size, item.payment_type, stockCheck.current_stock);
                             setStockMap(prev => ({
                               ...prev,
-                              [key]: { ...stockCheck, status: "available", requested_quantity: stockCheck.current_stock },
+                              [stockKey(item.product.id, item.size)]: { ...stockCheck, status: "available", requested_quantity: stockCheck.current_stock },
                             }));
                           }
                         }}
@@ -313,7 +384,13 @@ export default function CartPage() {
                         const maxStock = item.product.sizes.find(s => s.size === item.size)?.stock ?? 99;
                         return (
                           <>
-                            <button onClick={() => updateQuantity(item.product.id, item.size, item.quantity - 1)}
+                            <button onClick={() => {
+                                if (item.quantity <= 1) {
+                                  setRemovingItemId(item.id);
+                                } else {
+                                  updateQuantity(item.product.id, item.size, item.payment_type, item.quantity - 1);
+                                }
+                              }}
                               className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60">
                               <Minus className="w-3 h-3" />
                             </button>
@@ -325,12 +402,12 @@ export default function CartPage() {
                               onChange={e => {
                                 const val = parseInt(e.target.value.replace(/\D/g, ""), 10);
                                 if (!isNaN(val) && val >= 1) {
-                                  updateQuantity(item.product.id, item.size, Math.min(val, maxStock));
+                                  updateQuantity(item.product.id, item.size, item.payment_type, Math.min(val, maxStock));
                                 }
                               }}
                               className="w-10 text-center text-body-sm text-ink focus:outline-none bg-transparent"
                             />
-                            <button onClick={() => updateQuantity(item.product.id, item.size, Math.min(item.quantity + 1, maxStock))}
+                            <button onClick={() => updateQuantity(item.product.id, item.size, item.payment_type, Math.min(item.quantity + 1, maxStock))}
                               disabled={item.quantity >= maxStock}
                               className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60 disabled:opacity-30">
                               <Plus className="w-3 h-3" />
@@ -340,7 +417,7 @@ export default function CartPage() {
                       })()}
                     </div>
 
-                    <button onClick={() => removeItem(item.product.id, item.size)}
+                    <button onClick={() => setRemovingItemId(item.id)}
                       className="flex items-center gap-1 text-body-sm text-state-error transition-opacity hover:opacity-60">
                       <Trash2 className="w-3 h-3" /> Remove
                     </button>
@@ -364,6 +441,12 @@ export default function CartPage() {
                   </span>
                   <span className="text-ink">₱{sub.toLocaleString()}</span>
                 </div>
+                {savings > 0 && (
+                  <div className="flex justify-between text-body-sm">
+                    <span className="text-state-onhand">You save</span>
+                    <span className="text-state-onhand">₱{savings.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-body-sm">
                   <span className="text-ink-3">Shipping</span>
                   <span className="text-ink-3">Computed at checkout</span>
@@ -420,6 +503,53 @@ export default function CartPage() {
 
         <TopProducts products={topProducts} />
       </div>
+
+      <ConfirmRemoveDialog
+        open={removingItem != null}
+        productName={removingItem?.product.name ?? ""}
+        onClose={() => setRemovingItemId(null)}
+        onConfirm={() => {
+          if (removingItem) {
+            const snapshot = removingItem;
+            removeItem(snapshot.product.id, snapshot.size, snapshot.payment_type);
+            toast.custom(
+              t => (
+                <div
+                  className="flex items-center gap-3"
+                  style={{
+                    background: "var(--ink)",
+                    color: "var(--paper)",
+                    fontFamily: "var(--font-body)",
+                    fontSize: "13px",
+                    lineHeight: "1.4",
+                    padding: "12px 16px",
+                    borderRadius: "6px",
+                    boxShadow: "0 8px 24px rgba(10, 10, 10, 0.14)",
+                    minWidth: "280px",
+                    maxWidth: "320px",
+                    opacity: t.visible ? 1 : 0,
+                    transition: "opacity 150ms ease",
+                  }}
+                >
+                  <span className="flex-1">Item removed from cart</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      addItem(snapshot.product, snapshot.size, snapshot.payment_type, snapshot.quantity);
+                      toast.dismiss(t.id);
+                    }}
+                    className="shrink-0 underline underline-offset-2 font-medium hover:opacity-70 transition-opacity"
+                  >
+                    Undo
+                  </button>
+                </div>
+              ),
+              { duration: 6000 }
+            );
+          }
+          setRemovingItemId(null);
+        }}
+      />
     </div>
   );
 }

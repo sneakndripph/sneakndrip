@@ -62,12 +62,33 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ id: data.user.id }, { status: 201 });
 }
 
+async function verifyPassword(email: string, password: string) {
+  try {
+    const env = validateEnv();
+    const supabase = createServerClient(
+      env.NEXT_PUBLIC_SUPABASE_URL,
+      env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+      { cookies: { getAll: () => [], setAll: () => {} } }
+    );
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
 export async function PATCH(req: NextRequest) {
   const caller = await requireAdmin();
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id, role, full_name } = await req.json();
+  const { id, role, full_name, password } = await req.json();
   if (!id) return NextResponse.json({ error: "User id required" }, { status: 400 });
+
+  if (role !== undefined) {
+    if (!password) return NextResponse.json({ error: "Password required to change role" }, { status: 400 });
+    const valid = await verifyPassword(caller.email ?? "", password);
+    if (!valid) return NextResponse.json({ error: "Incorrect password" }, { status: 401 });
+  }
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(id, {

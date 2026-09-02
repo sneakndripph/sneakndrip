@@ -1,4 +1,4 @@
-import { h, wrapEmail, BRAND_TEAL, BRAND_BLACK, BRAND_BG } from "../helpers";
+import { h, stripNewlines, wrapEmail, h1, h2, paragraph, divider, socialLinks } from "../helpers";
 
 export type ReturnApprovedData = {
   orderNumber: string;
@@ -9,27 +9,28 @@ export type ReturnApprovedData = {
 
 /** Customer-facing "your return was approved" email. */
 export function returnApproved(data: ReturnApprovedData): { subject: string; html: string } {
-  const { orderNumber, customerName, adminNote } = data;
+  const { customerName, adminNote } = data;
+  const orderNumber = stripNewlines(data.orderNumber);
 
   const body = `
-    <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">Hi <strong>${h(customerName)}</strong>,</p>
-    <p style="color:#555;font-size:15px;margin:0 0 16px;line-height:1.6">
-      Your return request for order <strong style="color:${BRAND_BLACK}">${h(orderNumber)}</strong> has been <strong style="color:${BRAND_TEAL}">approved</strong>.
-    </p>
+    ${h1("Return Approved")}
+    ${paragraph(`Hi <strong>${h(customerName)}</strong>, your return request for order <strong>${h(orderNumber)}</strong> has been approved.`)}
+
     ${adminNote ? `
-    <div style="background:${BRAND_BG};border-left:4px solid ${BRAND_TEAL};padding:16px 20px;border-radius:4px;margin-bottom:20px">
-      <p style="margin:0;color:${BRAND_BLACK};font-size:14px;font-weight:600">Note from our team</p>
-      <p style="margin:6px 0 0;color:#555;font-size:13px;line-height:1.8">${h(adminNote)}</p>
-    </div>` : ""}
-    <p style="color:#888;font-size:14px">
-      Your refund will be processed within 3–5 business days. Questions? Message us on
-      <a href="https://www.facebook.com/SneakNDrip/" style="color:${BRAND_TEAL}">Facebook</a> or
-      <a href="https://www.instagram.com/sneakndripph/" style="color:${BRAND_TEAL}">Instagram</a>.
-    </p>
+    ${divider()}
+
+    ${h2("Note From Our Team")}
+    ${paragraph(h(adminNote))}
+    ` : ""}
+
+    ${divider()}
+
+    ${paragraph("Your refund will be processed within 3–5 business days. Questions? Message us on Instagram, TikTok, or Facebook.")}
+    ${socialLinks()}
   `;
 
   return {
     subject: `Return Approved — ${orderNumber} | Sneak N' Drip`,
-    html: wrapEmail(body),
+    html: wrapEmail(body, { previewText: `Your return for ${orderNumber} has been approved.` }),
   };
 }

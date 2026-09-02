@@ -9,6 +9,7 @@ import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, E
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import toast from "react-hot-toast";
 
 const STATUS_CONFIG = {
   pending:       { icon: Clock,       color: "#8A8580", label: "Pending",        bg: "rgba(138,133,128,0.12)" },
@@ -34,6 +35,7 @@ type Order = {
   order_number: string;
   created_at: string;
   status: string;
+  delivered_at?: string | null;
   total: number;
   subtotal?: number;
   shipping_fee?: number;
@@ -69,6 +71,14 @@ const STEPS_COD = [
   { key: "shipped",    label: "Shipped" },
   { key: "delivered",  label: "Collected" },
 ];
+
+const RETURN_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+// Orders delivered before delivered_at existed have no recorded delivery date —
+// treat them as always eligible rather than guessing.
+function isReturnWindowOpen(deliveredAt: string | null | undefined) {
+  if (!deliveredAt) return true;
+  return Date.now() - new Date(deliveredAt).getTime() < RETURN_WINDOW_MS;
+}
 
 export default function AccountPage() {
   const router = useRouter();
@@ -218,6 +228,7 @@ export default function AccountPage() {
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    toast.success("Signed out");
     router.push("/");
     router.refresh();
   }
@@ -297,6 +308,7 @@ export default function AccountPage() {
     if (!error) {
       setAddressSuccess(true);
       setTimeout(() => setAddressSuccess(false), 3000);
+      toast.success("Address updated");
     }
     setSavingAddress(false);
   }
@@ -333,6 +345,8 @@ export default function AccountPage() {
         .upload(filePath, reviewImageFile, { upsert: false });
       if (!upErr && uploadData) {
         image_url = supabase.storage.from("review-photos").getPublicUrl(uploadData.path).data.publicUrl;
+      } else {
+        toast.error("Failed to upload photo. Try again.");
       }
     }
 
@@ -902,19 +916,23 @@ export default function AccountPage() {
                                 </button>
                               )}
                               {order.status === "delivered" && !returnedOrders.has(order.order_number) && order.payment_type !== "downpayment" && (
-                                <button
-                                  onClick={() => {
-                                    setReturnModalOrder(order);
-                                    setReturnReason("");
-                                    setReturnError("");
-                                    setReturnSuccess(false);
-                                    setReturnPhotoFiles([]);
-                                    setReturnPhotoPreviews([]);
-                                  }}
-                                  className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-line text-ink-2">
-                                  <RotateCcw className="w-3 h-3" />
-                                  Request Return
-                                </button>
+                                isReturnWindowOpen(order.delivered_at) ? (
+                                  <button
+                                    onClick={() => {
+                                      setReturnModalOrder(order);
+                                      setReturnReason("");
+                                      setReturnError("");
+                                      setReturnSuccess(false);
+                                      setReturnPhotoFiles([]);
+                                      setReturnPhotoPreviews([]);
+                                    }}
+                                    className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-line text-ink-2">
+                                    <RotateCcw className="w-3 h-3" />
+                                    Request Return
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-ink-3">Return window has expired</span>
+                                )
                               )}
                               {order.status === "delivered" && returnedOrders.has(order.order_number) && (() => {
                                 const ret = returnedOrders.get(order.order_number)!;
@@ -1305,6 +1323,11 @@ export default function AccountPage() {
                           onChange={e => {
                             const f = e.target.files?.[0];
                             if (!f) return;
+                            if (f.size > 5 * 1024 * 1024 || !["image/jpeg", "image/png"].includes(f.type)) {
+                              toast.error("Photo must be under 5MB and JPG/PNG");
+                              e.target.value = "";
+                              return;
+                            }
                             setReviewImageFile(f);
                             setReviewImagePreview(URL.createObjectURL(f));
                           }} />
