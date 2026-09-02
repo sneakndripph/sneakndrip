@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Save, ToggleLeft, ToggleRight, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check, MessageCircle, LayoutGrid } from "lucide-react";
-import toast from "react-hot-toast";
+import { toastSuccess, toastError } from "@/lib/toast";
 import QRUploadField from "@/components/admin/QRUploadField";
 
 type SettingsData = Record<string, string>;
@@ -129,10 +129,10 @@ export default function AdminSettingsPage() {
     });
     if (!res.ok) {
       setSettings(prev => ({ ...prev, chat_widget_enabled: prevVal }));
-      toast.error("Couldn't update support chat setting. Try again.");
+      toastError("Couldn't update support chat setting. Try again.");
       return;
     }
-    toast.success(newVal === "true" ? "Support chat enabled" : "Support chat disabled");
+    toastSuccess(newVal === "true" ? "Support chat enabled" : "Support chat disabled");
   }
 
   async function toggleContextBar() {
@@ -146,10 +146,10 @@ export default function AdminSettingsPage() {
     });
     if (!res.ok) {
       setSettings(prev => ({ ...prev, context_bar_enabled: prevVal }));
-      toast.error("Couldn't update homepage section setting. Try again.");
+      toastError("Couldn't update homepage section setting. Try again.");
       return;
     }
-    toast.success(newVal === "true" ? "Editorial context bar enabled" : "Editorial context bar disabled");
+    toastSuccess(newVal === "true" ? "Editorial context bar enabled" : "Editorial context bar disabled");
   }
 
   async function toggleNewArrivals() {
@@ -163,10 +163,10 @@ export default function AdminSettingsPage() {
     });
     if (!res.ok) {
       setSettings(prev => ({ ...prev, new_arrivals_enabled: prevVal }));
-      toast.error("Couldn't update homepage section setting. Try again.");
+      toastError("Couldn't update homepage section setting. Try again.");
       return;
     }
-    toast.success(newVal === "true" ? "\"New this week\" section enabled" : "\"New this week\" section disabled");
+    toastSuccess(newVal === "true" ? "\"New this week\" section enabled" : "\"New this week\" section disabled");
   }
 
   async function toggleBuyingFloor() {
@@ -180,10 +180,10 @@ export default function AdminSettingsPage() {
     });
     if (!res.ok) {
       setSettings(prev => ({ ...prev, buying_floor_enabled: prevVal }));
-      toast.error("Couldn't update homepage section setting. Try again.");
+      toastError("Couldn't update homepage section setting. Try again.");
       return;
     }
-    toast.success(newVal === "true" ? "\"From The Buying Floor\" section enabled" : "\"From The Buying Floor\" section disabled");
+    toastSuccess(newVal === "true" ? "\"From The Buying Floor\" section enabled" : "\"From The Buying Floor\" section disabled");
   }
 
   async function toggleTrending() {
@@ -197,10 +197,10 @@ export default function AdminSettingsPage() {
     });
     if (!res.ok) {
       setSettings(prev => ({ ...prev, trending_enabled: prevVal }));
-      toast.error("Couldn't update homepage section setting. Try again.");
+      toastError("Couldn't update homepage section setting. Try again.");
       return;
     }
-    toast.success(newVal === "true" ? "Trending section enabled" : "Trending section disabled");
+    toastSuccess(newVal === "true" ? "Trending section enabled" : "Trending section disabled");
   }
 
   async function toggleReviews() {
@@ -214,10 +214,10 @@ export default function AdminSettingsPage() {
     });
     if (!res.ok) {
       setSettings(prev => ({ ...prev, reviews_enabled: prevVal }));
-      toast.error("Couldn't update homepage section setting. Try again.");
+      toastError("Couldn't update homepage section setting. Try again.");
       return;
     }
-    toast.success(newVal === "true" ? "Customer reviews section enabled" : "Customer reviews section disabled");
+    toastSuccess(newVal === "true" ? "Customer reviews section enabled" : "Customer reviews section disabled");
   }
 
   async function toggleNewsletter() {
@@ -231,10 +231,10 @@ export default function AdminSettingsPage() {
     });
     if (!res.ok) {
       setSettings(prev => ({ ...prev, newsletter_enabled: prevVal }));
-      toast.error("Couldn't update homepage section setting. Try again.");
+      toastError("Couldn't update homepage section setting. Try again.");
       return;
     }
-    toast.success(newVal === "true" ? "Newsletter signup section enabled" : "Newsletter signup section disabled");
+    toastSuccess(newVal === "true" ? "Newsletter signup section enabled" : "Newsletter signup section disabled");
   }
 
   async function toggleMaintenance() {
@@ -248,10 +248,10 @@ export default function AdminSettingsPage() {
     });
     if (!res.ok) {
       setSettings(prev => ({ ...prev, maintenance_mode: prevVal }));
-      toast.error("Couldn't update maintenance mode. Try again.");
+      toastError("Couldn't update maintenance mode. Try again.");
       return;
     }
-    toast.success(newVal === "true" ? "Maintenance mode ON" : "Maintenance mode OFF");
+    toastSuccess(newVal === "true" ? "Maintenance mode ON" : "Maintenance mode OFF");
   }
 
   async function handleSave() {
@@ -265,9 +265,9 @@ export default function AdminSettingsPage() {
       if (res.ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
-        toast.success("Settings saved");
+        toastSuccess("Settings saved");
       } else {
-        toast.error("Couldn't save settings. Try again.");
+        toastError("Couldn't save settings. Try again.");
       }
     } finally {
       setSaving(false);

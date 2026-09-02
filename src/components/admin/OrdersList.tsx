@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import toast from "react-hot-toast";
+import { toastSuccess } from "@/lib/toast";
 import { Package, MoreVertical, Truck, Copy, User, XCircle, ChevronDown } from "lucide-react";
 import OrderStatusBadge, { STATUS_META } from "./OrderStatusBadge";
 import type { Order, OrderItem } from "./AdminOrdersClient";
@@ -43,7 +43,7 @@ export default function OrdersList({
   }, []);
 
   function copyOrderNumber(o: Order) {
-    navigator.clipboard.writeText(o.order_number).then(() => toast.success("Order number copied"));
+    navigator.clipboard.writeText(o.order_number).then(() => toastSuccess("Order number copied"));
     setMenuOpenId(null);
   }
 

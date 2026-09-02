@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCartStore, type LineMergeResult } from "@/store/cartStore";
 import { SHIPPING_FEE } from "@/lib/constants";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, LogIn, CheckSquare, Square, AlertCircle, AlertTriangle } from "lucide-react";
-import toast from "react-hot-toast";
+import { toastSuccess } from "@/lib/toast";
 import { createClient } from "@/lib/supabase/client";
 import { useMinimumLoadingTime } from "@/hooks/useMinimumLoadingTime";
 import CartSkeleton from "./CartSkeleton";
@@ -311,7 +311,7 @@ export default function CartPage() {
                             const newSize = e.target.value;
                             const result = updateSize(item.product.id, item.size, newSize, item.payment_type);
                             applyMergeResult(item.id, result);
-                            if (result) toast.success(`Size updated to ${newSize}`);
+                            if (result) toastSuccess(`Size updated to ${newSize}`);
                           }}
                           className="text-micro px-2 py-0.5 rounded-sm cursor-pointer focus:outline-none border border-line text-ink-3 bg-paper-2">
                           {item.product.sizes
@@ -327,7 +327,7 @@ export default function CartPage() {
                                 onClick={() => {
                                   const result = updatePaymentType(item.product.id, item.size, item.payment_type, pt);
                                   applyMergeResult(item.id, result);
-                                  if (result) toast.success("Payment type updated");
+                                  if (result) toastSuccess("Payment type updated");
                                 }}
                                 className={`px-2 py-0.5 text-micro rounded-sm transition-colors whitespace-nowrap border ${
                                   item.payment_type === pt ? "bg-ink text-paper border-ink" : "bg-transparent text-ink-3 border-line"
@@ -512,40 +512,14 @@ export default function CartPage() {
           if (removingItem) {
             const snapshot = removingItem;
             removeItem(snapshot.product.id, snapshot.size, snapshot.payment_type);
-            toast.custom(
-              t => (
-                <div
-                  className="flex items-center gap-3"
-                  style={{
-                    background: "var(--ink)",
-                    color: "var(--paper)",
-                    fontFamily: "var(--font-body)",
-                    fontSize: "13px",
-                    lineHeight: "1.4",
-                    padding: "12px 16px",
-                    borderRadius: "6px",
-                    boxShadow: "0 8px 24px rgba(10, 10, 10, 0.14)",
-                    minWidth: "280px",
-                    maxWidth: "320px",
-                    opacity: t.visible ? 1 : 0,
-                    transition: "opacity 150ms ease",
-                  }}
-                >
-                  <span className="flex-1">Item removed from cart</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      addItem(snapshot.product, snapshot.size, snapshot.payment_type, snapshot.quantity);
-                      toast.dismiss(t.id);
-                    }}
-                    className="shrink-0 underline underline-offset-2 font-medium hover:opacity-70 transition-opacity"
-                  >
-                    Undo
-                  </button>
-                </div>
-              ),
-              { duration: 6000 }
-            );
+            toastSuccess("Item removed from cart", {
+              subtitle: "Click undo to restore",
+              duration: 6000,
+              action: {
+                label: "Undo",
+                onClick: () => addItem(snapshot.product, snapshot.size, snapshot.payment_type, snapshot.quantity),
+              },
+            });
           }
           setRemovingItemId(null);
         }}

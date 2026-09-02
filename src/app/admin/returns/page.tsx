@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { RefreshCw, CheckCircle, XCircle, X, Image as ImageIcon, MessageCircle, ChevronDown } from "lucide-react";
 import Image from "next/image";
-import toast from "react-hot-toast";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 type OrderItem = {
   product_name: string;
@@ -108,9 +108,9 @@ export default function AdminReturnsPage() {
     if (res.ok) {
       setReturns(prev => prev.map(r => r.id === approveTarget.id ? { ...r, status: "approved", admin_note } : r));
       closeApprove();
-      toast.success("Refund processed");
+      toastSuccess("Refund processed");
     } else {
-      toast.error("Refund failed");
+      toastError("Refund failed");
     }
     setProcessing(false);
   }
@@ -129,9 +129,9 @@ export default function AdminReturnsPage() {
     if (res.ok) {
       setReturns(prev => prev.map(r => r.id === denyTarget.id ? { ...r, status: "denied", admin_note } : r));
       closeDeny();
-      toast.success("Return denied");
+      toastSuccess("Return denied");
     } else {
-      toast.error("Denial failed");
+      toastError("Denial failed");
     }
     setProcessing(false);
   }

@@ -3,7 +3,7 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { ShoppingBag, Minus, Plus, Share2, Heart, ChevronUp, Zap } from "lucide-react";
-import toast from "react-hot-toast";
+import { toastSuccess, toastError } from "@/lib/toast";
 import { useCartStore } from "@/store/cartStore";
 import { useWishlist } from "@/hooks/useWishlist";
 import { DP_RESERVE_FEE } from "@/lib/constants";
@@ -54,12 +54,12 @@ export default function ProductCTA({
       .find(i => i.product.id === product.id && i.size === selectedSize && i.payment_type === effectivePaymentType)?.quantity ?? 0;
   }
   function checkStock() {
-    if (!selectedSize) { toast.error("Please select a size"); return false; }
+    if (!selectedSize) { toastError("Please select a size"); return false; }
     const stock = getStock();
     const inCart = getInCart();
     if (inCart + quantity > stock) {
       const remaining = stock - inCart;
-      toast.error(remaining <= 0
+      toastError(remaining <= 0
         ? `Only ${stock} pair${stock === 1 ? "" : "s"} available for ${selectedSize}`
         : `Only ${remaining} more pair${remaining === 1 ? "" : "s"} can be added`
       );
@@ -75,7 +75,7 @@ export default function ProductCTA({
   function handleAddToCart() {
     if (!checkStock()) return;
     addItem(product, selectedSize!, effectivePaymentType, quantity);
-    toast.success(`${product.name} added to cart`);
+    toastSuccess(`${product.name} added to cart`);
   }
 
   function handleBuyNow() {
@@ -92,7 +92,7 @@ export default function ProductCTA({
       } catch { /* cancelled */ }
     } else {
       await navigator.clipboard.writeText(url);
-      toast.success("Link copied!");
+      toastSuccess("Link copied!");
     }
   }
 

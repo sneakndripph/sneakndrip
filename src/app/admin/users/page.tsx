@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { UserPlus, Shield, User, Trash2, X, Eye, EyeOff, ChevronDown, Check } from "lucide-react";
-import toast from "react-hot-toast";
+import { toastSuccess, toastError } from "@/lib/toast";
 import { createClient } from "@/lib/supabase/client";
 import ConfirmDialog, { useConfirmDialog } from "@/components/admin/ConfirmDialog";
 import ConfirmPasswordDialog from "@/components/admin/ConfirmPasswordDialog";
@@ -116,12 +116,12 @@ export default function AdminUsersPage() {
       setShowModal(false);
       setForm({ email: "", password: "", full_name: "", role: "customer" });
       loadUsers();
-      toast.success("User created");
+      toastSuccess("User created");
     } else {
       const err = await res.json().catch(() => ({}));
       const errorMessage = err.error as string | undefined;
       setFormError(errorMessage ?? "Failed to create user");
-      toast.error(errorMessage || "Couldn't create user. Try again.");
+      toastError(errorMessage || "Couldn't create user. Try again.");
     }
     setSaving(false);
   }
@@ -137,12 +137,12 @@ export default function AdminUsersPage() {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       const errorMessage = err.error as string | undefined;
-      toast.error(errorMessage || "Couldn't delete user. Try again.");
+      toastError(errorMessage || "Couldn't delete user. Try again.");
       throw new Error("delete failed");
     }
     setViewUser(null);
     loadUsers();
-    toast.success(`${userName} deleted`);
+    toastSuccess(`${userName} deleted`);
   }
 
   function openViewUser(u: UserRow) {
@@ -188,7 +188,7 @@ export default function AdminUsersPage() {
     setViewRole(role);
     setUsers(prev => prev.map(u => u.id === viewUser.id ? { ...u, role } : u));
     setViewUser(prev => prev ? { ...prev, role } : null);
-    toast.success(`Role changed to ${role}`);
+    toastSuccess(`Role changed to ${role}`);
   }
 
   return (

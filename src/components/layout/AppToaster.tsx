@@ -22,25 +22,9 @@ export default function AppToaster() {
       gutter={8}
       containerStyle={position === "top-right" ? { top: 72, right: 16 } : { top: 72 }}
       toastOptions={{
+        // All toasts render via toast.custom(<CustomToast />), which owns its
+        // own background/shadow/radius/icon — this default is a fallback only.
         duration: 3200,
-        style: {
-          background: "var(--ink)",
-          color: "var(--paper)",
-          fontFamily: "var(--font-body)",
-          fontSize: "13px",
-          lineHeight: "1.4",
-          padding: "12px 16px",
-          borderRadius: "6px",
-          boxShadow: "0 8px 24px rgba(10, 10, 10, 0.14)",
-          minWidth: "280px",
-          maxWidth: "320px",
-        },
-        success: {
-          iconTheme: { primary: "var(--state-onhand)", secondary: "var(--paper)" },
-        },
-        error: {
-          iconTheme: { primary: "var(--state-error)", secondary: "var(--paper)" },
-        },
       }}
     />
   );

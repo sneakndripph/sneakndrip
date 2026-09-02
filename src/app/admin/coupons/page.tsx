@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, Copy, ToggleLeft, ToggleRight, Tag, Percent, X } from "lucide-react";
-import toast from "react-hot-toast";
+import { toastSuccess, toastError } from "@/lib/toast";
 import { useConfirmDialog } from "@/components/admin/ConfirmDialog";
 
 type Coupon = {
@@ -126,11 +126,11 @@ export default function AdminMarketingPage() {
         const data = await res.json();
         if (!res.ok) {
           setError(data.error || "Failed to save");
-          toast.error("Couldn't update coupon. Try again.");
+          toastError("Couldn't update coupon. Try again.");
           return;
         }
         setCoupons(prev => prev.map(c => c.id === editingId ? { ...c, ...data } : c));
-        toast.success(`Coupon "${form.code}" updated`);
+        toastSuccess(`Coupon "${form.code}" updated`);
       } else {
         const res = await fetch("/api/admin/coupons", {
           method: "POST",
@@ -140,11 +140,11 @@ export default function AdminMarketingPage() {
         const data = await res.json();
         if (!res.ok) {
           setError(data.error || "Failed to save");
-          toast.error("Couldn't create coupon. Try again.");
+          toastError("Couldn't create coupon. Try again.");
           return;
         }
         setCoupons(prev => [data, ...prev]);
-        toast.success(`Coupon "${form.code}" created`);
+        toastSuccess(`Coupon "${form.code}" created`);
       }
       closeForm();
     } finally {
@@ -162,10 +162,10 @@ export default function AdminMarketingPage() {
     });
     if (!res.ok) {
       setCoupons(prev => prev.map(x => x.id === c.id ? { ...x, is_active: c.is_active } : x));
-      toast.error("Couldn't update coupon. Try again.");
+      toastError("Couldn't update coupon. Try again.");
       return;
     }
-    toast.success(`Coupon "${c.code}" ${nextIsActive ? "activated" : "deactivated"}`);
+    toastSuccess(`Coupon "${c.code}" ${nextIsActive ? "activated" : "deactivated"}`);
   }
 
   async function handleDelete(id: string) {
@@ -179,12 +179,12 @@ export default function AdminMarketingPage() {
     if (!ok) return;
     const res = await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" });
     if (!res.ok) {
-      toast.error("Couldn't delete coupon. Try again.");
+      toastError("Couldn't delete coupon. Try again.");
       return;
     }
     setCoupons(prev => prev.filter(c => c.id !== id));
     if (editingId === id) closeForm();
-    toast.success(`Coupon "${target?.code}" deleted`);
+    toastSuccess(`Coupon "${target?.code}" deleted`);
   }
 
   async function handleDuplicate(c: Coupon) {
@@ -202,12 +202,12 @@ export default function AdminMarketingPage() {
       body: JSON.stringify(copyForm),
     });
     if (!res.ok) {
-      toast.error("Couldn't duplicate coupon. Try again.");
+      toastError("Couldn't duplicate coupon. Try again.");
       return;
     }
     const data = await res.json();
     setCoupons(prev => [data, ...prev]);
-    toast.success(`Coupon "${data.code}" created from "${c.code}"`);
+    toastSuccess(`Coupon "${data.code}" created from "${c.code}"`);
   }
 
   // --- Discount handlers ---
@@ -259,11 +259,11 @@ export default function AdminMarketingPage() {
           sale_end: salePriceNum > 0 && discountEdit.saleEnd ? discountEdit.saleEnd : null,
         } : x));
         closeDiscountEdit();
-        toast.success("Scheduled discount saved");
+        toastSuccess("Scheduled discount saved");
       } else {
         const err = await res.json().catch(() => ({}));
         setDiscountError(err.error || "Failed to save discount");
-        toast.error("Couldn't save scheduled discount. Try again.");
+        toastError("Couldn't save scheduled discount. Try again.");
       }
     } finally {
       setSavingDiscount(false);
@@ -286,9 +286,9 @@ export default function AdminMarketingPage() {
     const res = await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", body: fd });
     if (res.ok) {
       setProducts(prev => prev.map(x => x.id === p.id ? { ...x, sale_price: null, sale_start: null, sale_end: null } : x));
-      toast.success("Discount cleared");
+      toastSuccess("Discount cleared");
     } else {
-      toast.error("Couldn't clear discount. Try again.");
+      toastError("Couldn't clear discount. Try again.");
     }
   }
 

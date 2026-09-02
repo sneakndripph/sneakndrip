@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toastSuccess } from "@/lib/toast";
 import { SNEAKER_SIZES, BRANDS, GENDERS } from "@/lib/constants";
 import { ArrowLeft, ChevronDown, Check } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
@@ -124,7 +124,7 @@ export default function NewProductPage() {
       const result = await res.json().catch(() => ({})) as { error?: string; id?: string };
       if (!res.ok) { setError(result.error ?? "Failed to save product"); setSaving(false); return; }
 
-      toast.success("Product created");
+      toastSuccess("Product created");
       router.push("/admin/products");
     } catch (err) {
       setError(String(err));

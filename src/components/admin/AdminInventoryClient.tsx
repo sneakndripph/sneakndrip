@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { Search, Filter, Package, BarChart2, RefreshCw, Download, X, Edit2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 type LogEntry = {
   id: string;
@@ -276,7 +276,7 @@ export default function AdminInventoryClient({
         const err = await res?.json().catch(() => ({})) as { error?: string };
         setSaving(false);
         setAdjustError(err?.error ?? "Failed to save. Make sure you are logged in as admin.");
-        toast.error("Couldn't update stock. Try again.");
+        toastError("Couldn't update stock. Try again.");
         return;
       }
       setProducts(prev => prev.map(p =>
@@ -287,7 +287,7 @@ export default function AdminInventoryClient({
     }
     setSaving(false);
     setAdjustModal(null);
-    toast.success("Stock updated");
+    toastSuccess("Stock updated");
     fetch("/api/admin/inventory-log").then(r => r.json()).then(data => setLog(Array.isArray(data) ? data : [])).catch(() => {});
   }
 

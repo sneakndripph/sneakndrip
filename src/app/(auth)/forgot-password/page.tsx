@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { SITE_URL } from "@/lib/constants";
-import toast from "react-hot-toast";
+import { toastSuccess, toastError } from "@/lib/toast";
 
 const RESEND_COOLDOWN_S = 30;
 
@@ -49,9 +49,9 @@ export default function ForgotPasswordPage() {
     const { error: err } = await sendResetLink(email);
     setResending(false);
     if (err) {
-      toast.error(err.message);
+      toastError(err.message);
     } else {
-      toast.success("New link sent — click it right away");
+      toastSuccess("New link sent — click it right away");
       setCooldown(RESEND_COOLDOWN_S);
     }
   }
