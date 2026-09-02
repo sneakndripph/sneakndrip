@@ -129,6 +129,9 @@ export default function AdminReturnsPage() {
     if (res.ok) {
       setReturns(prev => prev.map(r => r.id === denyTarget.id ? { ...r, status: "denied", admin_note } : r));
       closeDeny();
+      toast.success("Return denied");
+    } else {
+      toast.error("Denial failed");
     }
     setProcessing(false);
   }
