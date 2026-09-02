@@ -7,7 +7,7 @@ import {
 export type OrderConfirmedData = {
   orderNumber: string;
   customer: { name: string; email: string; mobile: string };
-  items: { name: string; size: string; quantity: number; price: number; payment_type: string }[];
+  items: { name: string; size: string; quantity: number; price: number; payment_type: string; imageUrl?: string | null }[];
   total: number;
   shipping: number;
   subtotal: number;
@@ -34,6 +34,7 @@ function itemLines(items: OrderConfirmedData["items"]): string {
       name: h(item.name),
       size: `${h(item.size)} &middot; ${meta}`,
       price: item.price,
+      imageUrl: item.imageUrl ?? undefined,
     });
   }).join("");
 }

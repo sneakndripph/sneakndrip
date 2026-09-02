@@ -337,7 +337,7 @@ export default function CheckoutPage() {
           orderNumber: num,
           customer: { name: form.name, email: form.email, mobile: form.mobile },
           items: items.map(i => ({
-            name: i.product.name, size: i.size, quantity: i.quantity,
+            productId: i.product.id, name: i.product.name, size: i.size, quantity: i.quantity,
             price: i.unit_price * i.quantity, payment_type: i.payment_type,
           })),
           subtotal: sub, shipping, total, paymentMethod,
