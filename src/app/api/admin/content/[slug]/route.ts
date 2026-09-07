@@ -46,5 +46,15 @@ export async function PATCH(
   );
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  void admin.from("activity_log").insert({
+    action: "content_page_updated",
+    entity_type: "content",
+    entity_id: slug,
+    entity_name: TITLES[slug],
+    actor_email: user.email ?? null,
+    details: null,
+  });
+
   return NextResponse.json({ ok: true });
 }
