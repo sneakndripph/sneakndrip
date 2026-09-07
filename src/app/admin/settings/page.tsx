@@ -44,7 +44,7 @@ const DEFAULTS: SettingsData = {
   preorder_message: "Your order will be reserved upon payment of downpayment. Balance is due before release.",
   new_arrivals_days: "14",
   meta_title: "Sneak N' Drip | Authentic Sneakers Philippines",
-  meta_description: "Shop authentic sneakers in the Philippines. On Hand & Pre-Order. Best prices, 100% legit.",
+  meta_description: "Shop authentic sneakers in the Philippines. On Hand & Pre-Order. Curated selection, 100% authentic.",
   google_analytics_id: "",
   cod_enabled: "true",
   maintenance_mode: "false",
