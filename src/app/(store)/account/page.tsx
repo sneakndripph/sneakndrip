@@ -363,7 +363,7 @@ export default function AccountPage() {
         }),
       });
     } else {
-      await fetch("/api/reviews", {
+      const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -375,6 +375,14 @@ export default function AccountPage() {
           image_url,
         }),
       });
+      if (!res.ok) {
+        setSubmittingReview(false);
+        if (res.status === 401) toast.error("Sign in to leave a review");
+        else if (res.status === 403) toast.error("You can only review products you've purchased");
+        else if (res.status === 409) toast.error("You've already reviewed this product");
+        else toast.error("Failed to submit review. Try again.");
+        return;
+      }
     }
     setSubmittingReview(false);
     setReviewSuccess(true);

@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
+import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, getIP } from "@/lib/rate-limit";
 
@@ -38,6 +39,13 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const { allowed } = rateLimit(getIP(req), 10, 60_000);
+  if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) return NextResponse.json({ error: "Sign in to leave a review" }, { status: 401 });
+
   const body = await req.json() as {
     product_id?: string;
     author_name: string;
@@ -47,6 +55,7 @@ export async function POST(req: NextRequest) {
     image_url?: string | null;
   };
 
+  if (!body.product_id) return NextResponse.json({ error: "product_id is required" }, { status: 400 });
   if (!body.author_name?.trim() || !body.body?.trim()) {
     return NextResponse.json({ error: "author_name and body are required" }, { status: 400 });
   }
@@ -58,8 +67,36 @@ export async function POST(req: NextRequest) {
   if (body.title && body.title.length > 200) return NextResponse.json({ error: "Title too long" }, { status: 400 });
 
   const admin = createAdminClient();
+
+  const [{ data: customer }, { data: deliveredOrders }] = await Promise.all([
+    admin.from("customers").select("id").eq("auth_user_id", user.id).maybeSingle(),
+    admin.from("orders").select("order_items(product_id)").eq("customer_email", user.email).eq("status", "delivered"),
+  ]);
+
+  if (!customer?.id) {
+    return NextResponse.json({ error: "You can only review products you've purchased" }, { status: 403 });
+  }
+
+  const purchased = (deliveredOrders ?? []).some(order =>
+    (order.order_items as { product_id: string | null }[] | null)?.some(item => item.product_id === body.product_id)
+  );
+  if (!purchased) {
+    return NextResponse.json({ error: "You can only review products you've purchased" }, { status: 403 });
+  }
+
+  const { data: existingReview } = await admin
+    .from("reviews")
+    .select("id")
+    .eq("product_id", body.product_id)
+    .eq("customer_id", customer.id)
+    .maybeSingle();
+  if (existingReview) {
+    return NextResponse.json({ error: "You've already reviewed this product" }, { status: 409 });
+  }
+
   const { error } = await admin.from("reviews").insert({
-    product_id: body.product_id ?? null,
+    product_id: body.product_id,
+    customer_id: customer.id,
     author_name: body.author_name.trim(),
     rating: body.rating,
     title: body.title?.trim() ?? null,
