@@ -31,13 +31,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { error } = await admin.from("reviews").update({ is_verified }).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  void admin.from("activity_log").insert({
-    action: is_verified ? "review_approved" : "review_updated",
-    entity_type: "review",
-    entity_id: id,
-    actor_email: user.email ?? null,
-    details: null,
-  });
+  try {
+    const { error: logError } = await admin.from("activity_log").insert({
+      action: is_verified ? "review_approved" : "review_updated",
+      entity_type: "review",
+      entity_id: id,
+      actor_email: user.email ?? null,
+      details: null,
+    });
+    if (logError) console.error("[activity_log] insert failed:", logError);
+  } catch (err) {
+    console.error("[activity_log] insert failed:", err);
+  }
 
   return NextResponse.json({ ok: true });
 }
@@ -53,13 +58,18 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const { error } = await admin.from("reviews").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  void admin.from("activity_log").insert({
-    action: reason ? "review_rejected" : "review_deleted",
-    entity_type: "review",
-    entity_id: id,
-    actor_email: user.email ?? null,
-    details: reason ? { reason } : null,
-  });
+  try {
+    const { error: logError } = await admin.from("activity_log").insert({
+      action: reason ? "review_rejected" : "review_deleted",
+      entity_type: "review",
+      entity_id: id,
+      actor_email: user.email ?? null,
+      details: reason ? { reason } : null,
+    });
+    if (logError) console.error("[activity_log] insert failed:", logError);
+  } catch (err) {
+    console.error("[activity_log] insert failed:", err);
+  }
 
   return NextResponse.json({ ok: true });
 }

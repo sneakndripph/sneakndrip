@@ -109,14 +109,19 @@ export async function PATCH(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   if (role !== undefined && targetBefore && targetBefore.role !== role) {
-    void admin.from("activity_log").insert({
-      action: "role_changed",
-      entity_type: "user",
-      entity_id: id,
-      entity_name: targetBefore.email ?? null,
-      actor_email: caller.email ?? null,
-      details: { old_role: targetBefore.role, new_role: role },
-    });
+    try {
+      const { error: logError } = await admin.from("activity_log").insert({
+        action: "role_changed",
+        entity_type: "user",
+        entity_id: id,
+        entity_name: targetBefore.email ?? null,
+        actor_email: caller.email ?? null,
+        details: { old_role: targetBefore.role, new_role: role },
+      });
+      if (logError) console.error("[activity_log] insert failed:", logError);
+    } catch (err) {
+      console.error("[activity_log] insert failed:", err);
+    }
   }
 
   return NextResponse.json({ ok: true });

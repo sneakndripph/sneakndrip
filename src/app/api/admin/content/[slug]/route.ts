@@ -47,14 +47,19 @@ export async function PATCH(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  void admin.from("activity_log").insert({
-    action: "content_page_updated",
-    entity_type: "content",
-    entity_id: slug,
-    entity_name: TITLES[slug],
-    actor_email: user.email ?? null,
-    details: null,
-  });
+  try {
+    const { error: logError } = await admin.from("activity_log").insert({
+      action: "content_page_updated",
+      entity_type: "content",
+      entity_id: slug,
+      entity_name: TITLES[slug],
+      actor_email: user.email ?? null,
+      details: null,
+    });
+    if (logError) console.error("[activity_log] insert failed:", logError);
+  } catch (err) {
+    console.error("[activity_log] insert failed:", err);
+  }
 
   return NextResponse.json({ ok: true });
 }

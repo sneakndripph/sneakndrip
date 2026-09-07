@@ -28,14 +28,19 @@ export async function POST(req: NextRequest) {
   }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  void admin.from("activity_log").insert({
-    action: "coupon_created",
-    entity_type: "coupon",
-    entity_id: data.id,
-    entity_name: data.code,
-    actor_email: caller.email ?? null,
-    details: null,
-  });
+  try {
+    const { error: logError } = await admin.from("activity_log").insert({
+      action: "coupon_created",
+      entity_type: "coupon",
+      entity_id: data.id,
+      entity_name: data.code,
+      actor_email: caller.email ?? null,
+      details: null,
+    });
+    if (logError) console.error("[activity_log] insert failed:", logError);
+  } catch (err) {
+    console.error("[activity_log] insert failed:", err);
+  }
 
   return NextResponse.json(data, { status: 201 });
 }

@@ -31,14 +31,19 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   if (changedFields.length > 0) {
-    void admin.from("activity_log").insert({
-      action: "settings_updated",
-      entity_type: "settings",
-      entity_id: null,
-      entity_name: "Store settings",
-      actor_email: caller.email ?? null,
-      details: { changed_fields: changedFields },
-    });
+    try {
+      const { error: logError } = await admin.from("activity_log").insert({
+        action: "settings_updated",
+        entity_type: "settings",
+        entity_id: null,
+        entity_name: "Store settings",
+        actor_email: caller.email ?? null,
+        details: { changed_fields: changedFields },
+      });
+      if (logError) console.error("[activity_log] insert failed:", logError);
+    } catch (err) {
+      console.error("[activity_log] insert failed:", err);
+    }
   }
 
   return NextResponse.json({ ok: true });

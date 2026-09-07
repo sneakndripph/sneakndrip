@@ -18,14 +18,19 @@ export async function POST(req: NextRequest) {
 
   const target = data.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
   if (target?.app_metadata?.role === "admin") {
-    void admin.from("activity_log").insert({
-      action: "admin_login_failed",
-      entity_type: "auth_attempt",
-      entity_id: null,
-      entity_name: email,
-      actor_email: null,
-      details: body?.reason ? { reason: body.reason } : null,
-    });
+    try {
+      const { error: logError } = await admin.from("activity_log").insert({
+        action: "admin_login_failed",
+        entity_type: "auth_attempt",
+        entity_id: null,
+        entity_name: email,
+        actor_email: null,
+        details: body?.reason ? { reason: body.reason } : null,
+      });
+      if (logError) console.error("[activity_log] insert failed:", logError);
+    } catch (err) {
+      console.error("[activity_log] insert failed:", err);
+    }
   }
 
   return NextResponse.json({ ok: true });

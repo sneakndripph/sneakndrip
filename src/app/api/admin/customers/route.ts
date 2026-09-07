@@ -36,13 +36,18 @@ export async function PATCH(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  void admin.from("activity_log").insert({
-    action: ban ? "customer_banned" : "customer_unbanned",
-    entity_type: "customer",
-    entity_id: userId,
-    actor_email: caller.email ?? null,
-    details: null,
-  });
+  try {
+    const { error: logError } = await admin.from("activity_log").insert({
+      action: ban ? "customer_banned" : "customer_unbanned",
+      entity_type: "customer",
+      entity_id: userId,
+      actor_email: caller.email ?? null,
+      details: null,
+    });
+    if (logError) console.error("[activity_log] insert failed:", logError);
+  } catch (err) {
+    console.error("[activity_log] insert failed:", err);
+  }
 
   return NextResponse.json({ ok: true });
 }

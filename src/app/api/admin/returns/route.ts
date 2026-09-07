@@ -84,14 +84,19 @@ export async function PATCH(req: NextRequest) {
       .eq("order_number", returnReq.order_number);
   }
 
-  void admin.from("activity_log").insert({
-    action: `return_${status}`,
-    entity_type: "return_request",
-    entity_id: id,
-    entity_name: returnReq?.order_number ?? null,
-    actor_email: caller.email ?? null,
-    details: null,
-  });
+  try {
+    const { error: logError } = await admin.from("activity_log").insert({
+      action: `return_${status}`,
+      entity_type: "return_request",
+      entity_id: id,
+      entity_name: returnReq?.order_number ?? null,
+      actor_email: caller.email ?? null,
+      details: null,
+    });
+    if (logError) console.error("[activity_log] insert failed:", logError);
+  } catch (err) {
+    console.error("[activity_log] insert failed:", err);
+  }
 
   if (returnReq?.customer_email) {
     const emailContent = status === "approved"

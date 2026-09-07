@@ -72,14 +72,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    void admin.from("activity_log").insert({
-      action: "product_created",
-      entity_type: "product",
-      entity_id: data.id,
-      entity_name: (product as { name?: string }).name ?? "Product",
-      actor_email: user.email ?? null,
-      details: null,
-    });
+    try {
+      const { error: logError } = await admin.from("activity_log").insert({
+        action: "product_created",
+        entity_type: "product",
+        entity_id: data.id,
+        entity_name: (product as { name?: string }).name ?? "Product",
+        actor_email: user.email ?? null,
+        details: null,
+      });
+      if (logError) console.error("[activity_log] insert failed:", logError);
+    } catch (err) {
+      console.error("[activity_log] insert failed:", err);
+    }
 
     return NextResponse.json({ id: data.id });
   } catch (err) {

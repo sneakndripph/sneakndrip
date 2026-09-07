@@ -94,14 +94,19 @@ export async function PATCH(
 
   // Log the activity
   if (body.status && currentOrder) {
-    void admin.from("activity_log").insert({
-      action: "status_updated",
-      entity_type: "order",
-      entity_id: id,
-      entity_name: currentOrder.order_number,
-      actor_email: user.email ?? null,
-      details: { from: currentOrder.status, to: body.status, ...(body.tracking_number ? { tracking: body.tracking_number } : {}) },
-    });
+    try {
+      const { error: logError } = await admin.from("activity_log").insert({
+        action: "status_updated",
+        entity_type: "order",
+        entity_id: id,
+        entity_name: currentOrder.order_number,
+        actor_email: user.email ?? null,
+        details: { from: currentOrder.status, to: body.status, ...(body.tracking_number ? { tracking: body.tracking_number } : {}) },
+      });
+      if (logError) console.error("[activity_log] insert failed:", logError);
+    } catch (err) {
+      console.error("[activity_log] insert failed:", err);
+    }
   }
 
   // ── Status change notification email ────────────────────────────────────

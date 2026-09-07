@@ -72,14 +72,19 @@ export async function POST(req: NextRequest) {
     balance_payment_method: body.paymentMethod || null,
   }).eq("id", order.id);
 
-  void admin.from("activity_log").insert({
-    action: "balance_payment_submitted",
-    entity_type: "order",
-    entity_id: order.id,
-    entity_name: order.order_number,
-    actor_email: user.email,
-    details: { reference: body.reference, payment_method: body.paymentMethod, balance: body.balance },
-  });
+  try {
+    const { error: logError } = await admin.from("activity_log").insert({
+      action: "balance_payment_submitted",
+      entity_type: "order",
+      entity_id: order.id,
+      entity_name: order.order_number,
+      actor_email: user.email,
+      details: { reference: body.reference, payment_method: body.paymentMethod, balance: body.balance },
+    });
+    if (logError) console.error("[activity_log] insert failed:", logError);
+  } catch (err) {
+    console.error("[activity_log] insert failed:", err);
+  }
 
   void admin.from("notifications").insert({
     user_email: user.email,

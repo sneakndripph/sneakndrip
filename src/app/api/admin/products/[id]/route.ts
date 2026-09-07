@@ -80,14 +80,19 @@ export async function PATCH(
     }
   }
 
-  void admin.from("activity_log").insert({
-    action: "product_updated",
-    entity_type: "product",
-    entity_id: id,
-    entity_name: productName,
-    actor_email: user.email ?? null,
-    details: null,
-  });
+  try {
+    const { error: logError } = await admin.from("activity_log").insert({
+      action: "product_updated",
+      entity_type: "product",
+      entity_id: id,
+      entity_name: productName,
+      actor_email: user.email ?? null,
+      details: null,
+    });
+    if (logError) console.error("[activity_log] insert failed:", logError);
+  } catch (err) {
+    console.error("[activity_log] insert failed:", err);
+  }
 
   return NextResponse.json({ ok: true });
 }
@@ -107,14 +112,19 @@ export async function DELETE(
   const { error } = await admin.from("products").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  void admin.from("activity_log").insert({
-    action: "product_deleted",
-    entity_type: "product",
-    entity_id: id,
-    entity_name: existing?.name ?? null,
-    actor_email: user.email ?? null,
-    details: null,
-  });
+  try {
+    const { error: logError } = await admin.from("activity_log").insert({
+      action: "product_deleted",
+      entity_type: "product",
+      entity_id: id,
+      entity_name: existing?.name ?? null,
+      actor_email: user.email ?? null,
+      details: null,
+    });
+    if (logError) console.error("[activity_log] insert failed:", logError);
+  } catch (err) {
+    console.error("[activity_log] insert failed:", err);
+  }
 
   return NextResponse.json({ ok: true });
 }
