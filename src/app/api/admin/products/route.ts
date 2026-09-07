@@ -72,6 +72,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    void admin.from("activity_log").insert({
+      action: "product_created",
+      entity_type: "product",
+      entity_id: data.id,
+      entity_name: (product as { name?: string }).name ?? "Product",
+      actor_email: user.email ?? null,
+      details: null,
+    });
+
     return NextResponse.json({ id: data.id });
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 });

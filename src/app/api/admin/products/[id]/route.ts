@@ -103,7 +103,18 @@ export async function DELETE(
   }
   const { id } = await params;
   const admin = createAdminClient();
+  const { data: existing } = await admin.from("products").select("name").eq("id", id).maybeSingle();
   const { error } = await admin.from("products").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  void admin.from("activity_log").insert({
+    action: "product_deleted",
+    entity_type: "product",
+    entity_id: id,
+    entity_name: existing?.name ?? null,
+    actor_email: user.email ?? null,
+    details: null,
+  });
+
   return NextResponse.json({ ok: true });
 }
