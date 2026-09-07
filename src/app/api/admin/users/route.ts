@@ -91,12 +91,34 @@ export async function PATCH(req: NextRequest) {
   }
 
   const admin = createAdminClient();
+
+  let targetBefore: { email?: string; role?: string } | null = null;
+  if (role !== undefined) {
+    const { data: targetData } = await admin.auth.admin.getUserById(id);
+    targetBefore = {
+      email: targetData?.user?.email,
+      role: targetData?.user?.app_metadata?.role ?? targetData?.user?.user_metadata?.role ?? "customer",
+    };
+  }
+
   const { error } = await admin.auth.admin.updateUserById(id, {
     user_metadata: { role, full_name },
     app_metadata: { role },
   });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (role !== undefined && targetBefore && targetBefore.role !== role) {
+    void admin.from("activity_log").insert({
+      action: "role_changed",
+      entity_type: "user",
+      entity_id: id,
+      entity_name: targetBefore.email ?? null,
+      actor_email: caller.email ?? null,
+      details: { old_role: targetBefore.role, new_role: role },
+    });
+  }
+
   return NextResponse.json({ ok: true });
 }
 
