@@ -116,6 +116,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   async function handleSignOut() {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      void fetch("/api/admin/activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "admin_signed_out",
+          entity_type: "auth",
+          entity_id: user.id,
+          entity_name: user.email,
+        }),
+      });
+    }
     await supabase.auth.signOut();
     router.push("/login");
   }

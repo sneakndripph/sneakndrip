@@ -23,6 +23,11 @@ export default function AdminLoginPage() {
     if (authError) {
       setError(authError.message);
       setLoading(false);
+      void fetch("/api/admin/activity/login-failed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, reason: authError.message }),
+      });
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
@@ -32,6 +37,16 @@ export default function AdminLoginPage() {
       setLoading(false);
       return;
     }
+    void fetch("/api/admin/activity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "admin_signed_in",
+        entity_type: "auth",
+        entity_id: user.id,
+        entity_name: user.email,
+      }),
+    });
     router.push("/admin");
     router.refresh();
   }
