@@ -25,7 +25,22 @@ Items must be unworn with no signs of use, in original packaging with all access
 Message us on Facebook or Instagram within 7 days of receipt. Include your order number, clear photos of the issue, and your preferred resolution. We will review and respond within 48 hours.
 
 ## Return Shipping
-If the exchange is due to our error, we cover the return shipping cost. If the request does not meet our criteria, the shipping cost is borne by the buyer.`;
+If the exchange is due to our error, we cover the return shipping cost. If the request does not meet our criteria, the shipping cost is borne by the buyer.
+
+## Refund Policy
+When a return or exchange request is approved for a refund instead of a replacement, here's how it works.
+
+## Refund Method
+- **GCash** — refunded back to the GCash account used for payment.
+- **Maya** — refunded back to the Maya account used for payment.
+- **Bank Transfer** — refunded back to the originating bank account.
+- **Cash on Delivery (COD)** — issued as store credit, redeemable on a future order.
+
+## Refund Timeline
+Approved refunds are processed within 3–5 business days of approval.
+
+## How to Request a Refund
+Follow the same process as above: message us on Facebook or Instagram within 7 days of receipt with your order number, photos of the issue, and your preferred resolution. If a refund is the agreed resolution, we'll confirm the method and timeline once your request is approved.`;
 
 export default async function ReturnsPage() {
   const content = await getPageContent("returns", FALLBACK);
