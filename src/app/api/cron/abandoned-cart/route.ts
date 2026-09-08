@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
         variant: "1h",
         items: toAbandonedCartItems(cart.cart_items as CartItem[]),
         subtotal: cart.subtotal,
-        cartUrl: `${SITE_URL}/cart`,
+        cartUrl: `${SITE_URL}/resume-cart`,
       });
       await resend.emails.send({ from: `Sneak N' Drip <${FROM_EMAIL}>`, to: cart.email, subject, html });
       await admin
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
         variant: "24h",
         items: toAbandonedCartItems(cart.cart_items as CartItem[]),
         subtotal: cart.subtotal,
-        cartUrl: `${SITE_URL}/cart`,
+        cartUrl: `${SITE_URL}/resume-cart`,
       });
       await resend.emails.send({ from: `Sneak N' Drip <${FROM_EMAIL}>`, to: cart.email, subject, html });
       await admin
