@@ -7,6 +7,7 @@ import { useCartStore } from "@/store/cartStore";
 import { PAYMENT_METHODS, SHIPPING_FEE, DP_RESERVE_FEE } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import Image from "next/image";
+import Link from "next/link";
 import { Upload, CheckCircle, AlertCircle, ChevronRight, ChevronDown, Wallet, Landmark, Truck, CreditCard } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
 
@@ -67,6 +68,8 @@ export default function CheckoutPage() {
   const [form, setForm] = useState({ name: "", email: "", mobile: "", street: "", barangay: "", city: "", province: "", postal: "" });
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState(false);
   const [stockIssues, setStockIssues] = useState<Record<string, number>>({}); // `${product_id}-${size}` -> available
   const [showErrors, setShowErrors] = useState(false);
   const [couponCode, setCouponCode] = useState("");
@@ -211,6 +214,12 @@ export default function CheckoutPage() {
   if (!mounted) return <div className="min-h-screen bg-paper" />;
 
   async function handlePlaceOrder() {
+    if (!consent) {
+      setConsentError(true);
+      setOrderError("You must agree to the Terms and Privacy Policy to place your order.");
+      return;
+    }
+    setConsentError(false);
     setPlacing(true);
     setOrderError("");
     setStockIssues({});
@@ -853,6 +862,22 @@ export default function CheckoutPage() {
                     </div>
                   )}
                   {isCOD && <p className="text-body-sm text-ink-3">Pay upon delivery</p>}
+                </div>
+                <div>
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={consent}
+                      onChange={e => { setConsent(e.target.checked); if (e.target.checked) setConsentError(false); }}
+                      className={`mt-0.5 w-4 h-4 shrink-0 rounded-sm accent-ink ${consentError ? "outline outline-2 outline-state-error" : ""}`}
+                    />
+                    <span className="text-micro text-ink-2 leading-relaxed">
+                      I agree to the{" "}
+                      <Link href="/terms" className="text-ink underline hover:opacity-60 transition-opacity">Terms</Link>
+                      {" "}and{" "}
+                      <Link href="/privacy" className="text-ink underline hover:opacity-60 transition-opacity">Privacy Policy</Link>
+                    </span>
+                  </label>
                 </div>
                 {orderError && (
                   <div className="px-4 py-3 text-body-sm rounded-md bg-paper-2 text-state-error border border-state-error">

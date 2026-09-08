@@ -56,6 +56,8 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState(false);
   const [highlightGoogle, setHighlightGoogle] = useState(false);
   const [emailHint, setEmailHint] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const [agreeError, setAgreeError] = useState(false);
 
   function field(key: keyof typeof form, value: string) {
     setForm(v => ({ ...v, [key]: value }));
@@ -118,7 +120,13 @@ export default function RegisterPage() {
     setTouched({ name: true, email: true, mobile: true, password: true, confirm: true });
     const err = validate(form);
     if (err) { setError(err); return; }
+    if (!agreed) {
+      setAgreeError(true);
+      setError("You must agree to the Terms and Privacy Policy to create an account.");
+      return;
+    }
     setError("");
+    setAgreeError(false);
     setLoading(true);
 
     const trimmedEmail = form.email.trim();
@@ -325,6 +333,25 @@ export default function RegisterPage() {
             </button>
           </div>
           {fieldError("confirm") && <p className="text-micro text-state-error mt-1">{fieldError("confirm")}</p>}
+        </div>
+
+        {/* Terms & privacy consent */}
+        <div>
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={e => { setAgreed(e.target.checked); if (e.target.checked) setAgreeError(false); }}
+              className={`mt-0.5 w-4 h-4 shrink-0 rounded-sm accent-ink ${agreeError ? "outline outline-2 outline-state-error" : ""}`}
+            />
+            <span className="text-micro text-ink-2 leading-relaxed">
+              I agree to the{" "}
+              <Link href="/terms" className="text-ink underline hover:opacity-60 transition-opacity">Terms</Link>
+              {" "}and{" "}
+              <Link href="/privacy" className="text-ink underline hover:opacity-60 transition-opacity">Privacy Policy</Link>
+            </span>
+          </label>
+          {agreeError && <p className="text-micro text-state-error mt-1">You must agree to continue.</p>}
         </div>
 
         <button

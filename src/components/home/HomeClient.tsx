@@ -7,9 +7,17 @@ export default function HomeClient() {
   const [subscribed, setSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState(false);
 
   async function handleSubscribe() {
     if (!email || loading) return;
+    if (!consent) {
+      setConsentError(true);
+      setError("Please agree to receive marketing emails to subscribe.");
+      return;
+    }
+    setConsentError(false);
     setLoading(true);
     setError("");
     try {
@@ -62,6 +70,17 @@ export default function HomeClient() {
                 {loading ? "…" : "Subscribe"}
               </button>
             </div>
+            <label className="flex items-start gap-2.5 max-w-md mx-auto mt-3 text-left cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={e => { setConsent(e.target.checked); if (e.target.checked) setConsentError(false); }}
+                className={`mt-0.5 w-4 h-4 shrink-0 rounded-sm accent-ink ${consentError ? "outline outline-2 outline-state-error" : ""}`}
+              />
+              <span className="text-micro text-ink-2 leading-relaxed">
+                I agree to receive marketing emails from Sneak N&apos; Drip
+              </span>
+            </label>
             {error && <p className="mt-3 text-micro text-state-error">{error}</p>}
           </>
         )}
