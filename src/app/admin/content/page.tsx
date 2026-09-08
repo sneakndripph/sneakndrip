@@ -3,12 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import AdminContentClient from "@/components/admin/AdminContentClient";
 
 const PAGE_DEFS = [
-  { slug: "shipping",     title: "Shipping Information" },
-  { slug: "returns",      title: "Returns Policy" },
-  { slug: "authenticity", title: "Authenticity Guarantee" },
-  { slug: "contact",      title: "Contact Us" },
-  { slug: "privacy",      title: "Privacy Policy" },
-  { slug: "terms",        title: "Terms of Service" },
+  { slug: "shipping",       title: "Shipping Information" },
+  { slug: "returns",        title: "Returns Policy" },
+  { slug: "authenticity",   title: "Authenticity Guarantee" },
+  { slug: "contact",        title: "Contact Us" },
+  { slug: "privacy",        title: "Privacy Policy" },
+  { slug: "terms",          title: "Terms of Service" },
+  { slug: "cookies-policy", title: "Cookies Policy" },
 ];
 
 export default async function AdminContentPage() {

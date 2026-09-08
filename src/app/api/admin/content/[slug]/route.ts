@@ -11,6 +11,7 @@ const TITLES: Record<string, string> = {
   contact:      "Contact Us",
   privacy:      "Privacy Policy",
   terms:        "Terms of Service",
+  "cookies-policy": "Cookies Policy",
 };
 
 async function getRequestingUser() {
