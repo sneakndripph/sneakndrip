@@ -2,6 +2,7 @@ import AnnouncementBar from "@/components/layout/AnnouncementBar";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import ChatWidget from "@/components/layout/ChatWidget";
+import CookieBanner from "@/components/layout/CookieBanner";
 import CartGuard from "@/components/layout/CartGuard";
 import CartSyncer from "@/components/layout/CartSyncer";
 import VisitorTracker from "@/components/layout/VisitorTracker";
@@ -30,6 +31,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <RouteTransition>{children}</RouteTransition>
       <Footer />
       {chatEnabled && <ChatWidget />}
+      <CookieBanner />
     </div>
   );
 }
