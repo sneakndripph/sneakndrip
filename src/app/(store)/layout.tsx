@@ -28,7 +28,9 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <CartSyncer />
       <AnnouncementBar />
       <Navbar />
-      <RouteTransition>{children}</RouteTransition>
+      <main id="main-content">
+        <RouteTransition>{children}</RouteTransition>
+      </main>
       <Footer />
       {chatEnabled && <ChatWidget />}
       <CookieBanner />

@@ -82,6 +82,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           type="button"
           onClick={e => { e.preventDefault(); e.stopPropagation(); toggle(product.id); }}
           className="absolute bottom-0 right-0 z-20 w-11 h-11 flex items-center justify-center"
+          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
         >
           <span
             className={`w-8 h-8 flex items-center justify-center rounded-full backdrop-blur-sm transition-colors ${

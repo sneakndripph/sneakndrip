@@ -280,7 +280,8 @@ export default function CartPage() {
                 {/* Checkbox */}
                 <button
                   onClick={() => setSelected(prev => { const n = new Set(prev); n.has(item.id) ? n.delete(item.id) : n.add(item.id); return n; })}
-                  className="shrink-0 self-start mt-0.5">
+                  className="shrink-0 self-start mt-0.5"
+                  aria-label="Select item">
                   {isSelected
                     ? <CheckSquare className="w-5 h-5 text-ink" />
                     : <Square className="w-5 h-5 text-line-strong" />}
@@ -391,7 +392,8 @@ export default function CartPage() {
                                   updateQuantity(item.product.id, item.size, item.payment_type, item.quantity - 1);
                                 }
                               }}
-                              className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60">
+                              className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60"
+                              aria-label="Decrease quantity">
                               <Minus className="w-3 h-3" />
                             </button>
                             <input
@@ -409,7 +411,8 @@ export default function CartPage() {
                             />
                             <button onClick={() => updateQuantity(item.product.id, item.size, item.payment_type, Math.min(item.quantity + 1, maxStock))}
                               disabled={item.quantity >= maxStock}
-                              className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60 disabled:opacity-30">
+                              className="w-8 h-8 flex items-center justify-center text-ink transition-opacity hover:opacity-60 disabled:opacity-30"
+                              aria-label="Increase quantity">
                               <Plus className="w-3 h-3" />
                             </button>
                           </>
