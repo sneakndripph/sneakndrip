@@ -31,6 +31,9 @@ We do not sell, trade, or share your personal information with third parties exc
 ## Your Rights
 Under the Data Privacy Act, you have the right to access, correct, or request deletion of your personal data. Contact us at hello@sneakndrip.ph to exercise these rights.
 
+## Data Controller
+Sneak N' Drip is based in Taytay, Rizal, Philippines. For any privacy-related inquiries or to exercise your rights under the Data Privacy Act, reach us at hello@sneakndrip.ph.
+
 ## Cookies
 Our website may use cookies to improve your browsing experience. You can disable cookies in your browser settings at any time.
 
