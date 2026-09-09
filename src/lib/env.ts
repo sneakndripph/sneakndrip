@@ -71,4 +71,6 @@ export function getEnvStatus(): { valid: boolean; missing_required: string[]; mi
 export const publicEnv = {
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL!,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+  // Optional — GA4 simply doesn't load when unset (see GoogleAnalytics.tsx)
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID,
 };

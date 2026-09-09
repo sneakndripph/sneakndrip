@@ -4,6 +4,7 @@ import AppToaster from "@/components/layout/AppToaster";
 import ProgressBar from "@/components/layout/ProgressBar";
 import SiteSplash from "@/components/ui/SiteSplash";
 import SiteStructuredData from "@/components/SiteStructuredData";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 import { validateEnv } from "@/lib/env";
 import "./globals.css";
 
@@ -70,6 +71,7 @@ export default function RootLayout({
         <ProgressBar />
         {children}
         <AppToaster />
+        <GoogleAnalytics />
       </body>
     </html>
   );
