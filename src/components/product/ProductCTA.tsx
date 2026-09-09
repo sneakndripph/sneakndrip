@@ -6,6 +6,7 @@ import { ShoppingBag, Minus, Plus, Share2, Heart, ChevronUp, Zap } from "lucide-
 import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cartStore";
 import { useWishlist } from "@/hooks/useWishlist";
+import { trackAddToCart } from "@/lib/analytics";
 import { DP_RESERVE_FEE } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import type { Product } from "@/lib/types";
@@ -75,12 +76,14 @@ export default function ProductCTA({
   function handleAddToCart() {
     if (!checkStock()) return;
     addItem(product, selectedSize!, effectivePaymentType, quantity);
+    trackAddToCart(product, price, quantity, selectedSize!);
     toast.success(`${product.name} added to cart`);
   }
 
   function handleBuyNow() {
     if (!checkStock()) return;
     addItem(product, selectedSize!, effectivePaymentType, quantity);
+    trackAddToCart(product, price, quantity, selectedSize!);
     router.push("/cart");
   }
 

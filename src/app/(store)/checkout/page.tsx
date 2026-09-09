@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cartStore";
+import { trackBeginCheckout } from "@/lib/analytics";
 import { PAYMENT_METHODS, SHIPPING_FEE, DP_RESERVE_FEE } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import Image from "next/image";
@@ -179,6 +180,19 @@ export default function CheckoutPage() {
     queueMicrotask(() => setProofPreview(url));
     return () => URL.revokeObjectURL(url);
   }, [proofFile]);
+
+  const trackedBeginCheckout = useRef(false);
+  useEffect(() => {
+    if (!mounted || trackedBeginCheckout.current || items.length === 0) return;
+    trackedBeginCheckout.current = true;
+    trackBeginCheckout(
+      items.map(i => ({
+        id: i.product.id, name: i.product.name, brand: i.product.brand,
+        size: i.size, quantity: i.quantity, unitPrice: i.unit_price,
+      })),
+      sub,
+    );
+  }, [mounted, items, sub]);
 
   function handleContinueToPayment() {
     if (!form.name || !form.email || !form.mobile || !form.street || !form.province || !form.city || !form.barangay) {

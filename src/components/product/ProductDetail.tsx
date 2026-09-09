@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRecentlyViewed, useRecentlyViewedStore } from "@/hooks/useRecentlyViewed";
+import { trackViewItem } from "@/lib/analytics";
 import type { Product, Review } from "@/lib/types";
 import ProductGallery from "./ProductGallery";
 import ProductInfo from "./ProductInfo";
@@ -40,6 +41,7 @@ export default function ProductDetail({
       images: product.images ?? [],
       bg: product.bg ?? "",
     });
+    trackViewItem(product, product.full_payment_price);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
 

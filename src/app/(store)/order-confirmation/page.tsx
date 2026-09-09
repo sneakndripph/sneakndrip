@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle, Package, MessageCircle, Clock, Truck, MapPin, User } from "lucide-react";
 import { DP_RESERVE_FEE } from "@/lib/constants";
+import { trackPurchase } from "@/lib/analytics";
 import { useMinimumLoadingTime } from "@/hooks/useMinimumLoadingTime";
 import OrderConfirmationSkeleton from "./OrderConfirmationSkeleton";
 
@@ -133,6 +134,18 @@ export default function OrderConfirmationPage() {
       const parsed: OrderData = JSON.parse(stored);
       queueMicrotask(() => setOrder(parsed));
       sessionStorage.removeItem("lastOrder");
+
+      trackPurchase(
+        parsed.orderNumber,
+        parsed.items.map(i => ({
+          name: i.name,
+          brand: i.brand,
+          size: i.size,
+          quantity: i.quantity,
+          unitPrice: i.quantity > 0 ? i.price / i.quantity : i.price,
+        })),
+        parsed.isDP ? (parsed.totalDueNow ?? parsed.total) : parsed.total,
+      );
 
       // Fetch live status from DB
       fetch(`/api/orders/status?orderNumber=${encodeURIComponent(parsed.orderNumber)}`)
