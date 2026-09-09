@@ -12,9 +12,12 @@ export const metadata: Metadata = {
   title: "Sneak N' Drip — Authentic Sneakers Philippines",
   description: "100% Authentic Sneakers. On Hand & Pre-Order. Shop the latest Nike, Jordan, Adidas, and more at below-SRP prices. Ships nationwide.",
   openGraph: {
+    siteName: "Sneak N' Drip",
     title: "Sneak N' Drip — Authentic Sneakers Philippines",
     description: "100% Authentic Sneakers. On Hand & Pre-Order. Philippines-wide shipping.",
+    url: "https://sneakndrip.ph",
     type: "website",
+    images: [{ url: "/sneakndrip-logo.png", width: 512, height: 512, alt: "Sneak N' Drip" }],
   },
 };
 
