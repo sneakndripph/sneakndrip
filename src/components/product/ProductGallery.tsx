@@ -98,8 +98,10 @@ export default function ProductGallery({ product, isPreOrder }: { product: Produ
             </button>
           ))}
         </div>
-        <div
-          className="relative flex-1 aspect-square rounded-md overflow-hidden bg-paper-2 cursor-zoom-in"
+        <button
+          type="button"
+          aria-label="Zoom product image"
+          className="relative flex-1 aspect-square rounded-md overflow-hidden bg-paper-2 cursor-zoom-in appearance-none border-0 p-0 block w-full text-left focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1"
           style={{ background: product.bg || undefined }}
           onClick={() => activeImage && setZoomOpen(true)}
         >
@@ -109,7 +111,7 @@ export default function ProductGallery({ product, isPreOrder }: { product: Produ
             <Placeholder brand={product.brand} />
           )}
           <StatusBadges isPreOrder={isPreOrder} onSale={onSale} />
-        </div>
+        </button>
       </div>
 
       {/* Zoom modal */}

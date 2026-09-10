@@ -569,9 +569,19 @@ export default function CheckoutPage() {
 
         {/* Steps */}
         <div className="flex items-center gap-2 mb-8">
-          {(["details", "payment", "confirm"] as Step[]).map((s, i) => (
+          {(["details", "payment", "confirm"] as Step[]).map((s, i) => {
+            const isStepClickable = step !== "confirm" && i < idx + 1;
+            return (
             <div key={s} className="flex items-center gap-2">
-              <div className="flex items-center gap-2 cursor-pointer" onClick={() => step !== "confirm" && i < idx + 1 && setStep(s)}>
+              <div
+                className="flex items-center gap-2 cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1"
+                onClick={() => isStepClickable && setStep(s)}
+                role={isStepClickable ? "button" : undefined}
+                tabIndex={isStepClickable ? 0 : undefined}
+                onKeyDown={isStepClickable ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setStep(s); }
+                } : undefined}
+              >
                 <div className={`w-6 h-6 flex items-center justify-center rounded-full text-micro font-medium ${
                   step === s ? "bg-ink text-paper" : i < idx ? "border border-ink text-ink" : "border border-line text-ink-3"
                 }`}>
@@ -583,7 +593,8 @@ export default function CheckoutPage() {
               </div>
               {i < 2 && <ChevronRight className="w-4 h-4 text-ink-3" />}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Mobile collapsed summary */}
