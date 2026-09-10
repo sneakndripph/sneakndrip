@@ -2,9 +2,14 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { sendEmail } from "./send";
 import { restockAlert } from "./templates/restockAlert";
 
+type NotifySource = "explicit" | "wishlist";
+
 /**
  * Emails everyone subscribed to restock alerts for one product+size, then
- * clears only the notification rows that sent successfully so a failed send
+ * clears only the notification rows that sent successfully. Explicit
+ * opt-ins are one-shot (deleted after a successful send); wishlist-derived
+ * rows are a standing subscription and are kept so the next restock alerts
+ * the user again for as long as the product stays wishlisted. A failed send
  * stays queued for the next restock instead of being silently dropped.
  */
 export async function sendRestockEmailsForSize(
@@ -17,31 +22,44 @@ export async function sendRestockEmailsForSize(
   const admin = createAdminClient();
   const { data: notifs } = await admin
     .from("restock_notifications")
-    .select("email")
+    .select("email, source")
     .eq("product_id", productId)
     .eq("size", size);
 
-  const emails = (notifs ?? []).map(n => n.email).filter((e): e is string => Boolean(e));
-  if (emails.length === 0) return;
+  const subscribers = (notifs ?? []).filter((n): n is { email: string; source: NotifySource } => Boolean(n.email));
+  if (subscribers.length === 0) return;
 
-  const { subject, html } = restockAlert({ productName, productSlug, size, imageUrl });
+  const templates: Record<NotifySource, { subject: string; html: string }> = {
+    explicit: restockAlert({ productName, productSlug, size, imageUrl, source: "explicit" }),
+    wishlist: restockAlert({ productName, productSlug, size, imageUrl, source: "wishlist" }),
+  };
 
   const results = await Promise.allSettled(
-    emails.map(email => sendEmail(email, subject, html)),
+    subscribers.map(({ email, source }) => {
+      const { subject, html } = templates[source];
+      return sendEmail(email, subject, html);
+    }),
   );
 
-  const successfulEmails: string[] = [];
-  const failedEmails: string[] = [];
+  const successfulExplicitEmails: string[] = [];
+  let successCount = 0;
+  let failedCount = 0;
   results.forEach((result, i) => {
     const ok = result.status === "fulfilled" && result.value.ok && !result.value.skipped;
-    (ok ? successfulEmails : failedEmails).push(emails[i]);
+    if (ok) {
+      successCount++;
+      if (subscribers[i].source === "explicit") successfulExplicitEmails.push(subscribers[i].email);
+    } else {
+      failedCount++;
+    }
   });
 
-  console.log(`Restock emails for ${productName} (${size}): ${successfulEmails.length} sent, ${failedEmails.length} failed`);
+  console.log(`Restock emails for ${productName} (${size}): ${successCount} sent, ${failedCount} failed`);
 
-  if (successfulEmails.length > 0) {
+  if (successfulExplicitEmails.length > 0) {
     await admin.from("restock_notifications").delete()
       .eq("product_id", productId).eq("size", size)
-      .in("email", successfulEmails);
+      .eq("source", "explicit")
+      .in("email", successfulExplicitEmails);
   }
 }
