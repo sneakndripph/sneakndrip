@@ -52,6 +52,7 @@ export default function NewProductPage() {
   const [isPublished, setIsPublished] = useState(false);
   const [featured, setFeatured] = useState(false);
   const [trending, setTrending] = useState(false);
+  const [notifySubscribers, setNotifySubscribers] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -119,6 +120,7 @@ export default function NewProductPage() {
       fd.append("sizes", JSON.stringify(
         sizeRows.filter(r => r.enabled).map(r => ({ size: r.size, stock: r.stock }))
       ));
+      fd.append("notifySubscribers", String(isPublished && notifySubscribers));
 
       const res = await fetch("/api/admin/products", { method: "POST", body: fd });
       const result = await res.json().catch(() => ({})) as { error?: string; id?: string };
@@ -342,7 +344,11 @@ export default function NewProductPage() {
                 {(["draft", "published"] as const).map(opt => {
                   const active = (opt === "published") === isPublished;
                   return (
-                    <button key={opt} type="button" onClick={() => setIsPublished(opt === "published")}
+                    <button key={opt} type="button" onClick={() => {
+                        const published = opt === "published";
+                        setIsPublished(published);
+                        if (!published) setNotifySubscribers(false);
+                      }}
                       className={`flex-1 flex items-center gap-2 px-3 py-2.5 rounded-md border text-admin-sm font-medium capitalize transition-colors duration-admin-fast ${
                         active ? "border-ink bg-admin-row-hover text-ink" : "border-line text-ink-2 hover:border-line-strong"
                       }`}>
@@ -354,6 +360,16 @@ export default function NewProductPage() {
                   );
                 })}
               </div>
+
+              {isPublished && (
+                <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-line">
+                  <div>
+                    <p className="text-admin-sm font-medium text-ink">Notify subscribers about this new arrival</p>
+                    <p className="text-admin-micro text-ink-3 mt-0.5">Sends an email to all newsletter subscribers with unsubscribe link</p>
+                  </div>
+                  <Toggle checked={notifySubscribers} onChange={setNotifySubscribers} />
+                </div>
+              )}
 
               <p className="text-admin-eyebrow text-ink-3 mt-6">Visibility flags</p>
               <div className="mt-2.5 space-y-4">
