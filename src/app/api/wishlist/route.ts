@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin-server";
 
 export async function GET() {
   const supabase = await createClient();
@@ -23,6 +24,19 @@ export async function POST(req: NextRequest) {
   if (!productId) return NextResponse.json({ error: "Missing productId" }, { status: 400 });
 
   await supabase.from("wishlists").upsert({ user_id: user.id, product_id: productId });
+
+  const email = user.email;
+  if (email) {
+    const admin = createAdminClient();
+    const { data: sizes } = await admin.from("product_sizes").select("size").eq("product_id", productId);
+    if (sizes?.length) {
+      await admin.from("restock_notifications").upsert(
+        sizes.map(s => ({ product_id: productId, size: s.size, email, source: "wishlist" })),
+        { onConflict: "product_id,size,email,source", ignoreDuplicates: true },
+      );
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }
 
@@ -35,5 +49,12 @@ export async function DELETE(req: NextRequest) {
   if (!productId) return NextResponse.json({ error: "Missing productId" }, { status: 400 });
 
   await supabase.from("wishlists").delete().eq("user_id", user.id).eq("product_id", productId);
+
+  if (user.email) {
+    const admin = createAdminClient();
+    await admin.from("restock_notifications").delete()
+      .eq("product_id", productId).eq("email", user.email).eq("source", "wishlist");
+  }
+
   return NextResponse.json({ ok: true });
 }
