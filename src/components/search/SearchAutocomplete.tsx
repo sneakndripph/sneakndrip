@@ -18,6 +18,10 @@ type SearchAutocompleteProps = {
   /** Fired after a result is chosen (product click, "view all", or submit) so a parent overlay/dropdown can close itself. */
   onNavigate?: () => void;
   className?: string;
+  /** Pre-fills the input, e.g. from a shareable /shop?q= URL. */
+  initialValue?: string;
+  /** Fired with the debounced query on every change, so a parent (like /shop) can drive its own real-time filtering in sync with this input. */
+  onQueryChange?: (value: string) => void;
 };
 
 export default function SearchAutocomplete({
@@ -25,10 +29,12 @@ export default function SearchAutocomplete({
   placeholder = "Search sneakers, brands…",
   onNavigate,
   className = "",
+  initialValue = "",
+  onQueryChange,
 }: SearchAutocompleteProps) {
   const router = useRouter();
   const listboxId = useId();
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(initialValue);
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -57,7 +63,7 @@ export default function SearchAutocomplete({
     setActiveIndex(-1);
     setOpen(true);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => search(v), DEBOUNCE_MS);
+    debounceRef.current = setTimeout(() => { search(v); onQueryChange?.(v); }, DEBOUNCE_MS);
   }
 
   const visibleResults = results.slice(0, MAX_DROPDOWN_RESULTS);
@@ -83,6 +89,7 @@ export default function SearchAutocomplete({
     setInputValue("");
     clear();
     setActiveIndex(-1);
+    onQueryChange?.("");
     inputRef.current?.focus();
   }
 

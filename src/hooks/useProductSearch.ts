@@ -34,7 +34,10 @@ const useProductStore = create<ProductStore>((set, get) => ({
   invalidate: () => set({ loadedAt: null }),
 }));
 
-const FUSE_OPTIONS: IFuseOptions<Product> = {
+// Exported so /shop can build its own Fuse instance over its full server-fetched
+// product list (with facets like sizes/status this hook's lean fetch doesn't carry)
+// while keeping grid filtering fuzzy-consistent with the autocomplete dropdown.
+export const FUSE_OPTIONS: IFuseOptions<Product> = {
   keys: [
     { name: "name", weight: 0.4 },
     { name: "brand", weight: 0.3 },

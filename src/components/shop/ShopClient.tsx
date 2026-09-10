@@ -3,11 +3,14 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import Fuse from "fuse.js";
 import { BRANDS, SNEAKER_SIZES } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import ProductCard from "@/components/product/ProductCard";
 import ProductCardSkeleton from "@/components/ui/ProductCardSkeleton";
 import { SlidersHorizontal, X, ChevronDown, Check } from "lucide-react";
+import SearchAutocomplete from "@/components/search/SearchAutocomplete";
+import { FUSE_OPTIONS } from "@/hooks/useProductSearch";
 import type { Product } from "@/lib/types";
 
 const PAGE_SIZE = 24;
@@ -85,9 +88,21 @@ export default function ShopClient({
   const toggleArr = <T,>(arr: T[], item: T): T[] =>
     arr.includes(item) ? arr.filter(i => i !== item) : [...arr, item];
 
+  function handleQueryChange(v: string) {
+    setSearch(v);
+    const params = new URLSearchParams();
+    if (v) params.set("q", v);
+    router.replace(`/shop${v ? `?${params.toString()}` : ""}`, { scroll: false });
+  }
+
+  const fuse = useMemo(() => new Fuse(products, FUSE_OPTIONS), [products]);
+
   const filtered = useMemo(() => {
     let list = [...products];
-    if (search) list = list.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.brand.toLowerCase().includes(search.toLowerCase()));
+    if (search) {
+      const matchedIds = new Set(fuse.search(search).map(r => r.item.id));
+      list = list.filter(p => matchedIds.has(p.id));
+    }
     if (selectedBrands.length) list = list.filter(p => selectedBrands.includes(p.brand));
     if (selectedGenders.length) list = list.filter(p => selectedGenders.map(g => g.toLowerCase()).includes((p.gender ?? "").toLowerCase()));
     if (selectedSizes.length) list = list.filter(p => p.sizes.some(s => selectedSizes.includes(s.size) && s.stock > 0));
@@ -101,7 +116,7 @@ export default function ShopClient({
     if (sort === "price-desc") list.sort((a, b) => b.full_payment_price - a.full_payment_price);
     if (sort === "newest") list.sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
     return list;
-  }, [products, search, selectedBrands, selectedGenders, selectedSizes, availability, showNewOnly, maxPrice, sort]);
+  }, [products, fuse, search, selectedBrands, selectedGenders, selectedSizes, availability, showNewOnly, maxPrice, sort]);
 
   // Infinite scroll windowing — filters/sort operate on the full in-memory
   // list above; this only controls how much of that result is rendered.
@@ -233,25 +248,11 @@ export default function ShopClient({
 
           <div>
             <div className="flex items-center gap-3 mb-4 flex-wrap">
-              <div className="flex-1 min-w-[200px] relative">
-                <input value={search} onChange={e => {
-                  const v = e.target.value;
-                  setSearch(v);
-                  const params = new URLSearchParams();
-                  if (v) params.set("q", v);
-                  router.replace(`/shop${v ? `?${params.toString()}` : ""}`, { scroll: false });
-                }}
-                  placeholder="Search sneakers, brands…"
-                  className="w-full px-4 py-3 pr-10 text-body-sm text-ink bg-paper-2 border-0 rounded-md focus:outline-2 focus:outline-ink focus:outline-offset-1" />
-                {search && (
-                  <button onClick={() => {
-                    setSearch("");
-                    router.replace("/shop", { scroll: false });
-                  }} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink transition-colors">
-                    <X className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+              <SearchAutocomplete
+                initialValue={initialSearch}
+                onQueryChange={handleQueryChange}
+                className="flex-1 min-w-[200px]"
+              />
               <div className="relative" ref={sortRef}>
                 <button
                   onClick={() => setSortOpen(o => !o)}

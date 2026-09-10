@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCartStore } from "@/store/cartStore";
+import SearchAutocomplete from "@/components/search/SearchAutocomplete";
 import { ShoppingBag, Search, User, Menu, X, Bell, Heart } from "lucide-react";
 
 const PRIMARY_LINKS = [
@@ -22,11 +21,6 @@ const SECONDARY_LINKS = [
 ];
 
 const EASE_SMOOTH = [0.16, 1, 0.3, 1] as const;
-
-type SearchProduct = {
-  id: string; name: string; brand: string; slug: string;
-  images: string[] | null; full_payment_price: number;
-};
 
 type NotifItem = {
   id: string; title: string; message: string;
@@ -54,20 +48,16 @@ function NotificationList({ notifications }: { notifications: NotifItem[] }) {
 }
 
 export default function Navbar() {
-  const router = useRouter();
   const [menuOpen, setMenuOpen]     = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [scrolled, setScrolled]     = useState(false);
   const [mounted, setMounted]       = useState(false);
-  const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
-  const [showResults, setShowResults]     = useState(false);
   const [notifications, setNotifications] = useState<NotifItem[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
 
   const itemCount      = useCartStore(s => s.itemCount());
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const searchBoxRef   = useRef<HTMLDivElement>(null);
+  const searchWrapRef   = useRef<HTMLDivElement>(null);
+  const searchMobileRef = useRef<HTMLDivElement>(null);
   const notifRef       = useRef<HTMLDivElement>(null);
   const drawerRef      = useRef<HTMLDivElement>(null);
   const closeBtnRef    = useRef<HTMLButtonElement>(null);
@@ -95,32 +85,24 @@ export default function Navbar() {
   }, []);
 
   useEffect(() => {
-    if (searchOpen) setTimeout(() => searchInputRef.current?.focus(), 50);
-    if (!searchOpen) {
-      queueMicrotask(() => { setSearchResults([]); setShowResults(false); setSearchQuery(""); });
-    }
-  }, [searchOpen]);
-
-  useEffect(() => {
     function handle(e: MouseEvent) {
-      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) setShowResults(false);
+      const t = e.target as Node;
+      if (searchWrapRef.current?.contains(t)) return;
+      if (searchMobileRef.current?.contains(t)) return;
+      setSearchOpen(false);
     }
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, []);
 
   useEffect(() => {
-    const q = searchQuery.trim();
-    if (!q) { queueMicrotask(() => { setSearchResults([]); setShowResults(false); }); return; }
-    let cancelled = false;
-    fetch(`/api/search?q=${encodeURIComponent(q)}`)
-      .then(res => res.ok ? res.json() as Promise<{ products: SearchProduct[] }> : null)
-      .then(data => {
-        if (!cancelled && data?.products) { setSearchResults(data.products); setShowResults(true); }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [searchQuery]);
+    if (!searchOpen) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setSearchOpen(false);
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [searchOpen]);
 
   // Body scroll lock while the mobile drawer is open
   useEffect(() => {
@@ -145,22 +127,6 @@ export default function Navbar() {
     document.addEventListener("keydown", handleKey);
     return () => document.removeEventListener("keydown", handleKey);
   }, [menuOpen]);
-
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    router.push(`/shop?q=${encodeURIComponent(searchQuery.trim())}`);
-    setSearchOpen(false);
-    setSearchQuery("");
-    setShowResults(false);
-  }
-
-  function closeSearch() {
-    setSearchOpen(false);
-    setSearchQuery("");
-    setSearchResults([]);
-    setShowResults(false);
-  }
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
@@ -221,13 +187,29 @@ export default function Navbar() {
 
           {/* Right — icons */}
           <div className="flex items-center justify-end gap-0.5 md:gap-1">
-            <button
-              onClick={() => setSearchOpen(o => !o)}
-              className={`w-11 h-11 flex items-center justify-center transition-colors ${searchOpen ? "text-ink" : "text-ink-3 hover:text-ink"} ${focusRing}`}
-              aria-label={searchOpen ? "Close search" : "Search"}
-            >
-              {searchOpen ? <X className="w-[18px] h-[18px]" /> : <Search className="w-[18px] h-[18px]" />}
-            </button>
+            <div className="relative" ref={searchWrapRef}>
+              <button
+                onClick={() => setSearchOpen(o => !o)}
+                className={`w-11 h-11 flex items-center justify-center transition-colors ${searchOpen ? "text-ink" : "text-ink-3 hover:text-ink"} ${focusRing}`}
+                aria-label={searchOpen ? "Close search" : "Search"}
+              >
+                {searchOpen ? <X className="w-[18px] h-[18px]" /> : <Search className="w-[18px] h-[18px]" />}
+              </button>
+
+              <AnimatePresence>
+                {searchOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.15 }}
+                    className="hidden md:block absolute right-0 top-full mt-2 w-96 z-[60]"
+                  >
+                    <SearchAutocomplete autoFocus onNavigate={() => setSearchOpen(false)} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Notifications — desktop only */}
             <div className="hidden md:block relative" ref={notifRef}>
@@ -301,76 +283,30 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Search overlay */}
+      {/* Mobile search overlay */}
       <AnimatePresence>
         {searchOpen && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: EASE_SMOOTH }}
-            className="overflow-hidden border-b border-line bg-paper"
+            ref={searchMobileRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[70] bg-paper md:hidden flex flex-col"
           >
-            <form onSubmit={handleSearch} className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-3 md:py-4 flex gap-2 md:gap-3">
-              <div className="relative flex-1" ref={searchBoxRef}>
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-3" />
-                <input
-                  ref={searchInputRef}
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search sneakers, brands…"
-                  aria-label="Search sneakers and brands"
-                  className={`w-full pl-10 pr-4 py-2.5 md:py-3 text-body-sm bg-paper-2 border border-line rounded-sm text-ink placeholder:text-ink-3 focus:outline-none ${focusRing}`}
-                  onFocus={() => { if (searchResults.length > 0) setShowResults(true); }}
-                />
-
-                {showResults && (
-                  <div className="absolute top-full left-0 right-0 mt-1 z-[60] overflow-hidden rounded-md bg-paper border border-line shadow-[var(--shadow-lg)]">
-                    {searchResults.length === 0 ? (
-                      <p className="px-4 py-3.5 text-body-sm text-ink-3">
-                        No results for &ldquo;{searchQuery}&rdquo;
-                      </p>
-                    ) : (
-                      <>
-                        {searchResults.map((p, i) => (
-                          <Link
-                            key={p.id}
-                            href={`/shop/${p.slug}`}
-                            onClick={closeSearch}
-                            className={`flex items-center gap-3 px-4 py-3 hover:bg-paper-2 transition-colors ${i < searchResults.length - 1 ? "border-b border-line" : ""}`}
-                          >
-                            <div className="w-10 h-10 shrink-0 overflow-hidden relative rounded-sm bg-paper-2">
-                              {p.images?.[0] && (
-                                <Image src={p.images[0]} alt={p.name} fill className="object-cover" sizes="40px" />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-body-sm font-medium truncate text-ink">{p.name}</p>
-                              <p className="text-micro text-ink-3">
-                                {p.brand} · ₱{p.full_payment_price.toLocaleString()}
-                              </p>
-                            </div>
-                          </Link>
-                        ))}
-                        <button
-                          type="submit"
-                          className="w-full text-body-sm font-medium px-4 py-3 text-center text-ink hover:text-ink-3 transition-colors border-t border-line"
-                        >
-                          See all results for &ldquo;{searchQuery}&rdquo; →
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
+            <div className="flex items-center gap-2 h-14 px-4 border-b border-line shrink-0">
+              <SearchAutocomplete autoFocus onNavigate={() => setSearchOpen(false)} className="flex-1" />
               <button
-                type="submit"
-                className={`hidden md:block px-6 py-3 text-body-sm font-medium bg-ink text-paper hover:bg-ink-2 transition-colors rounded-sm ${focusRing}`}
+                onClick={() => setSearchOpen(false)}
+                className={`w-11 h-11 -mr-2 flex items-center justify-center text-ink shrink-0 ${focusRing}`}
+                aria-label="Close search"
               >
-                Search
+                <X className="w-5 h-5" />
               </button>
-            </form>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
