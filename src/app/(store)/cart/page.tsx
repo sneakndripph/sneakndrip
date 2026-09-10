@@ -314,7 +314,7 @@ export default function CartPage() {
                             applyMergeResult(item.id, result);
                             if (result) toast.success(`Size updated to ${newSize}`);
                           }}
-                          className="text-micro px-2 py-0.5 rounded-sm cursor-pointer focus:outline-none border border-line text-ink-3 bg-paper-2">
+                          className="text-micro px-2 py-0.5 rounded-sm cursor-pointer focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 border border-line text-ink-3 bg-paper-2">
                           {item.product.sizes
                             .filter(s => s.stock > 0 || s.size === item.size)
                             .map(s => (
@@ -407,7 +407,7 @@ export default function CartPage() {
                                   updateQuantity(item.product.id, item.size, item.payment_type, Math.min(val, maxStock));
                                 }
                               }}
-                              className="w-10 text-center text-body-sm text-ink focus:outline-none bg-transparent"
+                              className="w-10 text-center text-body-sm text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 bg-transparent"
                             />
                             <button onClick={() => updateQuantity(item.product.id, item.size, item.payment_type, Math.min(item.quantity + 1, maxStock))}
                               disabled={item.quantity >= maxStock}

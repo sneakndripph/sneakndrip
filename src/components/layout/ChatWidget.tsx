@@ -162,7 +162,7 @@ export default function ChatWidget() {
                 <input value={name} onChange={e => setName(e.target.value)} required
                   placeholder="Your name"
                   readOnly={!!authedName}
-                  className={`w-full px-3 py-2.5 text-body-sm focus:outline-none text-ink rounded-md border ${authedName ? "bg-paper-2 border-line-strong" : "bg-paper-2 border-line"}`} />
+                  className={`w-full px-3 py-2.5 text-body-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 text-ink rounded-md border ${authedName ? "bg-paper-2 border-line-strong" : "bg-paper-2 border-line"}`} />
               </div>
               <div>
                 <label className="block text-micro font-medium uppercase tracking-wide mb-1 text-ink-3">
@@ -171,7 +171,7 @@ export default function ChatWidget() {
                 <input value={email} onChange={e => setEmail(e.target.value)}
                   type="email" placeholder="Email (optional)"
                   readOnly={!!authedEmail}
-                  className={`w-full px-3 py-2.5 text-body-sm focus:outline-none text-ink rounded-md border ${authedEmail ? "bg-paper-2 border-line-strong" : "bg-paper-2 border-line"}`} />
+                  className={`w-full px-3 py-2.5 text-body-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 text-ink rounded-md border ${authedEmail ? "bg-paper-2 border-line-strong" : "bg-paper-2 border-line"}`} />
               </div>
               <div className="flex-1 flex flex-col">
                 <label className="block text-micro font-medium uppercase tracking-wide mb-1 text-ink-3">
@@ -179,7 +179,7 @@ export default function ChatWidget() {
                 </label>
                 <textarea value={input} onChange={e => setInput(e.target.value)} required rows={3}
                   placeholder="How can we help you?"
-                  className="px-3 py-2.5 text-body-sm focus:outline-none resize-none flex-1 bg-paper-2 border border-line rounded-md text-ink" />
+                  className="px-3 py-2.5 text-body-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 resize-none flex-1 bg-paper-2 border border-line rounded-md text-ink" />
               </div>
               <button type="submit" disabled={starting}
                 className="flex items-center justify-center gap-2 py-3 rounded-md text-body-sm font-medium uppercase tracking-wide disabled:opacity-50 bg-ink text-paper hover:bg-ink-2 transition-colors">
@@ -214,7 +214,7 @@ export default function ChatWidget() {
               <form onSubmit={handleSend} className="flex gap-2 p-3 shrink-0 border-t border-line">
                 <input value={input} onChange={e => setInput(e.target.value)}
                   placeholder="Type a message…"
-                  className="flex-1 px-3 py-2 text-body-sm focus:outline-none bg-paper-2 border border-line rounded-md text-ink" />
+                  className="flex-1 px-3 py-2 text-body-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 bg-paper-2 border border-line rounded-md text-ink" />
                 <button type="submit" disabled={sending || !input.trim()}
                   className="px-3 py-2 rounded-md disabled:opacity-40 transition-opacity hover:opacity-80 bg-ink text-paper">
                   <Send className="w-4 h-4" />

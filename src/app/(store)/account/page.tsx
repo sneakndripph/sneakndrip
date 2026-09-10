@@ -1298,7 +1298,7 @@ export default function AccountPage() {
                       value={reviewForm.title}
                       onChange={e => setReviewForm(f => ({ ...f, title: e.target.value }))}
                       placeholder="e.g. Great quality!"
-                      className="w-full px-3 py-2.5 text-sm focus:outline-none bg-paper-2 border border-line text-ink"
+                      className="w-full px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 bg-paper-2 border border-line text-ink"
                     />
                   </div>
                   <div>
@@ -1308,7 +1308,7 @@ export default function AccountPage() {
                       onChange={e => setReviewForm(f => ({ ...f, body: e.target.value }))}
                       placeholder="Share your experience…"
                       rows={3}
-                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-paper-2 border border-line text-ink"
+                      className="w-full px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 resize-none bg-paper-2 border border-line text-ink"
                     />
                   </div>
                   <div>
@@ -1397,7 +1397,7 @@ export default function AccountPage() {
                       onChange={e => setReturnReason(e.target.value)}
                       placeholder="e.g. Wrong size, defective item, changed mind…"
                       rows={3}
-                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-paper-2 border border-line text-ink"
+                      className="w-full px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 resize-none bg-paper-2 border border-line text-ink"
                     />
                   </div>
                   <div>
@@ -1508,7 +1508,7 @@ export default function AccountPage() {
                       value={editReturnReason}
                       onChange={e => setEditReturnReason(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-paper-2 border border-line text-ink"
+                      className="w-full px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 resize-none bg-paper-2 border border-line text-ink"
                     />
                   </div>
                   <div>
@@ -1719,7 +1719,7 @@ export default function AccountPage() {
                 onChange={e => setCancelReason(e.target.value)}
                 placeholder="e.g. Changed my mind, ordered wrong size…"
                 rows={3}
-                className="w-full px-3 py-2.5 text-sm focus:outline-none resize-none bg-paper-2 border border-line text-ink"
+                className="w-full px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 resize-none bg-paper-2 border border-line text-ink"
               />
             </div>
             <div className="flex gap-3 px-5 pb-5">
@@ -1844,7 +1844,7 @@ export default function AccountPage() {
                       value={payBalanceRef}
                       onChange={e => setPayBalanceRef(e.target.value)}
                       placeholder="e.g. 1234567890"
-                      className="w-full px-3 py-2.5 text-sm focus:outline-none bg-paper border border-line text-ink"
+                      className="w-full px-3 py-2.5 text-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1 bg-paper border border-line text-ink"
                     />
                   </div>
 
