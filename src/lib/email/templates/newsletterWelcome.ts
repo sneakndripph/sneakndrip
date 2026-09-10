@@ -1,7 +1,7 @@
-import { wrapEmail, h1, paragraph, button, divider, socialLinks } from "../helpers";
+import { wrapEmail, h1, paragraph, button, divider, socialLinks, unsubscribeLink } from "../helpers";
 
-/** Welcome email sent to a new newsletter subscriber. No per-recipient data — copy is generic. */
-export function newsletterWelcome(): { subject: string; html: string } {
+/** Welcome email sent to a new newsletter subscriber. `unsubscribeToken` is that subscriber's row token. */
+export function newsletterWelcome(unsubscribeToken: string): { subject: string; html: string } {
   const body = `
     ${h1("You're On The List")}
     ${paragraph("Welcome to Sneak N' Drip. You'll be the first to know about new drops, restocks, and exclusive below-SRP deals.")}
@@ -11,6 +11,7 @@ export function newsletterWelcome(): { subject: string; html: string } {
 
     ${paragraph("Questions? Message us on Instagram, TikTok, or Facebook.")}
     ${socialLinks()}
+    ${unsubscribeLink(unsubscribeToken)}
   `;
 
   return {

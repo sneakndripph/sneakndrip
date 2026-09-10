@@ -23,7 +23,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to subscribe" }, { status: 500 });
   }
 
-  const { subject, html } = newsletterWelcome();
+  if (error) {
+    // Duplicate email. If they'd previously unsubscribed, resubscribe them —
+    // delete + reinsert so Postgres regenerates id and unsubscribe_token via
+    // their column defaults (a column DEFAULT only fires on INSERT).
+    const { data: existing } = await admin
+      .from("newsletter_subscribers")
+      .select("id, unsubscribed_at")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (existing?.unsubscribed_at) {
+      await admin.from("newsletter_subscribers").delete().eq("id", existing.id);
+      await admin.from("newsletter_subscribers").insert({ email });
+    }
+  }
+
+  const { data: subscriber } = await admin
+    .from("newsletter_subscribers")
+    .select("unsubscribe_token")
+    .eq("email", email)
+    .maybeSingle();
+
+  const { subject, html } = newsletterWelcome(subscriber?.unsubscribe_token ?? "");
   await Promise.all([
     sendEmail(email, subject, html),
     sendEmail(ADMIN_EMAIL, `New Newsletter Subscriber: ${email}`, `<p>New subscriber: <strong>${h(email)}</strong></p>`),

@@ -1,3 +1,5 @@
+import { SITE_URL } from "../constants";
+
 // ─── Legacy brand tokens ──────────────────────────────────────────────────
 // Still used by templates not yet migrated to the paper & ink system below
 // (orderConfirmed, orderStatusUpdate, returnApproved, returnDenied). Keep
@@ -172,7 +174,8 @@ export function socialLinks(): string {
 }
 
 /** Small unsubscribe link for template footers. */
-export function unsubscribeLink(url: string): string {
+export function unsubscribeLink(token: string): string {
+  const url = `${SITE_URL}/api/unsubscribe?token=${encodeURIComponent(token)}`;
   return `<p style="margin:8px 0 0;font-family:${FONT_STACK};font-size:12px;color:${BRAND_INK_MUTED}">
     <a href="${url}" style="color:${BRAND_INK_MUTED};text-decoration:underline">Unsubscribe</a>
   </p>`;
