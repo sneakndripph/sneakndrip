@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/supabase/require-admin";
 import { validateEnv } from "@/lib/env";
+import { sendEmail } from "@/lib/email/send";
+import { newArrival } from "@/lib/email/templates/newArrival";
 
 export async function GET() {
   const caller = await requireAdmin();
@@ -59,6 +61,7 @@ export async function POST(req: NextRequest) {
 
     const productRaw = formData.get("product") as string;
     const sizesRaw = formData.get("sizes") as string;
+    const notifySubscribers = formData.get("notifySubscribers") === "true";
     const product = JSON.parse(productRaw);
     const sizes = JSON.parse(sizesRaw ?? "[]");
 
@@ -84,6 +87,44 @@ export async function POST(req: NextRequest) {
       if (logError) console.error("[activity_log] insert failed:", logError);
     } catch (err) {
       console.error("[activity_log] insert failed:", err);
+    }
+
+    if (product.is_published === true && notifySubscribers) {
+      try {
+        const { data: subscribers } = await admin
+          .from("newsletter_subscribers")
+          .select("email, unsubscribe_token")
+          .is("unsubscribed_at", null);
+
+        let sentCount = 0;
+        for (const subscriber of subscribers ?? []) {
+          const { subject, html } = newArrival({
+            customerEmail: subscriber.email,
+            unsubscribeToken: subscriber.unsubscribe_token,
+            product: {
+              name: product.name,
+              brand: product.brand,
+              slug: product.slug,
+              imageUrl: (product.images as string[] | undefined)?.[0],
+              price: product.full_payment_price,
+            },
+          });
+          const result = await sendEmail(subscriber.email, subject, html);
+          if (result.ok && !result.skipped) sentCount++;
+        }
+
+        const { error: notifyLogError } = await admin.from("activity_log").insert({
+          action: "new_arrival_notified",
+          entity_type: "product",
+          entity_id: data.id,
+          entity_name: (product as { name?: string }).name ?? "Product",
+          actor_email: user.email ?? null,
+          details: { product_id: data.id, subscriber_count: sentCount },
+        });
+        if (notifyLogError) console.error("[activity_log] new_arrival_notified insert failed:", notifyLogError);
+      } catch (err) {
+        console.error("[new-arrival-notify] failed:", err);
+      }
     }
 
     return NextResponse.json({ id: data.id });
