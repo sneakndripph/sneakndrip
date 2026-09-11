@@ -7,6 +7,7 @@ import { DP_RESERVE_FEE } from "@/lib/constants";
 import OrderStatusBadge, { STATUS_META, statusMeta, type RealStatus } from "./OrderStatusBadge";
 import OrderPaymentProof from "./OrderPaymentProof";
 import OrderShippingForm from "./OrderShippingForm";
+import OrderStatusTimeline from "./OrderStatusTimeline";
 import { useConfirmDialog } from "./ConfirmDialog";
 
 type OrderItem = {
@@ -316,6 +317,14 @@ export default function OrderDetailDrawer({
               Save Note
             </button>
           </div>
+
+          {/* Order timeline */}
+          <OrderStatusTimeline
+            orderId={order.id}
+            orderNumber={order.order_number}
+            createdAt={order.created_at}
+            customerEmail={order.customer_email}
+          />
         </div>
 
         {/* Footer */}
