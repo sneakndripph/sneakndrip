@@ -7,7 +7,7 @@ import { Package, MoreVertical, Truck, Copy, User, XCircle, ChevronDown } from "
 import OrderStatusBadge, { STATUS_META } from "./OrderStatusBadge";
 import type { Order, OrderItem } from "./AdminOrdersClient";
 
-const PAYMENT_LABELS: Record<string, string> = {
+export const PAYMENT_LABELS: Record<string, string> = {
   gcash: "GCash", maya: "Maya", bank_transfer: "Bank Transfer", cod: "COD",
 };
 

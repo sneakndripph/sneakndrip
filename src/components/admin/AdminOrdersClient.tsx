@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Download } from "lucide-react";
 import OrdersFilterBar, { periodStart, type Period } from "./OrdersFilterBar";
-import OrdersList from "./OrdersList";
+import OrdersList, { PAYMENT_LABELS } from "./OrdersList";
 import OrderDetailDrawer from "./OrderDetailDrawer";
 import { STATUSES, statusMeta, type Status } from "./OrderStatusBadge";
 
@@ -15,10 +15,13 @@ export type OrderItem = {
 export type Order = {
   id: string; order_number: string; customer_name: string; customer_email: string; customer_mobile: string;
   shipping_street: string; shipping_barangay: string; shipping_city: string; shipping_province: string;
+  shipping_postal: string;
+  subtotal: number; discount: number | null; coupon_code: string | null;
   total: number; payment_method: string; payment_type: string; status: string; tracking_number: string | null;
   proof_of_payment: string | null; payment_reference: string | null; shipping_fee: number | null;
   balance_reference: string | null; balance_proof_url: string | null; balance_paid_at: string | null;
-  balance_payment_method: string | null; admin_notes: string | null; created_at: string; order_items: OrderItem[];
+  balance_payment_method: string | null; admin_notes: string | null; created_at: string; delivered_at: string | null;
+  order_items: OrderItem[];
 };
 
 function getNextAction(status: string, isCOD: boolean, paymentType?: string): { label: string; next: string } | null {
@@ -158,25 +161,60 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
     res.ok ? toast.success("Notes saved") : toast.error("Failed to save notes");
   }
 
-  function itemsSummary(items: OrderItem[]) {
-    if (!items.length) return "—";
-    const first = items[0];
-    return `${first.product_name} (${first.size})${items.length > 1 ? ` +${items.length - 1} more` : ""}`;
+  function formatDateTime(iso: string | null | undefined) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function shippingAddress(o: Order) {
+    return [o.shipping_street, o.shipping_barangay, o.shipping_city, o.shipping_province, o.shipping_postal]
+      .filter(Boolean).join(", ");
+  }
+
+  function itemsCSVList(items: OrderItem[]) {
+    return items.map(i => `${i.product_name} ${i.size} x${i.quantity}`).join(", ");
   }
 
   function exportCSV() {
-    const rows = [
-      ["Order #", "Date", "Customer", "Email", "Status", "Payment", "Total", "Items", "Tracking"],
-      ...filtered.map(o => [
-        o.order_number, new Date(o.created_at).toLocaleDateString("en-PH"), o.customer_name, o.customer_email ?? "",
-        o.status, o.payment_method, o.total, itemsSummary(o.order_items), o.tracking_number ?? "",
-      ]),
+    const headers = [
+      "Order Number", "Date Created", "Customer Email", "Customer Name", "Status",
+      "Subtotal", "Shipping Fee", "Discount Code", "Discount Amount", "Total",
+      "Payment Method", "Payment Type", "Tracking Number", "Shipping Address",
+      "Items", "Delivered At", "Notes",
     ];
-    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const rows = [...filtered]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map(o => [
+        o.order_number,
+        formatDateTime(o.created_at),
+        o.customer_email ?? "",
+        o.customer_name ?? "",
+        statusMeta(o.status).label,
+        Number(o.subtotal ?? 0),
+        Number(o.shipping_fee ?? 0),
+        o.coupon_code ?? "",
+        Number(o.discount ?? 0),
+        Number(o.total ?? 0),
+        PAYMENT_LABELS[o.payment_method] ?? o.payment_method,
+        o.payment_type === "downpayment" ? "Downpayment" : "Full",
+        o.tracking_number ?? "",
+        shippingAddress(o),
+        itemsCSVList(o.order_items),
+        formatDateTime(o.delivered_at),
+        o.admin_notes ?? "",
+      ]);
+    const csv = [headers, ...rows]
+      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `orders-${new Date().toISOString().split("T")[0]}.csv`;
-    a.click(); URL.revokeObjectURL(url);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sneakndrip-orders-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   const liveSelected = selected ? (orders.find(o => o.id === selected.id) ?? selected) : null;
