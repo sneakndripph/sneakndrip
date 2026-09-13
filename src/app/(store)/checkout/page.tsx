@@ -9,7 +9,7 @@ import { PAYMENT_METHODS, SHIPPING_FEE, DP_RESERVE_FEE } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
-import { Upload, CheckCircle, AlertCircle, ChevronRight, ChevronDown, Wallet, Landmark, Truck, CreditCard } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, ChevronDown, Wallet, Landmark, Truck, CreditCard } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
 
 type Step = "details" | "payment" | "confirm";
@@ -568,13 +568,13 @@ export default function CheckoutPage() {
         <h1 className="text-display-s text-ink font-display font-medium mb-8">Checkout</h1>
 
         {/* Steps */}
-        <div className="flex items-center gap-2 mb-8">
+        <div className="flex items-center mb-8">
           {(["details", "payment", "confirm"] as Step[]).map((s, i) => {
             const isStepClickable = step !== "confirm" && i < idx + 1;
             return (
-            <div key={s} className="flex items-center gap-2">
+            <div key={s} className={`flex items-center ${i < 2 ? "flex-1" : ""}`}>
               <div
-                className="flex items-center gap-2 cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1"
+                className="flex items-center gap-2.5 cursor-pointer rounded-sm shrink-0 focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-1"
                 onClick={() => isStepClickable && setStep(s)}
                 role={isStepClickable ? "button" : undefined}
                 tabIndex={isStepClickable ? 0 : undefined}
@@ -582,7 +582,7 @@ export default function CheckoutPage() {
                   if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setStep(s); }
                 } : undefined}
               >
-                <div className={`w-6 h-6 flex items-center justify-center rounded-full text-micro font-medium ${
+                <div className={`w-7 h-7 shrink-0 flex items-center justify-center rounded-full text-micro font-medium transition-colors ${
                   step === s ? "bg-ink text-paper" : i < idx ? "border border-ink text-ink" : "border border-line text-ink-3"
                 }`}>
                   {i < idx ? "✓" : i + 1}
@@ -591,7 +591,7 @@ export default function CheckoutPage() {
                   {s === "details" ? "Your details" : s === "payment" ? "Payment" : "Confirm"}
                 </span>
               </div>
-              {i < 2 && <ChevronRight className="w-4 h-4 text-ink-3" />}
+              {i < 2 && <div className="flex-1 h-px mx-3 bg-ink-3/25" aria-hidden="true" />}
             </div>
             );
           })}
