@@ -4,24 +4,24 @@ import { useState, useEffect, type Dispatch, type SetStateAction } from "react";
 import { Bell, BellRing, ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Product } from "@/lib/types";
-import ProductSizeGuideModal from "./ProductSizeGuideModal";
 
 export default function ProductSizeSelector({
   product,
   selectedSize,
   setSelectedSize,
   setQuantity,
+  onOpenSizeGuide,
 }: {
   product: Product;
   selectedSize: string | null;
   setSelectedSize: Dispatch<SetStateAction<string | null>>;
   setQuantity: Dispatch<SetStateAction<number>>;
+  onOpenSizeGuide: () => void;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [notifySize, setNotifySize] = useState<string | null>(null);
   const [notifyEmail, setNotifyEmail] = useState("");
   const [notifiedSizes, setNotifiedSizes] = useState<Set<string>>(new Set());
-  const [showSizeGuide, setShowSizeGuide] = useState(false);
 
   useEffect(() => {
     createClient().auth.getUser().then(({ data }) => {
@@ -138,7 +138,7 @@ export default function ProductSizeSelector({
     <div className="mb-6">
       <div className="flex items-center justify-between mb-3">
         <p className="text-eyebrow text-ink-3">Select size</p>
-        <button type="button" onClick={() => setShowSizeGuide(true)} className="text-micro text-ink-3 underline hover:text-ink transition-colors">
+        <button type="button" onClick={onOpenSizeGuide} className="text-micro text-ink-3 underline hover:text-ink transition-colors">
           Size guide
         </button>
       </div>
@@ -179,7 +179,6 @@ export default function ProductSizeSelector({
         </div>
       )}
 
-      <ProductSizeGuideModal open={showSizeGuide} onClose={() => setShowSizeGuide(false)} brand={product.brand} />
     </div>
   );
 }

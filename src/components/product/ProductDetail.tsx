@@ -12,7 +12,7 @@ import ProductSizeSelector from "./ProductSizeSelector";
 import ProductCTA from "./ProductCTA";
 import ProductTabs from "./ProductTabs";
 
-type Tab = "description" | "reviews";
+type Tab = "description" | "sizing" | "reviews";
 
 export default function ProductDetail({
   product,
@@ -68,6 +68,7 @@ export default function ProductDetail({
               selectedSize={selectedSize}
               setSelectedSize={setSelectedSize}
               setQuantity={setQuantity}
+              onOpenSizeGuide={() => handleSwitchTab("sizing")}
             />
 
             <ProductCTA
