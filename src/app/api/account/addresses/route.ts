@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { findOrHealCustomer } from "@/lib/supabase/resolve-customer";
 import { rateLimit, getIP } from "@/lib/rate-limit";
 
 const MAX_ADDRESSES = 5;
@@ -7,11 +8,7 @@ const MAX_ADDRESSES = 5;
 async function resolveCustomer(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { user: null, customer: null };
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id, full_name, mobile")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
+  const customer = await findOrHealCustomer(user.id, user.email);
   return { user, customer };
 }
 

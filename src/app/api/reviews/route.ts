@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { createClient } from "@/lib/supabase/server";
+import { findOrHealCustomer } from "@/lib/supabase/resolve-customer";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, getIP } from "@/lib/rate-limit";
 
@@ -68,8 +69,8 @@ export async function POST(req: NextRequest) {
 
   const admin = createAdminClient();
 
-  const [{ data: customer }, { data: deliveredOrders }] = await Promise.all([
-    admin.from("customers").select("id").eq("auth_user_id", user.id).maybeSingle(),
+  const [customer, { data: deliveredOrders }] = await Promise.all([
+    findOrHealCustomer(user.id, user.email),
     admin.from("orders").select("order_items(product_id)").eq("customer_email", user.email).eq("status", "delivered"),
   ]);
 

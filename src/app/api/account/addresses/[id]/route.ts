@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { findOrHealCustomer } from "@/lib/supabase/resolve-customer";
 import { rateLimit, getIP } from "@/lib/rate-limit";
 
 async function resolveCustomer(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const { data: customer } = await supabase
-    .from("customers")
-    .select("id")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-  return customer;
+  return findOrHealCustomer(user.id, user.email);
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
