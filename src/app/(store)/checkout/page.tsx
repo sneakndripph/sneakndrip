@@ -792,7 +792,7 @@ export default function CheckoutPage() {
                           onChange={e => setProofFile(e.target.files?.[0] || null)} />
                         <label htmlFor="proof" className="cursor-pointer">
                           {proofFile ? (
-                            <div className="flex flex-col items-center">
+                            <div className="flex flex-col items-center w-full">
                               {proofPreview ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={proofPreview} alt="Proof preview" className="w-full max-h-40 rounded-md mb-3 object-contain border border-line" />
@@ -882,7 +882,7 @@ export default function CheckoutPage() {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={proofPreview} alt="Proof of payment" className="rounded-md max-h-48 object-contain border border-line" />
                       ) : (
-                        <p className="text-body-sm text-ink">✓ {proofFile.name}</p>
+                        <p className="text-body-sm text-ink truncate max-w-full">✓ {proofFile.name}</p>
                       )}
                     </div>
                   )}
