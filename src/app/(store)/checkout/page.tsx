@@ -14,6 +14,19 @@ import PhAddressSelect from "@/components/ui/PhAddressSelect";
 
 type Step = "details" | "payment" | "confirm";
 
+type SavedAddress = {
+  id: string;
+  label: string;
+  full_name: string;
+  mobile: string;
+  street: string;
+  barangay: string;
+  city: string;
+  province: string;
+  postal_code: string;
+  is_default: boolean;
+};
+
 const CONTACT_FIELDS = [
   { key: "name", label: "Full name", placeholder: "Juan Dela Cruz", col: "sm:col-span-2", req: true },
   { key: "email", label: "Email address", placeholder: "juan@email.com", req: true },
@@ -106,6 +119,9 @@ export default function CheckoutPage() {
   const [referenceNumber, setReferenceNumber] = useState("");
   const [regionGroup, setRegionGroup] = useState("");
   const [form, setForm] = useState({ name: "", email: "", mobile: "", street: "", barangay: "", city: "", province: "", postal: "" });
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [addressesLoading, setAddressesLoading] = useState(true);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | "new" | null>(null);
   const [placing, setPlacing] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [consent, setConsent] = useState(false);
@@ -206,9 +222,56 @@ export default function CheckoutPage() {
           postal: f.postal || meta.addr_postal || "",
         }));
         if (!regionGroup && meta.addr_region_group) setRegionGroup(meta.addr_region_group);
+
+        // Saved addresses (Task E) — pre-select the default one if any exist
+        fetch("/api/account/addresses")
+          .then(r => (r.ok ? r.json() : []))
+          .then((data: SavedAddress[]) => {
+            if (Array.isArray(data) && data.length > 0) {
+              setSavedAddresses(data);
+              const def = data.find(a => a.is_default) ?? data[0];
+              setSelectedAddressId(def.id);
+              setForm(f => ({
+                ...f,
+                name: def.full_name || f.name,
+                mobile: def.mobile || f.mobile,
+                street: def.street || "",
+                barangay: def.barangay || "",
+                city: def.city || "",
+                province: def.province || "",
+                postal: def.postal_code || "",
+              }));
+              setRegionGroup(def.province === "Metro Manila" ? "Metro Manila" : "");
+            } else {
+              setSelectedAddressId("new");
+            }
+          })
+          .catch(() => setSelectedAddressId("new"))
+          .finally(() => setAddressesLoading(false));
       });
     });
   }, [router]);
+
+  function selectSavedAddress(addr: SavedAddress) {
+    setSelectedAddressId(addr.id);
+    setForm(f => ({
+      ...f,
+      name: addr.full_name || f.name,
+      mobile: addr.mobile || f.mobile,
+      street: addr.street || "",
+      barangay: addr.barangay || "",
+      city: addr.city || "",
+      province: addr.province || "",
+      postal: addr.postal_code || "",
+    }));
+    setRegionGroup(addr.province === "Metro Manila" ? "Metro Manila" : "");
+  }
+
+  function selectNewAddress() {
+    setSelectedAddressId("new");
+    setForm(f => ({ ...f, street: "", barangay: "", city: "", province: "", postal: "" }));
+    setRegionGroup("");
+  }
 
   useEffect(() => {
     if (!proofFile || !proofFile.type.startsWith("image/")) {
@@ -663,53 +726,139 @@ export default function CheckoutPage() {
           <div className="lg:col-span-2">
             {/* Step 1: Details */}
             {step === "details" && (
-              <div className="p-6 bg-paper border border-line rounded-md">
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-eyebrow text-ink-3">Contact</p>
-                  <span className="text-micro text-ink-3">
-                    <span className="text-state-error">*</span> Required
-                  </span>
-                </div>
-                <div className="grid sm:grid-cols-2 gap-4 mb-8">
-                  {CONTACT_FIELDS.map(renderField)}
-                </div>
-
-                <p className="text-eyebrow text-ink-3 mb-4">Shipping address</p>
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {ADDRESS_FIELDS.map(renderField)}
-
-                  {/* PH Address Dropdowns */}
-                  <PhAddressSelect
-                    id={FIELD_DOM_ID.province}
-                    province={form.province}
-                    city={form.city}
-                    barangay={form.barangay}
-                    onProvinceChange={v => setForm(f => ({ ...f, province: v }))}
-                    onCityChange={v => setForm(f => ({ ...f, city: v }))}
-                    onBarangayChange={v => setForm(f => ({ ...f, barangay: v }))}
-                    onRegionGroupChange={setRegionGroup}
-                    showErrors={showErrors}
-                  />
-
-                  {/* Postal Code */}
-                  <div>
-                    <label className="block text-micro text-ink-3 mb-1.5">
-                      Postal code<span className="text-state-error"> *</span>
-                    </label>
-                    <input
-                      id={FIELD_DOM_ID.postal}
-                      value={form.postal}
-                      onChange={e => setForm(f => ({ ...f, postal: e.target.value }))}
-                      placeholder="1630"
-                      className={`w-full bg-paper-2 border-0 rounded-md px-4 py-3 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1 ${showErrors && !form.postal ? "outline outline-2 outline-state-error" : ""}`}
-                    />
-                    {showErrors && !form.postal && <p className="mt-1 text-micro text-state-error">Please enter your postal code</p>}
+              <div className="space-y-4">
+                {/* Saved address picker (Task E) — loading skeleton */}
+                {addressesLoading && (
+                  <div className="p-6 bg-paper border border-line rounded-md">
+                    <p className="text-eyebrow text-ink-3 mb-4">Delivery address</p>
+                    <div className="space-y-2">
+                      <div className="h-16 rounded-md bg-paper-2 animate-pulse" />
+                      <div className="h-16 rounded-md bg-paper-2 animate-pulse" />
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Saved address picker — radio cards */}
+                {!addressesLoading && savedAddresses.length > 0 && (
+                  <div className="p-6 bg-paper border border-line rounded-md">
+                    <p className="text-eyebrow text-ink-3 mb-4">Delivery address</p>
+                    <div className="space-y-2">
+                      {savedAddresses.map(addr => {
+                        const selected = selectedAddressId === addr.id;
+                        return (
+                          <button key={addr.id} type="button" onClick={() => selectSavedAddress(addr)}
+                            className={`w-full flex items-start gap-3 p-4 rounded-md border text-left transition-colors ${
+                              selected ? "border-ink bg-paper-2" : "border-line hover:border-ink"
+                            }`}>
+                            <span className={`mt-0.5 w-4 h-4 shrink-0 rounded-full border flex items-center justify-center ${selected ? "border-ink" : "border-line"}`}>
+                              {selected && <span className="w-2 h-2 rounded-full bg-ink" />}
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className="flex items-center gap-2 flex-wrap">
+                                <span className="text-body-sm font-medium text-ink">{addr.label || "Address"}</span>
+                                {addr.is_default && (
+                                  <span className="text-micro px-1.5 py-0.5 rounded-full bg-paper border border-line text-ink-3">Default</span>
+                                )}
+                              </span>
+                              <span className="block text-micro text-ink-3 mt-0.5 truncate">
+                                {[addr.street, addr.barangay, addr.city, addr.province, addr.postal_code].filter(Boolean).join(", ")}
+                              </span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                      <button type="button" onClick={selectNewAddress}
+                        className={`w-full flex items-center gap-3 p-4 rounded-md border text-left transition-colors ${
+                          selectedAddressId === "new" ? "border-ink bg-paper-2" : "border-line hover:border-ink"
+                        }`}>
+                        <span className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center ${selectedAddressId === "new" ? "border-ink" : "border-line"}`}>
+                          {selectedAddressId === "new" && <span className="w-2 h-2 rounded-full bg-ink" />}
+                        </span>
+                        <span className="text-body-sm font-medium text-ink">+ Enter a new address</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Read-only contact + address summary — shown when a saved address is selected */}
+                {!addressesLoading && savedAddresses.length > 0 && selectedAddressId && selectedAddressId !== "new" && (
+                  <div className="p-6 bg-paper border border-line rounded-md">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-eyebrow text-ink-3">Contact</p>
+                      <span className="text-micro text-ink-3">
+                        <span className="text-state-error">*</span> Required
+                      </span>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-micro text-ink-3 mb-1.5">Full name</label>
+                        <p className="w-full bg-paper-2 rounded-md px-4 py-3 text-body-sm text-ink">{form.name}</p>
+                      </div>
+                      {renderField(CONTACT_FIELDS.find(f => f.key === "email")!)}
+                      <div>
+                        <label className="block text-micro text-ink-3 mb-1.5">Mobile number</label>
+                        <p className="w-full bg-paper-2 rounded-md px-4 py-3 text-body-sm text-ink">{form.mobile}</p>
+                      </div>
+                    </div>
+
+                    <p className="text-eyebrow text-ink-3 mb-2 mt-8">Shipping address</p>
+                    <p className="w-full bg-paper-2 rounded-md px-4 py-3 text-body-sm text-ink">
+                      {[form.street, form.barangay, form.city, form.province, form.postal].filter(Boolean).join(", ")}
+                    </p>
+                  </div>
+                )}
+
+                {/* Editable form — no saved addresses, or "Enter a new address" selected */}
+                {!addressesLoading && (savedAddresses.length === 0 || selectedAddressId === "new") && (
+                  <div className="p-6 bg-paper border border-line rounded-md">
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="text-eyebrow text-ink-3">Contact</p>
+                      <span className="text-micro text-ink-3">
+                        <span className="text-state-error">*</span> Required
+                      </span>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-4 mb-8">
+                      {CONTACT_FIELDS.map(renderField)}
+                    </div>
+
+                    <p className="text-eyebrow text-ink-3 mb-4">Shipping address</p>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {ADDRESS_FIELDS.map(renderField)}
+
+                      {/* PH Address Dropdowns */}
+                      <PhAddressSelect
+                        id={FIELD_DOM_ID.province}
+                        province={form.province}
+                        city={form.city}
+                        barangay={form.barangay}
+                        onProvinceChange={v => setForm(f => ({ ...f, province: v }))}
+                        onCityChange={v => setForm(f => ({ ...f, city: v }))}
+                        onBarangayChange={v => setForm(f => ({ ...f, barangay: v }))}
+                        onRegionGroupChange={setRegionGroup}
+                        showErrors={showErrors}
+                      />
+
+                      {/* Postal Code */}
+                      <div>
+                        <label className="block text-micro text-ink-3 mb-1.5">
+                          Postal code<span className="text-state-error"> *</span>
+                        </label>
+                        <input
+                          id={FIELD_DOM_ID.postal}
+                          value={form.postal}
+                          onChange={e => setForm(f => ({ ...f, postal: e.target.value }))}
+                          placeholder="1630"
+                          className={`w-full bg-paper-2 border-0 rounded-md px-4 py-3 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1 ${showErrors && !form.postal ? "outline outline-2 outline-state-error" : ""}`}
+                        />
+                        {showErrors && !form.postal && <p className="mt-1 text-micro text-state-error">Please enter your postal code</p>}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <button
                   onClick={handleContinueToPayment}
-                  className="mt-6 w-full py-3.5 rounded-md text-body-sm font-medium bg-ink text-paper hover:bg-ink-2 transition-colors">
+                  className="w-full py-3.5 rounded-md text-body-sm font-medium bg-ink text-paper hover:bg-ink-2 transition-colors">
                   Continue to payment
                 </button>
               </div>
