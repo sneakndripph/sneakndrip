@@ -273,11 +273,11 @@ export default function OrderCard({
                   <p className="text-xs font-bold uppercase tracking-wide text-ink">Your order is on its way</p>
                 </div>
                 <p className="text-xs text-ink-2">Here&apos;s your tracking number:</p>
-                <p className="text-base font-black mt-1 text-ink">{order.tracking_number}</p>
+                <p className="text-base font-black mt-1 text-ink break-all">{order.tracking_number}</p>
                 <p className="text-[11px] mt-2 text-ink-2">
                   Copy and paste to{" "}
                   <a href="https://www.jtexpress.ph/track-and-trace" target="_blank" rel="noopener noreferrer"
-                    className="underline font-semibold text-ink">
+                    className="underline font-semibold text-ink break-all">
                     https://www.jtexpress.ph/track-and-trace
                   </a>
                 </p>
@@ -288,7 +288,7 @@ export default function OrderCard({
             {address && (
               <div className="px-5 pb-4 flex items-start gap-2">
                 <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-ink-3" />
-                <p className="text-xs text-ink-2">{address}</p>
+                <p className="text-xs text-ink-2 min-w-0 break-words">{address}</p>
               </div>
             )}
 
