@@ -644,8 +644,8 @@ export default function CheckoutPage() {
           })}
         </div>
 
-        {/* Mobile collapsed summary */}
-        <details className="lg:hidden mb-6 border border-line rounded-md bg-paper group">
+        {/* Mobile collapsed summary — sticky under the nav while collapsed, returns to flow when expanded */}
+        <details className="lg:hidden mb-6 sticky top-14 z-40 open:static border border-line rounded-md bg-paper group">
           <summary className="flex items-center justify-between px-4 py-3.5 cursor-pointer list-none">
             <span className="text-body-sm text-ink-2">
               {items.length} item{items.length === 1 ? "" : "s"} · <span className="text-ink font-medium">₱{(isDP ? totalDueNow : total).toLocaleString()}</span>
