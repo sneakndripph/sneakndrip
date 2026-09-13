@@ -101,11 +101,13 @@ const STEPS_COD = [
 ];
 
 const RETURN_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
-// Orders delivered before delivered_at existed have no recorded delivery date —
-// treat them as always eligible rather than guessing.
-function isReturnWindowOpen(deliveredAt: string | null | undefined) {
-  if (!deliveredAt) return true;
-  return Date.now() - new Date(deliveredAt).getTime() < RETURN_WINDOW_MS;
+// Orders delivered before delivered_at existed have no recorded delivery
+// date -- fall back to created_at so the window is still strictly 7 days,
+// rather than leaving it open indefinitely.
+function isReturnWindowOpen(deliveredAt: string | null | undefined, createdAt: string | null | undefined) {
+  const from = deliveredAt ?? createdAt;
+  if (!from) return false;
+  return Date.now() - new Date(from).getTime() < RETURN_WINDOW_MS;
 }
 
 interface OrderCardProps {
@@ -426,7 +428,7 @@ export default function OrderCard({
                       </button>
                     )}
                     {order.status === "delivered" && !returnInfo && order.payment_type !== "downpayment" && (
-                      isReturnWindowOpen(order.delivered_at) ? (
+                      isReturnWindowOpen(order.delivered_at, order.created_at) ? (
                         <button
                           onClick={onRequestReturn}
                           className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-line text-ink-2">
