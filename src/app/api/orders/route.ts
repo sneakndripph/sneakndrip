@@ -10,7 +10,7 @@ export async function GET() {
   const admin = createAdminClient();
   const { data } = await admin
     .from("orders")
-    .select("id, order_number, created_at, status, delivered_at, total, subtotal, shipping_fee, discount, coupon_code, payment_method, payment_type, payment_reference, proof_of_payment, tracking_number, shipping_street, shipping_barangay, shipping_city, shipping_province, customer_name, customer_mobile, order_items(product_name, size, quantity, unit_price, payment_type, product_id, products(images, bg, slug))")
+    .select("id, order_number, created_at, status, delivered_at, total, subtotal, shipping_fee, discount, coupon_code, payment_method, payment_type, payment_reference, proof_of_payment, tracking_number, shipping_street, shipping_barangay, shipping_city, shipping_province, customer_name, customer_mobile, order_items(product_name, size, quantity, unit_price, payment_type, product_id, products(id, name, slug, brand, sku, gender, status, srp_price, downpayment_price, full_payment_price, images, bg, is_featured, is_trending, is_new, is_published, product_sizes(size, stock)))")
     .eq("customer_email", user.email)
     .order("created_at", { ascending: false });
 

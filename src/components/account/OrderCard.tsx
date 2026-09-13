@@ -2,9 +2,13 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Clock, CheckCircle, Truck, Eye, MessageCircle, MapPin, RotateCcw, Star, ChevronDown } from "lucide-react";
+import { Clock, CheckCircle, Truck, Eye, MessageCircle, MapPin, RotateCcw, Star, ChevronDown, RefreshCw } from "lucide-react";
+import toast from "react-hot-toast";
 import { DP_RESERVE_FEE } from "@/lib/constants";
+import { useCartStore } from "@/store/cartStore";
+import type { Product } from "@/lib/types";
 
 const EASE_SMOOTH = [0.16, 1, 0.3, 1] as const;
 
@@ -15,7 +19,25 @@ export type OrderItem = {
   unit_price: number;
   payment_type?: string | null;
   product_id?: string | null;
-  products: { images: string[] | null; bg: string | null; slug: string | null } | null;
+  products: {
+    id: string | null;
+    name: string | null;
+    slug: string | null;
+    brand: string | null;
+    sku: string | null;
+    gender: string | null;
+    status: string | null;
+    srp_price: number | null;
+    downpayment_price: number | null;
+    full_payment_price: number | null;
+    images: string[] | null;
+    bg: string | null;
+    is_featured: boolean | null;
+    is_trending: boolean | null;
+    is_new: boolean | null;
+    is_published: boolean | null;
+    product_sizes: { size: string; stock: number }[] | null;
+  } | null;
 };
 
 export type Order = {
@@ -115,6 +137,8 @@ export default function OrderCard({
   onPayBalance,
   onViewProof,
 }: OrderCardProps) {
+  const router = useRouter();
+  const addItem = useCartStore(s => s.addItem);
   const isCOD = order.payment_method === "cod";
   const STEPS = isCOD ? STEPS_COD : STEPS_DEFAULT;
   const cfg = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
@@ -123,6 +147,50 @@ export default function OrderCard({
   // For COD, "paid" status never happens — map it to processing index for progress
   const activeIdx = STEPS.findIndex(s => s.key === order.status);
   const address = [order.shipping_street, order.shipping_barangay, order.shipping_city, order.shipping_province].filter(Boolean).join(", ");
+
+  function handleReorder() {
+    let added = 0;
+    let skipped = 0;
+    for (const item of order.order_items) {
+      const product = item.products;
+      const stock = product?.product_sizes?.find(s => s.size === item.size)?.stock ?? 0;
+      if (!product?.id || !product.is_published || stock <= 0) {
+        skipped++;
+        continue;
+      }
+      const cartProduct: Product = {
+        id: product.id,
+        name: product.name ?? item.product_name,
+        slug: product.slug ?? "",
+        brand: product.brand ?? "",
+        sku: product.sku,
+        gender: product.gender ?? "unisex",
+        status: (product.status as Product["status"]) ?? "on-hand",
+        srp_price: product.srp_price ?? 0,
+        downpayment_price: product.downpayment_price ?? 0,
+        full_payment_price: product.full_payment_price ?? 0,
+        images: product.images ?? undefined,
+        bg: product.bg ?? undefined,
+        sizes: product.product_sizes ?? [],
+        is_featured: product.is_featured ?? false,
+        is_trending: product.is_trending ?? false,
+        is_new: product.is_new ?? false,
+      };
+      const paymentType = item.payment_type === "downpayment" ? "downpayment" : "full_payment";
+      addItem(cartProduct, item.size, paymentType, item.quantity);
+      added++;
+    }
+    if (added === 0) {
+      toast.error("None of these items are available anymore");
+      return;
+    }
+    toast.success(
+      skipped > 0
+        ? `Added ${added} item${added === 1 ? "" : "s"} to cart. Skipped ${skipped} unavailable item${skipped === 1 ? "" : "s"}.`
+        : `Added ${added} item${added === 1 ? "" : "s"} to cart`
+    );
+    router.push("/cart");
+  }
 
   return (
     <div className="rounded-xl overflow-hidden bg-paper-2 border border-line">
@@ -386,6 +454,14 @@ export default function OrderCard({
                         className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-ink text-ink">
                         <Star className="w-3 h-3" />
                         {isReviewed ? "Edit Review" : "Write a Review"}
+                      </button>
+                    )}
+                    {order.status === "delivered" && (
+                      <button
+                        onClick={handleReorder}
+                        className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-line text-ink-2">
+                        <RefreshCw className="w-3 h-3" />
+                        Reorder
                       </button>
                     )}
                   </div>
