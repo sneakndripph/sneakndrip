@@ -109,6 +109,9 @@ function isReturnWindowOpen(deliveredAt: string | null | undefined, createdAt: s
   if (!from) return false;
   return Date.now() - new Date(from).getTime() < RETURN_WINDOW_MS;
 }
+function formatLongDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
+}
 
 interface OrderCardProps {
   order: Order;
@@ -149,6 +152,8 @@ export default function OrderCard({
   // For COD, "paid" status never happens — map it to processing index for progress
   const activeIdx = STEPS.findIndex(s => s.key === order.status);
   const address = [order.shipping_street, order.shipping_barangay, order.shipping_city, order.shipping_province].filter(Boolean).join(", ");
+  const returnWindowOpen = isReturnWindowOpen(order.delivered_at, order.created_at);
+  const returnDeadline = new Date(new Date(order.delivered_at ?? order.created_at).getTime() + RETURN_WINDOW_MS);
 
   function handleReorder() {
     let added = 0;
@@ -281,6 +286,23 @@ export default function OrderCard({
                     https://www.jtexpress.ph/track-and-trace
                   </a>
                 </p>
+              </div>
+            )}
+
+            {/* Delivered date + return window transparency */}
+            {order.status === "delivered" && (
+              <div className="px-5 pb-4 space-y-0.5">
+                {order.delivered_at && (
+                  <p className="text-xs text-ink-2">Delivered {formatLongDate(order.delivered_at)}</p>
+                )}
+                {returnWindowOpen ? (
+                  <p className="text-xs text-ink-2">
+                    Return window closes {formatLongDate(returnDeadline.toISOString())}
+                    {!order.delivered_at && " (based on order date)"}
+                  </p>
+                ) : (
+                  <p className="text-xs text-ink-3">Return period expired</p>
+                )}
               </div>
             )}
 
@@ -427,17 +449,13 @@ export default function OrderCard({
                         {isCancelling ? "Cancelling…" : "Cancel Order"}
                       </button>
                     )}
-                    {order.status === "delivered" && !returnInfo && order.payment_type !== "downpayment" && (
-                      isReturnWindowOpen(order.delivered_at, order.created_at) ? (
-                        <button
-                          onClick={onRequestReturn}
-                          className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-line text-ink-2">
-                          <RotateCcw className="w-3 h-3" />
-                          Request Return
-                        </button>
-                      ) : (
-                        <span className="text-xs text-ink-3">Return window has expired</span>
-                      )
+                    {order.status === "delivered" && !returnInfo && order.payment_type !== "downpayment" && returnWindowOpen && (
+                      <button
+                        onClick={onRequestReturn}
+                        className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-line text-ink-2">
+                        <RotateCcw className="w-3 h-3" />
+                        Request Return
+                      </button>
                     )}
                     {order.status === "delivered" && returnInfo && (
                       <button
