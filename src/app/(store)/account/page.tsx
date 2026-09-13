@@ -5,80 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { DP_RESERVE_FEE } from "@/lib/constants";
 import Image from "next/image";
-import { Package, User, LogOut, ChevronRight, Clock, CheckCircle, Truck, Lock, Eye, EyeOff, Save, MapPin, MessageCircle, X, Home, Star, RotateCcw, Upload } from "lucide-react";
+import { Package, User, LogOut, ChevronRight, CheckCircle, Lock, Eye, EyeOff, Save, X, Home, Star, Upload } from "lucide-react";
+import OrderCard, { type Order, type ReturnInfo } from "@/components/account/OrderCard";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import toast from "react-hot-toast";
 
-const STATUS_CONFIG = {
-  pending:       { icon: Clock,       color: "#8A8580", label: "Pending",        bg: "rgba(138,133,128,0.12)" },
-  paid:          { icon: CheckCircle, color: "#5BB8B4", label: "Confirmed",     bg: "rgba(91,184,180,0.12)" },
-  stock_on_hand: { icon: CheckCircle, color: "#8B5CF6", label: "On Hand",        bg: "rgba(139,92,246,0.12)" },
-  processing:    { icon: Clock,       color: "#D97706", label: "Packing",        bg: "rgba(217,119,6,0.12)" },
-  shipped:       { icon: Truck,       color: "#3B82F6", label: "Shipped",        bg: "rgba(59,130,246,0.12)" },
-  delivered:     { icon: CheckCircle, color: "#10B981", label: "Delivered",      bg: "rgba(16,185,129,0.12)" },
-  cancelled:     { icon: Clock,       color: "#D94F3D", label: "Cancelled",      bg: "rgba(217,79,61,0.12)" },
-} as const;
-
-type OrderItem = {
-  product_name: string;
-  size: string;
-  quantity: number;
-  unit_price: number;
-  payment_type?: string | null;
-  product_id?: string | null;
-  products: { images: string[] | null; bg: string | null; slug: string | null } | null;
-};
-type Order = {
-  id: string;
-  order_number: string;
-  created_at: string;
-  status: string;
-  delivered_at?: string | null;
-  total: number;
-  subtotal?: number;
-  shipping_fee?: number;
-  discount?: number;
-  coupon_code?: string | null;
-  payment_method: string;
-  payment_type?: string | null;
-  payment_reference?: string | null;
-  proof_of_payment?: string | null;
-  tracking_number?: string;
-  shipping_street?: string;
-  shipping_barangay?: string;
-  shipping_city?: string;
-  shipping_province?: string;
-  customer_name?: string;
-  customer_mobile?: string;
-  order_items: OrderItem[];
-};
 type Tab = "orders" | "account" | "address" | "password";
-
-// COD skips the "Confirmed/Paid" step
-const STEPS_DEFAULT = [
-  { key: "pending",       label: "Placed" },
-  { key: "paid",          label: "Confirmed" },
-  { key: "stock_on_hand", label: "On Hand" },
-  { key: "processing",    label: "Packing" },
-  { key: "shipped",       label: "Shipped" },
-  { key: "delivered",     label: "Delivered" },
-];
-const STEPS_COD = [
-  { key: "pending",    label: "Placed" },
-  { key: "processing", label: "Packing" },
-  { key: "shipped",    label: "Shipped" },
-  { key: "delivered",  label: "Collected" },
-];
-
-const RETURN_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
-// Orders delivered before delivered_at existed have no recorded delivery date —
-// treat them as always eligible rather than guessing.
-function isReturnWindowOpen(deliveredAt: string | null | undefined) {
-  if (!deliveredAt) return true;
-  return Date.now() - new Date(deliveredAt).getTime() < RETURN_WINDOW_MS;
-}
 
 export default function AccountPage() {
   const router = useRouter();
@@ -118,6 +52,21 @@ export default function AccountPage() {
     } catch { return new Set(); }
   });
 
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(() => {
+    try {
+      const stored = sessionStorage.getItem("snd_expanded_orders");
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch { return new Set(); }
+  });
+  const toggleOrderExpand = (orderId: string) => {
+    setExpandedOrders(prev => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId); else next.add(orderId);
+      try { sessionStorage.setItem("snd_expanded_orders", JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  };
+
   // Return request state
   const [returnModalOrder, setReturnModalOrder] = useState<Order | null>(null);
   const [returnReason, setReturnReason] = useState("");
@@ -126,7 +75,6 @@ export default function AccountPage() {
   const [submittingReturn, setSubmittingReturn] = useState(false);
   const [returnError, setReturnError] = useState("");
   const [returnSuccess, setReturnSuccess] = useState(false);
-  type ReturnInfo = { id?: string; status: string; admin_note: string | null; reason: string; photo_url: string | null; photo_urls?: string[] | null };
   const [returnedOrders, setReturnedOrders] = useState<Map<string, ReturnInfo>>(new Map());
   const [viewReturnModal, setViewReturnModal] = useState<{ orderNumber: string } & ReturnInfo | null>(null);
   const [editingReturn, setEditingReturn] = useState(false);
@@ -549,6 +497,17 @@ export default function AccountPage() {
     cancelled: orders.filter(o => o.status === "cancelled").length,
   };
 
+  const filteredOrders = orders.filter(order => {
+    if (orderFilter === "all") return true;
+    if (orderFilter === "pending") return ["pending", "stock_on_hand"].includes(order.status);
+    if (orderFilter === "to_ship") return ["paid", "processing"].includes(order.status);
+    if (orderFilter === "shipped") return order.status === "shipped";
+    if (orderFilter === "delivered") return order.status === "delivered";
+    if (orderFilter === "returned") return returnedOrders.get(order.order_number)?.status === "approved";
+    if (orderFilter === "cancelled") return order.status === "cancelled";
+    return true;
+  });
+
   const NAV_TABS = [
     { id: "orders" as Tab, icon: Package, label: "My Orders" },
     { id: "account" as Tab, icon: User, label: "Account Details" },
@@ -668,337 +627,71 @@ export default function AccountPage() {
                     <p className="text-sm mt-2 mb-6 text-ink-3">Your orders will show up here after you place one.</p>
                     <Link href="/shop" className="inline-block px-8 py-3 font-bold text-sm uppercase tracking-widest bg-ink text-paper">Shop Now</Link>
                   </div>
-                ) : orders.filter(order => {
-                    if (orderFilter === "all") return true;
-                    if (orderFilter === "pending") return ["pending", "stock_on_hand"].includes(order.status);
-                    if (orderFilter === "to_ship") return ["paid", "processing"].includes(order.status);
-                    if (orderFilter === "shipped") return order.status === "shipped";
-                    if (orderFilter === "delivered") return order.status === "delivered";
-                    if (orderFilter === "returned") return returnedOrders.get(order.order_number)?.status === "approved";
-                    if (orderFilter === "cancelled") return order.status === "cancelled";
-                    return true;
-                  }).length === 0 ? (
+                ) : filteredOrders.length === 0 ? (
                   <div className="py-12 text-center">
                     <p className="font-display text-[1.5rem] tracking-[0.04em] text-ink-2">NO ORDERS</p>
                     <p className="text-sm mt-2 text-ink-3">No orders in this category.</p>
                   </div>
-                ) : orders.filter(order => {
-                    if (orderFilter === "all") return true;
-                    if (orderFilter === "pending") return ["pending", "stock_on_hand"].includes(order.status);
-                    if (orderFilter === "to_ship") return ["paid", "processing"].includes(order.status);
-                    if (orderFilter === "shipped") return order.status === "shipped";
-                    if (orderFilter === "delivered") return order.status === "delivered";
-                    if (orderFilter === "returned") return returnedOrders.get(order.order_number)?.status === "approved";
-                    if (orderFilter === "cancelled") return order.status === "cancelled";
-                    return true;
-                  }).map(order => {
-                  const isCOD = order.payment_method === "cod";
-                  const STEPS = isCOD ? STEPS_COD : STEPS_DEFAULT;
-                  const cfg = STATUS_CONFIG[order.status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
-                  const Icon = cfg.icon;
-                  const date = new Date(order.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
-                  // For COD, "paid" status never happens — map it to processing index for progress
-                  const activeIdx = STEPS.findIndex(s => s.key === order.status);
-                  const address = [order.shipping_street, order.shipping_barangay, order.shipping_city, order.shipping_province].filter(Boolean).join(", ");
-                  return (
-                    <div key={order.id} className="rounded-xl overflow-hidden bg-paper-2 border border-line">
-
-                      {/* Order header */}
-                      <div className="px-5 pt-5 pb-4 border-b border-line">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-black text-sm text-ink">{order.order_number}</p>
-                            <p className="text-xs mt-0.5 text-ink-2">{date}</p>
-                            {(order.customer_name || order.customer_mobile) && (
-                              <p className="text-xs mt-1 text-ink-2">
-                                {[order.customer_name, order.customer_mobile].filter(Boolean).join(" · ")}
-                              </p>
-                            )}
-                          </div>
-                          <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full shrink-0"
-                            style={{ background: cfg.bg, color: cfg.color }}>
-                            <Icon className="w-3 h-3" />
-                            {order.status === "delivered" && isCOD ? "Delivered / Collected" : cfg.label}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Progress tracker */}
-                      {order.status !== "cancelled" && (
-                        <div className="px-5 py-5 border-b border-line">
-                          <div className="flex items-center">
-                            {STEPS.map((step, i) => {
-                              const done = activeIdx >= i;
-                              const active = activeIdx === i;
-                              return (
-                                <div key={step.key} className="flex items-center flex-1 min-w-0">
-                                  <div className="flex flex-col items-center flex-1">
-                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black mb-1.5 shrink-0 transition-all ${
-                                      active ? "bg-ink text-white shadow-[0_0_0_3px_rgba(91,184,180,0.15)]" : done ? "bg-ink/[33%] text-white" : "bg-line text-ink-3"
-                                    }`}>
-                                      {done && !active ? "✓" : i + 1}
-                                    </div>
-                                    <p className={`text-[9px] font-bold text-center whitespace-nowrap px-0.5 ${
-                                      active ? "text-ink" : done ? "text-ink/90" : "text-ink-3"
-                                    }`}>
-                                      {step.label}
-                                    </p>
-                                  </div>
-                                  {i < STEPS.length - 1 && (
-                                    <div className={`h-0.5 flex-1 mx-0.5 mb-5 shrink-0 transition-all ${activeIdx > i ? "bg-ink" : "bg-line"}`} />
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Tracking card — shown when shipped or delivered */}
-                      {order.tracking_number && (order.status === "shipped" || order.status === "delivered") && (
-                        <div className="mx-5 my-4 p-4 rounded-lg bg-ink/[6%] border border-ink/[19%]">
-                          <div className="flex items-center gap-3 mb-2">
-                            <Truck className="w-5 h-5 shrink-0 text-ink" />
-                            <p className="text-xs font-bold uppercase tracking-wide text-ink">Your order is on its way</p>
-                          </div>
-                          <p className="text-xs text-ink-2">Here&apos;s your tracking number:</p>
-                          <p className="text-base font-black mt-1 text-ink">{order.tracking_number}</p>
-                          <p className="text-[11px] mt-2 text-ink-2">
-                            Copy and paste to{" "}
-                            <a href="https://www.jtexpress.ph/track-and-trace" target="_blank" rel="noopener noreferrer"
-                              className="underline font-semibold text-ink">
-                              https://www.jtexpress.ph/track-and-trace
-                            </a>
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Shipping address */}
-                      {address && (
-                        <div className="px-5 pb-4 flex items-start gap-2">
-                          <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-ink-3" />
-                          <p className="text-xs text-ink-2">{address}</p>
-                        </div>
-                      )}
-
-                      {/* Items */}
-                      <div className="border-t border-line">
-                        {order.order_items?.map((item, i) => {
-                          const img = item.products?.images?.[0] ?? null;
-                          const bg = item.products?.bg ?? "#EDE9E3";
-                          return (
-                            <div key={i} className="flex items-center gap-3 px-5 py-3 border-b border-line">
-                              {item.products?.slug ? (
-                                <Link href={`/shop/${item.products.slug}`} className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative transition-opacity hover:opacity-70 border border-line"
-                                  style={{ background: bg }}>
-                                  {img ? (
-                                    <Image src={img} alt={item.product_name} fill className="object-cover" sizes="44px" />
-                                  ) : (
-                                    <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-ink opacity-[0.12] font-display">
-                                      S
-                                    </span>
-                                  )}
-                                </Link>
-                              ) : (
-                                <div className="w-11 h-11 shrink-0 rounded-lg overflow-hidden relative border border-line"
-                                  style={{ background: bg }}>
-                                  {img ? (
-                                    <Image src={img} alt={item.product_name} fill className="object-cover" sizes="44px" />
-                                  ) : (
-                                    <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-ink opacity-[0.12] font-display">
-                                      S
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                {item.products?.slug ? (
-                                  <Link href={`/shop/${item.products.slug}`} className="text-sm font-semibold truncate block transition-opacity hover:opacity-70 text-ink">{item.product_name}</Link>
-                                ) : (
-                                  <p className="text-sm font-semibold truncate text-ink">{item.product_name}</p>
-                                )}
-                                <p className="text-xs text-ink-2">Size {item.size} · Qty {item.quantity}</p>
-                              </div>
-                              <p className="font-bold text-sm shrink-0 text-ink">
-                                ₱{(item.unit_price * item.quantity).toLocaleString()}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Order breakdown + actions */}
-                      <div className="px-5 py-4 border-t border-line">
-                        {/* Price breakdown */}
-                        {(order.subtotal !== undefined) && (() => {
-                          const dpItems = order.order_items.filter(i => i.payment_type === "downpayment");
-                          const isOrderDP = dpItems.length > 0;
-                          const dpItemsBalance = dpItems.reduce((s, i) => s + (i.unit_price - DP_RESERVE_FEE) * i.quantity, 0);
-                          const dpItemsNow = dpItems.reduce((s, i) => s + DP_RESERVE_FEE * i.quantity, 0);
-                          const totalNow = dpItemsNow + (order.shipping_fee ?? 0) - (order.discount ?? 0);
-                          return (
-                            <div className="space-y-1 mb-3 text-xs text-ink-2">
-                              <div className="flex justify-between">
-                                <span>Subtotal</span>
-                                <span>₱{Number(order.subtotal).toLocaleString()}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Shipping</span>
-                                <span className={order.shipping_fee === 0 ? "text-ink" : undefined}>
-                                  {order.shipping_fee === 0 ? "FREE" : `₱${Number(order.shipping_fee).toLocaleString()}`}
-                                </span>
-                              </div>
-                              {(order.discount ?? 0) > 0 && (
-                                <div className="flex justify-between text-ink">
-                                  <span>Coupon {order.coupon_code ? `(${order.coupon_code})` : ""}</span>
-                                  <span>−₱{Number(order.discount).toLocaleString()}</span>
-                                </div>
-                              )}
-                              {isOrderDP ? (
-                                <>
-                                  <div className="flex justify-between pt-1 font-bold text-ink">
-                                    <span>Downpayment Paid</span>
-                                    <span className="text-ink">₱{totalNow.toLocaleString()}</span>
-                                  </div>
-                                  <div className={`flex justify-between ${order.status === "stock_on_hand" ? "text-state-error" : "text-ink-2"}`}>
-                                    <span>Balance Due</span>
-                                    <span>₱{dpItemsBalance.toLocaleString()}</span>
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="flex justify-between pt-1 font-bold text-ink">
-                                  <span>Total</span>
-                                  <span>₱{Number(order.total).toLocaleString()}</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
-
-                        <div className="space-y-3">
-                          {/* Payment info row */}
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <p className="text-xs text-ink-2">
-                              {isCOD ? "Cash on Delivery" : order.payment_method?.replace("_", " ")}
-                            </p>
-                            {order.payment_reference && (
-                              <p className="text-xs font-medium text-ink-2">
-                                Ref: <span className="text-ink">{order.payment_reference}</span>
-                              </p>
-                            )}
-                            {!isCOD && order.proof_of_payment && (
-                              <button
-                                onClick={() => { setProofImgLoaded(false); setProofModal({ url: `/api/proof?orderNumber=${encodeURIComponent(order.order_number)}`, orderNumber: order.order_number }); }}
-                                className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70 text-ink">
-                                <Eye className="w-3.5 h-3.5" /> View Proof
-                              </button>
-                            )}
-                            <button
-                              onClick={() => window.dispatchEvent(new CustomEvent("open-chat"))}
-                              className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-70 text-ink">
-                              <MessageCircle className="w-3.5 h-3.5" /> Need help?
-                            </button>
-                          </div>
-                          {/* Total + action buttons row */}
-                          <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {/* Pay Balance button for stock_on_hand DP orders */}
-                              {order.status === "stock_on_hand" && order.order_items.some(i => i.payment_type === "downpayment") && (
-                                <button
-                                  onClick={() => {
-                                    const dpItemsBalance = order.order_items
-                                      .filter(i => i.payment_type === "downpayment")
-                                      .reduce((s, i) => s + (i.unit_price - DP_RESERVE_FEE) * i.quantity, 0);
-                                    setPayBalanceModal({ orderNumber: order.order_number, balance: dpItemsBalance });
-                                  }}
-                                  className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide px-4 py-2 transition-opacity hover:opacity-80 rounded bg-ink text-white">
-                                  Pay Balance
-                                </button>
-                              )}
-                              {order.status === "pending" && isCOD && (
-                                <button
-                                  onClick={() => setCancelModalOrder(order.order_number)}
-                                  disabled={cancellingOrder === order.order_number}
-                                  className="text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity disabled:opacity-50 border border-state-error text-state-error">
-                                  {cancellingOrder === order.order_number ? "Cancelling…" : "Cancel Order"}
-                                </button>
-                              )}
-                              {order.status === "delivered" && !returnedOrders.has(order.order_number) && order.payment_type !== "downpayment" && (
-                                isReturnWindowOpen(order.delivered_at) ? (
-                                  <button
-                                    onClick={() => {
-                                      setReturnModalOrder(order);
-                                      setReturnReason("");
-                                      setReturnError("");
-                                      setReturnSuccess(false);
-                                      setReturnPhotoFiles([]);
-                                      setReturnPhotoPreviews([]);
-                                    }}
-                                    className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-line text-ink-2">
-                                    <RotateCcw className="w-3 h-3" />
-                                    Request Return
-                                  </button>
-                                ) : (
-                                  <span className="text-xs text-ink-3">Return window has expired</span>
-                                )
-                              )}
-                              {order.status === "delivered" && returnedOrders.has(order.order_number) && (() => {
-                                const ret = returnedOrders.get(order.order_number)!;
-                                return (
-                                  <button
-                                    onClick={() => setViewReturnModal({ orderNumber: order.order_number, ...ret })}
-                                    className={`text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border ${
-                                      ret.status === "approved" ? "border-[#10B981] text-[#10B981] bg-[rgba(16,185,129,0.08)]"
-                                        : ret.status === "denied" ? "border-state-error text-state-error bg-state-error/[3%]"
-                                        : "border-line text-ink-2 bg-transparent"
-                                    }`}>
-                                    View Request
-                                  </button>
-                                );
-                              })()}
-                              {order.status === "delivered" && (
-                                <button
-                                  onClick={async () => {
-                                    const isEditing = reviewedOrderIds.has(order.id);
-                                    setReviewForm({ rating: 5, title: "", body: "" });
-                                    setReviewImageFile(null);
-                                    setReviewImagePreview(null);
-                                    setExistingReviewId(null);
-                                    setReviewSuccess(false);
-                                    setReviewModalOrder(order);
-                                    if (isEditing) {
-                                      const firstItem = order.order_items[0];
-                                      const productId = firstItem?.product_id;
-                                      const authorName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Customer";
-                                      if (productId) {
-                                        setLoadingReview(true);
-                                        try {
-                                          const r = await fetch(`/api/reviews?product_id=${encodeURIComponent(productId)}&author_name=${encodeURIComponent(authorName)}`);
-                                          const { review } = await r.json();
-                                          if (review) {
-                                            setReviewForm({ rating: review.rating, title: review.title ?? "", body: review.body });
-                                            setExistingReviewId(review.id);
-                                          }
-                                        } catch {}
-                                        setLoadingReview(false);
-                                      }
-                                    }
-                                  }}
-                                  className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-ink text-ink">
-                                  <Star className="w-3 h-3" />
-                                  {reviewedOrderIds.has(order.id) ? "Edit Review" : "Write a Review"}
-                                </button>
-                              )}
-                            </div>
-                            <p className="font-black text-sm shrink-0 text-ink">
-                              Total ₱{Number(order.total).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                ) : filteredOrders.map(order => (
+                  <OrderCard
+                    key={order.id}
+                    order={order}
+                    expanded={expandedOrders.has(order.id)}
+                    onToggleExpand={() => toggleOrderExpand(order.id)}
+                    returnInfo={returnedOrders.get(order.order_number)}
+                    isReviewed={reviewedOrderIds.has(order.id)}
+                    isCancelling={cancellingOrder === order.order_number}
+                    onCancel={() => setCancelModalOrder(order.order_number)}
+                    onRequestReturn={() => {
+                      setReturnModalOrder(order);
+                      setReturnReason("");
+                      setReturnError("");
+                      setReturnSuccess(false);
+                      setReturnPhotoFiles([]);
+                      setReturnPhotoPreviews([]);
+                    }}
+                    onViewReturn={() => {
+                      const ret = returnedOrders.get(order.order_number)!;
+                      setViewReturnModal({ orderNumber: order.order_number, ...ret });
+                    }}
+                    onWriteReview={async () => {
+                      const isEditing = reviewedOrderIds.has(order.id);
+                      setReviewForm({ rating: 5, title: "", body: "" });
+                      setReviewImageFile(null);
+                      setReviewImagePreview(null);
+                      setExistingReviewId(null);
+                      setReviewSuccess(false);
+                      setReviewModalOrder(order);
+                      if (isEditing) {
+                        const firstItem = order.order_items[0];
+                        const productId = firstItem?.product_id;
+                        const authorName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Customer";
+                        if (productId) {
+                          setLoadingReview(true);
+                          try {
+                            const r = await fetch(`/api/reviews?product_id=${encodeURIComponent(productId)}&author_name=${encodeURIComponent(authorName)}`);
+                            const { review } = await r.json();
+                            if (review) {
+                              setReviewForm({ rating: review.rating, title: review.title ?? "", body: review.body });
+                              setExistingReviewId(review.id);
+                            }
+                          } catch {}
+                          setLoadingReview(false);
+                        }
+                      }
+                    }}
+                    onPayBalance={() => {
+                      const dpItemsBalance = order.order_items
+                        .filter(i => i.payment_type === "downpayment")
+                        .reduce((s, i) => s + (i.unit_price - DP_RESERVE_FEE) * i.quantity, 0);
+                      setPayBalanceModal({ orderNumber: order.order_number, balance: dpItemsBalance });
+                    }}
+                    onViewProof={() => {
+                      setProofImgLoaded(false);
+                      setProofModal({ url: `/api/proof?orderNumber=${encodeURIComponent(order.order_number)}`, orderNumber: order.order_number });
+                    }}
+                  />
+                ))}
               </div>
             )}
 
