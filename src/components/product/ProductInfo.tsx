@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Star, Clock, ShieldCheck } from "lucide-react";
+import { Star, Clock, ShieldCheck, Truck } from "lucide-react";
 import type { Product, Review } from "@/lib/types";
 
 function formatETA(start: string, end?: string) {
@@ -14,19 +14,37 @@ function formatETA(start: string, end?: string) {
   return `${months[s.getMonth()]} ${s.getDate()} – ${months[e.getMonth()]} ${e.getDate()}`;
 }
 
+function truncateDescription(text: string, maxLen = 150): { teaser: string; truncated: boolean } {
+  if (text.length <= maxLen) return { teaser: text, truncated: false };
+  const slice = text.slice(0, maxLen);
+  const lastPunct = Math.max(slice.lastIndexOf("."), slice.lastIndexOf("!"), slice.lastIndexOf("?"));
+  if (lastPunct > maxLen * 0.4) {
+    return { teaser: slice.slice(0, lastPunct + 1), truncated: true };
+  }
+  const lastSpace = slice.lastIndexOf(" ");
+  return { teaser: `${slice.slice(0, lastSpace > 0 ? lastSpace : maxLen)}…`, truncated: true };
+}
+
 export default function ProductInfo({
   product,
   reviews,
   isPreOrder,
-  onViewReviews,
+  settings,
+  onSwitchTab,
 }: {
   product: Product;
   reviews: Review[];
   isPreOrder: boolean;
-  onViewReviews: () => void;
+  settings: Record<string, string>;
+  onSwitchTab: (tab: "description" | "reviews") => void;
 }) {
   const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
-  const description = product.description || "Premium authentic sneakers from verified suppliers.";
+  const hasDescription = Boolean(product.description && product.description.trim());
+  const rawDescription = product.description?.trim() || "Premium authentic sneakers from verified suppliers.";
+  const { teaser, truncated } = hasDescription ? truncateDescription(rawDescription) : { teaser: rawDescription, truncated: false };
+  const metroFee = settings.metro_shipping_fee || "150";
+  const provFee = settings.provincial_shipping_fee || "250";
+  const freeThreshold = settings.free_shipping_threshold || "5000";
 
   return (
     <div>
@@ -69,25 +87,26 @@ export default function ProductInfo({
             ))}
           </div>
           <span className="text-body-sm font-medium text-ink">{avgRating.toFixed(1)}</span>
-          <button onClick={onViewReviews} className="text-micro text-ink-3 underline hover:text-ink transition-colors">
+          <button onClick={() => onSwitchTab("reviews")} className="text-micro text-ink-3 underline hover:text-ink transition-colors">
             ({reviews.length} review{reviews.length !== 1 ? "s" : ""})
           </button>
         </div>
       )}
 
-      {/* Description — collapsed accordion on mobile, expanded on desktop */}
-      <div className="lg:hidden border-t border-line pt-4">
-        <details className="group">
-          <summary className="flex items-center justify-between cursor-pointer text-eyebrow text-ink-3 list-none [&::-webkit-details-marker]:hidden">
-            Description
-            <span className="text-ink-3 transition-transform group-open:rotate-180">⌄</span>
-          </summary>
-          <p className="text-body-sm text-ink-2 leading-relaxed mt-3">{description}</p>
-        </details>
-      </div>
-      <div className="hidden lg:block border-t border-line pt-4">
+      {/* Description teaser — full text lives in the Description tab */}
+      <div className="border-t border-line pt-4">
         <p className="text-eyebrow text-ink-3 mb-3">Description</p>
-        <p className="text-body text-ink-2 leading-relaxed">{description}</p>
+        <p className="text-body-sm lg:text-body text-ink-2 leading-relaxed">
+          {teaser}
+          {truncated && (
+            <>
+              {" "}
+              <button onClick={() => onSwitchTab("description")} className="underline hover:text-ink transition-colors whitespace-nowrap">
+                Read more
+              </button>
+            </>
+          )}
+        </p>
       </div>
 
       {/* Authenticity mini-section */}
@@ -97,6 +116,21 @@ export default function ProductInfo({
         <Link href="/authenticity" className="underline hover:text-ink transition-colors whitespace-nowrap">
           How we verify →
         </Link>
+      </div>
+
+      {/* Shipping mini-section */}
+      <div className="mt-4 pt-4 border-t border-line text-micro text-ink-3">
+        <div className="flex items-start gap-2">
+          <Truck className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>
+            Metro Manila ₱{Number(metroFee).toLocaleString()} (1–3 days) · Provincial ₱{Number(provFee).toLocaleString()} (3–7 days) · Free shipping ₱{Number(freeThreshold).toLocaleString()}+. Tracking number included.
+          </span>
+        </div>
+        {isPreOrder && (
+          <p className="text-state-preorder mt-2">
+            Pre-orders are final sale — no returns, size changes, or change of mind once order is placed.
+          </p>
+        )}
       </div>
     </div>
   );

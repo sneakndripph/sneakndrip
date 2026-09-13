@@ -1,30 +1,26 @@
 "use client";
 
 import type { RefObject, Dispatch, SetStateAction } from "react";
-import type { Review } from "@/lib/types";
+import type { Product, Review } from "@/lib/types";
 import ProductReviews from "./ProductReviews";
 
-const TABS = ["shipping", "auth", "reviews"] as const;
+const TABS = ["description", "reviews"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function ProductTabs({
   containerRef,
   activeTab,
   setActiveTab,
+  product,
   reviews,
-  settings,
-  isPreOrder,
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   activeTab: Tab;
   setActiveTab: Dispatch<SetStateAction<Tab>>;
+  product: Product;
   reviews: Review[];
-  settings: Record<string, string>;
-  isPreOrder: boolean;
 }) {
-  const metroFee = settings.metro_shipping_fee || "150";
-  const provFee = settings.provincial_shipping_fee || "250";
-  const freeThreshold = settings.free_shipping_threshold || "5000";
+  const description = product.description?.trim();
 
   return (
     <div ref={containerRef} className="border-t border-line">
@@ -37,29 +33,13 @@ export default function ProductTabs({
               activeTab === tab ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink"
             }`}
           >
-            {tab === "auth" ? "Authenticity" : tab === "reviews" ? `Reviews (${reviews.length})` : tab === "shipping" ? "Shipping" : tab}
+            {tab === "reviews" ? `Reviews (${reviews.length})` : "Description"}
           </button>
         ))}
       </div>
       <div className="py-5 text-body-sm leading-relaxed text-ink-2">
-        {activeTab === "shipping" && (
-          <ul className="space-y-2">
-            <li>· Metro Manila: 1–3 business days (₱{Number(metroFee).toLocaleString()})</li>
-            <li>· Provincial: 3–7 business days (₱{Number(provFee).toLocaleString()})</li>
-            <li>· Free shipping on orders ₱{Number(freeThreshold).toLocaleString()}+</li>
-            <li>· All orders come with a tracking number</li>
-            {isPreOrder && (
-              <li className="text-state-preorder">· Pre-orders are final sale — no returns, size changes, or change of mind once order is placed.</li>
-            )}
-          </ul>
-        )}
-        {activeTab === "auth" && (
-          <ul className="space-y-2">
-            <li>· Every pair sourced from verified authentic suppliers</li>
-            <li>· No replicas, fakes, or unauthorized items ever</li>
-            <li>· Legit check available upon request</li>
-            <li>· Full refund if authenticity is ever in question</li>
-          </ul>
+        {activeTab === "description" && (
+          <p className="whitespace-pre-line">{description || "No description available."}</p>
         )}
         {activeTab === "reviews" && <ProductReviews reviews={reviews} />}
       </div>

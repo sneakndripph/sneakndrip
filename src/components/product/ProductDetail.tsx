@@ -12,7 +12,7 @@ import ProductSizeSelector from "./ProductSizeSelector";
 import ProductCTA from "./ProductCTA";
 import ProductTabs from "./ProductTabs";
 
-type Tab = "shipping" | "auth" | "reviews";
+type Tab = "description" | "reviews";
 
 export default function ProductDetail({
   product,
@@ -26,7 +26,7 @@ export default function ProductDetail({
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [paymentType, setPaymentType] = useState<"full_payment" | "downpayment">("full_payment");
-  const [activeTab, setActiveTab] = useState<Tab>("shipping");
+  const [activeTab, setActiveTab] = useState<Tab>("description");
   const tabsRef = useRef<HTMLDivElement>(null);
   const { trackItem } = useRecentlyViewed();
   const recentItems = useRecentlyViewedStore(s => s.items);
@@ -49,8 +49,8 @@ export default function ProductDetail({
   const effectivePaymentType = isPreOrder ? paymentType : "full_payment";
   const otherRecentItems = recentItems.filter(i => i.id !== product.id);
 
-  function handleViewReviews() {
-    setActiveTab("reviews");
+  function handleSwitchTab(tab: Tab) {
+    setActiveTab(tab);
     setTimeout(() => tabsRef.current?.scrollIntoView({ block: "start" }), 50);
   }
 
@@ -61,7 +61,7 @@ export default function ProductDetail({
           <ProductGallery product={product} isPreOrder={isPreOrder} />
 
           <div className="px-5 py-6 lg:px-0 lg:py-0 lg:sticky lg:top-24">
-            <ProductInfo product={product} reviews={reviews} isPreOrder={isPreOrder} onViewReviews={handleViewReviews} />
+            <ProductInfo product={product} reviews={reviews} isPreOrder={isPreOrder} settings={settings} onSwitchTab={handleSwitchTab} />
 
             <ProductSizeSelector
               product={product}
@@ -85,9 +85,8 @@ export default function ProductDetail({
               containerRef={tabsRef}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
+              product={product}
               reviews={reviews}
-              settings={settings}
-              isPreOrder={isPreOrder}
             />
           </div>
         </div>
