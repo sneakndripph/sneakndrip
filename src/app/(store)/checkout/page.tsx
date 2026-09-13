@@ -24,6 +24,45 @@ const ADDRESS_FIELDS = [
   { key: "street", label: "Street address", placeholder: "123 Rizal St.", col: "sm:col-span-2", req: true },
 ] as const;
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const REQUIRED_MSG: Record<string, string> = {
+  name: "Please enter your full name",
+  email: "Please enter your email address",
+  mobile: "Please enter your mobile number",
+  street: "Please enter your street address",
+};
+
+const FIELD_ORDER = ["name", "email", "mobile", "street", "province", "city", "barangay", "postal"] as const;
+
+const FIELD_DOM_ID: Record<string, string> = {
+  name: "checkout-field-name",
+  email: "checkout-field-email",
+  mobile: "checkout-field-mobile",
+  street: "checkout-field-street",
+  province: "checkout-field-address",
+  city: "checkout-field-address",
+  barangay: "checkout-field-address",
+  postal: "checkout-field-postal",
+};
+
+function isFieldInvalid(
+  form: { name: string; email: string; mobile: string; street: string; province: string; city: string; barangay: string; postal: string },
+  key: string,
+): boolean {
+  switch (key) {
+    case "name": return !form.name;
+    case "email": return !form.email || !EMAIL_RE.test(form.email);
+    case "mobile": return !form.mobile || !/^09\d{9}$/.test(form.mobile);
+    case "street": return !form.street;
+    case "province": return !form.province;
+    case "city": return !form.city;
+    case "barangay": return !form.barangay;
+    case "postal": return !form.postal;
+    default: return false;
+  }
+}
+
 function paymentIcon(id: string) {
   if (id === "gcash" || id === "maya") return Wallet;
   if (id === "bank_transfer") return Landmark;
@@ -195,12 +234,16 @@ export default function CheckoutPage() {
   }, [mounted, items, sub]);
 
   function handleContinueToPayment() {
-    if (!form.name || !form.email || !form.mobile || !form.street || !form.province || !form.city || !form.barangay) {
+    const firstInvalid = FIELD_ORDER.find(key => isFieldInvalid(form, key));
+    if (firstInvalid) {
       setShowErrors(true);
-      return;
-    }
-    if (!/^09\d{9}$/.test(form.mobile)) {
-      setShowErrors(true);
+      setTimeout(() => {
+        const el = document.getElementById(FIELD_DOM_ID[firstInvalid]);
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        const focusable = el instanceof HTMLInputElement ? el : el.querySelector<HTMLElement>("input, button");
+        focusable?.focus();
+      }, 50);
       return;
     }
     setShowErrors(false);
@@ -408,16 +451,19 @@ export default function CheckoutPage() {
 
   function renderField(field: { key: string; label: string; placeholder: string; col?: string; req?: boolean }) {
     const isMobile = field.key === "mobile";
+    const isEmail = field.key === "email";
     const val = form[field.key as keyof typeof form];
     const mobileInvalid = isMobile && showErrors && !!val && !/^09\d{9}$/.test(val);
+    const emailInvalid = isEmail && showErrors && !!val && !EMAIL_RE.test(val);
     const isEmpty = showErrors && !val;
-    const hasError = isEmpty || mobileInvalid;
+    const hasError = isEmpty || mobileInvalid || emailInvalid;
     return (
       <div key={field.key} className={field.col || ""}>
         <label className="block text-micro text-ink-3 mb-1.5">
           {field.label}{field.req && <span className="text-state-error"> *</span>}
         </label>
         <input
+          id={FIELD_DOM_ID[field.key] ?? `checkout-field-${field.key}`}
           value={val}
           onChange={e => setForm(f => ({
             ...f,
@@ -427,8 +473,9 @@ export default function CheckoutPage() {
           inputMode={isMobile ? "numeric" : undefined}
           className={`w-full bg-paper-2 border-0 rounded-md px-4 py-3 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1 ${hasError ? "outline outline-2 outline-state-error" : ""}`}
         />
-        {isEmpty && <p className="mt-1 text-micro text-state-error">This field is required</p>}
-        {mobileInvalid && <p className="mt-1 text-micro text-state-error">Enter a valid PH number (09XXXXXXXXX)</p>}
+        {isEmpty && <p className="mt-1 text-micro text-state-error">{REQUIRED_MSG[field.key] ?? "This field is required"}</p>}
+        {mobileInvalid && <p className="mt-1 text-micro text-state-error">Please enter a valid mobile number (09XXXXXXXXX)</p>}
+        {emailInvalid && <p className="mt-1 text-micro text-state-error">Please enter a valid email</p>}
       </div>
     );
   }
@@ -633,6 +680,7 @@ export default function CheckoutPage() {
 
                   {/* PH Address Dropdowns */}
                   <PhAddressSelect
+                    id={FIELD_DOM_ID.province}
                     province={form.province}
                     city={form.city}
                     barangay={form.barangay}
@@ -645,13 +693,17 @@ export default function CheckoutPage() {
 
                   {/* Postal Code */}
                   <div>
-                    <label className="block text-micro text-ink-3 mb-1.5">Postal code</label>
+                    <label className="block text-micro text-ink-3 mb-1.5">
+                      Postal code<span className="text-state-error"> *</span>
+                    </label>
                     <input
+                      id={FIELD_DOM_ID.postal}
                       value={form.postal}
                       onChange={e => setForm(f => ({ ...f, postal: e.target.value }))}
                       placeholder="1630"
-                      className="w-full bg-paper-2 border-0 rounded-md px-4 py-3 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1"
+                      className={`w-full bg-paper-2 border-0 rounded-md px-4 py-3 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1 ${showErrors && !form.postal ? "outline outline-2 outline-state-error" : ""}`}
                     />
+                    {showErrors && !form.postal && <p className="mt-1 text-micro text-state-error">Please enter your postal code</p>}
                   </div>
                 </div>
 

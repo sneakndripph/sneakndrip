@@ -14,6 +14,7 @@ interface Props {
   onBarangayChange: (v: string) => void;
   onRegionGroupChange?: (groupName: string) => void;
   showErrors?: boolean;
+  id?: string;
 }
 
 // Simplified region groups matching the reference UI
@@ -40,6 +41,7 @@ export default function PhAddressSelect({
   onProvinceChange, onCityChange, onBarangayChange,
   onRegionGroupChange,
   showErrors = false,
+  id,
 }: Props) {
   const [step, setStep]           = useState<Step>("region");
   const [group, setGroup]         = useState<typeof GROUPS[0] | null>(null);
@@ -117,7 +119,7 @@ export default function PhAddressSelect({
   };
 
   return (
-    <div className="sm:col-span-2">
+    <div id={id} className="sm:col-span-2">
       <label className="text-ink" style={labelStyle}>
         Region / Province / City / Barangay <span className="text-state-error">*</span>
       </label>
