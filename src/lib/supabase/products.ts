@@ -72,6 +72,41 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   }
 }
 
+export async function getRelatedProducts(brand: string, excludeId: string, limit: number = 4): Promise<Product[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("*, product_sizes(size, stock)")
+      .eq("is_published", true)
+      .eq("brand", brand)
+      .neq("id", excludeId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error || !data?.length) return [];
+    return data.map(p => mapRow(p));
+  } catch {
+    return [];
+  }
+}
+
+export async function getRecentProducts(excludeId: string, limit: number = 4): Promise<Product[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("*, product_sizes(size, stock)")
+      .eq("is_published", true)
+      .neq("id", excludeId)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error || !data?.length) return [];
+    return data.map(p => mapRow(p));
+  } catch {
+    return [];
+  }
+}
+
 export async function getSettings(): Promise<Record<string, string>> {
   try {
     const supabase = createAdminClient();

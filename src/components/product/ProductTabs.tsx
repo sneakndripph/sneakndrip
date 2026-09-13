@@ -3,8 +3,9 @@
 import type { RefObject, Dispatch, SetStateAction } from "react";
 import type { Product, Review } from "@/lib/types";
 import ProductReviews from "./ProductReviews";
+import ProductCard from "./ProductCard";
 
-const TABS = ["description", "sizing", "reviews"] as const;
+const TABS = ["description", "sizing", "reviews", "related"] as const;
 type Tab = (typeof TABS)[number];
 
 type SizeGuide = { label: string; note: string; rows: string[][] };
@@ -61,12 +62,14 @@ export default function ProductTabs({
   setActiveTab,
   product,
   reviews,
+  relatedProducts,
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   activeTab: Tab;
   setActiveTab: Dispatch<SetStateAction<Tab>>;
   product: Product;
   reviews: Review[];
+  relatedProducts: Product[];
 }) {
   const description = product.description?.trim();
   const sizeGuide = getSizeGuideData(product.brand);
@@ -82,7 +85,7 @@ export default function ProductTabs({
               activeTab === tab ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink"
             }`}
           >
-            {tab === "reviews" ? `Reviews (${reviews.length})` : tab === "sizing" ? "Sizing" : "Description"}
+            {tab === "reviews" ? `Reviews (${reviews.length})` : tab === "sizing" ? "Sizing" : tab === "related" ? "Related" : "Description"}
           </button>
         ))}
       </div>
@@ -117,6 +120,17 @@ export default function ProductTabs({
           </div>
         )}
         {activeTab === "reviews" && <ProductReviews reviews={reviews} />}
+        {activeTab === "related" && (
+          relatedProducts.length > 0 ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {relatedProducts.map(p => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          ) : (
+            <p>No related products to show right now.</p>
+          )
+        )}
       </div>
     </div>
   );

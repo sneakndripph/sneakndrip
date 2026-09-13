@@ -12,16 +12,18 @@ import ProductSizeSelector from "./ProductSizeSelector";
 import ProductCTA from "./ProductCTA";
 import ProductTabs from "./ProductTabs";
 
-type Tab = "description" | "sizing" | "reviews";
+type Tab = "description" | "sizing" | "reviews" | "related";
 
 export default function ProductDetail({
   product,
   reviews = [],
   settings = {},
+  relatedProducts = [],
 }: {
   product: Product;
   reviews?: Review[];
   settings?: Record<string, string>;
+  relatedProducts?: Product[];
 }) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -88,6 +90,7 @@ export default function ProductDetail({
               setActiveTab={setActiveTab}
               product={product}
               reviews={reviews}
+              relatedProducts={relatedProducts}
             />
           </div>
         </div>
