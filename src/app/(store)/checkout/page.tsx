@@ -724,7 +724,7 @@ export default function CheckoutPage() {
 
         <div className="grid lg:grid-cols-3 gap-8 items-start">
           {/* Main form */}
-          <div className="lg:col-span-2">
+          <div className="min-w-0 lg:col-span-2">
             {/* Step 1: Details */}
             {step === "details" && (
               <div className="space-y-4">
