@@ -225,11 +225,12 @@ export default function CheckoutPage() {
 
         // Saved addresses (Task E) — pre-select the default one if any exist
         fetch("/api/account/addresses")
-          .then(r => (r.ok ? r.json() : []))
-          .then((data: SavedAddress[]) => {
-            if (Array.isArray(data) && data.length > 0) {
-              setSavedAddresses(data);
-              const def = data.find(a => a.is_default) ?? data[0];
+          .then(r => (r.ok ? r.json() : { addresses: [] }))
+          .then((data: { addresses: SavedAddress[] }) => {
+            const addresses = data.addresses ?? [];
+            if (addresses.length > 0) {
+              setSavedAddresses(addresses);
+              const def = addresses.find(a => a.is_default) ?? addresses[0];
               setSelectedAddressId(def.id);
               setForm(f => ({
                 ...f,
