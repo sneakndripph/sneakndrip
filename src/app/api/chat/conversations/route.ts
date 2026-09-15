@@ -1,8 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, getIP } from "@/lib/rate-limit";
 
 // POST — create new conversation
 export async function POST(req: NextRequest) {
+  const { allowed } = rateLimit(getIP(req), 20, 60_000);
+  if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   const { customer_name, customer_email, first_message } = await req.json() as {
     customer_name: string;
     customer_email?: string;

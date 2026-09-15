@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/require-admin";
+import { rateLimit, getIP } from "@/lib/rate-limit";
 
 const EXT_MIME: Record<string, string> = {
   jpg: "image/jpeg",
@@ -15,6 +16,9 @@ const EXT_MIME: Record<string, string> = {
 const MAX_BYTES = 10 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
+  const { allowed } = rateLimit(getIP(req), 5, 60_000);
+  if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

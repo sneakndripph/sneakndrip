@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/require-admin";
+import { rateLimit, getIP } from "@/lib/rate-limit";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const viewer = await requireUser();
@@ -25,6 +26,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { allowed } = rateLimit(getIP(req), 20, 60_000);
+  if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   const poster = await requireUser();
   if (!poster) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

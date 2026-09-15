@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit, getIP } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const { allowed } = rateLimit(getIP(req), 10, 60_000);
+  if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   const serverClient = await createClient();
   const { data: { user } } = await serverClient.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
