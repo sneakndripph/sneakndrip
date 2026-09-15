@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { rateLimit, getIP } from "@/lib/rate-limit";
 
 const BASE = "https://psgc.gitlab.io/api";
 
@@ -10,6 +11,9 @@ const URLS: Record<string, (code: string) => string> = {
 };
 
 export async function GET(req: NextRequest) {
+  const { allowed } = rateLimit(getIP(req), 60, 60_000);
+  if (!allowed) return NextResponse.json([], { status: 429 });
+
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") ?? "";
   const code = searchParams.get("code") ?? "";

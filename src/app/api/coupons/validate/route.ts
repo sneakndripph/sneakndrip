@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
+import { rateLimit, getIP } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
+  const { allowed } = rateLimit(getIP(req), 30, 60_000);
+  if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   const { code, orderTotal } = await req.json();
   if (!code || typeof code !== "string" || code.length > 50)
     return NextResponse.json({ error: "Missing code" }, { status: 400 });

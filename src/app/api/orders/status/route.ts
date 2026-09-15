@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { createClient } from "@/lib/supabase/server";
+import { rateLimit, getIP } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
+  const { allowed } = rateLimit(getIP(req), 30, 60_000);
+  if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+
   const orderNumber = req.nextUrl.searchParams.get("orderNumber");
   if (!orderNumber) return NextResponse.json({ error: "Missing orderNumber" }, { status: 400 });
 
