@@ -18,7 +18,7 @@ export default function AnnouncementBar() {
       if (custom) { setText(custom); setVisible(true); }
     };
 
-    fetch("/api/admin/settings")
+    fetch("/api/settings")
       .then(r => r.json())
       .then((data: Record<string, string>) => load(data))
       .catch(() => {});
@@ -27,7 +27,7 @@ export default function AnnouncementBar() {
     const channel = supabase
       .channel("announcement-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "store_settings" }, () => {
-        fetch("/api/admin/settings")
+        fetch("/api/settings")
           .then(r => r.json())
           .then((data: Record<string, string>) => load(data))
           .catch(() => {});

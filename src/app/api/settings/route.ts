@@ -16,6 +16,7 @@ const PUBLIC_KEYS = new Set([
   "trending_enabled",
   "reviews_enabled",
   "newsletter_enabled",
+  "announcement_text",
 ]);
 
 export async function GET() {
