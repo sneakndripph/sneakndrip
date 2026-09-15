@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { rateLimit, getIP } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email/send";
 import { h } from "@/lib/email/helpers";
 import { newsletterWelcome } from "@/lib/email/templates/newsletterWelcome";
+import { validateBody } from "@/lib/validation/validate";
+import { emailSchema } from "@/lib/validation/schemas";
 
 const ADMIN_EMAIL = "donjulio263@gmail.com";
+
+const newsletterSubscribeSchema = z.object({ email: emailSchema });
 
 export async function POST(req: NextRequest) {
   const { allowed } = rateLimit(getIP(req), 5, 60_000); // 5 signups/min per IP
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-  const { email } = await req.json();
-  if (!email || typeof email !== "string" || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: "Invalid email" }, { status: 400 });
-  }
+  const result = await validateBody(req, newsletterSubscribeSchema);
+  if ("error" in result) return result.error;
+  const { email } = result.data;
 
   const admin = createAdminClient();
   const { error } = await admin.from("newsletter_subscribers").insert({ email });
