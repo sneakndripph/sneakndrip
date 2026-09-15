@@ -152,6 +152,7 @@ export default function CheckoutPage() {
   const isDP = items.some(i => i.payment_type === "downpayment");
   const hasOnHand = items.some(i => i.payment_type !== "downpayment");
   const isMixed = isDP && hasOnHand;
+  const hasPreOrder = items.some(i => i.product.status === "pre-order");
   const dpBalance = items
     .filter(i => i.payment_type === "downpayment")
     .reduce((s, i) => s + (i.unit_price - DP_RESERVE_FEE) * i.quantity, 0);
@@ -165,6 +166,10 @@ export default function CheckoutPage() {
     (s, i) => s + (i.payment_type === "downpayment" ? DP_RESERVE_FEE : i.unit_price) * i.quantity, 0
   );
   const totalDueNow = subNow + shipping - discount;
+
+  useEffect(() => {
+    if (hasPreOrder && paymentMethod === "cod") setPaymentMethod("gcash");
+  }, [hasPreOrder, paymentMethod]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -874,11 +879,13 @@ export default function CheckoutPage() {
                     {PAYMENT_METHODS.filter(pm => pm.id !== "cod" || codEnabled).map(pm => {
                       const Icon = paymentIcon(pm.id);
                       const selected = paymentMethod === pm.id;
+                      const disabled = pm.id === "cod" && hasPreOrder;
                       return (
-                        <button key={pm.id} onClick={() => setPaymentMethod(pm.id)}
+                        <button key={pm.id} onClick={() => !disabled && setPaymentMethod(pm.id)}
+                          disabled={disabled}
                           className={`flex items-center gap-3 p-4 rounded-md border text-left transition-colors ${
                             selected ? "border-ink bg-paper-2" : "border-line hover:border-ink"
-                          }`}>
+                          } disabled:opacity-40 disabled:cursor-not-allowed`}>
                           <Icon className="w-5 h-5 text-ink-3 shrink-0" />
                           <span className="text-body-sm font-medium text-ink">{pm.label}</span>
                           {selected && <CheckCircle className="ml-auto w-4 h-4 text-ink shrink-0" />}
@@ -886,6 +893,11 @@ export default function CheckoutPage() {
                       );
                     })}
                   </div>
+                  {hasPreOrder && (
+                    <p className="text-micro mt-3 text-ink-3">
+                      Cash on Delivery isn&apos;t available for orders that include pre-order items.
+                    </p>
+                  )}
                 </div>
 
                 {/* Payment instructions */}

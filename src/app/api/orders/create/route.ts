@@ -38,6 +38,24 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminClient();
 
+    if (String(o.payment_method) === "cod") {
+      const productIds = [...new Set(
+        (items as Array<{ product_id?: string }>).map(i => i.product_id).filter(Boolean)
+      )];
+      if (productIds.length) {
+        const { data: preorderCheck } = await supabase
+          .from("products")
+          .select("id, status")
+          .in("id", productIds);
+        if ((preorderCheck ?? []).some(p => p.status === "pre-order")) {
+          return NextResponse.json(
+            { error: "Cash on Delivery is not available for orders containing pre-order items" },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Single transactional RPC: locks + checks + deducts stock, inserts the
     // order and its items, all atomically. Any failure (insufficient stock,
     // bad input, a constraint violation) rolls the whole thing back — no
