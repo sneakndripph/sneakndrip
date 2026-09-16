@@ -9,7 +9,7 @@ export default async function AdminInventoryPage() {
   const [{ data: products }, { data: log }] = await Promise.all([
     admin
       .from("products")
-      .select("id, name, brand, status, images, product_sizes(size, stock)")
+      .select("id, name, brand, status, images, cost_price, full_payment_price, is_published, product_sizes(size, stock)")
       .order("name"),
     admin
       .from("inventory_log")
