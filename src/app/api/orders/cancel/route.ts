@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, getIP } from "@/lib/rate-limit";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
+import { orderNumberSchema } from "@/lib/validation/schemas";
+
+const orderCancelSchema = z.object({
+  orderNumber: orderNumberSchema,
+  reason: z.string().trim().optional(),
+});
 
 export async function POST(req: NextRequest) {
   const { allowed } = rateLimit(getIP(req), 10, 60_000);
@@ -11,8 +19,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await serverClient.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { orderNumber, reason } = await req.json();
-  if (!orderNumber) return NextResponse.json({ error: "Missing orderNumber" }, { status: 400 });
+  const result = await validateBody(req, orderCancelSchema);
+  if ("error" in result) return result.error;
+  const { orderNumber, reason } = result.data;
 
   const admin = createAdminClient();
 

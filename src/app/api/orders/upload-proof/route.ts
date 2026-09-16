@@ -2,6 +2,16 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { NextRequest, NextResponse } from "next/server";
 import { requireUser } from "@/lib/supabase/require-admin";
 import { rateLimit, getIP } from "@/lib/rate-limit";
+import { z } from "zod";
+import { orderNumberSchema } from "@/lib/validation/schemas";
+
+// type stays a loose optional string (no enum) -- only ever compared for
+// equality against "balance_proof", matching this route's pre-existing
+// permissiveness for that field.
+const uploadProofFieldsSchema = z.object({
+  orderNumber: orderNumberSchema,
+  type: z.string().trim().optional(),
+});
 
 const EXT_MIME: Record<string, string> = {
   jpg: "image/jpeg",
@@ -24,12 +34,18 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
-  const orderNumber = formData.get("orderNumber") as string | null;
-  const type = formData.get("type") as string | null;
-
-  if (!file || !orderNumber) {
+  if (!file) {
     return NextResponse.json({ error: "Missing file or orderNumber" }, { status: 400 });
   }
+
+  const parsed = uploadProofFieldsSchema.safeParse({
+    orderNumber: formData.get("orderNumber") ?? undefined,
+    type: formData.get("type") ?? undefined,
+  });
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Missing file or orderNumber" }, { status: 400 });
+  }
+  const { orderNumber, type } = parsed.data;
 
   const ext = (file.name.split(".").pop() ?? "").toLowerCase();
   const contentType = EXT_MIME[ext];

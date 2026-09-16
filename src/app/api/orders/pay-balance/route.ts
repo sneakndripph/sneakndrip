@@ -5,12 +5,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { validateEnv } from "@/lib/env";
 import { rateLimit, getIP } from "@/lib/rate-limit";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
+import { orderNumberSchema } from "@/lib/validation/schemas";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "donjulio263@gmail.com";
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
 const BRAND_TEAL = "#5BB8B4";
 const BRAND_BLACK = "#0D0D0D";
+
+// balance/paymentMethod/proofPath stay permissive (no format/enum constraint) --
+// matching this route's pre-existing behavior; only orderNumber and reference
+// were ever gated before.
+const payBalanceSchema = z.object({
+  orderNumber: orderNumberSchema,
+  balance: z.coerce.number().finite("Invalid balance").nonnegative("Invalid balance").optional(),
+  paymentMethod: z.string().trim().min(1).optional(),
+  reference: z.string().trim().min(1, "Missing required fields"),
+  proofPath: z.string().trim().optional(),
+});
 
 function h(s: unknown): string {
   return String(s ?? "")
@@ -43,17 +57,9 @@ export async function POST(req: NextRequest) {
   const user = await getRequestingUser();
   if (!user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json() as {
-    orderNumber: string;
-    balance: number;
-    paymentMethod: string;
-    reference: string;
-    proofPath: string;
-  };
-
-  if (!body.orderNumber || !body.reference) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-  }
+  const result = await validateBody(req, payBalanceSchema);
+  if ("error" in result) return result.error;
+  const body = result.data;
 
   const admin = createAdminClient();
 
@@ -113,7 +119,7 @@ export async function POST(req: NextRequest) {
           <table style="width:100%;border-collapse:collapse;font-size:14px">
             <tr><td style="padding:8px 0;color:#888;width:120px">Order</td><td style="font-weight:bold;color:${BRAND_TEAL}">${h(body.orderNumber)}</td></tr>
             <tr><td style="padding:8px 0;color:#888">Customer</td><td>${h(order.customer_name)} (${h(order.customer_email)})</td></tr>
-            <tr><td style="padding:8px 0;color:#888">Method</td><td>${h(PAYMENT_LABELS[body.paymentMethod] ?? body.paymentMethod)}</td></tr>
+            <tr><td style="padding:8px 0;color:#888">Method</td><td>${h(PAYMENT_LABELS[body.paymentMethod ?? ""] ?? body.paymentMethod)}</td></tr>
             <tr><td style="padding:8px 0;color:#888">Reference</td><td style="font-weight:bold">${h(body.reference)}</td></tr>
             <tr><td style="padding:8px 0;color:#888">Balance</td><td style="font-weight:bold;color:${BRAND_TEAL}">₱${Number(body.balance).toLocaleString()}</td></tr>
           </table>

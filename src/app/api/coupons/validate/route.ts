@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { rateLimit, getIP } from "@/lib/rate-limit";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
+
+const couponValidateSchema = z.object({
+  code: z.string().trim().min(1, "Missing code").max(50, "Missing code"),
+  orderTotal: z.coerce.number().finite("Invalid orderTotal").nonnegative("Invalid orderTotal").optional(),
+});
 
 export async function POST(req: NextRequest) {
   const { allowed } = rateLimit(getIP(req), 30, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-  const { code, orderTotal } = await req.json();
-  if (!code || typeof code !== "string" || code.length > 50)
-    return NextResponse.json({ error: "Missing code" }, { status: 400 });
+  const result = await validateBody(req, couponValidateSchema);
+  if ("error" in result) return result.error;
+  const { code, orderTotal } = result.data;
 
   const admin = createAdminClient();
   const { data: coupon } = await admin
