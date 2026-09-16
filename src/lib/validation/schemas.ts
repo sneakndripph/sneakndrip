@@ -84,6 +84,18 @@ const productFieldsShape = {
   sale_end: z.string().nullable().optional(),
 };
 
+/**
+ * Legitimate order lifecycle values — mirrors the orders.status CHECK constraint
+ * (supabase/migrations/026_arrived_ph_status.sql) and the admin UI's STATUSES list
+ * (src/components/admin/OrderStatusBadge.tsx). Deliberately excludes "returned",
+ * which returns/route.ts writes to orders.status on return approval but which is
+ * NOT in the DB constraint — a pre-existing bug outside this schema's scope.
+ */
+export const orderStatusSchema = z.enum(
+  ["pending", "paid", "processing", "stock_on_hand", "shipped", "delivered", "cancelled"],
+  { error: "Invalid status" }
+);
+
 /** Full product payload for admin create (POST /api/admin/products). Unknown keys are stripped. */
 export const productCreateSchema = z.object(productFieldsShape);
 

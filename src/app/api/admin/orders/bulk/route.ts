@@ -3,16 +3,24 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { requireAdmin } from "@/lib/supabase/require-admin";
 import { sendEmail } from "@/lib/email/send";
 import { orderStatusUpdate } from "@/lib/email/templates/orderStatusUpdate";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
+import { orderStatusSchema, uuidSchema } from "@/lib/validation/schemas";
 
 const FROM_EMAIL = "orders@sneakndrip.ph";
+
+const orderBulkUpdateSchema = z.object({
+  ids: z.array(uuidSchema).min(1, "Missing ids or status"),
+  status: orderStatusSchema,
+});
 
 export async function PATCH(req: NextRequest) {
   const caller = await requireAdmin();
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { ids, status } = await req.json();
-  if (!ids?.length || !status)
-    return NextResponse.json({ error: "Missing ids or status" }, { status: 400 });
+  const result = await validateBody(req, orderBulkUpdateSchema);
+  if ("error" in result) return result.error;
+  const { ids, status } = result.data;
 
   const admin = createAdminClient();
 

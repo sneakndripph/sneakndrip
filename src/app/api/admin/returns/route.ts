@@ -6,6 +6,15 @@ import { validateEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/email/send";
 import { returnApproved } from "@/lib/email/templates/returnApproved";
 import { returnDenied } from "@/lib/email/templates/returnDenied";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
+import { uuidSchema } from "@/lib/validation/schemas";
+
+const returnUpdateSchema = z.object({
+  id: uuidSchema,
+  status: z.enum(["approved", "denied"], { error: "Invalid status" }),
+  admin_note: z.string().optional(),
+});
 
 async function requireAdmin() {
   try {
@@ -56,9 +65,9 @@ export async function PATCH(req: NextRequest) {
   const caller = await requireAdmin();
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id, status, admin_note } = await req.json();
-  if (!id || !status) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-  if (!["approved", "denied"].includes(status)) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  const result = await validateBody(req, returnUpdateSchema);
+  if ("error" in result) return result.error;
+  const { id, status, admin_note } = result.data;
 
   const admin = createAdminClient();
 

@@ -5,8 +5,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/email/send";
 import { orderStatusUpdate } from "@/lib/email/templates/orderStatusUpdate";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
+import { orderStatusSchema } from "@/lib/validation/schemas";
 
 const FROM_EMAIL = "orders@sneakndrip.ph";
+
+const orderUpdateSchema = z.object({
+  status: orderStatusSchema.optional(),
+  tracking_number: z.string().optional(),
+  admin_notes: z.string().optional(),
+});
 
 async function getRequestingUser() {
   try {
@@ -35,7 +44,9 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await req.json() as { status?: string; tracking_number?: string; admin_notes?: string };
+  const result = await validateBody(req, orderUpdateSchema);
+  if ("error" in result) return result.error;
+  const body = result.data;
 
   const admin = createAdminClient();
 
