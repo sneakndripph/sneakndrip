@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
+import { z } from "zod";
+
+const unsubscribeTokenSchema = z.string().trim().min(1);
 
 export async function GET(req: NextRequest) {
-  const token = req.nextUrl.searchParams.get("token");
-  if (!token) return NextResponse.redirect(new URL("/", req.url), 302);
+  const rawToken = req.nextUrl.searchParams.get("token");
+  const parsed = unsubscribeTokenSchema.safeParse(rawToken);
+  if (!parsed.success) return NextResponse.redirect(new URL("/", req.url), 302);
+  const token = parsed.data;
 
   const admin = createAdminClient();
   const { data: subscriber } = await admin

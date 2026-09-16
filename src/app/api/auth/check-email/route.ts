@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { rateLimit, getIP } from "@/lib/rate-limit";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
+import { emailSchema } from "@/lib/validation/schemas";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const checkEmailSchema = z.object({ email: emailSchema });
 
 /**
  * Public, unauthenticated: lets the register/login forms check whether an
@@ -14,11 +17,9 @@ export async function POST(req: NextRequest) {
   const { allowed } = rateLimit(getIP(req), 20, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
-  const body = await req.json().catch(() => null);
-  const email = typeof body?.email === "string" ? body.email.trim() : "";
-  if (!email || email.length > 254 || !EMAIL_RE.test(email)) {
-    return NextResponse.json({ error: "Invalid email" }, { status: 400 });
-  }
+  const result = await validateBody(req, checkEmailSchema);
+  if ("error" in result) return result.error;
+  const { email } = result.data;
 
   const admin = createAdminClient();
   // supabase-js has no server-side email filter for listUsers() — only

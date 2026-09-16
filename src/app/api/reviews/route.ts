@@ -3,6 +3,18 @@ import { createClient } from "@/lib/supabase/server";
 import { findOrHealCustomer } from "@/lib/supabase/resolve-customer";
 import { NextRequest, NextResponse } from "next/server";
 import { rateLimit, getIP } from "@/lib/rate-limit";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
+import { uuidSchema } from "@/lib/validation/schemas";
+
+const reviewCreateSchema = z.object({
+  product_id: uuidSchema,
+  author_name: z.string().trim().min(1, "author_name and body are required").max(100, "Name too long"),
+  rating: z.number().int("rating must be 1–5").min(1, "rating must be 1–5").max(5, "rating must be 1–5"),
+  title: z.string().trim().max(200, "Title too long").optional(),
+  body: z.string().trim().min(1, "author_name and body are required").max(2000, "Review too long"),
+  image_url: z.string().nullable().optional(),
+});
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -70,25 +82,9 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return NextResponse.json({ error: "Sign in to leave a review" }, { status: 401 });
 
-  const body = await req.json() as {
-    product_id?: string;
-    author_name: string;
-    rating: number;
-    title?: string;
-    body: string;
-    image_url?: string | null;
-  };
-
-  if (!body.product_id) return NextResponse.json({ error: "product_id is required" }, { status: 400 });
-  if (!body.author_name?.trim() || !body.body?.trim()) {
-    return NextResponse.json({ error: "author_name and body are required" }, { status: 400 });
-  }
-  if (typeof body.rating !== "number" || body.rating < 1 || body.rating > 5) {
-    return NextResponse.json({ error: "rating must be 1–5" }, { status: 400 });
-  }
-  if (body.author_name.length > 100) return NextResponse.json({ error: "Name too long" }, { status: 400 });
-  if (body.body.length > 2000) return NextResponse.json({ error: "Review too long" }, { status: 400 });
-  if (body.title && body.title.length > 200) return NextResponse.json({ error: "Title too long" }, { status: 400 });
+  const result = await validateBody(req, reviewCreateSchema);
+  if ("error" in result) return result.error;
+  const body = result.data;
 
   const admin = createAdminClient();
 
