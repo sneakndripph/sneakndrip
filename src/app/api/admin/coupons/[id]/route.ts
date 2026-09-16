@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { requireAdmin } from "@/lib/supabase/require-admin";
+import { validateBody } from "@/lib/validation/validate";
+import { couponUpdateSchema } from "@/lib/validation/schemas";
 
 type Params = Promise<{ id: string }>;
 
@@ -9,17 +11,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const body = await req.json();
+  const result = await validateBody(req, couponUpdateSchema);
+  if ("error" in result) return result.error;
+  const body = result.data;
   const admin = createAdminClient();
 
-  const update: Record<string, unknown> = { ...body };
-  if ("value" in body) update.value = Number(body.value);
-  if ("min_order" in body) update.min_order = Number(body.min_order) || 0;
-  if ("max_uses" in body) update.max_uses = body.max_uses ? Number(body.max_uses) : null;
-  if ("expires_at" in body) update.expires_at = body.expires_at || null;
-  if ("code" in body) update.code = String(body.code).toUpperCase().trim();
-
-  const { data, error } = await admin.from("coupons").update(update).eq("id", id).select().single();
+  // Unknown keys (id, created_at, uses, etc.) are stripped by the schema rather
+  // than reaching the DB update.
+  const { data, error } = await admin.from("coupons").update(body).eq("id", id).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   try {

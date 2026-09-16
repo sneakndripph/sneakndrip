@@ -105,3 +105,94 @@ export const productCreateSchema = z.object(productFieldsShape);
  * updated_at, product_sizes, etc.) are stripped rather than reaching the DB update.
  */
 export const productUpdateSchema = z.object(productFieldsShape).partial();
+
+/**
+ * Shared field shape for admin coupon create/update (src/app/admin/coupons/page.tsx).
+ * The coupon form sends value/min_order/max_uses as strings (raw <input> values), so
+ * these coerce from string; empty-string sentinels are preprocessed to match the
+ * routes' pre-existing "" -> 0/null behavior instead of failing type coercion.
+ */
+const couponFieldsShape = {
+  code: z.string().trim().min(1, "Missing coupon code").transform(v => v.toUpperCase()),
+  type: z.enum(["percent", "fixed"], { error: "Invalid coupon type" }),
+  value: z.coerce.number().finite("Invalid value").nonnegative("Invalid value"),
+  min_order: z.preprocess(
+    v => (v === "" || v === null || v === undefined ? 0 : v),
+    z.coerce.number().finite("Invalid min order").nonnegative("Invalid min order")
+  ),
+  max_uses: z.preprocess(
+    v => (v === "" || v === null || v === undefined ? null : v),
+    z.coerce.number().int("Invalid max uses").positive("Invalid max uses").nullable()
+  ),
+  expires_at: z.preprocess(
+    v => (v === "" || v === undefined ? null : v),
+    z.string().nullable()
+  ),
+  is_active: z.boolean().optional(),
+};
+
+/** Full coupon payload for admin create (POST /api/admin/coupons). */
+export const couponCreateSchema = z.object(couponFieldsShape);
+
+/**
+ * Partial coupon payload for admin update (PATCH /api/admin/coupons/[id]) — every
+ * field optional since callers may send just one (e.g. { is_active } toggles).
+ * Unknown keys are stripped, closing the previous `{ ...body }` mass-assignment gap.
+ */
+export const couponUpdateSchema = z.object(couponFieldsShape).partial();
+
+/** Admin content-page editor payload (PATCH /api/admin/content/[slug]). */
+export const contentUpdateSchema = z.object({
+  content: z.string(),
+});
+
+/**
+ * Store settings key/value map (POST /api/admin/settings) — a generic settings
+ * store, so keys are open-ended; values are restricted to scalars (the route
+ * stringifies each with String(value) before storage, so nested objects/arrays
+ * would previously have silently become "[object Object]"/"a,b,c" strings).
+ */
+export const settingsUpdateSchema = z.record(
+  z.string().min(1),
+  z.union([z.string(), z.number(), z.boolean(), z.null()])
+);
+
+/** Ban/unban payload (PATCH /api/admin/customers). */
+export const customerBanSchema = z.object({
+  userId: uuidSchema,
+  ban: z.boolean().optional(),
+});
+
+/** Valid app roles — mirrors ROLES in src/app/admin/users/page.tsx. */
+export const roleSchema = z.enum(["customer", "admin"], { error: "Invalid role" });
+
+/** Admin-created user account (POST /api/admin/users). */
+export const userCreateSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, "Email and password required"),
+  full_name: z.string().trim().optional(),
+  role: roleSchema.optional(),
+});
+
+/** Admin user update (PATCH /api/admin/users) — role changes require re-auth via `password`, checked separately. */
+export const userUpdateSchema = z.object({
+  id: uuidSchema,
+  role: roleSchema.optional(),
+  full_name: z.string().trim().optional(),
+  password: z.string().optional(),
+});
+
+/** Admin user delete (DELETE /api/admin/users). */
+export const userDeleteSchema = z.object({
+  id: uuidSchema,
+});
+
+/** Review moderation payload (PATCH /api/admin/reviews/[id]). */
+export const reviewModerationSchema = z.object({
+  is_verified: z.boolean(),
+});
+
+/** Review rejection reason (DELETE /api/admin/reviews/[id]) — optional, body is always sent as `{}` or `{reason}`. */
+export const reviewDeleteSchema = z.object({
+  reason: z.string().trim().optional(),
+});

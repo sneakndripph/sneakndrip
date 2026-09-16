@@ -3,6 +3,8 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { validateEnv } from "@/lib/env";
+import { validateBody } from "@/lib/validation/validate";
+import { reviewModerationSchema, reviewDeleteSchema } from "@/lib/validation/schemas";
 
 async function getRequestingUser() {
   try {
@@ -26,7 +28,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!user || !isAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const { is_verified } = await req.json() as { is_verified: boolean };
+  const result = await validateBody(req, reviewModerationSchema);
+  if ("error" in result) return result.error;
+  const { is_verified } = result.data;
   const admin = createAdminClient();
   const { error } = await admin.from("reviews").update({ is_verified }).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -53,7 +57,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!user || !isAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const { reason } = await req.json().catch(() => ({ reason: undefined })) as { reason?: string };
+  const result = await validateBody(req, reviewDeleteSchema);
+  if ("error" in result) return result.error;
+  const { reason } = result.data;
   const admin = createAdminClient();
   const { error } = await admin.from("reviews").delete().eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

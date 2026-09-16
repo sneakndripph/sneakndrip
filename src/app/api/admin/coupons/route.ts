@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { requireAdmin } from "@/lib/supabase/require-admin";
+import { validateBody } from "@/lib/validation/validate";
+import { couponCreateSchema } from "@/lib/validation/schemas";
 
 export async function GET() {
   const caller = await requireAdmin();
@@ -15,15 +17,18 @@ export async function POST(req: NextRequest) {
   const caller = await requireAdmin();
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json();
+  const result = await validateBody(req, couponCreateSchema);
+  if ("error" in result) return result.error;
+  const body = result.data;
+
   const admin = createAdminClient();
   const { data, error } = await admin.from("coupons").insert({
-    code: (body.code as string).toUpperCase().trim(),
+    code: body.code,
     type: body.type,
-    value: Number(body.value),
-    min_order: Number(body.min_order) || 0,
-    max_uses: body.max_uses ? Number(body.max_uses) : null,
-    expires_at: body.expires_at || null,
+    value: body.value,
+    min_order: body.min_order,
+    max_uses: body.max_uses,
+    expires_at: body.expires_at,
     is_active: true,
   }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

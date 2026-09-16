@@ -3,6 +3,8 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { validateEnv } from "@/lib/env";
+import { validateBody } from "@/lib/validation/validate";
+import { customerBanSchema } from "@/lib/validation/schemas";
 
 async function requireAdmin() {
   try {
@@ -26,8 +28,9 @@ export async function PATCH(req: NextRequest) {
   const caller = await requireAdmin();
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { userId, ban } = await req.json();
-  if (!userId) return NextResponse.json({ error: "Missing userId" }, { status: 400 });
+  const result = await validateBody(req, customerBanSchema);
+  if ("error" in result) return result.error;
+  const { userId, ban } = result.data;
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(userId, {

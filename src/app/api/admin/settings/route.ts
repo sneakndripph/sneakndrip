@@ -1,6 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/supabase/require-admin";
+import { validateBody } from "@/lib/validation/validate";
+import { settingsUpdateSchema } from "@/lib/validation/schemas";
 
 export async function GET() {
   const caller = await requireAdmin();
@@ -18,7 +20,10 @@ export async function POST(req: NextRequest) {
   const caller = await requireAdmin();
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const body = await req.json() as Record<string, string>;
+  const result = await validateBody(req, settingsUpdateSchema);
+  if ("error" in result) return result.error;
+  const body = result.data;
+
   const admin = createAdminClient();
 
   const keys = Object.keys(body);

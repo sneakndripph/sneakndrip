@@ -3,6 +3,8 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { validateEnv } from "@/lib/env";
+import { validateBody } from "@/lib/validation/validate";
+import { userCreateSchema, userUpdateSchema, userDeleteSchema } from "@/lib/validation/schemas";
 
 async function requireAdmin() {
   try {
@@ -46,8 +48,9 @@ export async function POST(req: NextRequest) {
   const caller = await requireAdmin();
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { email, password, full_name, role } = await req.json();
-  if (!email || !password) return NextResponse.json({ error: "Email and password required" }, { status: 400 });
+  const result = await validateBody(req, userCreateSchema);
+  if ("error" in result) return result.error;
+  const { email, password, full_name, role } = result.data;
 
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.createUser({
@@ -81,8 +84,9 @@ export async function PATCH(req: NextRequest) {
   const caller = await requireAdmin();
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id, role, full_name, password } = await req.json();
-  if (!id) return NextResponse.json({ error: "User id required" }, { status: 400 });
+  const result = await validateBody(req, userUpdateSchema);
+  if ("error" in result) return result.error;
+  const { id, role, full_name, password } = result.data;
 
   if (role !== undefined) {
     if (!password) return NextResponse.json({ error: "Password required to change role" }, { status: 400 });
@@ -131,8 +135,9 @@ export async function DELETE(req: NextRequest) {
   const caller = await requireAdmin();
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { id } = await req.json();
-  if (!id) return NextResponse.json({ error: "User id required" }, { status: 400 });
+  const result = await validateBody(req, userDeleteSchema);
+  if ("error" in result) return result.error;
+  const { id } = result.data;
   if (id === caller.id) return NextResponse.json({ error: "You cannot delete your own account" }, { status: 400 });
 
   const admin = createAdminClient();

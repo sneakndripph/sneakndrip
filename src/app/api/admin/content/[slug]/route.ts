@@ -3,6 +3,8 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { validateEnv } from "@/lib/env";
+import { validateBody } from "@/lib/validation/validate";
+import { contentUpdateSchema } from "@/lib/validation/schemas";
 
 const TITLES: Record<string, string> = {
   shipping:     "Shipping Information",
@@ -38,7 +40,9 @@ export async function PATCH(
   const { slug } = await params;
   if (!TITLES[slug]) return NextResponse.json({ error: "Unknown page" }, { status: 400 });
 
-  const { content } = await req.json() as { content: string };
+  const result = await validateBody(req, contentUpdateSchema);
+  if ("error" in result) return result.error;
+  const { content } = result.data;
 
   const admin = createAdminClient();
   const { error } = await admin.from("site_pages").upsert(
