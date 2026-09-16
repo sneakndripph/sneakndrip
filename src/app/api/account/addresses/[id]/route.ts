@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { findOrHealCustomer } from "@/lib/supabase/resolve-customer";
 import { rateLimit, getIP } from "@/lib/rate-limit";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
+
+const updateAddressSchema = z.object({
+  label: z.string().trim().min(1).optional(),
+  full_name: z.string().trim().min(1).optional(),
+  mobile: z.string().trim().min(1).optional(),
+  street: z.string().trim().min(1).optional(),
+  barangay: z.string().trim().min(1).optional(),
+  city: z.string().trim().min(1).optional(),
+  province: z.string().trim().min(1).optional(),
+  postal_code: z.string().trim().min(1).optional(),
+  is_default: z.boolean().optional(),
+});
 
 async function resolveCustomer(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -18,17 +32,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const customer = await resolveCustomer(supabase);
   if (!customer) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
 
-  const body = await req.json() as {
-    label?: string;
-    full_name?: string;
-    mobile?: string;
-    street?: string;
-    barangay?: string;
-    city?: string;
-    province?: string;
-    postal_code?: string;
-    is_default?: boolean;
-  };
+  const result = await validateBody(req, updateAddressSchema);
+  if ("error" in result) return result.error;
+  const body = result.data;
 
   const { data: existing } = await supabase
     .from("shipping_addresses")

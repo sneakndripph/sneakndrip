@@ -2,8 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { findOrHealCustomer } from "@/lib/supabase/resolve-customer";
 import { rateLimit, getIP } from "@/lib/rate-limit";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
 
 const MAX_ADDRESSES = 5;
+
+const REQUIRED_FIELD_MESSAGE = "All address fields are required";
+
+const createAddressSchema = z.object({
+  label: z.string().trim().optional(),
+  full_name: z.string().trim().min(1, REQUIRED_FIELD_MESSAGE),
+  mobile: z.string().trim().min(1, REQUIRED_FIELD_MESSAGE),
+  street: z.string().trim().min(1, REQUIRED_FIELD_MESSAGE),
+  barangay: z.string().trim().min(1, REQUIRED_FIELD_MESSAGE),
+  city: z.string().trim().min(1, REQUIRED_FIELD_MESSAGE),
+  province: z.string().trim().min(1, REQUIRED_FIELD_MESSAGE),
+  postal_code: z.string().trim().min(1, REQUIRED_FIELD_MESSAGE),
+  is_default: z.boolean().optional(),
+});
 
 async function resolveCustomer(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: { user } } = await supabase.auth.getUser();
@@ -60,22 +76,9 @@ export async function POST(req: NextRequest) {
   const { user, customer } = await resolveCustomer(supabase);
   if (!user || !customer) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
 
-  const body = await req.json() as {
-    label?: string;
-    full_name?: string;
-    mobile?: string;
-    street?: string;
-    barangay?: string;
-    city?: string;
-    province?: string;
-    postal_code?: string;
-    is_default?: boolean;
-  };
-
-  if (!body.full_name?.trim() || !body.mobile?.trim() || !body.street?.trim() ||
-      !body.barangay?.trim() || !body.city?.trim() || !body.province?.trim() || !body.postal_code?.trim()) {
-    return NextResponse.json({ error: "All address fields are required" }, { status: 400 });
-  }
+  const result = await validateBody(req, createAddressSchema);
+  if ("error" in result) return result.error;
+  const body = result.data;
 
   const { count } = await supabase
     .from("shipping_addresses")
