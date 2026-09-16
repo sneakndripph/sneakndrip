@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { validateEnv } from "@/lib/env";
 import { sendRestockEmailsForSize } from "@/lib/email/restock";
+import { z } from "zod";
+import { productUpdateSchema, productSizeSchema } from "@/lib/validation/schemas";
 
 async function getRequestingUser() {
   try {
@@ -42,16 +44,26 @@ export async function PATCH(
   const sizesRaw = formData.get("sizes") as string | null;
   if (!productRaw) return NextResponse.json({ error: "Missing product data" }, { status: 400 });
 
-  let parsedProduct: Record<string, unknown>;
-  let sizes: { size: string; stock: number }[];
+  let parsedProductRaw: unknown;
+  let parsedSizesRaw: unknown;
   try {
-    parsedProduct = JSON.parse(productRaw) as Record<string, unknown>;
-    sizes = JSON.parse(sizesRaw ?? "[]") as { size: string; stock: number }[];
+    parsedProductRaw = JSON.parse(productRaw);
+    parsedSizesRaw = JSON.parse(sizesRaw ?? "[]");
   } catch {
     return NextResponse.json({ error: "Invalid JSON in form data" }, { status: 400 });
   }
 
-  const { id: _id, created_at, updated_at, product_sizes, ...product } = parsedProduct;
+  const productResult = productUpdateSchema.safeParse(parsedProductRaw);
+  if (!productResult.success) {
+    return NextResponse.json({ error: productResult.error.issues[0]?.message ?? "Invalid product data" }, { status: 400 });
+  }
+  const sizesResult = z.array(productSizeSchema).safeParse(parsedSizesRaw);
+  if (!sizesResult.success) {
+    return NextResponse.json({ error: sizesResult.error.issues[0]?.message ?? "Invalid sizes data" }, { status: 400 });
+  }
+  // id/created_at/updated_at/product_sizes and any other unknown keys are stripped by the schema
+  const product = productResult.data;
+  const sizes = sizesResult.data;
 
   // Read current sizes to detect restocks
   const { data: oldSizes } = await admin.from("product_sizes").select("size, stock").eq("product_id", id);
@@ -68,9 +80,9 @@ export async function PATCH(
     );
   }
 
-  const productName = (product as { name?: string }).name ?? "Product";
-  const productSlug = (product as { slug?: string }).slug ?? id;
-  const productImageUrl = (product as { images?: string[] }).images?.[0];
+  const productName = product.name ?? "Product";
+  const productSlug = product.slug ?? id;
+  const productImageUrl = product.images?.[0];
   if (sizes.length > 0) {
     const restockedSizes = sizes
       .filter(s => s.stock > 0 && (oldStockMap.get(s.size) ?? 0) === 0)

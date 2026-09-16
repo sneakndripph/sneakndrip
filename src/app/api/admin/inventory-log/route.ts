@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { requireAdmin } from "@/lib/supabase/require-admin";
 import { sendRestockEmailsForSize } from "@/lib/email/restock";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
+import { uuidSchema } from "@/lib/validation/schemas";
+
+const inventoryLogSchema = z.object({
+  product_id: uuidSchema,
+  product_name: z.string().trim().optional(),
+  size: z.string().trim().min(1, "Missing fields"),
+  new_stock: z.number().int("Invalid stock value").nonnegative("Invalid stock value"),
+  reason: z.string().trim().optional(),
+});
 
 export async function GET() {
   const caller = await requireAdmin();
@@ -21,10 +32,9 @@ export async function POST(req: NextRequest) {
   const caller = await requireAdmin();
   if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { product_id, product_name, size, new_stock, reason } = await req.json();
-  if (!product_id || !size || new_stock === undefined) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-  }
+  const result = await validateBody(req, inventoryLogSchema);
+  if ("error" in result) return result.error;
+  const { product_id, product_name, size, new_stock, reason } = result.data;
 
   const admin = createAdminClient();
 

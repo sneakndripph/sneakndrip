@@ -6,6 +6,8 @@ import { requireAdmin } from "@/lib/supabase/require-admin";
 import { validateEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/email/send";
 import { newArrival } from "@/lib/email/templates/newArrival";
+import { z } from "zod";
+import { productCreateSchema, productSizeSchema } from "@/lib/validation/schemas";
 
 export async function GET() {
   const caller = await requireAdmin();
@@ -59,11 +61,29 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
     const formData = await req.formData();
 
-    const productRaw = formData.get("product") as string;
-    const sizesRaw = formData.get("sizes") as string;
+    const productRaw = formData.get("product") as string | null;
+    const sizesRaw = formData.get("sizes") as string | null;
     const notifySubscribers = formData.get("notifySubscribers") === "true";
-    const product = JSON.parse(productRaw);
-    const sizes = JSON.parse(sizesRaw ?? "[]");
+
+    let parsedProduct: unknown;
+    let parsedSizes: unknown;
+    try {
+      parsedProduct = JSON.parse(productRaw ?? "");
+      parsedSizes = JSON.parse(sizesRaw ?? "[]");
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON in form data" }, { status: 400 });
+    }
+
+    const productResult = productCreateSchema.safeParse(parsedProduct);
+    if (!productResult.success) {
+      return NextResponse.json({ error: productResult.error.issues[0]?.message ?? "Invalid product data" }, { status: 400 });
+    }
+    const sizesResult = z.array(productSizeSchema).safeParse(parsedSizes);
+    if (!sizesResult.success) {
+      return NextResponse.json({ error: sizesResult.error.issues[0]?.message ?? "Invalid sizes data" }, { status: 400 });
+    }
+    const product = productResult.data;
+    const sizes = sizesResult.data;
 
     // Images are already uploaded client-side; URLs are in product.images
     const { data, error } = await admin.from("products").insert(product).select("id").single();
@@ -71,7 +91,7 @@ export async function POST(req: NextRequest) {
 
     if (sizes.length > 0) {
       await admin.from("product_sizes").insert(
-        sizes.map((s: { size: string; stock: number }) => ({ product_id: data.id, size: s.size, stock: s.stock }))
+        sizes.map(s => ({ product_id: data.id, size: s.size, stock: s.stock }))
       );
     }
 
@@ -80,7 +100,7 @@ export async function POST(req: NextRequest) {
         action: "product_created",
         entity_type: "product",
         entity_id: data.id,
-        entity_name: (product as { name?: string }).name ?? "Product",
+        entity_name: product.name,
         actor_email: user.email ?? null,
         details: null,
       });
@@ -105,7 +125,7 @@ export async function POST(req: NextRequest) {
               name: product.name,
               brand: product.brand,
               slug: product.slug,
-              imageUrl: (product.images as string[] | undefined)?.[0],
+              imageUrl: product.images?.[0],
               price: product.full_payment_price,
             },
           });
@@ -117,7 +137,7 @@ export async function POST(req: NextRequest) {
           action: "new_arrival_notified",
           entity_type: "product",
           entity_id: data.id,
-          entity_name: (product as { name?: string }).name ?? "Product",
+          entity_name: product.name,
           actor_email: user.email ?? null,
           details: { product_id: data.id, subscriber_count: sentCount },
         });
