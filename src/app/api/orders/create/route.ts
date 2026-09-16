@@ -2,9 +2,49 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { createClient } from "@/lib/supabase/server";
 import { rateLimit, getIP } from "@/lib/rate-limit";
+import { z } from "zod";
+import { validateBody } from "@/lib/validation/validate";
+import { emailSchema, orderNumberSchema, priceSchema, quantitySchema, uuidSchema } from "@/lib/validation/schemas";
 
 type StockItem = { product_id: string; size: string; quantity: number };
 type StockFailure = { product_id: string; product_name: string; size: string; requested: number; available: number };
+
+const ALLOWED_PAYMENT_METHODS = ["gcash", "maya", "bank_transfer", "cod"] as const;
+
+// Local-format only (09XXXXXXXXX) -- deliberately stricter than the shared
+// mobileSchema (which also accepts +639XXXXXXXXX), preserving this route's
+// pre-existing behavior on the highest-risk checkout path.
+const mobileLocalOnlySchema = z
+  .string()
+  .trim()
+  .regex(/^09\d{9}$/, "Invalid mobile");
+
+// Envelope-level fields the route itself relies on are strictly typed;
+// everything else (shipping_barangay/city/province/postal, subtotal,
+// shipping_fee, discount, coupon_code, payment_type, payment_status,
+// proof_of_payment, payment_reference, status, customer_id) rides through
+// via passthrough, unvalidated here -- same as before this migration. The
+// RPC (create_order_with_stock_check) remains the final authority on the
+// full order/item shape regardless of what this schema checks.
+const orderItemSchema = z.object({
+  product_id: uuidSchema,
+  size: z.string().trim().min(1, "Missing item size"),
+  quantity: quantitySchema,
+  unit_price: priceSchema,
+}).passthrough();
+
+const orderCreateSchema = z.object({
+  order: z.object({
+    order_number: orderNumberSchema,
+    customer_name: z.string().trim().min(1, "Invalid name").max(200, "Invalid name"),
+    customer_email: emailSchema,
+    customer_mobile: mobileLocalOnlySchema,
+    shipping_street: z.string().trim().max(300, "Street too long").optional(),
+    payment_method: z.enum(ALLOWED_PAYMENT_METHODS, { error: "Invalid payment method" }),
+    total: z.coerce.number().finite("Invalid total").min(0, "Invalid total").max(1_000_000, "Invalid total"),
+  }).passthrough(),
+  items: z.array(orderItemSchema).min(1, "Missing order data"),
+});
 
 export async function POST(req: NextRequest) {
   const { allowed } = rateLimit(getIP(req), 10, 60_000); // 10 orders/min per IP
@@ -15,33 +55,14 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await serverClient.auth.getUser();
     if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-    const body = await req.json();
-    const { order, items } = body;
-
-    if (!order || !items?.length) {
-      return NextResponse.json({ error: "Missing order data" }, { status: 400 });
-    }
-
-    // Validate and sanitize customer-supplied string fields
-    const ALLOWED_PAYMENT_METHODS = ["gcash", "maya", "bank_transfer", "cod"];
-    const o = order as Record<string, unknown>;
-    const name = String(o.customer_name ?? "").trim();
-    const email = String(o.customer_email ?? "").trim();
-    const mobile = String(o.customer_mobile ?? "").trim();
-    if (!name || name.length > 200) return NextResponse.json({ error: "Invalid name" }, { status: 400 });
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return NextResponse.json({ error: "Invalid email" }, { status: 400 });
-    if (!mobile || !/^09\d{9}$/.test(mobile)) return NextResponse.json({ error: "Invalid mobile" }, { status: 400 });
-    if (String(o.shipping_street ?? "").trim().length > 300) return NextResponse.json({ error: "Street too long" }, { status: 400 });
-    if (!ALLOWED_PAYMENT_METHODS.includes(String(o.payment_method ?? ""))) return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
-    const total = Number(o.total);
-    if (!Number.isFinite(total) || total < 0 || total > 1_000_000) return NextResponse.json({ error: "Invalid total" }, { status: 400 });
+    const result = await validateBody(req, orderCreateSchema);
+    if ("error" in result) return result.error;
+    const { order, items } = result.data;
 
     const supabase = createAdminClient();
 
-    if (String(o.payment_method) === "cod") {
-      const productIds = [...new Set(
-        (items as Array<{ product_id?: string }>).map(i => i.product_id).filter(Boolean)
-      )];
+    if (order.payment_method === "cod") {
+      const productIds = [...new Set(items.map(i => i.product_id))];
       if (productIds.length) {
         const { data: preorderCheck } = await supabase
           .from("products")
@@ -95,13 +116,11 @@ export async function POST(req: NextRequest) {
 
     // Stock is already deducted by the RPC — recompute the item list purely
     // for the inventory_log fire-and-forget block below.
-    const stockItems: StockItem[] = items
-      .filter((i: Record<string, unknown>) => i.product_id)
-      .map((i: Record<string, unknown>) => ({
-        product_id: i.product_id as string,
-        size: i.size as string,
-        quantity: i.quantity as number,
-      }));
+    const stockItems: StockItem[] = items.map(i => ({
+      product_id: i.product_id,
+      size: i.size,
+      quantity: i.quantity,
+    }));
 
     // Fire-and-forget: log stock changes to inventory_log
     if (stockItems.length > 0) {
@@ -113,7 +132,7 @@ export async function POST(req: NextRequest) {
             .eq("product_id", item.product_id)
             .eq("size", item.size)
             .single();
-          const matchedItem = (items as Record<string, unknown>[]).find(
+          const matchedItem = items.find(
             i => i.product_id === item.product_id && i.size === item.size
           );
           const newStock = sizeRow?.stock ?? 0;
@@ -124,15 +143,15 @@ export async function POST(req: NextRequest) {
             old_stock: newStock + item.quantity,
             new_stock: newStock,
             reason: "order_placed",
-            changed_by: String((order as Record<string, unknown>).customer_email ?? ""),
-            order_number: String((order as Record<string, unknown>).order_number ?? ""),
+            changed_by: order.customer_email,
+            order_number: order.order_number,
           };
         })
       ).then(entries => supabase.from("inventory_log").insert(entries)).catch(() => {});
     }
 
     // Increment coupon uses
-    const couponCode = (order as Record<string, unknown>).coupon_code as string | undefined;
+    const couponCode = order.coupon_code as string | undefined;
     if (couponCode) {
       try {
         const { data: c } = await supabase.from("coupons").select("id, uses").eq("code", couponCode).single();
