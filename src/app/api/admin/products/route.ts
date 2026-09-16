@@ -16,7 +16,7 @@ export async function GET() {
   const admin = createAdminClient();
   const { data } = await admin
     .from("products")
-    .select("id, name, brand, status, images, cost_price, full_payment_price, sale_price, sale_start, sale_end, is_published, product_sizes(size, stock)")
+    .select("id, name, brand, status, images, full_payment_price, sale_price, sale_start, sale_end, product_sizes(size, stock)")
     .order("name");
   const products = (data ?? []).map(p => ({
     id: p.id,
@@ -24,12 +24,10 @@ export async function GET() {
     brand: p.brand,
     status: p.status,
     images: p.images ?? null,
-    cost_price: p.cost_price ?? null,
     full_payment_price: p.full_payment_price,
     sale_price: p.sale_price ?? null,
     sale_start: p.sale_start ?? null,
     sale_end: p.sale_end ?? null,
-    is_published: p.is_published,
     sizes: (Array.isArray(p.product_sizes) ? p.product_sizes : [])
       .sort((a: { size: string }, b: { size: string }) => parseFloat(a.size.replace("US ", "")) - parseFloat(b.size.replace("US ", ""))),
   }));

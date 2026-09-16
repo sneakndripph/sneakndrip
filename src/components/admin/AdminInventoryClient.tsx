@@ -25,9 +25,6 @@ type ProductStock = {
   brand: string;
   status: string;
   image: string | null;
-  cost_price: number | null;
-  full_payment_price: number;
-  is_published: boolean;
   sizes: SizeRow[];
 };
 
@@ -37,9 +34,6 @@ type RawProduct = {
   brand: string;
   status: string;
   images?: string[] | null;
-  cost_price?: number | null;
-  full_payment_price?: number | null;
-  is_published?: boolean | null;
   sizes?: SizeRow[];
   product_sizes?: SizeRow[];
 };
@@ -63,35 +57,7 @@ function normalizeProduct(p: RawProduct): ProductStock {
   const sizes = [...rawSizes].sort(
     (a, b) => parseFloat(a.size.replace("US ", "")) - parseFloat(b.size.replace("US ", ""))
   );
-  return {
-    id: p.id,
-    name: p.name,
-    brand: p.brand,
-    status: p.status,
-    image: p.images?.[0] ?? null,
-    cost_price: p.cost_price ?? null,
-    full_payment_price: p.full_payment_price ?? 0,
-    is_published: p.is_published ?? false,
-    sizes,
-  };
-}
-
-function formatPeso(n: number) {
-  return `₱${Math.round(n).toLocaleString()}`;
-}
-
-function computeFinancials(list: ProductStock[]) {
-  let capital = 0;
-  let revenue = 0;
-  for (const p of list) {
-    if (p.cost_price == null) continue;
-    const totalUnits = p.sizes.reduce((s, sz) => s + sz.stock, 0);
-    capital += p.cost_price * totalUnits;
-    revenue += p.full_payment_price * totalUnits;
-  }
-  const margin = revenue - capital;
-  const marginPct = revenue > 0 ? (margin / revenue) * 100 : 0;
-  return { capital, revenue, margin, marginPct };
+  return { id: p.id, name: p.name, brand: p.brand, status: p.status, image: p.images?.[0] ?? null, sizes };
 }
 
 function formatDateTime(iso: string) {
@@ -348,13 +314,6 @@ export default function AdminInventoryClient({
   const soldOutProducts = products.filter(p => p.sizes.length > 0 && p.sizes.every(s => s.stock === 0)).length;
   const lowStockCount = products.filter(p => p.sizes.some(s => s.stock > 0 && s.stock <= 2)).length;
 
-  const allFinancials = useMemo(() => computeFinancials(products), [products]);
-  const publishedFinancials = useMemo(
-    () => computeFinancials(products.filter(p => p.is_published)),
-    [products]
-  );
-  const missingCostCount = useMemo(() => products.filter(p => p.cost_price == null).length, [products]);
-
   return (
     <div>
       {selected && <DetailModal entry={selected} onClose={() => setSelected(null)} />}
@@ -403,49 +362,6 @@ export default function AdminInventoryClient({
             <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{s.value}</p>
           </div>
         ))}
-      </div>
-
-      <div className="mb-6">
-        <p className="text-admin-title text-ink mb-3">Financial Overview</p>
-        {missingCostCount > 0 && (
-          <div className="mb-3 px-4 py-2.5 rounded-md bg-state-preorder/10 text-state-preorder text-admin-sm">
-            {missingCostCount} product{missingCostCount !== 1 ? "s" : ""} missing cost data — excluded from financial calculations
-          </div>
-        )}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-paper border border-line rounded-md p-5">
-            <p className="text-admin-eyebrow text-ink-3 mb-2">Total Capital</p>
-            <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{formatPeso(allFinancials.capital)}</p>
-          </div>
-          <div className="bg-paper border border-line rounded-md p-5">
-            <p className="text-admin-eyebrow text-ink-3 mb-2">Potential Revenue</p>
-            <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{formatPeso(allFinancials.revenue)}</p>
-          </div>
-          <div className="bg-paper border border-line rounded-md p-5">
-            <p className="text-admin-eyebrow text-ink-3 mb-2">Total Margin</p>
-            <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{formatPeso(allFinancials.margin)}</p>
-            <p className="text-admin-sm text-ink-3 mt-1">{allFinancials.marginPct.toFixed(1)}%</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-6">
-        <p className="text-admin-title text-ink mb-3">Live Inventory (Published Only)</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="bg-paper border border-line rounded-md p-5">
-            <p className="text-admin-eyebrow text-ink-3 mb-2">Total Capital</p>
-            <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{formatPeso(publishedFinancials.capital)}</p>
-          </div>
-          <div className="bg-paper border border-line rounded-md p-5">
-            <p className="text-admin-eyebrow text-ink-3 mb-2">Potential Revenue</p>
-            <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{formatPeso(publishedFinancials.revenue)}</p>
-          </div>
-          <div className="bg-paper border border-line rounded-md p-5">
-            <p className="text-admin-eyebrow text-ink-3 mb-2">Total Margin</p>
-            <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{formatPeso(publishedFinancials.margin)}</p>
-            <p className="text-admin-sm text-ink-3 mt-1">{publishedFinancials.marginPct.toFixed(1)}%</p>
-          </div>
-        </div>
       </div>
 
       <div className="inline-flex bg-paper-2 rounded-md p-1 mb-6">
