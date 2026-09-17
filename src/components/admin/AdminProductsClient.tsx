@@ -11,10 +11,13 @@ import {
 import { BRANDS } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import { useConfirmDialog } from "./ConfirmDialog";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import SortableHeader from "./SortableHeader";
 
 type Row = Record<string, unknown> & {
   id: string; name: string; slug: string; brand: string; status: string;
   full_payment_price: number; srp_price: number; is_published: boolean;
+  created_at: string;
   images?: string[]; product_sizes?: { size: string; stock: number }[];
 };
 
@@ -65,6 +68,18 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
     const inStock = sizes.filter(s => s.stock > 0).length;
     return `${inStock}/${sizes.length}`;
   }
+
+  function totalStock(p: Row) {
+    const sizes = (p.product_sizes ?? []) as { size: string; stock: number }[];
+    return sizes.reduce((sum, s) => sum + s.stock, 0);
+  }
+
+  const { sortedRows, sortKey, sortDirection, handleSort } = useSortableTable(filtered, {
+    accessors: {
+      stock: totalStock,
+      created_at: p => new Date(p.created_at),
+    },
+  });
 
   async function handleDelete(p: Row) {
     const ok = await confirmDialog({
@@ -210,14 +225,17 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
         <table className="w-full hidden md:table">
           <thead>
             <tr className="bg-paper-2 border-b border-line-strong">
-              {["Image", "Name", "Brand", "Price", "Stock", "Status"].map(h => (
+              {["Image", "Name", "Brand", "Price"].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">{h}</th>
               ))}
+              <SortableHeader label="Stock" sortKey="stock" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <SortableHeader label="Listed" sortKey="created_at" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort} />
+              <th className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">Status</th>
               <th className="px-3 py-3 w-10" />
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
-            {filtered.map(p => (
+            {sortedRows.map(p => (
               <tr key={p.id}
                 className="cursor-pointer even:bg-paper-2 hover:bg-admin-row-hover transition-colors duration-admin-fast"
                 onClick={() => router.push(`/admin/products/${p.id}`)}>
@@ -241,7 +259,10 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                 <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">
                   ₱{Number(p.full_payment_price).toLocaleString()}
                 </td>
-                <td className="px-4 py-3.5 text-admin-sm text-ink-2">{sizesSummary(p)}</td>
+                <td className="px-4 py-3.5 text-admin-sm text-ink-2">{totalStock(p)} · {sizesSummary(p)} sizes</td>
+                <td className="px-4 py-3.5 text-admin-sm text-ink-3">
+                  {new Date(p.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                </td>
                 <td className="px-4 py-3.5">
                   <span className={`inline-flex items-center px-2.5 py-1 rounded-full bg-paper border border-line text-admin-eyebrow ${
                     p.is_published ? "text-state-onhand" : "text-ink-3"
@@ -284,7 +305,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
 
         {/* Mobile cards */}
         <div className="md:hidden divide-y divide-line">
-          {filtered.map(p => (
+          {sortedRows.map(p => (
             <button key={p.id} type="button"
               className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
               onClick={() => router.push(`/admin/products/${p.id}`)}>
