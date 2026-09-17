@@ -7,6 +7,8 @@ import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldChec
 import toast from "react-hot-toast";
 import OrderStatusBadge from "./OrderStatusBadge";
 import ConfirmDialog from "./ConfirmDialog";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import SortableHeader from "./SortableHeader";
 
 type CustomerOrder = {
   order_number: string;
@@ -27,6 +29,7 @@ type Customer = {
   orders: number;
   total: number;
   joined: string;
+  joinedAt: string | null;
   lastOrder: string;
   recentOrders: CustomerOrder[];
 };
@@ -87,6 +90,14 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
     }
     return list;
   }, [customers, search, statusFilter]);
+
+  const { sortedRows, sortKey, sortDirection, handleSort } = useSortableTable(filtered, {
+    accessors: {
+      joinedAt: c => new Date(c.joinedAt ?? 0),
+      orders: c => c.orders,
+      total: c => c.total,
+    },
+  });
 
   function exportCSV() {
     const rows = [
@@ -158,13 +169,19 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
             <table className="w-full">
               <thead>
                 <tr className="bg-paper-2 border-b border-line-strong">
-                  {["Name", "Email", "Orders", "Total spent", "Status", ""].map(h => (
+                  {["Name", "Email"].map(h => (
+                    <th key={h} className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">{h}</th>
+                  ))}
+                  <SortableHeader label="Orders" sortKey="orders" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort} />
+                  <SortableHeader label="Total spent" sortKey="total" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort} />
+                  <SortableHeader label="Joined" sortKey="joinedAt" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort} />
+                  {["Status", ""].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {filtered.map(c => (
+                {sortedRows.map(c => (
                   <tr key={c.id} onClick={() => openDrawer(c)}
                     className="cursor-pointer even:bg-paper-2 hover:bg-admin-row-hover transition-colors duration-admin-fast">
                     <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">{c.name}</td>
@@ -173,6 +190,7 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
                     <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">
                       {c.total > 0 ? `₱${c.total.toLocaleString()}` : "—"}
                     </td>
+                    <td className="px-4 py-3.5 text-admin-sm text-ink-3">{c.joined}</td>
                     <td className="px-4 py-3.5">
                       <span className={`text-admin-micro font-medium px-2 py-0.5 rounded-full ${
                         c.banned ? "text-state-error bg-state-error/10" : "text-state-onhand bg-state-onhand/10"
@@ -194,7 +212,7 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
             </table>
           </div>
           <div className="md:hidden divide-y divide-line">
-            {filtered.map(c => (
+            {sortedRows.map(c => (
               <div key={c.id} onClick={() => openDrawer(c)} className="px-4 py-3.5">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-admin-sm font-semibold text-ink">{c.name}</p>

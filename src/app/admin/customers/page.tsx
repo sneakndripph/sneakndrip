@@ -82,6 +82,7 @@ export default async function AdminCustomersPage({
       joined: c.created_at
         ? new Date(c.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
         : "—",
+      joinedAt: c.created_at ?? null,
       lastOrder: latestOrder?.created_at
         ? new Date(latestOrder.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })
         : "—",
