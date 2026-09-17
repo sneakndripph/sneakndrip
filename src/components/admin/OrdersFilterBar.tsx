@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search, ChevronDown, Calendar, SlidersHorizontal, Check } from "lucide-react";
+import { Search, ChevronDown, Calendar, CreditCard, SlidersHorizontal, Check } from "lucide-react";
 import { STATUSES, STATUS_META, type Status } from "./OrderStatusBadge";
+import { PAYMENT_LABELS } from "./OrdersList";
 
 export type Period = "all" | "today" | "7d" | "30d" | "90d";
 export const PERIODS: { id: Period; label: string }[] = [
@@ -20,26 +21,41 @@ export function periodStart(p: Period): Date | null {
   return new Date(now.getTime() - days * 86400000);
 }
 
+export type PaymentFilter = "all" | "gcash" | "cod" | "bank_transfer" | "maya";
+export const PAYMENT_FILTERS: { id: PaymentFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "gcash", label: PAYMENT_LABELS.gcash },
+  { id: "cod", label: PAYMENT_LABELS.cod },
+  { id: "bank_transfer", label: PAYMENT_LABELS.bank_transfer },
+  { id: "maya", label: PAYMENT_LABELS.maya },
+];
+
 export default function OrdersFilterBar({
   search, onSearchChange,
   statusFilter, onStatusChange, counts,
   periodFilter, onPeriodChange,
+  paymentFilter, onPaymentFilterChange,
 }: {
   search: string; onSearchChange: (v: string) => void;
   statusFilter: Status; onStatusChange: (s: Status) => void; counts: Record<Status, number>;
   periodFilter: Period; onPeriodChange: (p: Period) => void;
+  paymentFilter: PaymentFilter; onPaymentFilterChange: (p: PaymentFilter) => void;
 }) {
   const [periodOpen, setPeriodOpen] = useState(false);
   const periodRef = useRef<HTMLDivElement>(null);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const paymentRef = useRef<HTMLDivElement>(null);
 
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMounted, setSheetMounted] = useState(false);
   const [draftStatus, setDraftStatus] = useState<Status>(statusFilter);
   const [draftPeriod, setDraftPeriod] = useState<Period>(periodFilter);
+  const [draftPayment, setDraftPayment] = useState<PaymentFilter>(paymentFilter);
 
   useEffect(() => {
     function handle(e: MouseEvent) {
       if (periodRef.current && !periodRef.current.contains(e.target as Node)) setPeriodOpen(false);
+      if (paymentRef.current && !paymentRef.current.contains(e.target as Node)) setPaymentOpen(false);
     }
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
@@ -59,11 +75,13 @@ export default function OrdersFilterBar({
   }, [sheetOpen]);
 
   const periodLabel = PERIODS.find(p => p.id === periodFilter)?.label ?? "All Time";
-  const filtersActive = statusFilter !== "all" || periodFilter !== "all";
+  const paymentLabel = PAYMENT_FILTERS.find(p => p.id === paymentFilter)?.label ?? "All";
+  const filtersActive = statusFilter !== "all" || periodFilter !== "all" || paymentFilter !== "all";
 
   function openSheet() {
     setDraftStatus(statusFilter);
     setDraftPeriod(periodFilter);
+    setDraftPayment(paymentFilter);
     setSheetOpen(true);
   }
   function closeSheet() {
@@ -73,13 +91,16 @@ export default function OrdersFilterBar({
   function applySheet() {
     onStatusChange(draftStatus);
     onPeriodChange(draftPeriod);
+    onPaymentFilterChange(draftPayment);
     closeSheet();
   }
   function clearSheet() {
     onStatusChange("all");
     onPeriodChange("all");
+    onPaymentFilterChange("all");
     setDraftStatus("all");
     setDraftPeriod("all");
+    setDraftPayment("all");
     closeSheet();
   }
 
@@ -112,6 +133,27 @@ export default function OrdersFilterBar({
                     onClick={() => { onPeriodChange(p.id); setPeriodOpen(false); }}
                     className={`w-full text-left px-3.5 py-2.5 text-admin-sm transition-colors duration-admin-fast hover:bg-admin-row-hover ${
                       periodFilter === p.id ? "text-ink font-semibold" : "text-ink-2"
+                    }`}>
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="relative shrink-0" ref={paymentRef}>
+            <button type="button" onClick={() => setPaymentOpen(o => !o)}
+              className="w-full sm:w-auto flex items-center gap-2 px-3.5 py-2.5 text-admin-sm font-medium bg-paper border border-line rounded-md text-ink hover:border-line-strong transition-colors duration-admin-fast">
+              <CreditCard className="w-3.5 h-3.5 text-ink-3" />
+              {paymentLabel}
+              <ChevronDown className={`w-3.5 h-3.5 text-ink-3 transition-transform duration-admin-fast ${paymentOpen ? "rotate-180" : ""}`} />
+            </button>
+            {paymentOpen && (
+              <div className="absolute right-0 top-full mt-1 z-30 min-w-[160px] bg-paper border border-line rounded-md shadow-lg overflow-hidden">
+                {PAYMENT_FILTERS.map(p => (
+                  <button key={p.id} type="button"
+                    onClick={() => { onPaymentFilterChange(p.id); setPaymentOpen(false); }}
+                    className={`w-full text-left px-3.5 py-2.5 text-admin-sm transition-colors duration-admin-fast hover:bg-admin-row-hover ${
+                      paymentFilter === p.id ? "text-ink font-semibold" : "text-ink-2"
                     }`}>
                     {p.label}
                   </button>
@@ -199,6 +241,22 @@ export default function OrdersFilterBar({
                 const active = draftPeriod === p.id;
                 return (
                   <button key={p.id} type="button" onClick={() => setDraftPeriod(p.id)}
+                    className={`w-full h-11 flex items-center gap-2.5 px-3.5 rounded-md border text-admin-sm font-medium transition-colors duration-admin-fast ${
+                      active ? "border-ink bg-admin-row-hover text-ink" : "border-line text-ink-2"
+                    }`}>
+                    <span className="flex-1 text-left">{p.label}</span>
+                    {active && <Check className="w-4 h-4 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="text-admin-eyebrow text-ink-3 mb-3">Payment method</p>
+            <div className="space-y-1.5 mb-6">
+              {PAYMENT_FILTERS.map(p => {
+                const active = draftPayment === p.id;
+                return (
+                  <button key={p.id} type="button" onClick={() => setDraftPayment(p.id)}
                     className={`w-full h-11 flex items-center gap-2.5 px-3.5 rounded-md border text-admin-sm font-medium transition-colors duration-admin-fast ${
                       active ? "border-ink bg-admin-row-hover text-ink" : "border-line text-ink-2"
                     }`}>

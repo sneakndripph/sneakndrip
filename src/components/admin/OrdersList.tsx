@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import { Package, MoreVertical, Truck, Copy, User, XCircle, ChevronDown } from "lucide-react";
 import OrderStatusBadge, { STATUS_META } from "./OrderStatusBadge";
 import type { Order, OrderItem } from "./AdminOrdersClient";
+import SortableHeader from "./SortableHeader";
+import type { SortDirection } from "@/hooks/useSortableTable";
 
 export const PAYMENT_LABELS: Record<string, string> = {
   gcash: "GCash", maya: "Maya", bank_transfer: "Bank Transfer", cod: "COD",
@@ -21,12 +23,14 @@ function itemsSummary(items: OrderItem[]) {
 export default function OrdersList({
   orders, totalOrdersCount, selectedIds, onToggleSelect, onSelectAll, onRowClick,
   onBulkStatusChange, onClearSelection, onQuickShip, onQuickCancel,
+  sortKey, sortDirection, onSort,
 }: {
   orders: Order[]; totalOrdersCount: number;
   selectedIds: Set<string>; onToggleSelect: (id: string) => void; onSelectAll: (checked: boolean) => void;
   onRowClick: (o: Order) => void;
   onBulkStatusChange: (status: string) => void; onClearSelection: () => void;
   onQuickShip: (o: Order) => void; onQuickCancel: (o: Order) => void;
+  sortKey: string | null; sortDirection: SortDirection; onSort: (key: string) => void;
 }) {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -93,9 +97,12 @@ export default function OrdersList({
                 onChange={e => onSelectAll(e.target.checked)}
                 className="w-3.5 h-3.5 cursor-pointer accent-ink" />
             </th>
-            {["Order", "Customer", "Items", "Payment", "Total", "Status", "Date"].map(h => (
+            {["Order", "Customer", "Items", "Payment"].map(h => (
               <th key={h} className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">{h}</th>
             ))}
+            <SortableHeader label="Total" sortKey="total" currentSortKey={sortKey} direction={sortDirection} onSort={onSort} />
+            <th className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">Status</th>
+            <SortableHeader label="Date" sortKey="created_at" currentSortKey={sortKey} direction={sortDirection} onSort={onSort} />
             <th className="px-3 py-3 w-10" />
           </tr>
         </thead>

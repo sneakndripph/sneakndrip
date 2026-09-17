@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { Download } from "lucide-react";
-import OrdersFilterBar, { periodStart, type Period } from "./OrdersFilterBar";
+import OrdersFilterBar, { periodStart, type Period, type PaymentFilter } from "./OrdersFilterBar";
 import OrdersList, { PAYMENT_LABELS } from "./OrdersList";
 import OrderDetailDrawer from "./OrderDetailDrawer";
 import { STATUSES, statusMeta, type Status } from "./OrderStatusBadge";
+import { useSortableTable } from "@/hooks/useSortableTable";
 
 export type OrderItem = {
   product_name: string; brand: string; size: string; quantity: number; unit_price: number; payment_type: string;
@@ -51,6 +52,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
   const [search, setSearch] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState<Status>(STATUSES.includes(initialStatus as Status) ? (initialStatus as Status) : "all");
   const [periodFilter, setPeriodFilter] = useState<Period>("all");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
   const [selected, setSelected] = useState<Order | null>(null);
   const [notesInput, setNotesInput] = useState("");
   const [saving, setSaving] = useState(false);
@@ -72,7 +74,15 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
       || o.order_items.some(i => i.product_name.toLowerCase().includes(search.toLowerCase()));
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     const matchPeriod = !pStart || new Date(o.created_at) >= pStart;
-    return matchSearch && matchStatus && matchPeriod;
+    const matchPayment = paymentFilter === "all" || o.payment_method === paymentFilter;
+    return matchSearch && matchStatus && matchPeriod && matchPayment;
+  });
+
+  const { sortedRows, sortKey, sortDirection, handleSort } = useSortableTable(filtered, {
+    accessors: {
+      total: o => Number(o.total),
+      created_at: o => new Date(o.created_at),
+    },
   });
 
   const counts = STATUSES.reduce((acc, s) => {
@@ -246,16 +256,18 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
         search={search} onSearchChange={setSearch}
         statusFilter={statusFilter} onStatusChange={setStatusFilter} counts={counts}
         periodFilter={periodFilter} onPeriodChange={setPeriodFilter}
+        paymentFilter={paymentFilter} onPaymentFilterChange={setPaymentFilter}
       />
 
       <OrdersList
-        orders={filtered} totalOrdersCount={orders.length}
+        orders={sortedRows} totalOrdersCount={orders.length}
         selectedIds={selectedIds} onToggleSelect={toggleSelect}
         onSelectAll={checked => setSelectedIds(checked ? new Set(filtered.map(o => o.id)) : new Set())}
         onRowClick={openOrder}
         onBulkStatusChange={bulkUpdate} onClearSelection={() => setSelectedIds(new Set())}
         onQuickShip={o => { openOrder(o); setPendingQuickAction("ship"); }}
         onQuickCancel={o => { openOrder(o); setPendingQuickAction("cancel"); }}
+        sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort}
       />
 
       {liveSelected && (
