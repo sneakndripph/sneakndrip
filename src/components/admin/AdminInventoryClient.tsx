@@ -83,15 +83,17 @@ function formatPeso(n: number) {
 function computeFinancials(list: ProductStock[]) {
   let capital = 0;
   let revenue = 0;
+  let units = 0;
   for (const p of list) {
-    if (p.cost_price == null) continue;
     const totalUnits = p.sizes.reduce((s, sz) => s + sz.stock, 0);
+    units += totalUnits;
+    if (p.cost_price == null) continue;
     capital += p.cost_price * totalUnits;
     revenue += p.full_payment_price * totalUnits;
   }
   const margin = revenue - capital;
   const marginPct = revenue > 0 ? (margin / revenue) * 100 : 0;
-  return { capital, revenue, margin, marginPct };
+  return { capital, revenue, margin, marginPct, units };
 }
 
 function formatDateTime(iso: string) {
@@ -412,7 +414,11 @@ export default function AdminInventoryClient({
             {missingCostCount} published product{missingCostCount !== 1 ? "s" : ""} missing cost data — excluded from calculations
           </div>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div className="bg-paper border border-line rounded-md p-5">
+            <p className="text-admin-eyebrow text-ink-3 mb-2">Published Units</p>
+            <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{publishedFinancials.units.toLocaleString()}</p>
+          </div>
           <div className="bg-paper border border-line rounded-md p-5">
             <p className="text-admin-eyebrow text-ink-3 mb-2">Total Capital</p>
             <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{formatPeso(publishedFinancials.capital)}</p>
