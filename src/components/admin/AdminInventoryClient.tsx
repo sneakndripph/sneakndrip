@@ -3,6 +3,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { Search, Filter, Package, BarChart2, RefreshCw, Download, X, Edit2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { useSortableTable } from "@/hooks/useSortableTable";
+import SortableHeader from "./SortableHeader";
 
 type LogEntry = {
   id: string;
@@ -28,6 +30,7 @@ type ProductStock = {
   cost_price: number | null;
   full_payment_price: number;
   is_published: boolean;
+  created_at: string;
   sizes: SizeRow[];
 };
 
@@ -40,6 +43,7 @@ type RawProduct = {
   cost_price?: number | null;
   full_payment_price?: number | null;
   is_published?: boolean | null;
+  created_at: string;
   sizes?: SizeRow[];
   product_sizes?: SizeRow[];
 };
@@ -72,6 +76,7 @@ function normalizeProduct(p: RawProduct): ProductStock {
     cost_price: p.cost_price ?? null,
     full_payment_price: p.full_payment_price ?? 0,
     is_published: p.is_published ?? false,
+    created_at: p.created_at,
     sizes,
   };
 }
@@ -279,6 +284,13 @@ export default function AdminInventoryClient({
     return products.filter(p => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q));
   }, [products, search]);
 
+  const { sortedRows: sortedProducts, sortKey: productSortKey, sortDirection: productSortDirection, handleSort: handleProductSort } = useSortableTable(filteredProducts, {
+    accessors: {
+      stock: p => p.sizes.reduce((s, sz) => s + sz.stock, 0),
+      created_at: p => new Date(p.created_at),
+    },
+  });
+
   function openAdjustModal(product: ProductStock) {
     const vals: Record<string, string> = {};
     product.sizes.forEach(s => { vals[s.size] = String(s.stock); });
@@ -480,13 +492,16 @@ export default function AdminInventoryClient({
               <table className="w-full hidden md:table">
                 <thead className="sticky top-0 z-10 bg-paper border-b border-line-strong">
                   <tr className="bg-paper-2">
-                    {["Product", "Brand", "Sizes & Stock", "Total", ""].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">{h}</th>
-                    ))}
+                    <th className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">Product</th>
+                    <th className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">Brand</th>
+                    <th className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">Sizes & Stock</th>
+                    <SortableHeader label="Total" sortKey="stock" currentSortKey={productSortKey} direction={productSortDirection} onSort={handleProductSort} />
+                    <SortableHeader label="Listed" sortKey="created_at" currentSortKey={productSortKey} direction={productSortDirection} onSort={handleProductSort} />
+                    <th className="px-4 py-3 text-left text-admin-eyebrow text-ink-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
-                  {filteredProducts.map(p => {
+                  {sortedProducts.map(p => {
                     const totalUnits = p.sizes.reduce((s, sz) => s + sz.stock, 0);
                     const allSoldOut = p.sizes.length > 0 && totalUnits === 0;
                     const anyLow = !allSoldOut && p.sizes.some(sz => sz.stock > 0 && sz.stock <= 2);
@@ -530,6 +545,9 @@ export default function AdminInventoryClient({
                           </div>
                         </td>
                         <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">{totalUnits}</td>
+                        <td className="px-4 py-3.5 text-admin-sm text-ink-3">
+                          {new Date(p.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
+                        </td>
                         <td className="px-4 py-3.5 text-right" onClick={e => e.stopPropagation()}>
                           <button onClick={() => openAdjustModal(p)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
@@ -544,7 +562,7 @@ export default function AdminInventoryClient({
 
               {/* Mobile cards */}
               <div className="md:hidden divide-y divide-line">
-                {filteredProducts.map(p => {
+                {sortedProducts.map(p => {
                   const totalUnits = p.sizes.reduce((s, sz) => s + sz.stock, 0);
                   const allSoldOut = p.sizes.length > 0 && totalUnits === 0;
                   const anyLow = !allSoldOut && p.sizes.some(sz => sz.stock > 0 && sz.stock <= 2);
