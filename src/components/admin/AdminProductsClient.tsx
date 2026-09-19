@@ -225,9 +225,10 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
         <table className="w-full hidden md:table">
           <thead>
             <tr className="bg-paper-2 border-b border-line-strong">
-              {["Image", "Name", "Brand", "Price"].map(h => (
+              {["Image", "Name", "Brand"].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">{h}</th>
               ))}
+              <SortableHeader label="Price" sortKey="full_payment_price" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortableHeader label="Stock" sortKey="stock" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <SortableHeader label="Listed" sortKey="created_at" currentSortKey={sortKey} direction={sortDirection} onSort={handleSort} />
               <th className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">Status</th>
@@ -259,7 +260,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                 <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">
                   ₱{Number(p.full_payment_price).toLocaleString()}
                 </td>
-                <td className="px-4 py-3.5 text-admin-sm text-ink-2">{totalStock(p)} · {sizesSummary(p)} sizes</td>
+                <td className="px-4 py-3.5 text-admin-sm text-ink-2">{totalStock(p)}</td>
                 <td className="px-4 py-3.5 text-admin-sm text-ink-3">
                   {new Date(p.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" })}
                 </td>
