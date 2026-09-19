@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import SortableHeader from "./SortableHeader";
 
-type StockFilter = "low_stock" | "sold_out";
+type StockFilter = "low_stock" | "sold_out" | "published";
 
 type LogEntry = {
   id: string;
@@ -251,7 +251,7 @@ export default function AdminInventoryClient({
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<StockFilter | null>(
-    initialFilter === "low_stock" || initialFilter === "sold_out" ? initialFilter : null
+    initialFilter === "low_stock" || initialFilter === "sold_out" || initialFilter === "published" ? initialFilter : null
   );
   const [reasonFilter, setReasonFilter] = useState("all");
   const [selected, setSelected] = useState<LogEntry | null>(null);
@@ -293,6 +293,8 @@ export default function AdminInventoryClient({
       list = list.filter(p => p.sizes.some(s => s.stock > 0 && s.stock <= 2));
     } else if (stockFilter === "sold_out") {
       list = list.filter(p => p.sizes.length > 0 && p.sizes.every(s => s.stock === 0));
+    } else if (stockFilter === "published") {
+      list = list.filter(p => p.is_published === true);
     }
     if (search) {
       const q = search.toLowerCase();
@@ -439,7 +441,7 @@ export default function AdminInventoryClient({
           ["sold_out", "Sold Out Products", String(soldOutProducts)],
         ] as const).map(([key, label, value]) => (
           <button key={key} type="button" onClick={() => handleCardFilter(key)}
-            className={`text-left rounded-md p-5 border transition-colors duration-admin-fast ${
+            className={`text-left rounded-md p-5 border cursor-pointer transition-colors duration-admin-fast ${
               stockFilter === key ? "border-ink bg-paper-2 ring-1 ring-ink" : "bg-paper border-line hover:border-line-strong"
             }`}>
             <p className="text-admin-eyebrow text-ink-3 mb-2">{label}</p>
@@ -456,10 +458,13 @@ export default function AdminInventoryClient({
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <div className="bg-paper border border-line rounded-md p-5">
+          <button type="button" onClick={() => handleCardFilter("published")}
+            className={`text-left rounded-md p-5 border cursor-pointer transition-colors duration-admin-fast ${
+              stockFilter === "published" ? "border-ink bg-paper-2 ring-1 ring-ink" : "bg-paper border-line hover:border-line-strong"
+            }`}>
             <p className="text-admin-eyebrow text-ink-3 mb-2">Published Units</p>
             <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{publishedFinancials.units.toLocaleString()}</p>
-          </div>
+          </button>
           <div className="bg-paper border border-line rounded-md p-5">
             <p className="text-admin-eyebrow text-ink-3 mb-2">Total Capital</p>
             <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{formatPeso(publishedFinancials.capital)}</p>
