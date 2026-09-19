@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Search, Filter, Package, BarChart2, RefreshCw, Download, X, Edit2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import SortableHeader from "./SortableHeader";
+
+type StockFilter = "low_stock" | "sold_out";
 
 type LogEntry = {
   id: string;
@@ -234,16 +237,22 @@ function AdjustModal({
 }
 
 export default function AdminInventoryClient({
-  initialProducts, initialLog,
+  initialProducts, initialLog, initialFilter,
 }: {
   initialProducts: RawProduct[];
   initialLog: LogEntry[];
+  initialFilter?: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [tab, setTab] = useState<"stock" | "activity">("stock");
   const [log, setLog] = useState<LogEntry[]>(initialLog);
   const [products, setProducts] = useState<ProductStock[]>(() => initialProducts.map(normalizeProduct));
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
+  const [stockFilter, setStockFilter] = useState<StockFilter | null>(
+    initialFilter === "low_stock" || initialFilter === "sold_out" ? initialFilter : null
+  );
   const [reasonFilter, setReasonFilter] = useState("all");
   const [selected, setSelected] = useState<LogEntry | null>(null);
   const [adjustModal, setAdjustModal] = useState<{ product: ProductStock } | null>(null);
@@ -279,10 +288,24 @@ export default function AdminInventoryClient({
   }, [log, search, reasonFilter]);
 
   const filteredProducts = useMemo(() => {
-    if (!search) return products;
-    const q = search.toLowerCase();
-    return products.filter(p => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q));
-  }, [products, search]);
+    let list = products;
+    if (stockFilter === "low_stock") {
+      list = list.filter(p => p.sizes.some(s => s.stock > 0 && s.stock <= 2));
+    } else if (stockFilter === "sold_out") {
+      list = list.filter(p => p.sizes.length > 0 && p.sizes.every(s => s.stock === 0));
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(p => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q));
+    }
+    return list;
+  }, [products, search, stockFilter]);
+
+  const handleCardFilter = useCallback((next: StockFilter) => {
+    const nextFilter = stockFilter === next ? null : next;
+    setStockFilter(nextFilter);
+    router.push(nextFilter ? `${pathname}?filter=${nextFilter}` : pathname, { scroll: false });
+  }, [stockFilter, pathname, router]);
 
   const { sortedRows: sortedProducts, sortKey: productSortKey, sortDirection: productSortDirection, handleSort: handleProductSort } = useSortableTable(filteredProducts, {
     accessors: {
@@ -407,15 +430,21 @@ export default function AdminInventoryClient({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {[
-          { label: "Total Units", value: totalStock.toLocaleString() },
-          { label: "Low Stock Items", value: String(lowStockCount) },
-          { label: "Sold Out Products", value: String(soldOutProducts) },
-        ].map(s => (
-          <div key={s.label} className="bg-paper border border-line rounded-md p-5">
-            <p className="text-admin-eyebrow text-ink-3 mb-2">{s.label}</p>
-            <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{s.value}</p>
-          </div>
+        <div className="bg-paper border border-line rounded-md p-5">
+          <p className="text-admin-eyebrow text-ink-3 mb-2">Total Units</p>
+          <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{totalStock.toLocaleString()}</p>
+        </div>
+        {([
+          ["low_stock", "Low Stock Items", String(lowStockCount)],
+          ["sold_out", "Sold Out Products", String(soldOutProducts)],
+        ] as const).map(([key, label, value]) => (
+          <button key={key} type="button" onClick={() => handleCardFilter(key)}
+            className={`text-left rounded-md p-5 border transition-colors duration-admin-fast ${
+              stockFilter === key ? "border-ink bg-paper-2 ring-1 ring-ink" : "bg-paper border-line hover:border-line-strong"
+            }`}>
+            <p className="text-admin-eyebrow text-ink-3 mb-2">{label}</p>
+            <p className="text-admin-hero text-ink font-display leading-none tracking-[-0.02em]">{value}</p>
+          </button>
         ))}
       </div>
 
@@ -474,6 +503,12 @@ export default function AdminInventoryClient({
               {Object.entries(REASON_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
+        )}
+        {stockFilter && (
+          <button type="button" onClick={() => handleCardFilter(stockFilter)}
+            className="flex items-center gap-1.5 px-3 py-2 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
+            <X className="w-3.5 h-3.5" /> Clear filter
+          </button>
         )}
       </div>
 

@@ -2,9 +2,13 @@ import { unstable_noStore as noStore } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import AdminInventoryClient from "@/components/admin/AdminInventoryClient";
 
-export default async function AdminInventoryPage() {
+export default async function AdminInventoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ filter?: string }>;
+}) {
   noStore();
-  const admin = createAdminClient();
+  const [admin, { filter }] = [createAdminClient(), await searchParams];
 
   const [{ data: products }, { data: log }] = await Promise.all([
     admin
@@ -18,5 +22,5 @@ export default async function AdminInventoryPage() {
       .limit(500),
   ]);
 
-  return <AdminInventoryClient initialProducts={products ?? []} initialLog={log ?? []} />;
+  return <AdminInventoryClient initialProducts={products ?? []} initialLog={log ?? []} initialFilter={filter ?? ""} />;
 }
