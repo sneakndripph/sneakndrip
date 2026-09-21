@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Copy, ToggleLeft, ToggleRight, Tag, Percent, X } from "lucide-react";
+import { Plus, Trash2, Copy, ToggleLeft, ToggleRight, Tag, Percent, X, ExternalLink } from "lucide-react";
 import toast from "react-hot-toast";
 import { useConfirmDialog } from "@/components/admin/ConfirmDialog";
 
@@ -367,14 +367,7 @@ export default function AdminMarketingPage() {
                               {c.type === "percent" ? `${c.value}%` : `₱${Number(c.value).toLocaleString()}`}
                             </td>
                             <td className="px-4 py-3.5 text-admin-sm text-ink-3">
-                              {c.uses > 0 ? (
-                                <button type="button"
-                                  title={`View ${c.uses} order${c.uses !== 1 ? "s" : ""} that used this voucher`}
-                                  onClick={e => { e.stopPropagation(); router.push(`/admin/orders?coupon=${encodeURIComponent(c.code)}`); }}
-                                  className="text-ink font-semibold cursor-pointer hover:underline">
-                                  {c.uses}
-                                </button>
-                              ) : c.uses}{c.max_uses ? ` / ${c.max_uses}` : ""}
+                              {c.uses}{c.max_uses ? ` / ${c.max_uses}` : ""}
                             </td>
                             <td className="px-4 py-3.5 text-admin-sm text-ink-3">
                               {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "Never"}
@@ -398,6 +391,12 @@ export default function AdminMarketingPage() {
                                   className="p-1.5 rounded hover:bg-paper-3 transition-colors duration-admin-fast">
                                   <Trash2 className="w-3.5 h-3.5 text-state-error" />
                                 </button>
+                                <button onClick={e => { e.stopPropagation(); router.push(`/admin/orders?coupon=${encodeURIComponent(c.code)}`); }}
+                                  disabled={c.uses === 0}
+                                  title={`View ${c.uses} order${c.uses !== 1 ? "s" : ""} that used this voucher`}
+                                  className="p-1.5 rounded hover:bg-paper-3 transition-colors duration-admin-fast disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-default">
+                                  <ExternalLink className="w-4 h-4 text-ink-3" />
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -418,14 +417,7 @@ export default function AdminMarketingPage() {
                         </div>
                         <p className="text-admin-micro text-ink-3 mt-1">
                           {c.type === "percent" ? `${c.value}%` : `₱${Number(c.value).toLocaleString()}`} ·{" "}
-                          {c.uses > 0 ? (
-                            <button type="button"
-                              title={`View ${c.uses} order${c.uses !== 1 ? "s" : ""} that used this voucher`}
-                              onClick={e => { e.stopPropagation(); router.push(`/admin/orders?coupon=${encodeURIComponent(c.code)}`); }}
-                              className="text-ink font-semibold cursor-pointer hover:underline">
-                              {c.uses}
-                            </button>
-                          ) : c.uses}{c.max_uses ? `/${c.max_uses}` : ""} uses · {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" }) : "Never expires"}
+                          {c.uses}{c.max_uses ? `/${c.max_uses}` : ""} uses · {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" }) : "Never expires"}
                         </p>
                         <div className="flex items-center gap-3 mt-2" onClick={e => e.stopPropagation()}>
                           <button onClick={() => toggleActive(c)} className="text-admin-micro font-medium text-ink-2">
@@ -433,6 +425,11 @@ export default function AdminMarketingPage() {
                           </button>
                           <button onClick={() => handleDuplicate(c)} className="text-admin-micro font-medium text-ink-2">Duplicate</button>
                           <button onClick={() => handleDelete(c.id)} className="text-admin-micro font-medium text-state-error">Delete</button>
+                          <button onClick={() => router.push(`/admin/orders?coupon=${encodeURIComponent(c.code)}`)}
+                            disabled={c.uses === 0}
+                            className="text-admin-micro font-medium text-ink-2 disabled:opacity-40 disabled:cursor-default">
+                            View orders
+                          </button>
                         </div>
                       </div>
                     );
