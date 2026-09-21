@@ -102,10 +102,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // tab is open, since the session cookie itself stays valid until it expires.
   // Runs for AdminLayout's full mounted lifetime rather than per-route, so the
   // 60s countdown actually accumulates instead of resetting on every navigation.
+  const hiddenAtRef = useRef<number | null>(null);
   useEffect(() => {
     const interval = setInterval(checkStillAdmin, 60_000);
     function onVisibilityChange() {
-      if (document.visibilityState === "visible") checkStillAdmin();
+      if (document.visibilityState === "hidden") {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+      // Opening a same-origin tab (e.g. window.open) briefly steals focus and
+      // fires this as a side effect — only re-check after a real, sustained
+      // absence so that doesn't trigger a spurious redirect/loading flash.
+      const hiddenFor = hiddenAtRef.current ? Date.now() - hiddenAtRef.current : Infinity;
+      hiddenAtRef.current = null;
+      if (hiddenFor >= 3000) checkStillAdmin();
     }
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
