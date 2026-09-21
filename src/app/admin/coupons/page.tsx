@@ -356,8 +356,8 @@ export default function AdminMarketingPage() {
                         const status = couponStatus(c);
                         return (
                           <tr key={c.id}
-                            onClick={() => { if (c.uses > 0) window.open(`/admin/orders?coupon=${encodeURIComponent(c.code)}`, "_blank", "noopener,noreferrer"); }}
-                            className={`transition-colors duration-admin-fast ${c.uses > 0 ? "cursor-pointer" : "cursor-default"} ${
+                            onClick={() => window.open(`/admin/orders?coupon=${encodeURIComponent(c.code)}`, "_blank", "noopener,noreferrer")}
+                            className={`cursor-pointer transition-colors duration-admin-fast ${
                               editingId === c.id ? "bg-admin-row-hover" : "even:bg-paper-2 hover:bg-admin-row-hover"
                             }`}>
                             <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">{c.code}</td>
@@ -407,8 +407,8 @@ export default function AdminMarketingPage() {
                     const status = couponStatus(c);
                     return (
                       <div key={c.id}
-                        onClick={() => { if (c.uses > 0) window.open(`/admin/orders?coupon=${encodeURIComponent(c.code)}`, "_blank", "noopener,noreferrer"); }}
-                        className={`px-4 py-3.5 ${c.uses > 0 ? "cursor-pointer" : "cursor-default"} ${editingId === c.id ? "bg-admin-row-hover" : ""}`}>
+                        onClick={() => window.open(`/admin/orders?coupon=${encodeURIComponent(c.code)}`, "_blank", "noopener,noreferrer")}
+                        className={`cursor-pointer px-4 py-3.5 ${editingId === c.id ? "bg-admin-row-hover" : ""}`}>
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-admin-sm font-semibold text-ink">{c.code}</p>
                           <span className={`text-admin-micro font-medium px-2 py-0.5 rounded-full ${status.cls}`}>{status.label}</span>
