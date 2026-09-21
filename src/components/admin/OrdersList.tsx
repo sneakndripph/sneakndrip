@@ -21,11 +21,11 @@ function itemsSummary(items: OrderItem[]) {
 }
 
 export default function OrdersList({
-  orders, totalOrdersCount, selectedIds, onToggleSelect, onSelectAll, onRowClick,
+  orders, totalOrdersCount, couponFilter, selectedIds, onToggleSelect, onSelectAll, onRowClick,
   onBulkStatusChange, onClearSelection, onQuickShip, onQuickCancel,
   sortKey, sortDirection, onSort,
 }: {
-  orders: Order[]; totalOrdersCount: number;
+  orders: Order[]; totalOrdersCount: number; couponFilter?: string | null;
   selectedIds: Set<string>; onToggleSelect: (id: string) => void; onSelectAll: (checked: boolean) => void;
   onRowClick: (o: Order) => void;
   onBulkStatusChange: (status: string) => void; onClearSelection: () => void;
@@ -200,7 +200,9 @@ export default function OrdersList({
           <Package className="w-8 h-8 mx-auto mb-3 text-ink-3" strokeWidth={1.5} />
           <p className="text-admin-title text-ink">No orders</p>
           <p className="text-admin-sm text-ink-3 mt-1.5">
-            {totalOrdersCount === 0 ? "Orders will appear here once customers start buying." : "No orders match your filters."}
+            {couponFilter
+              ? `No orders yet for this voucher: ${couponFilter}`
+              : totalOrdersCount === 0 ? "Orders will appear here once customers start buying." : "No orders match your filters."}
           </p>
         </div>
       )}

@@ -281,7 +281,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
       )}
 
       <OrdersList
-        orders={sortedRows} totalOrdersCount={orders.length}
+        orders={sortedRows} totalOrdersCount={orders.length} couponFilter={couponFilter}
         selectedIds={selectedIds} onToggleSelect={toggleSelect}
         onSelectAll={checked => setSelectedIds(checked ? new Set(filtered.map(o => o.id)) : new Set())}
         onRowClick={openOrder}
