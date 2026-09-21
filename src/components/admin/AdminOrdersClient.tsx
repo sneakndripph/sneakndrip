@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Download } from "lucide-react";
+import { Download, X } from "lucide-react";
 import OrdersFilterBar, { periodStart, type Period, type PaymentFilter } from "./OrdersFilterBar";
 import OrdersList, { PAYMENT_LABELS } from "./OrdersList";
 import OrderDetailDrawer from "./OrderDetailDrawer";
@@ -47,12 +48,15 @@ function getNextAction(status: string, isCOD: boolean, paymentType?: string): { 
   return ACTIONS[status] ?? null;
 }
 
-export default function AdminOrdersClient({ initialOrders, initialSearch = "", initialStatus = "" }: { initialOrders: Order[]; initialSearch?: string; initialStatus?: string }) {
+export default function AdminOrdersClient({ initialOrders, initialSearch = "", initialStatus = "", initialCoupon = "" }: { initialOrders: Order[]; initialSearch?: string; initialStatus?: string; initialCoupon?: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [search, setSearch] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState<Status>(STATUSES.includes(initialStatus as Status) ? (initialStatus as Status) : "all");
   const [periodFilter, setPeriodFilter] = useState<Period>("all");
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
+  const [couponFilter, setCouponFilter] = useState<string | null>(initialCoupon || null);
   const [selected, setSelected] = useState<Order | null>(null);
   const [notesInput, setNotesInput] = useState("");
   const [saving, setSaving] = useState(false);
@@ -75,8 +79,14 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
     const matchPeriod = !pStart || new Date(o.created_at) >= pStart;
     const matchPayment = paymentFilter === "all" || o.payment_method === paymentFilter;
-    return matchSearch && matchStatus && matchPeriod && matchPayment;
+    const matchCoupon = !couponFilter || o.coupon_code === couponFilter;
+    return matchSearch && matchStatus && matchPeriod && matchPayment && matchCoupon;
   });
+
+  const clearCouponFilter = () => {
+    setCouponFilter(null);
+    router.push(pathname, { scroll: false });
+  };
 
   const { sortedRows, sortKey, sortDirection, handleSort } = useSortableTable(filtered, {
     accessors: {
@@ -258,6 +268,17 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
         periodFilter={periodFilter} onPeriodChange={setPeriodFilter}
         paymentFilter={paymentFilter} onPaymentFilterChange={setPaymentFilter}
       />
+
+      {couponFilter && (
+        <div className="flex items-center gap-2 mb-5">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
+            Filtered by coupon: <span className="text-ink font-semibold">{couponFilter}</span>
+            <button type="button" onClick={clearCouponFilter} className="cursor-pointer" aria-label="Clear coupon filter">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </span>
+        </div>
+      )}
 
       <OrdersList
         orders={sortedRows} totalOrdersCount={orders.length}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash2, Copy, ToggleLeft, ToggleRight, Tag, Percent, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useConfirmDialog } from "@/components/admin/ConfirmDialog";
@@ -64,6 +65,7 @@ const TABS = [
 ];
 
 export default function AdminMarketingPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"coupons" | "discounts">("coupons");
 
   // Coupons state
@@ -365,7 +367,14 @@ export default function AdminMarketingPage() {
                               {c.type === "percent" ? `${c.value}%` : `₱${Number(c.value).toLocaleString()}`}
                             </td>
                             <td className="px-4 py-3.5 text-admin-sm text-ink-3">
-                              {c.uses}{c.max_uses ? ` / ${c.max_uses}` : ""}
+                              {c.uses > 0 ? (
+                                <button type="button"
+                                  title={`View ${c.uses} order${c.uses !== 1 ? "s" : ""} that used this voucher`}
+                                  onClick={e => { e.stopPropagation(); router.push(`/admin/orders?coupon=${encodeURIComponent(c.code)}`); }}
+                                  className="text-ink font-semibold cursor-pointer hover:underline">
+                                  {c.uses}
+                                </button>
+                              ) : c.uses}{c.max_uses ? ` / ${c.max_uses}` : ""}
                             </td>
                             <td className="px-4 py-3.5 text-admin-sm text-ink-3">
                               {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "Never"}
@@ -408,7 +417,15 @@ export default function AdminMarketingPage() {
                           <span className={`text-admin-micro font-medium px-2 py-0.5 rounded-full ${status.cls}`}>{status.label}</span>
                         </div>
                         <p className="text-admin-micro text-ink-3 mt-1">
-                          {c.type === "percent" ? `${c.value}%` : `₱${Number(c.value).toLocaleString()}`} · {c.uses}{c.max_uses ? `/${c.max_uses}` : ""} uses · {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" }) : "Never expires"}
+                          {c.type === "percent" ? `${c.value}%` : `₱${Number(c.value).toLocaleString()}`} ·{" "}
+                          {c.uses > 0 ? (
+                            <button type="button"
+                              title={`View ${c.uses} order${c.uses !== 1 ? "s" : ""} that used this voucher`}
+                              onClick={e => { e.stopPropagation(); router.push(`/admin/orders?coupon=${encodeURIComponent(c.code)}`); }}
+                              className="text-ink font-semibold cursor-pointer hover:underline">
+                              {c.uses}
+                            </button>
+                          ) : c.uses}{c.max_uses ? `/${c.max_uses}` : ""} uses · {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" }) : "Never expires"}
                         </p>
                         <div className="flex items-center gap-3 mt-2" onClick={e => e.stopPropagation()}>
                           <button onClick={() => toggleActive(c)} className="text-admin-micro font-medium text-ink-2">
