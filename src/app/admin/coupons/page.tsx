@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { Plus, Trash2, Copy, ToggleLeft, ToggleRight, Tag, Percent, X, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Copy, ToggleLeft, ToggleRight, Tag, Percent, X, Pencil } from "lucide-react";
 import toast from "react-hot-toast";
 import { useConfirmDialog } from "@/components/admin/ConfirmDialog";
 
@@ -65,7 +64,6 @@ const TABS = [
 ];
 
 export default function AdminMarketingPage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"coupons" | "discounts">("coupons");
 
   // Coupons state
@@ -357,8 +355,9 @@ export default function AdminMarketingPage() {
                       {coupons.map(c => {
                         const status = couponStatus(c);
                         return (
-                          <tr key={c.id} onClick={() => openEdit(c)}
-                            className={`cursor-pointer transition-colors duration-admin-fast ${
+                          <tr key={c.id}
+                            onClick={() => { if (c.uses > 0) window.open(`/admin/orders?coupon=${encodeURIComponent(c.code)}`, "_blank", "noopener,noreferrer"); }}
+                            className={`transition-colors duration-admin-fast ${c.uses > 0 ? "cursor-pointer" : "cursor-default"} ${
                               editingId === c.id ? "bg-admin-row-hover" : "even:bg-paper-2 hover:bg-admin-row-hover"
                             }`}>
                             <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">{c.code}</td>
@@ -391,11 +390,9 @@ export default function AdminMarketingPage() {
                                   className="p-1.5 rounded hover:bg-paper-3 transition-colors duration-admin-fast">
                                   <Trash2 className="w-3.5 h-3.5 text-state-error" />
                                 </button>
-                                <button onClick={e => { e.stopPropagation(); router.push(`/admin/orders?coupon=${encodeURIComponent(c.code)}`); }}
-                                  disabled={c.uses === 0}
-                                  title={`View ${c.uses} order${c.uses !== 1 ? "s" : ""} that used this voucher`}
-                                  className="p-1.5 rounded hover:bg-paper-3 transition-colors duration-admin-fast disabled:opacity-40 disabled:hover:bg-transparent disabled:cursor-default">
-                                  <ExternalLink className="w-4 h-4 text-ink-3" />
+                                <button onClick={e => { e.stopPropagation(); openEdit(c); }} title="Edit voucher"
+                                  className="p-1.5 rounded hover:bg-paper-3 transition-colors duration-admin-fast">
+                                  <Pencil className="w-4 h-4 text-ink-3" />
                                 </button>
                               </div>
                             </td>
@@ -409,8 +406,9 @@ export default function AdminMarketingPage() {
                   {coupons.map(c => {
                     const status = couponStatus(c);
                     return (
-                      <div key={c.id} onClick={() => openEdit(c)}
-                        className={`px-4 py-3.5 ${editingId === c.id ? "bg-admin-row-hover" : ""}`}>
+                      <div key={c.id}
+                        onClick={() => { if (c.uses > 0) window.open(`/admin/orders?coupon=${encodeURIComponent(c.code)}`, "_blank", "noopener,noreferrer"); }}
+                        className={`px-4 py-3.5 ${c.uses > 0 ? "cursor-pointer" : "cursor-default"} ${editingId === c.id ? "bg-admin-row-hover" : ""}`}>
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-admin-sm font-semibold text-ink">{c.code}</p>
                           <span className={`text-admin-micro font-medium px-2 py-0.5 rounded-full ${status.cls}`}>{status.label}</span>
@@ -425,11 +423,7 @@ export default function AdminMarketingPage() {
                           </button>
                           <button onClick={() => handleDuplicate(c)} className="text-admin-micro font-medium text-ink-2">Duplicate</button>
                           <button onClick={() => handleDelete(c.id)} className="text-admin-micro font-medium text-state-error">Delete</button>
-                          <button onClick={() => router.push(`/admin/orders?coupon=${encodeURIComponent(c.code)}`)}
-                            disabled={c.uses === 0}
-                            className="text-admin-micro font-medium text-ink-2 disabled:opacity-40 disabled:cursor-default">
-                            View orders
-                          </button>
+                          <button onClick={() => openEdit(c)} className="text-admin-micro font-medium text-ink-2">Edit</button>
                         </div>
                       </div>
                     );
