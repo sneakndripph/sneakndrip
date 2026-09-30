@@ -4,8 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { SITE_URL } from "@/lib/constants";
-import { Eye, EyeOff, CheckCircle, Check, X } from "lucide-react";
+import { Eye, EyeOff, CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { isPasswordValid } from "@/lib/validation/password";
+import PasswordChecklist from "@/components/auth/PasswordChecklist";
 import toast from "react-hot-toast";
 
 type EmailCheck = { exists: boolean; providers: string[] | null };
@@ -24,14 +26,6 @@ async function checkEmail(email: string): Promise<EmailCheck | null> {
   }
 }
 
-const PW_RULES = [
-  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
-  { label: "One uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
-  { label: "One lowercase letter", test: (p: string) => /[a-z]/.test(p) },
-  { label: "One number", test: (p: string) => /[0-9]/.test(p) },
-  { label: "One special character (!@#$…)", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
-];
-
 function validate(form: { name: string; email: string; mobile: string; password: string; confirm: string }) {
   if (!form.name.trim()) return "Full name is required.";
   if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s.'-]+$/.test(form.name)) return "Full name must contain letters only.";
@@ -40,7 +34,7 @@ function validate(form: { name: string; email: string; mobile: string; password:
   if (!form.mobile.trim()) return "Mobile number is required.";
   if (!/^09\d{9}$/.test(form.mobile))
     return "Enter a valid PH mobile number (e.g. 09171234567).";
-  if (PW_RULES.some(r => !r.test(form.password))) return "Password does not meet all requirements.";
+  if (!isPasswordValid(form.password)) return "Password does not meet all requirements.";
   if (form.password !== form.confirm) return "Passwords do not match.";
   return null;
 }
@@ -101,7 +95,6 @@ export default function RegisterPage() {
       if (!/^09\d{9}$/.test(form.mobile))
         return "Must be 11 digits starting with 09 (e.g. 09171234567).";
     }
-    if (key === "confirm" && form.confirm && form.password !== form.confirm) return "Passwords do not match.";
     return "";
   }
 
@@ -182,11 +175,6 @@ export default function RegisterPage() {
     const cleaned = val.replace(/\D/g, "");
     field("mobile", cleaned.slice(0, 11));
   }
-
-  const pwStrength = PW_RULES.filter(r => r.test(form.password)).length;
-  const strengthBgClass = pwStrength <= 2 ? "bg-state-error" : pwStrength <= 3 ? "bg-state-preorder" : "bg-state-onhand";
-  const strengthTextClass = pwStrength <= 2 ? "text-state-error" : pwStrength <= 3 ? "text-state-preorder" : "text-state-onhand";
-  const strengthLabel = pwStrength <= 2 ? "Weak" : pwStrength <= 3 ? "Fair" : pwStrength === 4 ? "Good" : "Strong";
 
   if (success) {
     return (
@@ -284,6 +272,7 @@ export default function RegisterPage() {
               placeholder="Create a strong password" required
               onChange={e => field("password", e.target.value)}
               onBlur={() => touch("password")}
+              aria-describedby="register-password-rules"
               className="w-full bg-paper-2 border-0 rounded-md px-4 py-3 pr-12 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1"
             />
             <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink transition-colors">
@@ -291,29 +280,7 @@ export default function RegisterPage() {
             </button>
           </div>
 
-          {/* Strength bar */}
-          {form.password && (
-            <div className="mt-2 space-y-1.5">
-              <div className="flex items-center gap-2">
-                <div className="flex-1 flex gap-1">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <div key={i} className={`flex-1 h-1 rounded-full transition-all ${i <= pwStrength ? strengthBgClass : "bg-line"}`} />
-                  ))}
-                </div>
-                <span className={`text-micro font-medium ${strengthTextClass}`}>{strengthLabel}</span>
-              </div>
-              <ul className="space-y-0.5">
-                {PW_RULES.map(r => (
-                  <li key={r.label} className={`flex items-center gap-1.5 text-micro ${r.test(form.password) ? "text-state-onhand" : "text-ink-3"}`}>
-                    {r.test(form.password)
-                      ? <Check className="w-3 h-3 shrink-0" />
-                      : <X className="w-3 h-3 shrink-0" />}
-                    {r.label}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <PasswordChecklist id="register-password-rules" password={form.password} confirm={form.confirm} />
         </div>
 
         {/* Confirm Password */}
@@ -332,7 +299,6 @@ export default function RegisterPage() {
               {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
-          {fieldError("confirm") && <p className="text-micro text-state-error mt-1">{fieldError("confirm")}</p>}
         </div>
 
         {/* Terms & privacy consent */}
