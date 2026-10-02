@@ -34,13 +34,18 @@ When a return or exchange request is approved for a refund instead of a replacem
 - **GCash** — refunded back to the GCash account used for payment.
 - **Maya** — refunded back to the Maya account used for payment.
 - **Bank Transfer** — refunded back to the originating bank account.
-- **Cash on Delivery (COD)** — issued as store credit, redeemable on a future order.
+- **Cash on Delivery (COD)** — issued as store credit, redeemable on a future order (valid for 30 days from issuance).
 
 ## Refund Timeline
 Approved refunds are processed within 3–5 business days of approval.
 
 ## How to Request a Refund
-Follow the same process as above: message us on Facebook or Instagram within 7 days of receipt with your order number, photos of the issue, and your preferred resolution. If a refund is the agreed resolution, we'll confirm the method and timeline once your request is approved.`;
+Follow the same process as above: message us on Facebook or Instagram within 7 days of receipt with your order number, photos of the issue, and your preferred resolution. If a refund is the agreed resolution, we'll confirm the method and timeline once your request is approved.
+
+## Your Statutory Rights
+Nothing in this policy limits your rights under the Consumer Act of the Philippines (RA 7394) or the Civil Code of the Philippines.
+
+Last updated: October 2026`;
 
 export default async function ReturnsPage() {
   const content = await getPageContent("returns", FALLBACK);
