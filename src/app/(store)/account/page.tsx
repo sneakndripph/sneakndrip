@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { DP_RESERVE_FEE } from "@/lib/constants";
 import Image from "next/image";
-import { Package, User, LogOut, ChevronRight, CheckCircle, Lock, Eye, EyeOff, Save, X, Home, Star, Upload, Plus, Pencil, Trash2 } from "lucide-react";
+import { Package, User, LogOut, ChevronRight, CheckCircle, Lock, Eye, EyeOff, Save, X, Home, Star, Upload, Plus, Pencil, Trash2, Mail } from "lucide-react";
 import OrderCard, { type Order, type ReturnInfo } from "@/components/account/OrderCard";
 import AddressForm, { type AddressFormValues } from "@/components/account/AddressForm";
+import EmailPreferences from "@/components/account/EmailPreferences";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import toast from "react-hot-toast";
 
-type Tab = "orders" | "account" | "address" | "password";
+type Tab = "orders" | "account" | "address" | "emails" | "password";
 
 interface ShippingAddress {
   id: string;
@@ -577,6 +578,7 @@ export default function AccountPage() {
     { id: "orders" as Tab, icon: Package, label: "My Orders" },
     { id: "account" as Tab, icon: User, label: "Account Details" },
     { id: "address" as Tab, icon: Home, label: "My Address" },
+    { id: "emails" as Tab, icon: Mail, label: "Email Preferences" },
     { id: "password" as Tab, icon: Lock, label: "Change Password" },
   ];
 
@@ -905,6 +907,9 @@ export default function AccountPage() {
                 )}
               </div>
             )}
+
+            {/* Email Preferences tab */}
+            {tab === "emails" && <EmailPreferences />}
 
             {/* Change Password tab */}
             {tab === "password" && (
