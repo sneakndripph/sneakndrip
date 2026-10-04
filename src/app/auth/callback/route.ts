@@ -4,13 +4,17 @@ import { NextRequest, NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { validateEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin-server";
+import { consentMetadata, hasCurrentConsent } from "@/lib/legal/versions";
+import { safeNext } from "@/lib/safe-redirect";
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = req.nextUrl;
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next");
+  // Raw ?next= — always pass through safeNext() before redirecting (open-redirect guard)
+  const rawNext = searchParams.get("next");
+  const next = safeNext(rawNext);
 
   const cookieStore = await cookies();
   const env = validateEnv();
@@ -46,7 +50,21 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.redirect(`${origin}${next ?? "/shop"}`);
+    // Terms/Privacy consent gate. /register only starts Google OAuth once the
+    // consent box is ticked and tags the redirect with ?consent=register, so
+    // record it here (server time). Anyone else without current-version
+    // consent (e.g. a new Google user from /login) must accept on /consent.
+    // Existing current-version records are left alone to keep the original timestamp.
+    if (user && !hasCurrentConsent(user.user_metadata)) {
+      const consentNext = `${origin}/consent?next=${encodeURIComponent(next)}`;
+      if (searchParams.get("consent") !== "register") {
+        return NextResponse.redirect(consentNext);
+      }
+      const { error } = await supabase.auth.updateUser({ data: consentMetadata("register") });
+      if (error) return NextResponse.redirect(consentNext);
+    }
+
+    return NextResponse.redirect(`${origin}${next}`);
   }
 
   // Email OTP links (recovery, signup, email_change, ...) land here with ?token_hash=&type=
@@ -57,7 +75,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === "recovery") {
-      return NextResponse.redirect(`${origin}${next ?? "/reset-password"}`);
+      return NextResponse.redirect(`${origin}${safeNext(rawNext, "/reset-password")}`);
     }
     if (type === "signup" || type === "email") {
       return NextResponse.redirect(`${origin}/auth/callback/confirmed`);
@@ -66,8 +84,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${origin}/account?email_changed=1`);
     }
 
-    return NextResponse.redirect(`${origin}${next ?? "/shop"}`);
+    return NextResponse.redirect(`${origin}${next}`);
   }
 
-  return NextResponse.redirect(`${origin}${next ?? "/shop"}`);
+  return NextResponse.redirect(`${origin}${next}`);
 }

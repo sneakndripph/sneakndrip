@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { SITE_URL } from "@/lib/constants";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { safeNext } from "@/lib/safe-redirect";
 import toast from "react-hot-toast";
 
 type EmailCheck = { exists: boolean; providers: string[] | null };
@@ -66,7 +67,7 @@ function LoginForm() {
     if (data.user?.user_metadata?.role === "admin") {
       router.push("/admin");
     } else {
-      router.push(redirectTo);
+      router.push(safeNext(redirectTo));
     }
     router.refresh();
   }
