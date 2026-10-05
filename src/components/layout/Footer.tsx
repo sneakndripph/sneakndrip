@@ -17,6 +17,7 @@ const FOOTER_LINKS = {
     { label: "Privacy",    href: "/privacy" },
     { label: "Terms",      href: "/terms" },
     { label: "Cookies",    href: "/cookies-policy" },
+    { label: "Cookie Settings", href: "/cookie-settings" },
   ],
   Support: [
     { label: "Track My Order", href: "/account" },

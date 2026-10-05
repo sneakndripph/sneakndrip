@@ -37,7 +37,9 @@ When enabled, Google Analytics sets these first-party cookies:
 We send Google the pages you visit (including search and filter terms in the page address), the products you view, items added to your cart, checkout starts, and completed purchases (order reference, items, and amount). We do not send your name, email address, phone number, or payment details to Google. Google processes this data on our behalf and may store it on servers outside the Philippines. See Google's privacy policy at policies.google.com/privacy.
 
 ## Managing Cookies and Storage
-You can decline analytics in the cookie banner. To change your choice later, clear this site's cookies and local storage in your browser settings — the banner will appear again on your next visit. Clearing storage will also sign you out, empty your cart, and reset the preferences above.
+You can decline analytics in the cookie banner. To change your choice later, use the **Cookie Settings** page, linked in the site footer and, when you're signed in, in your account. Turning analytics off takes full effect after you reload the page.
+
+Alternatively, you can clear this site's cookies and local storage in your browser settings — the banner will appear again on your next visit. Clearing storage will also sign you out, empty your cart, and reset the preferences above.
 
 You can also opt out of Google Analytics on all websites with Google's browser add-on at tools.google.com/dlpage/gaoptout.
 

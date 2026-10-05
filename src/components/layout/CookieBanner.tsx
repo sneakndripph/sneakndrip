@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getConsent, setConsent } from "@/lib/consent";
+import { getConsent, setConsent, CONSENT_CHANGE_EVENT } from "@/lib/consent";
 
 export default function CookieBanner() {
   const [visible, setVisible] = useState(false);
@@ -14,6 +14,10 @@ export default function CookieBanner() {
     } catch {
       /* localStorage unavailable — skip banner */
     }
+    // A choice saved elsewhere (e.g. /cookie-settings) answers the banner too
+    const hide = () => setVisible(false);
+    window.addEventListener(CONSENT_CHANGE_EVENT, hide);
+    return () => window.removeEventListener(CONSENT_CHANGE_EVENT, hide);
   }, []);
 
   function save() {
