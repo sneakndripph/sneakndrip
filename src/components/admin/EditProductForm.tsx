@@ -64,6 +64,9 @@ export default function EditProductForm({ product }: { product: Product }) {
   const [isPublished, setIsPublished] = useState(Boolean(product.is_published ?? true));
   const [featured, setFeatured] = useState(Boolean(product.is_featured ?? false));
   const [trending, setTrending] = useState(Boolean(product.is_trending ?? false));
+  // Default on only for a published product that has never been announced.
+  const neverNotified = !product.notified_at;
+  const [notifySubscribers, setNotifySubscribers] = useState(neverNotified && Boolean(product.is_published ?? true));
 
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -129,6 +132,7 @@ export default function EditProductForm({ product }: { product: Product }) {
       fd.append("sizes", JSON.stringify(
         sizeRows.filter(r => r.enabled).map(r => ({ size: r.size, stock: r.stock }))
       ));
+      fd.append("notifySubscribers", String(isPublished && notifySubscribers));
 
       const res = await fetch(`/api/admin/products/${product.id}`, { method: "PATCH", body: fd });
       const result = await res.json().catch(() => ({})) as { error?: string };
@@ -367,7 +371,11 @@ export default function EditProductForm({ product }: { product: Product }) {
                 {(["draft", "published"] as const).map(opt => {
                   const active = (opt === "published") === isPublished;
                   return (
-                    <button key={opt} type="button" onClick={() => setIsPublished(opt === "published")}
+                    <button key={opt} type="button" onClick={() => {
+                        const published = opt === "published";
+                        if (published && !isPublished && neverNotified) setNotifySubscribers(true);
+                        setIsPublished(published);
+                      }}
                       className={`flex-1 flex items-center gap-2 px-3 py-2.5 rounded-md border text-admin-sm font-medium capitalize transition-colors duration-admin-fast ${
                         active ? "border-ink bg-admin-row-hover text-ink" : "border-line text-ink-2 hover:border-line-strong"
                       }`}>
@@ -379,6 +387,16 @@ export default function EditProductForm({ product }: { product: Product }) {
                   );
                 })}
               </div>
+
+              {isPublished && (
+                <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-line">
+                  <div>
+                    <p className="text-admin-sm font-medium text-ink">Notify subscribers</p>
+                    <p className="text-admin-micro text-ink-3 mt-0.5">Sends new arrival email to opted-in newsletter subscribers</p>
+                  </div>
+                  <Toggle checked={notifySubscribers} onChange={setNotifySubscribers} />
+                </div>
+              )}
 
               <p className="text-admin-eyebrow text-ink-3 mt-6">Visibility flags</p>
               <div className="mt-2.5 space-y-4">

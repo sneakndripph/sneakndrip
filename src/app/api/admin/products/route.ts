@@ -4,10 +4,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/supabase/require-admin";
 import { validateEnv } from "@/lib/env";
-import { sendEmail } from "@/lib/email/send";
-import { newArrival } from "@/lib/email/templates/newArrival";
-import { getOptedOutEmails, getCustomerEmails, EmailType } from "@/lib/email/preferences";
-import { buildUnsubscribeUrl } from "@/lib/legal/unsubscribe-token";
+import { sendNewArrivalBroadcast } from "@/lib/email/new-arrival";
 import { z } from "zod";
 import { productCreateSchema, productSizeSchema } from "@/lib/validation/schemas";
 
@@ -116,59 +113,7 @@ export async function POST(req: NextRequest) {
 
     if (product.is_published === true && notifySubscribers) {
       try {
-        const { data: subscribers } = await admin
-          .from("newsletter_subscribers")
-          .select("email, unsubscribe_token")
-          .is("unsubscribed_at", null);
-
-        const allSubscribers = subscribers ?? [];
-        const optedOut = await getOptedOutEmails(allSubscribers.map(s => s.email), EmailType.NewArrival);
-        if (!optedOut) throw new Error("new-arrival preference lookup failed");
-        const recipients = allSubscribers.filter(s => !optedOut.has(s.email.toLowerCase()));
-        const skippedCount = allSubscribers.length - recipients.length;
-        if (recipients.length === 0) {
-          console.log(`[new-arrival-notify] 0 recipients after filtering (${skippedCount} opted out)`);
-        }
-
-        // Newsletter-only subscribers have no account to manage preferences in,
-        // so they get a signed one-click unsubscribe link. If the lookup fails,
-        // everyone gets the signed link, which works for account holders too.
-        const accountEmails = (await getCustomerEmails(recipients.map(s => s.email))) ?? new Set<string>();
-
-        let sentCount = 0;
-        for (const subscriber of recipients) {
-          const { subject, html } = newArrival({
-            customerEmail: subscriber.email,
-            unsubscribeToken: subscriber.unsubscribe_token,
-            signedUnsubscribeUrl: accountEmails.has(subscriber.email.toLowerCase())
-              ? undefined
-              : buildUnsubscribeUrl(subscriber.email, EmailType.Newsletter),
-            product: {
-              name: product.name,
-              brand: product.brand,
-              slug: product.slug,
-              imageUrl: product.images?.[0],
-              price: product.full_payment_price,
-            },
-          });
-          const result = await sendEmail(subscriber.email, subject, html);
-          if (result.ok && !result.skipped) sentCount++;
-        }
-
-        const { error: notifyLogError } = await admin.from("activity_log").insert({
-          action: "new_arrival_notified",
-          entity_type: "product",
-          entity_id: data.id,
-          entity_name: product.name,
-          actor_email: user.email ?? null,
-          details: {
-            product_id: data.id,
-            subscriber_count: sentCount,
-            eligible_count: allSubscribers.length,
-            opted_out_count: skippedCount,
-          },
-        });
-        if (notifyLogError) console.error("[activity_log] new_arrival_notified insert failed:", notifyLogError);
+        await sendNewArrivalBroadcast(data.id, user.email ?? null);
       } catch (err) {
         console.error("[new-arrival-notify] failed:", err);
       }

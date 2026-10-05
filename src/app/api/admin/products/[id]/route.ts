@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { validateEnv } from "@/lib/env";
 import { sendRestockEmailsForSize } from "@/lib/email/restock";
+import { sendNewArrivalBroadcast } from "@/lib/email/new-arrival";
 import { z } from "zod";
 import { productUpdateSchema, productSizeSchema } from "@/lib/validation/schemas";
 
@@ -42,6 +43,7 @@ export async function PATCH(
 
   const productRaw = formData.get("product") as string | null;
   const sizesRaw = formData.get("sizes") as string | null;
+  const notifySubscribers = formData.get("notifySubscribers") === "true";
   if (!productRaw) return NextResponse.json({ error: "Missing product data" }, { status: 400 });
 
   let parsedProductRaw: unknown;
@@ -104,6 +106,16 @@ export async function PATCH(
     if (logError) console.error("[activity_log] insert failed:", logError);
   } catch (err) {
     console.error("[activity_log] insert failed:", err);
+  }
+
+  // First-publish broadcast: the helper only sends if the product is published
+  // and has never been notified, so re-saves never re-broadcast.
+  if (notifySubscribers) {
+    try {
+      await sendNewArrivalBroadcast(id, user.email ?? null);
+    } catch (err) {
+      console.error("[new-arrival-notify] failed:", err);
+    }
   }
 
   return NextResponse.json({ ok: true });
