@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { DP_RESERVE_FEE } from "@/lib/constants";
 import Image from "next/image";
@@ -14,6 +14,13 @@ import type { User as SupabaseUser } from "@supabase/supabase-js";
 import toast from "react-hot-toast";
 
 type Tab = "orders" | "account" | "address" | "emails" | "password";
+
+const TABS: readonly Tab[] = ["orders", "account", "address", "emails", "password"];
+
+/** ?tab= value → Tab, falling back to "orders" when missing or unknown. */
+function parseTab(value: string | null): Tab {
+  return TABS.includes(value as Tab) ? (value as Tab) : "orders";
+}
 
 interface ShippingAddress {
   id: string;
@@ -32,8 +39,22 @@ interface ShippingAddress {
 const MAX_ADDRESSES = 5;
 
 export default function AccountPage() {
+  // useSearchParams needs a Suspense boundary or the production build fails.
+  return (
+    <Suspense>
+      <AccountPageContent />
+    </Suspense>
+  );
+}
+
+function AccountPageContent() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("orders");
+  const searchParams = useSearchParams();
+  // The URL is the source of truth so /account?tab=emails deep links (from
+  // email footers) land on the right tab and refresh keeps the current one.
+  const tab = parseTab(searchParams.get("tab"));
+  // Native replaceState syncs useSearchParams without a server round trip.
+  const setTab = (next: Tab) => window.history.replaceState(null, "", `?tab=${next}`);
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(true);

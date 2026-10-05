@@ -70,3 +70,28 @@ export async function getOptedOutEmails(emails: string[], emailType: EmailType):
   }
   return optedOut;
 }
+
+/**
+ * Lowercased addresses among `emails` that belong to a customer account.
+ * Returns null on a lookup error. Used only to shape email content (whether a
+ * footer can link to account preferences), never to decide who gets mailed.
+ */
+export async function getCustomerEmails(emails: string[]): Promise<Set<string> | null> {
+  const candidates = [...new Set(emails.flatMap(e => [e, e.toLowerCase()]))];
+  const found = new Set<string>();
+  if (candidates.length === 0) return found;
+
+  const admin = createAdminClient();
+  for (let i = 0; i < candidates.length; i += OPT_OUT_CHUNK_SIZE) {
+    const { data, error } = await admin
+      .from("customers")
+      .select("email")
+      .in("email", candidates.slice(i, i + OPT_OUT_CHUNK_SIZE));
+    if (error) {
+      console.error("[email-preferences] customer lookup failed:", error);
+      return null;
+    }
+    for (const row of data ?? []) found.add(row.email.toLowerCase());
+  }
+  return found;
+}

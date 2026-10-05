@@ -43,7 +43,11 @@ export async function middleware(request: NextRequest) {
 
   // Protect account page
   if (pathname.startsWith("/account") && !user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    // Carry the destination through login so email deep links like
+    // /account?tab=emails survive it; the login page runs it through safeNext.
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname + request.nextUrl.search);
+    return NextResponse.redirect(loginUrl);
   }
 
   // Protect admin routes (skip the admin login page itself)

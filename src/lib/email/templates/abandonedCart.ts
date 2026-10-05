@@ -1,5 +1,5 @@
 import {
-  h, stripNewlines, wrapEmail, h1, paragraph, productLine, button, divider, socialLinks,
+  h, stripNewlines, wrapEmail, h1, paragraph, productLine, button, divider, socialLinks, reasonLine,
   FONT_STACK, BRAND_INK, BRAND_INK_MUTED,
 } from "../helpers";
 
@@ -94,6 +94,7 @@ export function abandonedCart(data: AbandonedCartData): { subject: string; html:
     ${divider()}
 
     ${paragraph("Questions? Message us on Instagram, TikTok, or Facebook.")}
+    ${reasonLine("You're receiving this because you have items waiting in your cart.")}
     ${socialLinks()}
   `;
 

@@ -1,4 +1,4 @@
-import { h, stripNewlines, wrapEmail, h1, paragraph, productLine, button, divider, socialLinks, unsubscribeLink } from "../helpers";
+import { h, stripNewlines, wrapEmail, h1, paragraph, productLine, button, divider, socialLinks, unsubscribeLink, reasonLine } from "../helpers";
 
 export type NewArrivalData = {
   customerEmail: string;
@@ -27,6 +27,7 @@ export function newArrival(data: NewArrivalData): { subject: string; html: strin
 
     ${divider()}
 
+    ${reasonLine("You're receiving this because you're subscribed to new arrival announcements.")}
     ${socialLinks()}
     ${unsubscribeLink(unsubscribeToken)}
   `;

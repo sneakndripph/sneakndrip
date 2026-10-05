@@ -173,6 +173,21 @@ export function socialLinks(): string {
   return `<p style="margin:0;font-family:${FONT_STACK};font-size:12px;color:${BRAND_INK_MUTED}">${links}</p>`;
 }
 
+/** /account deep link that opens the Email Preferences tab. */
+export const EMAIL_PREFERENCES_URL = `${SITE_URL}/account?tab=emails`;
+
+/**
+ * Small "why you got this" line for marketing footers, followed by a link to
+ * the account's email preferences unless `preferencesLink` is false (guest
+ * recipients, who have no account to manage).
+ */
+export function reasonLine(reason: string, opts?: { preferencesLink?: boolean }): string {
+  const link = opts?.preferencesLink === false
+    ? ""
+    : ` <a href="${EMAIL_PREFERENCES_URL}" style="color:${BRAND_INK_MUTED};text-decoration:underline">Manage email preferences</a>`;
+  return `<p style="margin:0 0 12px;font-family:${FONT_STACK};font-size:12px;line-height:18px;color:${BRAND_INK_MUTED}">${reason}${link}</p>`;
+}
+
 /** Small unsubscribe link for template footers. */
 export function unsubscribeLink(token: string): string {
   const url = `${SITE_URL}/api/unsubscribe?token=${encodeURIComponent(token)}`;
