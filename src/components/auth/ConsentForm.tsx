@@ -6,13 +6,18 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { consentMetadata, hasCurrentConsent } from "@/lib/legal/versions";
 import { safeNext } from "@/lib/safe-redirect";
+import MarketingCheckbox from "@/components/auth/MarketingCheckbox";
 
-/** `next` is validated server-side by the /consent page; re-checked here before navigating. */
-export default function ConsentForm({ next: nextProp }: { next: string }) {
+/**
+ * `next` is validated server-side by the /consent page; re-checked here before navigating.
+ * `isNewAccount` (decided server-side) shows the marketing opt-in only to just-created accounts.
+ */
+export default function ConsentForm({ next: nextProp, isNewAccount }: { next: string; isNewAccount: boolean }) {
   const router = useRouter();
   const next = safeNext(nextProp);
   const [ready, setReady] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [marketing, setMarketing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -30,11 +35,18 @@ export default function ConsentForm({ next: nextProp }: { next: string }) {
     setSaving(true);
     setError("");
     const supabase = createClient();
-    const { error: updateError } = await supabase.auth.updateUser({ data: consentMetadata("oauth") });
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: { ...consentMetadata("oauth"), ...(isNewAccount ? { marketing_opted_in: marketing } : {}) },
+    });
     if (updateError) {
       setError("Couldn't save your consent. Please try again.");
       setSaving(false);
       return;
+    }
+    if (isNewAccount) {
+      // Best effort: if this fails the choice stays in metadata and the auth
+      // callback applies it on the next sign-in.
+      await fetch("/api/account/marketing-choice", { method: "POST" }).catch(() => {});
     }
     router.push(next);
     router.refresh();
@@ -69,6 +81,12 @@ export default function ConsentForm({ next: nextProp }: { next: string }) {
           <Link href="/privacy" className="text-ink underline hover:opacity-60 transition-opacity">Privacy Policy</Link>
         </span>
       </label>
+
+      {isNewAccount && (
+        <div className="mt-4">
+          <MarketingCheckbox checked={marketing} onChange={setMarketing} />
+        </div>
+      )}
 
       <button
         onClick={handleContinue}

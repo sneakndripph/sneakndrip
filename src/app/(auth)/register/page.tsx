@@ -8,6 +8,7 @@ import { Eye, EyeOff, CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isPasswordValid } from "@/lib/validation/password";
 import PasswordChecklist from "@/components/auth/PasswordChecklist";
+import MarketingCheckbox from "@/components/auth/MarketingCheckbox";
 import { consentMetadata } from "@/lib/legal/versions";
 import toast from "react-hot-toast";
 
@@ -53,6 +54,7 @@ export default function RegisterPage() {
   const [emailHint, setEmailHint] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [agreeError, setAgreeError] = useState(false);
+  const [marketing, setMarketing] = useState(false);
 
   function field(key: keyof typeof form, value: string) {
     setForm(v => ({ ...v, [key]: value }));
@@ -103,10 +105,11 @@ export default function RegisterPage() {
     if (!agreed) { setAgreeError(true); return; }
     setHighlightGoogle(false);
     const supabase = createClient();
-    // ?consent=register tells the callback the box was ticked so it records consent
+    // ?consent=register tells the callback the box was ticked so it records consent;
+    // &marketing=1 carries the optional marketing opt-in
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${SITE_URL}/auth/callback?consent=register` },
+      options: { redirectTo: `${SITE_URL}/auth/callback?consent=register${marketing ? "&marketing=1" : ""}` },
     });
   }
 
@@ -147,7 +150,7 @@ export default function RegisterPage() {
       email: trimmedEmail,
       password: form.password,
       options: {
-        data: { full_name: form.name.trim(), mobile: form.mobile, ...consentMetadata("register") },
+        data: { full_name: form.name.trim(), mobile: form.mobile, ...consentMetadata("register"), marketing_opted_in: marketing },
         emailRedirectTo: `${SITE_URL}/auth/callback`,
       },
     });
@@ -322,6 +325,9 @@ export default function RegisterPage() {
           </label>
           {agreeError && <p className="text-micro text-state-error mt-1">You must agree to continue.</p>}
         </div>
+
+        {/* Optional marketing opt-in */}
+        <MarketingCheckbox checked={marketing} onChange={setMarketing} />
 
         <button
           type="submit" disabled={loading}
