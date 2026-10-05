@@ -188,9 +188,13 @@ export function reasonLine(reason: string, opts?: { preferencesLink?: boolean })
   return `<p style="margin:0 0 12px;font-family:${FONT_STACK};font-size:12px;line-height:18px;color:${BRAND_INK_MUTED}">${reason}${link}</p>`;
 }
 
-/** Small unsubscribe link for template footers. */
+/** Small unsubscribe link for template footers, from a legacy newsletter token. */
 export function unsubscribeLink(token: string): string {
-  const url = `${SITE_URL}/api/unsubscribe?token=${encodeURIComponent(token)}`;
+  return unsubscribeUrlLink(`${SITE_URL}/api/unsubscribe?token=${encodeURIComponent(token)}`);
+}
+
+/** Small unsubscribe link for template footers, to any unsubscribe URL (e.g. a signed one). */
+export function unsubscribeUrlLink(url: string): string {
   return `<p style="margin:8px 0 0;font-family:${FONT_STACK};font-size:12px;color:${BRAND_INK_MUTED}">
     <a href="${url}" style="color:${BRAND_INK_MUTED};text-decoration:underline">Unsubscribe</a>
   </p>`;

@@ -1,8 +1,14 @@
-import { h, stripNewlines, wrapEmail, h1, paragraph, productLine, button, divider, socialLinks, unsubscribeLink, reasonLine } from "../helpers";
+import { h, stripNewlines, wrapEmail, h1, paragraph, productLine, button, divider, socialLinks, unsubscribeLink, unsubscribeUrlLink, reasonLine } from "../helpers";
 
 export type NewArrivalData = {
   customerEmail: string;
   unsubscribeToken: string;
+  /**
+   * Set for recipients without a customer account: a signed one-click
+   * unsubscribe link replaces the preferences link and legacy token link,
+   * since they have no account to manage.
+   */
+  signedUnsubscribeUrl?: string;
   product: {
     name: string;
     brand: string;
@@ -14,7 +20,7 @@ export type NewArrivalData = {
 
 /** New-arrival announcement, sent to newsletter subscribers when an admin publishes a product with notifications on. */
 export function newArrival(data: NewArrivalData): { subject: string; html: string } {
-  const { unsubscribeToken, product } = data;
+  const { unsubscribeToken, signedUnsubscribeUrl, product } = data;
   const productSlug = stripNewlines(product.slug);
   const productUrl = `https://sneakndrip.ph/shop/${productSlug}`;
 
@@ -27,9 +33,9 @@ export function newArrival(data: NewArrivalData): { subject: string; html: strin
 
     ${divider()}
 
-    ${reasonLine("You're receiving this because you're subscribed to new arrival announcements.")}
+    ${reasonLine("You're receiving this because you're subscribed to new arrival announcements.", { preferencesLink: !signedUnsubscribeUrl })}
     ${socialLinks()}
-    ${unsubscribeLink(unsubscribeToken)}
+    ${signedUnsubscribeUrl ? unsubscribeUrlLink(signedUnsubscribeUrl) : unsubscribeLink(unsubscribeToken)}
   `;
 
   return {

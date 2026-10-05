@@ -6,7 +6,8 @@ import { requireAdmin } from "@/lib/supabase/require-admin";
 import { validateEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/email/send";
 import { newArrival } from "@/lib/email/templates/newArrival";
-import { getOptedOutEmails, EmailType } from "@/lib/email/preferences";
+import { getOptedOutEmails, getCustomerEmails, EmailType } from "@/lib/email/preferences";
+import { buildUnsubscribeUrl } from "@/lib/legal/unsubscribe-token";
 import { z } from "zod";
 import { productCreateSchema, productSizeSchema } from "@/lib/validation/schemas";
 
@@ -129,11 +130,19 @@ export async function POST(req: NextRequest) {
           console.log(`[new-arrival-notify] 0 recipients after filtering (${skippedCount} opted out)`);
         }
 
+        // Newsletter-only subscribers have no account to manage preferences in,
+        // so they get a signed one-click unsubscribe link. If the lookup fails,
+        // everyone gets the signed link, which works for account holders too.
+        const accountEmails = (await getCustomerEmails(recipients.map(s => s.email))) ?? new Set<string>();
+
         let sentCount = 0;
         for (const subscriber of recipients) {
           const { subject, html } = newArrival({
             customerEmail: subscriber.email,
             unsubscribeToken: subscriber.unsubscribe_token,
+            signedUnsubscribeUrl: accountEmails.has(subscriber.email.toLowerCase())
+              ? undefined
+              : buildUnsubscribeUrl(subscriber.email, EmailType.Newsletter),
             product: {
               name: product.name,
               brand: product.brand,

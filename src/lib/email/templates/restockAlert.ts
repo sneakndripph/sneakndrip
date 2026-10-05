@@ -1,4 +1,4 @@
-import { h, stripNewlines, wrapEmail, h1, paragraph, productLine, button, divider, socialLinks, reasonLine } from "../helpers";
+import { h, stripNewlines, wrapEmail, h1, paragraph, productLine, button, divider, socialLinks, reasonLine, unsubscribeUrlLink } from "../helpers";
 
 export type RestockAlertData = {
   productName: string;
@@ -7,11 +7,11 @@ export type RestockAlertData = {
   imageUrl?: string;
   source?: "explicit" | "wishlist";
   /**
-   * Whether the recipient has a customer account, which decides if the footer
-   * links to email preferences. Wishlist recipients always do; explicit
-   * sign-ups may be guests, whose one-shot row is deleted after this send.
+   * Set for guest recipients (explicit sign-ups without a customer account):
+   * a signed one-click unsubscribe link replaces the email preferences link,
+   * since they have no account to manage. Wishlist recipients always have one.
    */
-  hasAccount?: boolean;
+  signedUnsubscribeUrl?: string;
 };
 
 const FOOTER_COPY: Record<"explicit" | "wishlist", string> = {
@@ -21,7 +21,7 @@ const FOOTER_COPY: Record<"explicit" | "wishlist", string> = {
 
 /** Customer-facing "back in stock" alert, sent to restock_notifications subscribers. */
 export function restockAlert(data: RestockAlertData): { subject: string; html: string } {
-  const { productName, size, imageUrl, source = "explicit", hasAccount = false } = data;
+  const { productName, size, imageUrl, source = "explicit", signedUnsubscribeUrl } = data;
   const productSlug = stripNewlines(data.productSlug);
   const productUrl = `https://sneakndrip.ph/shop/${productSlug}`;
 
@@ -33,8 +33,9 @@ export function restockAlert(data: RestockAlertData): { subject: string; html: s
 
     ${divider()}
 
-    ${reasonLine(FOOTER_COPY[source], { preferencesLink: source === "wishlist" || hasAccount })}
+    ${reasonLine(FOOTER_COPY[source], { preferencesLink: !signedUnsubscribeUrl })}
     ${socialLinks()}
+    ${signedUnsubscribeUrl ? unsubscribeUrlLink(signedUnsubscribeUrl) : ""}
   `;
 
   return {

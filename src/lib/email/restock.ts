@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { sendEmail } from "./send";
 import { restockAlert } from "./templates/restockAlert";
 import { getOptedOutEmails, getCustomerEmails, EmailType } from "./preferences";
+import { buildUnsubscribeUrl } from "@/lib/legal/unsubscribe-token";
 
 type NotifySource = "explicit" | "wishlist";
 
@@ -45,20 +46,24 @@ export async function sendRestockEmailsForSize(
     return;
   }
 
-  // Explicit sign-ups can be guests; only account holders get a footer link to
-  // email preferences. A failed lookup just drops the link — the send goes on.
+  // Explicit sign-ups can be guests. Account holders get a footer link to email
+  // preferences; guests get a signed one-click unsubscribe link instead. If the
+  // lookup fails everyone gets the signed link, which works for both.
   const explicitEmails = subscribers.filter(s => s.source === "explicit").map(s => s.email);
   const accountEmails = (await getCustomerEmails(explicitEmails)) ?? new Set<string>();
 
   const templates = {
-    explicitGuest: restockAlert({ productName, productSlug, size, imageUrl, source: "explicit" }),
-    explicitAccount: restockAlert({ productName, productSlug, size, imageUrl, source: "explicit", hasAccount: true }),
+    explicitAccount: restockAlert({ productName, productSlug, size, imageUrl, source: "explicit" }),
     wishlist: restockAlert({ productName, productSlug, size, imageUrl, source: "wishlist" }),
   };
   const templateFor = ({ email, source }: { email: string; source: NotifySource }) =>
     source === "wishlist" ? templates.wishlist
       : accountEmails.has(email.toLowerCase()) ? templates.explicitAccount
-      : templates.explicitGuest;
+      // Per recipient: the signed link embeds their address.
+      : restockAlert({
+          productName, productSlug, size, imageUrl, source: "explicit",
+          signedUnsubscribeUrl: buildUnsubscribeUrl(email, EmailType.RestockAlert),
+        });
 
   const results = await Promise.allSettled(
     subscribers.map(subscriber => {
