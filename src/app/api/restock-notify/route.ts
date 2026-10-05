@@ -22,7 +22,10 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { error } = await admin
     .from("restock_notifications")
-    .upsert({ product_id: productId, size, email }, { onConflict: "product_id,size,email" });
+    .upsert(
+      { product_id: productId, size, email, source: "explicit" },
+      { onConflict: "product_id,size,email,source" },
+    );
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });

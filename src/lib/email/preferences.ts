@@ -35,3 +35,38 @@ export async function checkCanSendEmail(customerId: string, emailType: EmailType
   if (error || !data) return false;
   return (data as Record<PreferenceColumn, boolean>)[column] === true;
 }
+
+// Keeps each `IN (...)` filter well under PostgREST's URL length limit.
+const OPT_OUT_CHUNK_SIZE = 100;
+
+/**
+ * Lowercased addresses among `emails` whose customer row has explicitly
+ * turned `emailType` off. Recipients with no customer row (guest restock
+ * signups, newsletter-only subscribers) are not opted out — their consent
+ * lives in their own subscription table. Returns null on a lookup error so
+ * the caller can skip the batch rather than mail people who opted out.
+ * Compare with `optedOut.has(email.toLowerCase())`.
+ */
+export async function getOptedOutEmails(emails: string[], emailType: EmailType): Promise<Set<string> | null> {
+  const column = PREFERENCE_COLUMNS[emailType];
+  // Match both the stored spelling and its lowercase form: subscription tables
+  // keep whatever casing was typed, while customers.email comes from auth.
+  const candidates = [...new Set(emails.flatMap(e => [e, e.toLowerCase()]))];
+  const optedOut = new Set<string>();
+  if (candidates.length === 0) return optedOut;
+
+  const admin = createAdminClient();
+  for (let i = 0; i < candidates.length; i += OPT_OUT_CHUNK_SIZE) {
+    const { data, error } = await admin
+      .from("customers")
+      .select("email")
+      .in("email", candidates.slice(i, i + OPT_OUT_CHUNK_SIZE))
+      .eq(column, false);
+    if (error) {
+      console.error(`[email-preferences] opt-out lookup failed for ${emailType}:`, error);
+      return null;
+    }
+    for (const row of data ?? []) optedOut.add(row.email.toLowerCase());
+  }
+  return optedOut;
+}

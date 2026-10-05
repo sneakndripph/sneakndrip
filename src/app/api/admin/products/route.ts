@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/supabase/require-admin";
 import { validateEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/email/send";
 import { newArrival } from "@/lib/email/templates/newArrival";
+import { getOptedOutEmails, EmailType } from "@/lib/email/preferences";
 import { z } from "zod";
 import { productCreateSchema, productSizeSchema } from "@/lib/validation/schemas";
 
@@ -119,8 +120,17 @@ export async function POST(req: NextRequest) {
           .select("email, unsubscribe_token")
           .is("unsubscribed_at", null);
 
+        const allSubscribers = subscribers ?? [];
+        const optedOut = await getOptedOutEmails(allSubscribers.map(s => s.email), EmailType.NewArrival);
+        if (!optedOut) throw new Error("new-arrival preference lookup failed");
+        const recipients = allSubscribers.filter(s => !optedOut.has(s.email.toLowerCase()));
+        const skippedCount = allSubscribers.length - recipients.length;
+        if (recipients.length === 0) {
+          console.log(`[new-arrival-notify] 0 recipients after filtering (${skippedCount} opted out)`);
+        }
+
         let sentCount = 0;
-        for (const subscriber of subscribers ?? []) {
+        for (const subscriber of recipients) {
           const { subject, html } = newArrival({
             customerEmail: subscriber.email,
             unsubscribeToken: subscriber.unsubscribe_token,
@@ -142,7 +152,12 @@ export async function POST(req: NextRequest) {
           entity_id: data.id,
           entity_name: product.name,
           actor_email: user.email ?? null,
-          details: { product_id: data.id, subscriber_count: sentCount },
+          details: {
+            product_id: data.id,
+            subscriber_count: sentCount,
+            eligible_count: allSubscribers.length,
+            opted_out_count: skippedCount,
+          },
         });
         if (notifyLogError) console.error("[activity_log] new_arrival_notified insert failed:", notifyLogError);
       } catch (err) {

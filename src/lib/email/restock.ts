@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { sendEmail } from "./send";
 import { restockAlert } from "./templates/restockAlert";
+import { getOptedOutEmails, EmailType } from "./preferences";
 
 type NotifySource = "explicit" | "wishlist";
 
@@ -26,8 +27,23 @@ export async function sendRestockEmailsForSize(
     .eq("product_id", productId)
     .eq("size", size);
 
-  const subscribers = (notifs ?? []).filter((n): n is { email: string; source: NotifySource } => Boolean(n.email));
-  if (subscribers.length === 0) return;
+  const allSubscribers = (notifs ?? []).filter((n): n is { email: string; source: NotifySource } => Boolean(n.email));
+  if (allSubscribers.length === 0) return;
+
+  // The restock_alerts_enabled preference is a master switch over every
+  // per-product subscription. Opted-out rows are left in place (not deleted)
+  // so turning the preference back on resumes their alerts.
+  const optedOut = await getOptedOutEmails(allSubscribers.map(s => s.email), EmailType.RestockAlert);
+  if (!optedOut) {
+    console.error(`Restock emails for ${productName} (${size}) skipped: preference lookup failed`);
+    return;
+  }
+  const subscribers = allSubscribers.filter(s => !optedOut.has(s.email.toLowerCase()));
+  const skippedCount = allSubscribers.length - subscribers.length;
+  if (subscribers.length === 0) {
+    console.log(`Restock emails for ${productName} (${size}): 0 sent, ${skippedCount} skipped (opted out)`);
+    return;
+  }
 
   const templates: Record<NotifySource, { subject: string; html: string }> = {
     explicit: restockAlert({ productName, productSlug, size, imageUrl, source: "explicit" }),
@@ -54,7 +70,7 @@ export async function sendRestockEmailsForSize(
     }
   });
 
-  console.log(`Restock emails for ${productName} (${size}): ${successCount} sent, ${failedCount} failed`);
+  console.log(`Restock emails for ${productName} (${size}): ${successCount} sent, ${failedCount} failed, ${skippedCount} skipped (opted out)`);
 
   if (successfulExplicitEmails.length > 0) {
     await admin.from("restock_notifications").delete()
