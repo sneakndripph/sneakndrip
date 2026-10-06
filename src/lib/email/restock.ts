@@ -3,6 +3,7 @@ import { sendEmail } from "./send";
 import { restockAlert } from "./templates/restockAlert";
 import { getOptedOutEmails, getCustomerEmails, EmailType } from "./preferences";
 import { buildUnsubscribeUrl } from "@/lib/legal/unsubscribe-token";
+import { listUnsubscribeHeaders } from "./unsubscribe";
 
 type NotifySource = "explicit" | "wishlist";
 
@@ -68,7 +69,9 @@ export async function sendRestockEmailsForSize(
   const results = await Promise.allSettled(
     subscribers.map(subscriber => {
       const { subject, html } = templateFor(subscriber);
-      return sendEmail(subscriber.email, subject, html);
+      return sendEmail(subscriber.email, subject, html, {
+        headers: listUnsubscribeHeaders(subscriber.email, EmailType.RestockAlert),
+      });
     }),
   );
 

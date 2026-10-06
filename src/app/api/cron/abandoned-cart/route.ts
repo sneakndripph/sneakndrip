@@ -5,6 +5,7 @@ import { validateEnv } from "@/lib/env";
 import { abandonedCart, type AbandonedCartItem } from "@/lib/email/templates/abandonedCart";
 import { SITE_URL } from "@/lib/constants";
 import { getOptedOutEmails, EmailType } from "@/lib/email/preferences";
+import { listUnsubscribeHeaders } from "@/lib/email/unsubscribe";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
@@ -100,7 +101,10 @@ export async function GET(req: NextRequest) {
           subtotal: cart.subtotal,
           cartUrl: `${SITE_URL}/resume-cart`,
         });
-        await resend.emails.send({ from: `Sneak N' Drip <${FROM_EMAIL}>`, to: cart.email, subject, html });
+        await resend.emails.send({
+          from: `Sneak N' Drip <${FROM_EMAIL}>`, to: cart.email, subject, html,
+          headers: listUnsubscribeHeaders(cart.email, EmailType.CartReminder),
+        });
         await admin.from("abandoned_carts").update({ [sentAtColumn]: now.toISOString() }).eq("id", cart.id);
         sent++;
       } catch { /* continue */ }

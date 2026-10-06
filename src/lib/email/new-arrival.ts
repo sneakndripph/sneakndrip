@@ -3,6 +3,7 @@ import { sendEmail } from "./send";
 import { newArrival } from "./templates/newArrival";
 import { getOptedOutEmails, getCustomerEmails, EmailType } from "./preferences";
 import { buildUnsubscribeUrl } from "@/lib/legal/unsubscribe-token";
+import { listUnsubscribeHeaders } from "./unsubscribe";
 
 /**
  * Announces a product to newsletter subscribers, at most once per product.
@@ -52,10 +53,11 @@ export async function sendNewArrivalBroadcast(
     const accountEmails = (await getCustomerEmails(recipients.map(s => s.email))) ?? new Set<string>();
 
     for (const subscriber of recipients) {
+      const hasAccount = accountEmails.has(subscriber.email.toLowerCase());
       const { subject, html } = newArrival({
         customerEmail: subscriber.email,
         unsubscribeToken: subscriber.unsubscribe_token,
-        signedUnsubscribeUrl: accountEmails.has(subscriber.email.toLowerCase())
+        signedUnsubscribeUrl: hasAccount
           ? undefined
           : buildUnsubscribeUrl(subscriber.email, EmailType.Newsletter),
         product: {
@@ -66,7 +68,10 @@ export async function sendNewArrivalBroadcast(
           price: product.full_payment_price,
         },
       });
-      const result = await sendEmail(subscriber.email, subject, html);
+      // Same split as the footer link: account holders opt out of new arrivals only.
+      const result = await sendEmail(subscriber.email, subject, html, {
+        headers: listUnsubscribeHeaders(subscriber.email, hasAccount ? EmailType.NewArrival : EmailType.Newsletter),
+      });
       if (result.ok && !result.skipped) sentCount++;
     }
 

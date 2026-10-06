@@ -15,7 +15,7 @@ export async function sendEmail(
   to: string,
   subject: string,
   html: string,
-  opts?: { from?: string; replyTo?: string },
+  opts?: { from?: string; replyTo?: string; headers?: Record<string, string> },
 ): Promise<SendEmailResult> {
   const resend = getResendClient();
   if (!resend) {
@@ -32,6 +32,7 @@ export async function sendEmail(
       subject,
       html,
       ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
+      ...(opts?.headers ? { headers: opts.headers } : {}),
     });
     if (error) {
       console.error(`[email] send failed "${subject}" to ${to}:`, error);

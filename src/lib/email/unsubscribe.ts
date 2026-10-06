@@ -1,10 +1,24 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
-import { verifyUnsubscribePayload } from "@/lib/legal/unsubscribe-token";
+import { signUnsubscribePayload, verifyUnsubscribePayload } from "@/lib/legal/unsubscribe-token";
+import { SITE_URL } from "@/lib/constants";
 import { EmailType, PREFERENCE_COLUMNS } from "./preferences";
 
 export type SignedUnsubscribe = { email: string; category: EmailType };
 
 const CATEGORIES = Object.values(EmailType) as string[];
+
+/**
+ * RFC 8058 one-click unsubscribe headers for a marketing send (Gmail/Yahoo
+ * bulk sender requirement). Mail clients POST to the URL, handled by
+ * /api/unsubscribe/one-click. Additional to the HTML footer link, not a replacement.
+ */
+export function listUnsubscribeHeaders(email: string, category: EmailType): Record<string, string> {
+  const params = new URLSearchParams({ email, category, sig: signUnsubscribePayload(email, category) });
+  return {
+    "List-Unsubscribe": `<${SITE_URL}/api/unsubscribe/one-click?${params}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
+}
 
 /** Parsed email + category when `sig` is valid for them; null for any missing or tampered field. */
 export function parseSignedUnsubscribe(

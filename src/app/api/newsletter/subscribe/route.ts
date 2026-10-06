@@ -5,6 +5,8 @@ import { rateLimit, getIP } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email/send";
 import { h } from "@/lib/email/helpers";
 import { newsletterWelcome } from "@/lib/email/templates/newsletterWelcome";
+import { listUnsubscribeHeaders } from "@/lib/email/unsubscribe";
+import { EmailType } from "@/lib/email/preferences";
 import { validateBody } from "@/lib/validation/validate";
 import { emailSchema } from "@/lib/validation/schemas";
 
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
 
   const { subject, html } = newsletterWelcome(subscriber?.unsubscribe_token ?? "");
   await Promise.all([
-    sendEmail(email, subject, html),
+    sendEmail(email, subject, html, { headers: listUnsubscribeHeaders(email, EmailType.Newsletter) }),
     sendEmail(ADMIN_EMAIL, `New Newsletter Subscriber: ${email}`, `<p>New subscriber: <strong>${h(email)}</strong></p>`),
   ]);
 
