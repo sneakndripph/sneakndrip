@@ -64,7 +64,7 @@ function LoginForm() {
       return;
     }
     toast.success("Signed in");
-    if (data.user?.user_metadata?.role === "admin") {
+    if (data.user?.app_metadata?.role === "admin") {
       router.push("/admin");
     } else {
       router.push(safeNext(redirectTo));
