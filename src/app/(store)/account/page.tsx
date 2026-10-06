@@ -11,6 +11,8 @@ import AddressForm, { type AddressFormValues } from "@/components/account/Addres
 import EmailPreferences from "@/components/account/EmailPreferences";
 import CookieSettings from "@/components/privacy/CookieSettings";
 import { createClient } from "@/lib/supabase/client";
+import { isPasswordValid } from "@/lib/validation/password";
+import PasswordChecklist from "@/components/auth/PasswordChecklist";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import toast from "react-hot-toast";
 
@@ -248,8 +250,7 @@ function AccountPageContent() {
     e.preventDefault();
     setPwTouched(true);
     if (!pwForm.currentPw) { setPwError("Current password is required"); return; }
-    if (!pwForm.newPw) { setPwError("New password is required"); return; }
-    if (pwForm.newPw.length < 6) { setPwError("Password must be at least 6 characters"); return; }
+    if (!isPasswordValid(pwForm.newPw)) { setPwError("Password does not meet all requirements."); return; }
     if (pwForm.newPw !== pwForm.confirmPw) { setPwError("Passwords do not match"); return; }
     setPwError("");
     setSavingPw(true);
@@ -947,7 +948,7 @@ function AccountPageContent() {
               <div>
                 <h2 className="font-black text-lg mb-2 text-ink">Change Password</h2>
                 <p className="text-sm mb-6 text-ink-2">
-                  Choose a strong password with at least 6 characters.{" "}
+                  Choose a strong password that meets all requirements below.{" "}
                   <span className="text-state-error">*</span> Required
                 </p>
 
@@ -993,7 +994,8 @@ function AccountPageContent() {
                           type={showNewPw ? "text" : "password"}
                           value={pwForm.newPw}
                           onChange={e => setPwForm(f => ({ ...f, newPw: e.target.value }))}
-                          placeholder="Min. 6 characters"
+                          placeholder="Create a strong password"
+                          aria-describedby="account-password-rules"
                           className={`${inputCls} pr-12 bg-paper text-ink border focus:border-ink ${pwTouched && !pwForm.newPw ? "border-state-error" : "border-line"}`}
                         />
                         <button type="button" onClick={() => setShowNewPw(!showNewPw)}
@@ -1001,9 +1003,7 @@ function AccountPageContent() {
                           {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      {pwTouched && !pwForm.newPw && (
-                        <p className="mt-1 text-[11px] font-semibold text-state-error">New password is required</p>
-                      )}
+                      <PasswordChecklist id="account-password-rules" password={pwForm.newPw} confirm={pwForm.confirmPw} />
                     </div>
 
                     <div>
@@ -1016,19 +1016,16 @@ function AccountPageContent() {
                           value={pwForm.confirmPw}
                           onChange={e => setPwForm(f => ({ ...f, confirmPw: e.target.value }))}
                           placeholder="Re-enter new password"
-                          className={`${inputCls} pr-12 bg-paper text-ink border focus:border-ink ${pwTouched && pwForm.newPw !== pwForm.confirmPw ? "border-state-error" : "border-line"}`}
+                          className={`${inputCls} pr-12 bg-paper text-ink border border-line focus:border-ink`}
                         />
                         <button type="button" onClick={() => setShowConfirmPw(!showConfirmPw)}
                           className="absolute right-4 top-1/2 -translate-y-1/2 text-ink-2">
                           {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      {pwTouched && pwForm.newPw && pwForm.confirmPw && pwForm.newPw !== pwForm.confirmPw && (
-                        <p className="mt-1 text-[11px] font-semibold text-state-error">Passwords do not match</p>
-                      )}
                     </div>
 
-                    <button type="submit" disabled={savingPw}
+                    <button type="submit" disabled={savingPw || !pwForm.currentPw || !isPasswordValid(pwForm.newPw) || pwForm.newPw !== pwForm.confirmPw}
                       className="flex items-center gap-2 mt-2 px-6 py-3 font-black text-sm uppercase tracking-widest transition-opacity hover:opacity-90 disabled:opacity-50 bg-ink text-white">
                       <Lock className="w-4 h-4" />
                       {savingPw ? "Updating…" : "Update Password"}
