@@ -110,9 +110,6 @@ export default function CookieSettings() {
             <p className="text-micro mt-2 text-ink-3">You haven&apos;t made a choice yet.</p>
           )}
           <ItemList items={ANALYTICS_ITEMS} />
-          <p className="text-micro mt-4 text-ink-3">
-            Note: Turning analytics off takes full effect after you reload the page.
-          </p>
         </div>
       </div>
     </div>
