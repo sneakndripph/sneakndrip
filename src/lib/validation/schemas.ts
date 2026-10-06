@@ -88,9 +88,8 @@ const productFieldsShape = {
 /**
  * Legitimate order lifecycle values — mirrors the orders.status CHECK constraint
  * (supabase/migrations/026_arrived_ph_status.sql) and the admin UI's STATUSES list
- * (src/components/admin/OrderStatusBadge.tsx). Deliberately excludes "returned",
- * which returns/route.ts writes to orders.status on return approval but which is
- * NOT in the DB constraint — a pre-existing bug outside this schema's scope.
+ * (src/components/admin/OrderStatusBadge.tsx). There is no "returned" status by
+ * design: an order stays "delivered" and its return state lives in return_requests.
  */
 export const orderStatusSchema = z.enum(
   ["pending", "paid", "processing", "stock_on_hand", "shipped", "delivered", "cancelled"],

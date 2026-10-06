@@ -113,24 +113,6 @@ function messages(data: OrderStatusUpdateData): Record<string, Content> {
         ${socialLinks()}
       `,
     },
-    returned: {
-      subject: `Return Received — ${orderNumber} | Sneak N' Drip`,
-      preview: `We've received your return for ${orderNumber}.`,
-      body: `
-        ${h1("Return Received")}
-        ${paragraph(`${greeting} we've received your returned order <strong>${h(orderNumber)}</strong>.`)}
-
-        ${divider()}
-
-        ${h2("What's Next")}
-        ${paragraph("Our team will inspect the item and process your refund within 3–5 business days of approval.")}
-
-        ${divider()}
-
-        ${paragraph("Questions? Message us on Instagram, TikTok, or Facebook.")}
-        ${socialLinks()}
-      `,
-    },
   };
 }
 

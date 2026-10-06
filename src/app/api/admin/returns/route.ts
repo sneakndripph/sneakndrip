@@ -85,14 +85,6 @@ export async function PATCH(req: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // When approved, update the order status to "returned"
-  if (status === "approved" && returnReq?.order_number) {
-    await admin
-      .from("orders")
-      .update({ status: "returned" })
-      .eq("order_number", returnReq.order_number);
-  }
-
   try {
     const { error: logError } = await admin.from("activity_log").insert({
       action: `return_${status}`,
