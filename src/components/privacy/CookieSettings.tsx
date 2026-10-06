@@ -5,24 +5,30 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { getConsent, setConsent, CONSENT_CHANGE_EVENT } from "@/lib/consent";
 
-const ESSENTIAL_ITEMS: { name: string; description: string }[] = [
-  { name: "Supabase auth session", description: "Keeps you signed in for your account, checkout, and order tracking." },
-  { name: "snd-cart (local storage)", description: "Keeps your cart contents between visits." },
-  { name: "cookie-consent (local storage)", description: "Remembers the choice you make on this page." },
+/** `technical` is the actual cookie/storage key, shown muted for anyone checking DevTools. */
+type CookieItem = { label: string; description: string; technical?: string };
+
+const ESSENTIAL_ITEMS: CookieItem[] = [
+  { label: "Supabase auth session", description: "Keeps you signed in for your account, checkout, and order tracking." },
+  { label: "Cart contents", description: "Keeps your cart contents between visits.", technical: "snd-cart, local storage" },
+  { label: "Cookie preferences", description: "Remembers the choice you make on this page.", technical: "cookie-consent, local storage" },
 ];
 
-const ANALYTICS_ITEMS: { name: string; description: string }[] = [
-  { name: "_ga", description: "A random identifier that distinguishes visitors. Expires after 2 years." },
-  { name: "_ga_<ID>", description: "Keeps track of your current session. Expires after 2 years." },
+const ANALYTICS_ITEMS: CookieItem[] = [
+  { label: "Visitor identifier", description: "A random identifier that distinguishes visitors. Expires after 2 years.", technical: "_ga" },
+  { label: "Session tracker", description: "Keeps track of your current session. Expires after 2 years.", technical: "_ga_<ID>" },
 ];
 
-function ItemList({ items }: { items: { name: string; description: string }[] }) {
+function ItemList({ items }: { items: CookieItem[] }) {
   return (
     <ul className="mt-4 space-y-3">
       {items.map(item => (
-        <li key={item.name}>
-          <p className="text-sm font-semibold text-ink font-mono break-words">{item.name}</p>
+        <li key={item.label}>
+          <p className="text-sm font-semibold text-ink">{item.label}</p>
           <p className="text-sm mt-0.5 text-ink-2">{item.description}</p>
+          {item.technical && (
+            <p className="text-micro mt-0.5 text-ink-3 font-mono break-words">({item.technical})</p>
+          )}
         </li>
       ))}
     </ul>
@@ -50,7 +56,7 @@ function getStatus(): ConsentStatus {
 /**
  * Lets a visitor change their cookie choice after the banner. Saves on each
  * toggle via setConsent, whose change event updates GoogleAnalytics and hides
- * the banner. Used by /cookie-settings and the /account Cookie Settings tab.
+ * the banner. Used by /cookie-settings.
  */
 export default function CookieSettings() {
   const status = useSyncExternalStore(subscribe, getStatus, () => "loading" as const);

@@ -5,20 +5,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { DP_RESERVE_FEE } from "@/lib/constants";
 import Image from "next/image";
-import { Package, User, LogOut, ChevronRight, CheckCircle, Lock, Eye, EyeOff, Save, X, Home, Star, Upload, Plus, Pencil, Trash2, Mail, Shield } from "lucide-react";
+import { Package, User, LogOut, ChevronRight, CheckCircle, Lock, Eye, EyeOff, Save, X, Home, Star, Upload, Plus, Pencil, Trash2, Mail } from "lucide-react";
 import OrderCard, { type Order, type ReturnInfo } from "@/components/account/OrderCard";
 import AddressForm, { type AddressFormValues } from "@/components/account/AddressForm";
 import EmailPreferences from "@/components/account/EmailPreferences";
-import CookieSettings from "@/components/privacy/CookieSettings";
 import { createClient } from "@/lib/supabase/client";
 import { isPasswordValid } from "@/lib/validation/password";
 import PasswordChecklist from "@/components/auth/PasswordChecklist";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import toast from "react-hot-toast";
 
-type Tab = "orders" | "account" | "address" | "emails" | "cookies" | "password";
+type Tab = "orders" | "account" | "address" | "emails" | "password";
 
-const TABS: readonly Tab[] = ["orders", "account", "address", "emails", "cookies", "password"];
+const TABS: readonly Tab[] = ["orders", "account", "address", "emails", "password"];
 
 /** ?tab= value → Tab, falling back to "orders" when missing or unknown. */
 function parseTab(value: string | null): Tab {
@@ -602,7 +601,6 @@ function AccountPageContent() {
     { id: "account" as Tab, icon: User, label: "Account Details" },
     { id: "address" as Tab, icon: Home, label: "My Address" },
     { id: "emails" as Tab, icon: Mail, label: "Email Preferences" },
-    { id: "cookies" as Tab, icon: Shield, label: "Cookie Settings" },
     { id: "password" as Tab, icon: Lock, label: "Change Password" },
   ];
 
@@ -934,14 +932,6 @@ function AccountPageContent() {
 
             {/* Email Preferences tab */}
             {tab === "emails" && <EmailPreferences />}
-
-            {/* Cookie Settings tab */}
-            {tab === "cookies" && (
-              <div>
-                <h2 className="font-black text-lg mb-2 text-ink">Cookie Settings</h2>
-                <CookieSettings />
-              </div>
-            )}
 
             {/* Change Password tab */}
             {tab === "password" && (
