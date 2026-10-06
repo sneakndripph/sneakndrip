@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { passwordSchema } from "./password";
 
 /** Standard email address, capped at 254 chars (RFC 5321 max envelope length). */
 export const emailSchema = z
@@ -169,7 +170,7 @@ export const roleSchema = z.enum(["customer", "admin"], { error: "Invalid role" 
 /** Admin-created user account (POST /api/admin/users). */
 export const userCreateSchema = z.object({
   email: emailSchema,
-  password: z.string().min(1, "Email and password required"),
+  password: passwordSchema,
   full_name: z.string().trim().optional(),
   role: roleSchema.optional(),
 });

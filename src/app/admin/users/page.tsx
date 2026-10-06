@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import { createClient } from "@/lib/supabase/client";
 import ConfirmDialog, { useConfirmDialog } from "@/components/admin/ConfirmDialog";
 import ConfirmPasswordDialog from "@/components/admin/ConfirmPasswordDialog";
+import PasswordChecklist from "@/components/auth/PasswordChecklist";
+import { isPasswordValid } from "@/lib/validation/password";
 
 type UserRow = {
   id: string;
@@ -105,6 +107,7 @@ export default function AdminUsersPage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+    if (!isPasswordValid(form.password)) return;
     setFormError("");
     setSaving(true);
     const res = await fetch("/api/admin/users", {
@@ -311,12 +314,14 @@ export default function AdminUsersPage() {
                 <div className="relative">
                   <input type={showPw ? "text" : "password"} value={form.password}
                     onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                    placeholder="Min. 6 characters" required className={`${inputCls} pr-11`} />
+                    placeholder="Create a strong password" required aria-describedby="admin-create-password-rules"
+                    className={`${inputCls} pr-11`} />
                   <button type="button" onClick={() => setShowPw(!showPw)}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ink-3 hover:text-ink transition-colors duration-admin-fast">
                     {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                <PasswordChecklist id="admin-create-password-rules" password={form.password} />
               </div>
               <div>
                 <label className={labelCls}>Role</label>
@@ -328,7 +333,7 @@ export default function AdminUsersPage() {
                   className="flex-1 py-2.5 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
                   Cancel
                 </button>
-                <button type="submit" disabled={saving}
+                <button type="submit" disabled={saving || !isPasswordValid(form.password)}
                   className="flex-1 py-2.5 text-admin-sm font-medium rounded-md bg-ink text-paper hover:opacity-90 disabled:opacity-50 transition-opacity duration-admin-fast">
                   {saving ? "Creating…" : "Create user"}
                 </button>
