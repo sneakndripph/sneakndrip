@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { rateLimit, getIP } from "@/lib/rate-limit";
 
 export async function GET(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 60, 60_000);
+  const { allowed } = await rateLimit(`search:${getIP(req)}`, 60, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";

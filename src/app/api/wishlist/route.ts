@@ -9,7 +9,7 @@ import { uuidSchema } from "@/lib/validation/schemas";
 const wishlistSchema = z.object({ productId: uuidSchema });
 
 export async function GET(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 30, 60_000);
+  const { allowed } = await rateLimit(`wishlist:${getIP(req)}`, 30, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const supabase = await createClient();
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 30, 60_000);
+  const { allowed } = await rateLimit(`wishlist:${getIP(req)}`, 30, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const supabase = await createClient();
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 30, 60_000);
+  const { allowed } = await rateLimit(`wishlist:${getIP(req)}`, 30, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const supabase = await createClient();

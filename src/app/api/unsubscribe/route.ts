@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   // the /unsubscribe page, which applies it itself; this path serves direct
   // or programmatic hits and lands on the same page.
   if (params.has("sig")) {
-    if (!rateLimit(getIP(req), 30, 60_000).allowed) {
+    if (!(await rateLimit(`unsubscribe:${getIP(req)}`, 30, 60_000)).allowed) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
     const signed = parseSignedUnsubscribe(params.get("email"), params.get("category"), params.get("sig"));
@@ -64,7 +64,7 @@ const resubscribeSchema = z.object({
 
 /** Resubscribe from the /unsubscribe page, authorised by the same signed payload. */
 export async function POST(req: NextRequest) {
-  if (!rateLimit(getIP(req), 30, 60_000).allowed) {
+  if (!(await rateLimit(`unsubscribe:${getIP(req)}`, 30, 60_000)).allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 

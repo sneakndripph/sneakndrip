@@ -24,7 +24,7 @@ async function resolveCustomer(supabase: Awaited<ReturnType<typeof createClient>
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { allowed } = rateLimit(getIP(req), 20, 60_000);
+  const { allowed } = await rateLimit(`account-addresses:${getIP(req)}`, 20, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const { id } = await params;
@@ -68,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { allowed } = rateLimit(getIP(req), 20, 60_000);
+  const { allowed } = await rateLimit(`account-addresses:${getIP(req)}`, 20, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const { id } = await params;

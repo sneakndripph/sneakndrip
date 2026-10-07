@@ -26,7 +26,7 @@ async function resolveCustomerId(): Promise<string | null> {
 }
 
 export async function GET(req: NextRequest) {
-  if (!rateLimit(getIP(req), 30, 60_000).allowed) {
+  if (!(await rateLimit(`account-email-preferences:${getIP(req)}`, 30, 60_000)).allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
   const customerId = await resolveCustomerId();
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!rateLimit(getIP(req), 30, 60_000).allowed) {
+  if (!(await rateLimit(`account-email-preferences:${getIP(req)}`, 30, 60_000)).allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
   const customerId = await resolveCustomerId();

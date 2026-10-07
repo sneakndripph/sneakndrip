@@ -15,7 +15,7 @@ const ADMIN_EMAIL = "donjulio263@gmail.com";
 const newsletterSubscribeSchema = z.object({ email: emailSchema });
 
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 5, 60_000); // 5 signups/min per IP
+  const { allowed } = await rateLimit(`newsletter-subscribe:${getIP(req)}`, 5, 60_000); // 5 signups/min per IP
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const result = await validateBody(req, newsletterSubscribeSchema);

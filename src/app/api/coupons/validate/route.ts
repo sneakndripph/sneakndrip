@@ -10,7 +10,7 @@ const couponValidateSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 30, 60_000);
+  const { allowed } = await rateLimit(`coupons-validate:${getIP(req)}`, 30, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const result = await validateBody(req, couponValidateSchema);

@@ -14,7 +14,7 @@ const checkEmailSchema = z.object({ email: emailSchema });
  * browsers block cross-origin reads of the response).
  */
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 20, 60_000);
+  const { allowed } = await rateLimit(`auth-check-email:${getIP(req)}`, 20, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const result = await validateBody(req, checkEmailSchema);

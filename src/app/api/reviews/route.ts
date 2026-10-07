@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 10, 60_000);
+  const { allowed } = await rateLimit(`reviews:${getIP(req)}`, 10, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const supabase = await createClient();
@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 10, 60_000);
+  const { allowed } = await rateLimit(`reviews:${getIP(req)}`, 10, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const supabase = await createClient();

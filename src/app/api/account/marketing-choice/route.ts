@@ -13,7 +13,7 @@ const SUBMIT_WINDOW_MS = 30 * 60_000;
  * no body: the choice is read from the signed-in user's own metadata.
  */
 export async function POST(req: NextRequest) {
-  if (!rateLimit(getIP(req), 10, 60_000).allowed) {
+  if (!(await rateLimit(`account-marketing-choice:${getIP(req)}`, 10, 60_000)).allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
   const user = await requireUser();

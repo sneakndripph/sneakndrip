@@ -77,9 +77,8 @@ function parse(payload: unknown): Violation[] {
 }
 
 export async function POST(req: NextRequest) {
-  // Own key prefix: the limiter store is shared, and CSP noise must not eat a
-  // visitor's quota for checkout or account routes.
-  if (!rateLimit(`csp:${getIP(req)}`, 20, 60_000).allowed) return noContent();
+  // Own key scope, like every route, so CSP noise can't eat a visitor's quota elsewhere.
+  if (!(await rateLimit(`csp:${getIP(req)}`, 20, 60_000)).allowed) return noContent();
 
   const declared = Number(req.headers.get("content-length") ?? 0);
   if (declared > MAX_BODY_BYTES) return noContent();

@@ -69,7 +69,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 20, 60_000);
+  const { allowed } = await rateLimit(`account-addresses:${getIP(req)}`, 20, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const supabase = await createClient();

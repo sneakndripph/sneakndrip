@@ -18,7 +18,7 @@ const refreshStockSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 30, 60_000); // 30 checks/min per IP
+  const { allowed } = await rateLimit(`cart-refresh-stock:${getIP(req)}`, 30, 60_000); // 30 checks/min per IP
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const parsed = await validateBody(req, refreshStockSchema);

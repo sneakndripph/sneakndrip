@@ -9,6 +9,10 @@ const OPTIONAL_SERVER_ENV = [
   "RESEND_FROM_EMAIL",
   "ADMIN_EMAIL",
   "CRON_SECRET",
+  "UPSTASH_REDIS_REST_URL",
+  "UPSTASH_REDIS_REST_TOKEN",
+  "KV_REST_API_URL",
+  "KV_REST_API_TOKEN",
 ] as const;
 
 type RequiredKey = (typeof REQUIRED_SERVER_ENV)[number];
@@ -21,7 +25,24 @@ const OPTIONAL_HINTS: Record<OptionalKey, string> = {
   RESEND_FROM_EMAIL: "using default from-address",
   ADMIN_EMAIL: "using default admin address",
   CRON_SECRET: "cron endpoints will refuse to run until this is set",
+  UPSTASH_REDIS_REST_URL: "rate limiting is per-instance (in-memory) without these",
+  UPSTASH_REDIS_REST_TOKEN: "rate limiting is per-instance (in-memory) without these",
+  KV_REST_API_URL: "rate limiting is per-instance (in-memory) without these",
+  KV_REST_API_TOKEN: "rate limiting is per-instance (in-memory) without these",
 };
+
+// Same value under two names (manual Upstash setup vs Vercel's integration); either one satisfies both.
+const ALIASES: Partial<Record<OptionalKey, OptionalKey>> = {
+  UPSTASH_REDIS_REST_URL: "KV_REST_API_URL",
+  KV_REST_API_URL: "UPSTASH_REDIS_REST_URL",
+  UPSTASH_REDIS_REST_TOKEN: "KV_REST_API_TOKEN",
+  KV_REST_API_TOKEN: "UPSTASH_REDIS_REST_TOKEN",
+};
+
+function isOptionalSet(key: OptionalKey): boolean {
+  const alias = ALIASES[key];
+  return !!process.env[key] || (!!alias && !!process.env[alias]);
+}
 
 let cachedEnv: ServerEnv | null = null;
 
@@ -43,7 +64,7 @@ export function validateEnv(): ServerEnv {
   }
 
   for (const key of OPTIONAL_SERVER_ENV) {
-    if (!process.env[key]) {
+    if (!isOptionalSet(key)) {
       console.warn(`⚠️  Optional env var not set: ${key} (${OPTIONAL_HINTS[key]})`);
     }
   }
@@ -59,7 +80,7 @@ export function validateEnv(): ServerEnv {
 /** Non-throwing status check, e.g. for the admin env banner. Server-only — never import from client code. */
 export function getEnvStatus(): { valid: boolean; missing_required: string[]; missing_optional: string[] } {
   const missing_required = REQUIRED_SERVER_ENV.filter((key) => !process.env[key]);
-  const missing_optional = OPTIONAL_SERVER_ENV.filter((key) => !process.env[key]);
+  const missing_optional = OPTIONAL_SERVER_ENV.filter((key) => !isOptionalSet(key));
   return { valid: missing_required.length === 0, missing_required, missing_optional };
 }
 

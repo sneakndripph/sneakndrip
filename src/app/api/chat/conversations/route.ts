@@ -4,7 +4,7 @@ import { rateLimit, getIP } from "@/lib/rate-limit";
 
 // POST — create new conversation
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 20, 60_000);
+  const { allowed } = await rateLimit(`chat-conversations:${getIP(req)}`, 20, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const { customer_name, customer_email, first_message } = await req.json() as {

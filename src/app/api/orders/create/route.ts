@@ -47,7 +47,7 @@ const orderCreateSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 10, 60_000); // 10 orders/min per IP
+  const { allowed } = await rateLimit(`orders-create:${getIP(req)}`, 10, 60_000); // 10 orders/min per IP
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   try {

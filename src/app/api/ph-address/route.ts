@@ -11,7 +11,7 @@ const URLS: Record<string, (code: string) => string> = {
 };
 
 export async function GET(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 60, 60_000);
+  const { allowed } = await rateLimit(`ph-address:${getIP(req)}`, 60, 60_000);
   if (!allowed) return NextResponse.json([], { status: 429 });
 
   const { searchParams } = new URL(req.url);

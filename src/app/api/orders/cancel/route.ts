@@ -12,7 +12,7 @@ const orderCancelSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 10, 60_000);
+  const { allowed } = await rateLimit(`orders-cancel:${getIP(req)}`, 10, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const serverClient = await createClient();

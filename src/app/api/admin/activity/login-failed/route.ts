@@ -5,7 +5,7 @@ import { rateLimit, getIP } from "@/lib/rate-limit";
 // Unauthenticated by necessity (the caller failed to sign in). Only logs when the
 // attempted email belongs to an admin account, to avoid recording every customer typo.
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 5, 60_000);
+  const { allowed } = await rateLimit(`admin-activity-login-failed:${getIP(req)}`, 5, 60_000);
   if (!allowed) return NextResponse.json({ ok: true });
 
   const body = await req.json().catch(() => null) as { email?: string; reason?: string } | null;

@@ -12,7 +12,7 @@ const trackOrderQuerySchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 30, 60_000);
+  const { allowed } = await rateLimit(`track-order:${getIP(req)}`, 30, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const parsed = trackOrderQuerySchema.safeParse({

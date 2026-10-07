@@ -26,7 +26,7 @@ const EXT_MIME: Record<string, string> = {
 const MAX_BYTES = 10 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
-  const { allowed } = rateLimit(getIP(req), 5, 60_000);
+  const { allowed } = await rateLimit(`orders-upload-proof:${getIP(req)}`, 5, 60_000);
   if (!allowed) return NextResponse.json({ error: "Too many requests" }, { status: 429 });
 
   const user = await requireUser();
