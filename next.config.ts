@@ -1,20 +1,29 @@
 import type { NextConfig } from "next";
 
-// Report-only for now: logs violations to the browser console without blocking
-// anything. Domains reflect actual third-party usage (GA4 via gtag.js, Supabase
-// storage/DB/realtime). vercel.live is not used anywhere in this app, so it's
-// omitted rather than copied from a generic template.
+// Report-only for now: violations are sent to /api/csp-report (Vercel logs)
+// without blocking anything. Domains reflect actual third-party usage (GA4 via
+// gtag.js, Supabase storage/DB/realtime). GA4 sends hits to regional hosts like
+// region1.google-analytics.com, hence the wildcards. vercel.live is not used
+// anywhere in this app, so it's omitted rather than copied from a generic template.
+const CSP_REPORT_PATH = "/api/csp-report";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sneakndrip.ph";
+
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googletagmanager.com https://*.google-analytics.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https: blob:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co https://www.google-analytics.com wss://*.supabase.co",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
   "frame-src 'self'",
+  "frame-ancestors 'none'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
+  "upgrade-insecure-requests",
+  // report-to wins where supported (Chromium); Firefox/Safari fall back to report-uri.
+  `report-uri ${CSP_REPORT_PATH}`,
+  "report-to csp-endpoint",
 ].join("; ");
 
 const securityHeaders = [
@@ -34,6 +43,14 @@ const securityHeaders = [
   // Content-Security-Policy once console/report output confirms nothing
   // legitimate gets flagged.
   { key: "Content-Security-Policy-Report-Only", value: cspDirectives },
+  // Defines the csp-endpoint group for report-to. Reporting-Endpoints is what
+  // current Chromium reads (relative URL resolves per page, so localhost reports
+  // stay local); Report-To is the legacy form and needs an absolute URL.
+  { key: "Reporting-Endpoints", value: `csp-endpoint="${CSP_REPORT_PATH}"` },
+  {
+    key: "Report-To",
+    value: JSON.stringify({ group: "csp-endpoint", max_age: 10886400, endpoints: [{ url: `${SITE_URL}${CSP_REPORT_PATH}` }] }),
+  },
 ];
 
 const nextConfig: NextConfig = {
