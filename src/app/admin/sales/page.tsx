@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { Download, RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Download, RefreshCw, ChevronUp, ChevronDown, ChevronsUpDown, ArrowRight } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -60,6 +61,43 @@ function periodToRange(p: Period): { from?: string; to?: string } {
 
 function fmt(n: number) { return `₱${Number(n).toLocaleString("en-PH", { maximumFractionDigits: 0 })}`; }
 
+// Drill-down URLs into /admin/orders. Period ids match OrdersFilterBar's, so the context carries over.
+function ordersHref(period: Period, filters: Record<string, string> = {}) {
+  const params = new URLSearchParams({ ...filters, period });
+  return `/admin/orders?${params}`;
+}
+// API returns "bank transfer"; orders filter expects "bank_transfer". "unknown" has no filter.
+function paymentHref(period: Period, method: string) {
+  return method === "unknown" ? null : ordersHref(period, { payment: method.replace(/ /g, "_") });
+}
+// API truncates long names with "…"; the orders search is a substring match, so the prefix still hits.
+function productHref(period: Period, name: string) {
+  return ordersHref(period, { q: name.replace(/…$/, "") });
+}
+
+function DrillChips({ items }: { items: { key: string; label: string; value: string; href: string | null }[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-4">
+      {items.map(it => {
+        const inner = (
+          <>
+            <span className="text-ink-2 capitalize">{it.label}</span>
+            <span className="text-ink font-semibold">{it.value}</span>
+          </>
+        );
+        const cls = "flex items-center gap-1.5 px-3 py-1.5 text-admin-sm rounded-md border border-line bg-paper";
+        return it.href ? (
+          <Link key={it.key} href={it.href} className={`${cls} hover:border-line-strong transition-colors duration-admin-fast`}>
+            {inner}
+          </Link>
+        ) : (
+          <span key={it.key} className={cls}>{inner}</span>
+        );
+      })}
+    </div>
+  );
+}
+
 function StatCard({ label, value, sub, href }: { label: string; value: string; sub?: string; href?: string }) {
   const inner = (
     <>
@@ -100,6 +138,7 @@ function SortHeader({ label, sortField, activeKey, activeDir, onSort }: {
 }
 
 export default function AdminSalesPage() {
+  const router = useRouter();
   const [period, setPeriod] = useState<Period>("30d");
   const [data, setData] = useState<SalesData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -192,8 +231,8 @@ export default function AdminSalesPage() {
         <div className="space-y-4">
           {/* Stat cards */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard label="Total revenue" value={fmt(m.totalRevenue)} sub={`${m.paidOrders} paid orders`} href="/admin/orders?status=delivered" />
-            <StatCard label="Total orders" value={String(m.totalOrders)} sub={`${m.pendingOrders} pending`} href="/admin/orders" />
+            <StatCard label="Total revenue" value={fmt(m.totalRevenue)} sub={`${m.paidOrders} paid orders`} href={ordersHref(period, { status: "delivered" })} />
+            <StatCard label="Total orders" value={String(m.totalOrders)} sub={`${m.pendingOrders} pending`} href={ordersHref(period)} />
             <StatCard label="Avg. order value" value={fmt(m.avgOrder)} />
             <StatCard label="Best selling product" value={best ? best.name : "—"} sub={best ? `${fmt(best.revenue)} · ${best.units} sold` : undefined} href="/admin/products" />
           </div>
@@ -226,6 +265,7 @@ export default function AdminSalesPage() {
               {data.byStatus.length === 0 ? (
                 <p className="text-admin text-ink-3 text-center py-8">No data.</p>
               ) : (
+                <>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={data.byStatus} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
@@ -233,11 +273,17 @@ export default function AdminSalesPage() {
                       axisLine={{ stroke: "var(--line-strong)" }} tickLine={false} />
                     <YAxis tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--line-strong)" }} tickLine={false} allowDecimals={false} />
                     <Tooltip {...tooltipProps} formatter={v => [`${v} orders`, ""]} cursor={{ fill: "var(--paper-2)" }} />
-                    <Bar dataKey="count" radius={[3, 3, 0, 0]} maxBarSize={40}>
+                    <Bar dataKey="count" radius={[3, 3, 0, 0]} maxBarSize={40} cursor="pointer"
+                      onClick={(_, i) => router.push(ordersHref(period, { status: data.byStatus[i].status }))}>
                       {data.byStatus.map((s, i) => <Cell key={s.status} fill={MONO[i % MONO.length]} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+                <DrillChips items={data.byStatus.map(s => ({
+                  key: s.status, label: s.status.replace(/_/g, " "), value: String(s.count),
+                  href: ordersHref(period, { status: s.status }),
+                }))} />
+                </>
               )}
             </ChartCard>
 
@@ -246,6 +292,7 @@ export default function AdminSalesPage() {
               {data.byPayment.length === 0 ? (
                 <p className="text-admin text-ink-3 text-center py-8">No data.</p>
               ) : (
+                <>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={data.byPayment} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
@@ -254,11 +301,17 @@ export default function AdminSalesPage() {
                     <YAxis tick={{ fontSize: 11, fill: "var(--ink-3)" }} axisLine={{ stroke: "var(--line-strong)" }}
                       tickLine={false} tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} width={48} />
                     <Tooltip {...tooltipProps} formatter={v => [fmt(Number(v)), "Revenue"]} cursor={{ fill: "var(--paper-2)" }} />
-                    <Bar dataKey="revenue" radius={[3, 3, 0, 0]} maxBarSize={40}>
+                    <Bar dataKey="revenue" radius={[3, 3, 0, 0]} maxBarSize={40} cursor="pointer"
+                      onClick={(_, i) => { const href = paymentHref(period, data.byPayment[i].method); if (href) router.push(href); }}>
                       {data.byPayment.map((p, i) => <Cell key={p.method} fill={MONO[i % MONO.length]} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
+                <DrillChips items={data.byPayment.map(p => ({
+                  key: p.method, label: p.method, value: fmt(p.revenue),
+                  href: paymentHref(period, p.method),
+                }))} />
+                </>
               )}
             </ChartCard>
           </div>
@@ -268,6 +321,7 @@ export default function AdminSalesPage() {
             {data.topProducts.length === 0 ? (
               <p className="text-admin text-ink-3 text-center py-8">No data.</p>
             ) : (
+              <>
               <ResponsiveContainer width="100%" height={Math.max(160, data.topProducts.length * 32)}>
                 <BarChart data={data.topProducts} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" horizontal={false} />
@@ -276,16 +330,26 @@ export default function AdminSalesPage() {
                   <YAxis type="category" dataKey="name" width={140} tick={{ fontSize: 11, fill: "var(--ink-3)" }}
                     axisLine={{ stroke: "var(--line-strong)" }} tickLine={false} />
                   <Tooltip {...tooltipProps} formatter={v => [fmt(Number(v)), "Revenue"]} cursor={{ fill: "var(--paper-2)" }} />
-                  <Bar dataKey="revenue" fill="var(--ink)" radius={[0, 3, 3, 0]} maxBarSize={16} />
+                  <Bar dataKey="revenue" fill="var(--ink)" radius={[0, 3, 3, 0]} maxBarSize={16} cursor="pointer"
+                    onClick={(_, i) => router.push(productHref(period, data.topProducts[i].name))} />
                 </BarChart>
               </ResponsiveContainer>
+              <DrillChips items={data.topProducts.map((p, i) => ({
+                key: `${i}-${p.name}`, label: p.name, value: `${p.units} sold`,
+                href: productHref(period, p.name),
+              }))} />
+              </>
             )}
           </ChartCard>
 
           {/* Data table */}
           <div className="bg-paper border border-line rounded-md overflow-hidden">
-            <div className="px-5 py-4 border-b border-line">
+            <div className="px-5 py-4 border-b border-line flex items-center justify-between gap-3">
               <p className="text-admin-title text-ink">Sales entries</p>
+              <Link href={ordersHref(period)}
+                className="flex items-center gap-1 text-admin-sm font-medium text-ink-3 hover:text-ink transition-colors duration-admin-fast">
+                View in Orders <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
             {sortedRows.length === 0 ? (
               <p className="text-admin text-ink-3 text-center py-12">No paid orders in this period.</p>

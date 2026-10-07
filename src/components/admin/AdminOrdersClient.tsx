@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { Download, X } from "lucide-react";
-import OrdersFilterBar, { periodStart, type Period, type PaymentFilter } from "./OrdersFilterBar";
+import OrdersFilterBar, { periodStart, PERIODS, PAYMENT_FILTERS, type Period, type PaymentFilter } from "./OrdersFilterBar";
 import OrdersList, { PAYMENT_LABELS } from "./OrdersList";
 import OrderDetailDrawer from "./OrderDetailDrawer";
 import { STATUSES, statusMeta, type Status } from "./OrderStatusBadge";
@@ -48,14 +48,14 @@ function getNextAction(status: string, isCOD: boolean, paymentType?: string): { 
   return ACTIONS[status] ?? null;
 }
 
-export default function AdminOrdersClient({ initialOrders, initialSearch = "", initialStatus = "", initialCoupon = "" }: { initialOrders: Order[]; initialSearch?: string; initialStatus?: string; initialCoupon?: string }) {
+export default function AdminOrdersClient({ initialOrders, initialSearch = "", initialStatus = "", initialCoupon = "", initialPayment = "", initialPeriod = "" }: { initialOrders: Order[]; initialSearch?: string; initialStatus?: string; initialCoupon?: string; initialPayment?: string; initialPeriod?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [search, setSearch] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState<Status>(STATUSES.includes(initialStatus as Status) ? (initialStatus as Status) : "all");
-  const [periodFilter, setPeriodFilter] = useState<Period>("all");
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>("all");
+  const [periodFilter, setPeriodFilter] = useState<Period>(PERIODS.some(p => p.id === initialPeriod) ? (initialPeriod as Period) : "all");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>(PAYMENT_FILTERS.some(p => p.id === initialPayment) ? (initialPayment as PaymentFilter) : "all");
   const [couponFilter, setCouponFilter] = useState<string | null>(initialCoupon || null);
   const [selected, setSelected] = useState<Order | null>(null);
   const [notesInput, setNotesInput] = useState("");
