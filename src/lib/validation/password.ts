@@ -16,7 +16,9 @@ export const PASSWORD_RULES: readonly PasswordRule[] = [
   { id: "upper", label: "One uppercase letter", test: p => /[A-Z]/.test(p) },
   { id: "lower", label: "One lowercase letter", test: p => /[a-z]/.test(p) },
   { id: "number", label: "One number", test: p => /[0-9]/.test(p) },
-  { id: "symbol", label: "One symbol (!@#$…)", test: p => /[^A-Za-z0-9]/.test(p) },
+  // Exactly Supabase Auth's symbol set: !@#$%^&*()_+-=[]{};'\:"|<>?,./`~ — spaces,
+  // ₱, accented letters and emoji don't count, or the server would reject passwords the checklist passed.
+  { id: "symbol", label: "One symbol (!@#$%^&*…)", test: p => /[!@#$%^&*()_+\-=[\]{};'\\:"|<>?,./`~]/.test(p) },
 ];
 
 export function isPasswordValid(password: string): boolean {
