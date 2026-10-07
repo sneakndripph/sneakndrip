@@ -1,9 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/supabase/require-admin";
-import { validateEnv } from "@/lib/env";
 import { sendNewArrivalBroadcast } from "@/lib/email/new-arrival";
 import { z } from "zod";
 import { productCreateSchema, productSizeSchema } from "@/lib/validation/schemas";
@@ -36,27 +33,10 @@ export async function GET() {
   return NextResponse.json(products);
 }
 
-async function getRequestingUser() {
-  try {
-    const cookieStore = await cookies();
-    const env = validateEnv();
-    const supabase = createServerClient(
-      env.NEXT_PUBLIC_SUPABASE_URL,
-      env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const user = await getRequestingUser();
-    const isAdmin = user?.app_metadata?.role === "admin";
-    if (!user || !isAdmin) {
+    const user = await requireAdmin();
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

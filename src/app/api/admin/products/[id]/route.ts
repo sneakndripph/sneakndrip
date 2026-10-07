@@ -1,36 +1,17 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { validateEnv } from "@/lib/env";
+import { requireAdmin } from "@/lib/supabase/require-admin";
 import { sendRestockEmailsForSize } from "@/lib/email/restock";
 import { sendNewArrivalBroadcast } from "@/lib/email/new-arrival";
 import { z } from "zod";
 import { productUpdateSchema, productSizeSchema } from "@/lib/validation/schemas";
 
-async function getRequestingUser() {
-  try {
-    const cookieStore = await cookies();
-    const env = validateEnv();
-    const supabase = createServerClient(
-      env.NEXT_PUBLIC_SUPABASE_URL,
-      env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
-  } catch {
-    return null;
-  }
-}
-
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getRequestingUser();
-  const isAdmin = user?.app_metadata?.role === "admin";
-  if (!user || !isAdmin) {
+  const user = await requireAdmin();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -125,9 +106,8 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getRequestingUser();
-  const isAdminDel = user?.app_metadata?.role === "admin";
-  if (!user || !isAdminDel) {
+  const user = await requireAdmin();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;

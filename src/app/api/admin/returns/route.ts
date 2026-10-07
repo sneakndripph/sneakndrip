@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerClient } from "@supabase/ssr";
+import { requireAdmin } from "@/lib/supabase/require-admin";
 import { createAdminClient } from "@/lib/supabase/admin-server";
-import { cookies } from "next/headers";
-import { validateEnv } from "@/lib/env";
 import { sendEmail } from "@/lib/email/send";
 import { returnApproved } from "@/lib/email/templates/returnApproved";
 import { returnDenied } from "@/lib/email/templates/returnDenied";
@@ -15,24 +13,6 @@ const returnUpdateSchema = z.object({
   status: z.enum(["approved", "denied"], { error: "Invalid status" }),
   admin_note: z.string().optional(),
 });
-
-async function requireAdmin() {
-  try {
-    const cookieStore = await cookies();
-    const env = validateEnv();
-    const supabase = createServerClient(
-      env.NEXT_PUBLIC_SUPABASE_URL,
-      env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
-    const isAdmin = user?.app_metadata?.role === "admin";
-    if (!user || !isAdmin) return null;
-    return user;
-  } catch {
-    return null;
-  }
-}
 
 export async function GET() {
   const caller = await requireAdmin();

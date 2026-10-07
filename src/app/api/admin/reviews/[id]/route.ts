@@ -1,31 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin-server";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-import { validateEnv } from "@/lib/env";
+import { requireAdmin } from "@/lib/supabase/require-admin";
 import { validateBody } from "@/lib/validation/validate";
 import { reviewModerationSchema, reviewDeleteSchema } from "@/lib/validation/schemas";
 
-async function getRequestingUser() {
-  try {
-    const cookieStore = await cookies();
-    const env = validateEnv();
-    const supabase = createServerClient(
-      env.NEXT_PUBLIC_SUPABASE_URL,
-      env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
-    );
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
-  } catch {
-    return null;
-  }
-}
-
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getRequestingUser();
-  const isAdmin = user?.app_metadata?.role === "admin";
-  if (!user || !isAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await requireAdmin();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const result = await validateBody(req, reviewModerationSchema);
@@ -52,9 +33,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const user = await getRequestingUser();
-  const isAdmin = user?.app_metadata?.role === "admin";
-  if (!user || !isAdmin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await requireAdmin();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
   const result = await validateBody(req, reviewDeleteSchema);
