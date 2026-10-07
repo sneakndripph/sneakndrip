@@ -8,10 +8,10 @@ import { validateEnv } from "@/lib/env";
 try {
   validateEnv();
 } catch (err) {
-  console.error("[middleware] env validation failed:", err);
+  console.error("[proxy] env validation failed:", err);
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   let supabaseResponse = NextResponse.next({ request });
@@ -38,7 +38,7 @@ export async function middleware(request: NextRequest) {
   } catch (err) {
     // Fail closed: user stays null, so the route guards below deny access
     // rather than letting a broken env silently skip auth checks.
-    console.error("[middleware] failed to resolve session:", err);
+    console.error("[proxy] failed to resolve session:", err);
   }
 
   // Protect account page
