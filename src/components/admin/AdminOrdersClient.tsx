@@ -3,12 +3,20 @@
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { Download, X } from "lucide-react";
+import { Download, X, CreditCard, Loader, PackageCheck, CheckCircle2, XCircle } from "lucide-react";
 import OrdersFilterBar, { periodStart, PERIODS, PAYMENT_FILTERS, type Period, type PaymentFilter } from "./OrdersFilterBar";
 import OrdersList, { PAYMENT_LABELS } from "./OrdersList";
 import OrderDetailDrawer from "./OrderDetailDrawer";
 import { STATUSES, statusMeta, type Status } from "./OrderStatusBadge";
 import { useSortableTable } from "@/hooks/useSortableTable";
+import { useConfirmDialog } from "./ConfirmDialog";
+import type { BulkAction } from "./BulkActionsBar";
+
+/** Statuses offered in the bulk bar — mirrors orderBulkUpdateSchema ("shipped" needs per-order tracking). */
+type BulkStatus = "paid" | "processing" | "stock_on_hand" | "delivered" | "cancelled";
+
+// Bulk changes above this size ask for confirmation first (cancel always does).
+const BULK_CONFIRM_THRESHOLD = 10;
 
 export type OrderItem = {
   product_name: string; brand: string; size: string; quantity: number; unit_price: number; payment_type: string;
@@ -52,16 +60,25 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
   const router = useRouter();
   const pathname = usePathname();
   const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [search, setSearch] = useState(initialSearch);
-  const [statusFilter, setStatusFilter] = useState<Status>(STATUSES.includes(initialStatus as Status) ? (initialStatus as Status) : "all");
-  const [periodFilter, setPeriodFilter] = useState<Period>(PERIODS.some(p => p.id === initialPeriod) ? (initialPeriod as Period) : "all");
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>(PAYMENT_FILTERS.some(p => p.id === initialPayment) ? (initialPayment as PaymentFilter) : "all");
+  const [search, setSearchRaw] = useState(initialSearch);
+  const [statusFilter, setStatusFilterRaw] = useState<Status>(STATUSES.includes(initialStatus as Status) ? (initialStatus as Status) : "all");
+  const [periodFilter, setPeriodFilterRaw] = useState<Period>(PERIODS.some(p => p.id === initialPeriod) ? (initialPeriod as Period) : "all");
+  const [paymentFilter, setPaymentFilterRaw] = useState<PaymentFilter>(PAYMENT_FILTERS.some(p => p.id === initialPayment) ? (initialPayment as PaymentFilter) : "all");
   const [couponFilter, setCouponFilter] = useState<string | null>(initialCoupon || null);
   const [selected, setSelected] = useState<Order | null>(null);
   const [notesInput, setNotesInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pendingQuickAction, setPendingQuickAction] = useState<"ship" | "cancel" | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const { confirm: confirmDialog, dialog: confirmDialogEl } = useConfirmDialog();
+
+  // Any filter change drops the selection so hidden rows can't be bulk-acted on.
+  function clearSelection() { setSelectedIds(new Set()); }
+  function setSearch(v: string) { setSearchRaw(v); clearSelection(); }
+  function setStatusFilter(v: Status) { setStatusFilterRaw(v); clearSelection(); }
+  function setPeriodFilter(v: Period) { setPeriodFilterRaw(v); clearSelection(); }
+  function setPaymentFilter(v: PaymentFilter) { setPaymentFilterRaw(v); clearSelection(); }
 
   useEffect(() => {
     if (!initialSearch) return;
@@ -85,6 +102,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
 
   const clearCouponFilter = () => {
     setCouponFilter(null);
+    clearSelection();
     router.push(pathname, { scroll: false });
   };
 
@@ -94,6 +112,10 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
       created_at: o => new Date(o.created_at),
     },
   });
+
+  // Only act on selected rows that are still visible (a per-order status change in
+  // the drawer can move a selected row out of the current status filter).
+  const selectedVisible = sortedRows.filter(o => selectedIds.has(o.id));
 
   const counts = STATUSES.reduce((acc, s) => {
     acc[s] = s === "all" ? orders.length : orders.filter(o => o.status === s).length;
@@ -116,16 +138,71 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
     });
   }
 
-  async function bulkUpdate(status: string) {
-    if (!status || !selectedIds.size) return;
-    const ids = Array.from(selectedIds);
-    setOrders(prev => prev.map(o => ids.includes(o.id) ? { ...o, status } : o));
-    setSelectedIds(new Set());
-    const res = await fetch("/api/admin/orders/bulk", {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, status }),
-    });
-    res.ok ? toast.success(`${ids.length} order${ids.length !== 1 ? "s" : ""} updated`) : toast.error("Failed to update orders");
+  function plural(n: number) {
+    return `${n} order${n !== 1 ? "s" : ""}`;
   }
+
+  async function bulkUpdate(status: BulkStatus) {
+    const targets = selectedVisible;
+    if (!targets.length || bulkBusy) return;
+    const label = statusMeta(status).label;
+    if (status === "cancelled") {
+      const shown = targets.slice(0, 3).map(o => o.order_number).join(", ");
+      const more = targets.length > 3 ? ` and ${targets.length - 3} more` : "";
+      const ok = await confirmDialog({
+        title: `Cancel ${plural(targets.length)}?`,
+        description: `${shown}${more}. Customers will be emailed and stock for pending, paid and processing orders goes back to inventory.`,
+        confirmLabel: `Cancel ${plural(targets.length)}`,
+        cancelLabel: "Keep orders",
+        variant: "destructive",
+      });
+      if (!ok) return;
+    } else if (targets.length > BULK_CONFIRM_THRESHOLD) {
+      const ok = await confirmDialog({
+        title: `Mark ${plural(targets.length)} as ${label}?`,
+        description: "Customers will be emailed about the status change.",
+        confirmLabel: "Update",
+      });
+      if (!ok) return;
+    }
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/admin/orders/bulk", {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: targets.map(o => o.id), status }),
+      });
+      const result = await res.json().catch(() => ({})) as {
+        error?: string; updated?: number; skipped?: { id: string; reason: string }[];
+        rows?: ({ id: string } & Partial<Order>)[];
+      };
+      if (!res.ok) { toast.error(result.error ?? "Failed to update orders"); return; }
+      const rows = new Map((result.rows ?? []).map(r => [r.id, r]));
+      setOrders(prev => prev.map(o => rows.has(o.id) ? { ...o, ...rows.get(o.id) } : o));
+      clearSelection();
+      const updated = result.updated ?? rows.size;
+      const skipped = result.skipped ?? [];
+      const already = skipped.filter(s => s.reason === "already_in_status").length;
+      const failed = skipped.length - already;
+      const notes = [
+        already > 0 ? `${already} already ${label}` : "",
+        failed > 0 ? `${failed} failed` : "",
+      ].filter(Boolean).join(", ");
+      const msg = `${plural(updated)} marked as ${label}${notes ? ` (${notes})` : ""}`;
+      if (failed > 0) toast.error(msg); else toast.success(msg);
+    } catch {
+      toast.error("Failed to update orders");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  const bulkActions: BulkAction[] = [
+    { key: "paid", label: "Mark as Paid", icon: CreditCard, onSelect: () => bulkUpdate("paid") },
+    { key: "processing", label: "Mark as Processing", icon: Loader, onSelect: () => bulkUpdate("processing") },
+    { key: "stock_on_hand", label: `Mark as ${statusMeta("stock_on_hand").label}`, icon: PackageCheck, onSelect: () => bulkUpdate("stock_on_hand") },
+    { key: "delivered", label: "Mark as Delivered", icon: CheckCircle2, onSelect: () => bulkUpdate("delivered") },
+    { key: "cancelled", label: "Cancel orders", icon: XCircle, destructive: true, dividerBefore: true, onSelect: () => bulkUpdate("cancelled") },
+  ];
 
   async function updateStatus(id: string, status: string, adminNotes?: string) {
     setSaving(true);
@@ -283,9 +360,10 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
       <OrdersList
         orders={sortedRows} totalOrdersCount={orders.length} couponFilter={couponFilter}
         selectedIds={selectedIds} onToggleSelect={toggleSelect}
-        onSelectAll={checked => setSelectedIds(checked ? new Set(filtered.map(o => o.id)) : new Set())}
+        selectedVisibleCount={selectedVisible.length}
+        onSelectAll={checked => setSelectedIds(checked ? new Set(sortedRows.map(o => o.id)) : new Set())}
         onRowClick={openOrder}
-        onBulkStatusChange={bulkUpdate} onClearSelection={() => setSelectedIds(new Set())}
+        bulkActions={bulkActions} bulkBusy={bulkBusy} onClearSelection={clearSelection}
         onQuickShip={o => { openOrder(o); setPendingQuickAction("ship"); }}
         onQuickCancel={o => { openOrder(o); setPendingQuickAction("cancel"); }}
         sortKey={sortKey} sortDirection={sortDirection} onSort={handleSort}
@@ -311,6 +389,7 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
           onDeleteOrder={() => executeDeleteOrder(liveSelected.id, liveSelected.order_number)}
         />
       )}
+      {confirmDialogEl}
     </div>
   );
 }

@@ -1,78 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin-server";
-import { requireAdmin } from "@/lib/supabase/require-admin";
-import { sendEmail } from "@/lib/email/send";
-import { orderStatusUpdate } from "@/lib/email/templates/orderStatusUpdate";
-import { z } from "zod";
+import { requireAdminBulk } from "@/lib/supabase/require-admin-bulk";
 import { validateBody } from "@/lib/validation/validate";
-import { orderStatusSchema, uuidSchema } from "@/lib/validation/schemas";
+import { orderBulkUpdateSchema } from "@/lib/validation/schemas";
+import { applyStatusChange, STATUS_CHANGE_ORDER_SELECT, type StatusChangeOrder } from "@/lib/orders/apply-status-change";
 
-const FROM_EMAIL = "orders@sneakndrip.ph";
-
-const orderBulkUpdateSchema = z.object({
-  ids: z.array(uuidSchema).min(1, "Missing ids or status"),
-  status: orderStatusSchema,
-});
+type Skipped = { id: string; reason: "not_found" | "already_in_status" | "update_failed" };
 
 export async function PATCH(req: NextRequest) {
-  const caller = await requireAdmin();
-  if (!caller) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAdminBulk("orders");
+  if ("error" in auth) return auth.error;
 
   const result = await validateBody(req, orderBulkUpdateSchema);
   if ("error" in result) return result.error;
-  const { ids, status } = result.data;
+  const { status } = result.data;
+  // De-dupe: a repeated id would otherwise run the transition (and restock) twice.
+  const ids = [...new Set(result.data.ids)];
 
   const admin = createAdminClient();
+  const { data, error } = await admin.from("orders").select(STATUS_CHANGE_ORDER_SELECT).in("id", ids);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const { data: targetOrders } = await admin
-    .from("orders")
-    .select("id, order_number, customer_name, customer_email, payment_method, tracking_number, status")
-    .in("id", ids);
+  const byId = new Map((data as StatusChangeOrder[] | null ?? []).map(o => [o.id, o]));
+  const skipped: Skipped[] = [];
+  const updated: { id: string; patch: Record<string, unknown> }[] = [];
 
-  if (status === "delivered") {
-    const newlyDeliveredIds = (targetOrders ?? []).filter(o => o.status !== "delivered").map(o => o.id);
-    const alreadyDeliveredIds = (targetOrders ?? []).filter(o => o.status === "delivered").map(o => o.id);
+  // Sequential on purpose: cancel restores stock with a read-then-write on
+  // product_sizes, so two orders for the same size must not run concurrently.
+  for (const id of ids) {
+    const order = byId.get(id);
+    if (!order) { skipped.push({ id, reason: "not_found" }); continue; }
+    if (order.status === status) { skipped.push({ id, reason: "already_in_status" }); continue; }
 
-    if (newlyDeliveredIds.length) {
-      const { error } = await admin
-        .from("orders")
-        .update({ status, delivered_at: new Date().toISOString() })
-        .in("id", newlyDeliveredIds);
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    const change = await applyStatusChange(admin, order, status, auth.user.email ?? null);
+    if (change.updated) updated.push({ id, patch: change.patch });
+    else {
+      if (change.error) console.error(`[orders-bulk] ${order.order_number} failed:`, change.error);
+      skipped.push({ id, reason: change.skipped });
     }
-    if (alreadyDeliveredIds.length) {
-      const { error } = await admin.from("orders").update({ status }).in("id", alreadyDeliveredIds);
-      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-  } else {
-    const { error } = await admin.from("orders").update({ status }).in("id", ids);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  if (targetOrders?.length) {
-    void (async () => {
-      const results = await Promise.allSettled(
-        targetOrders
-          .filter(order => order.customer_email)
-          .map(order => {
-            const emailContent = orderStatusUpdate(status, {
-              orderNumber: order.order_number,
-              customerName: order.customer_name,
-              trackingNumber: order.tracking_number ?? null,
-              isCOD: order.payment_method === "cod",
-            });
-            if (!emailContent) return Promise.resolve({ ok: true, skipped: true } as const);
-            return sendEmail(order.customer_email, emailContent.subject, emailContent.html, {
-              from: `Sneak N' Drip <${FROM_EMAIL}>`,
-            });
-          }),
-      );
+  console.log(`Bulk status → ${status}: ${updated.length} updated, ${skipped.length} skipped`);
 
-      const sent = results.filter(r => r.status === "fulfilled" && r.value.ok && !r.value.skipped).length;
-      const failed = results.filter(r => r.status === "rejected" || (r.status === "fulfilled" && !r.value.ok)).length;
-      console.log(`Bulk status update: ${ids.length} orders updated, ${sent} emails sent, ${failed} email failures`);
-    })();
-  }
-
-  return NextResponse.json({ ok: true, updated: ids.length });
+  return NextResponse.json({
+    updated: updated.length,
+    skipped,
+    ids: updated.map(u => u.id),
+    rows: updated.map(u => ({ id: u.id, ...u.patch })),
+  });
 }

@@ -13,6 +13,14 @@ export async function PATCH(req: NextRequest) {
   const { userId, ban } = result.data;
 
   const admin = createAdminClient();
+
+  // userId must be an auth user id. Guest-checkout customers have no login account,
+  // and a customers.id here would otherwise surface as an opaque 500.
+  const { data: target, error: getError } = await admin.auth.admin.getUserById(userId);
+  if (getError || !target?.user) {
+    return NextResponse.json({ error: "This customer has no login account to ban (guest checkout)." }, { status: 404 });
+  }
+
   const { error } = await admin.auth.admin.updateUserById(userId, {
     ban_duration: ban ? "87600h" : "none",
   });

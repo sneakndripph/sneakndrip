@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   Plus, Search, MoreVertical, Pencil, Copy, Trash2, Package,
-  ChevronDown, Check, Eye, EyeOff, Star, Flame, PackageCheck, PackageX,
+  ChevronDown, Check, Eye, EyeOff, Star, Flame, PackageCheck, PackageX, Upload,
 } from "lucide-react";
 import { BRANDS } from "@/lib/constants";
 import { now } from "@/lib/utils";
@@ -273,10 +273,16 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <h1 className="text-admin-hero text-ink font-display font-medium tracking-[-0.02em]">Products</h1>
-        <Link href="/admin/products/new"
-          className="flex items-center gap-2 bg-ink text-paper text-admin px-4 py-2 rounded-md hover:bg-ink-2 transition-colors duration-admin-fast">
-          <Plus className="w-4 h-4" /> Add product
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/admin/products/import"
+            className="flex items-center gap-2 text-admin px-4 py-2 rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
+            <Upload className="w-4 h-4" /> Import CSV
+          </Link>
+          <Link href="/admin/products/new"
+            className="flex items-center gap-2 bg-ink text-paper text-admin px-4 py-2 rounded-md hover:bg-ink-2 transition-colors duration-admin-fast">
+            <Plus className="w-4 h-4" /> Add product
+          </Link>
+        </div>
       </div>
 
       {/* Filter bar */}

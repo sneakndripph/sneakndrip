@@ -130,6 +130,41 @@ export const productBulkUpdateSchema = z.object({
     .refine(p => Object.keys(p).length > 0, "Nothing to update"),
 });
 
+/**
+ * CSV inventory import (POST /api/admin/products/import). The browser parses and
+ * groups the CSV (src/lib/products/csv-import.ts); this re-validates each product.
+ * "update" only replaces stock for the listed sizes on the product with that SKU.
+ */
+const productImportBase = {
+  key: z.string().min(1).max(300),
+  name: z.string().trim().min(1, "Missing product name").max(200),
+  gender: z.enum(["Unisex", "Men", "Women", "Kids"], { error: "Invalid gender" }),
+  sizes: z.array(productSizeSchema).min(1, "No sizes").max(60),
+};
+
+export const productImportSchema = z.object({
+  products: z
+    .array(
+      z.discriminatedUnion("mode", [
+        z.object({
+          ...productImportBase,
+          mode: z.literal("create"),
+          sku: z.string().trim().min(1).max(100).nullable(),
+          brand: z.string().trim().min(1, "Missing brand").max(100),
+          price: priceSchema.positive("Price must be greater than 0"),
+          cost: priceSchema.nullable(),
+        }),
+        z.object({
+          ...productImportBase,
+          mode: z.literal("update"),
+          sku: z.string().trim().min(1, "Update needs a SKU").max(100),
+        }),
+      ]),
+    )
+    .min(1, "Nothing to import")
+    .max(200, "Too many products in one request (max 200)"),
+});
+
 /** Bulk product delete (DELETE /api/admin/products/bulk). */
 export const productBulkDeleteSchema = z.object({ ids: productBulkIdsSchema });
 
@@ -188,6 +223,24 @@ export const settingsUpdateSchema = z.record(
 export const customerBanSchema = z.object({
   userId: uuidSchema,
   ban: z.boolean().optional(),
+});
+
+/**
+ * Bulk order status change (PATCH /api/admin/orders/bulk). "shipped" is excluded
+ * because it needs a per-order tracking number (Quick Ship handles it), and
+ * "pending" because reverting accepted orders in bulk isn't a supported flow.
+ */
+export const orderBulkUpdateSchema = z.object({
+  ids: z.array(uuidSchema).min(1, "Select at least one order").max(100, "Too many orders selected (max 100)"),
+  status: z.enum(["paid", "processing", "stock_on_hand", "delivered", "cancelled"], {
+    error: "Status not allowed in bulk",
+  }),
+});
+
+/** Bulk ban/unban (POST /api/admin/customers/bulk). ids are customers.id, not auth ids. */
+export const customerBulkSchema = z.object({
+  action: z.enum(["ban", "unban"], { error: "Invalid action" }),
+  ids: z.array(uuidSchema).min(1, "Select at least one customer").max(100, "Too many customers selected (max 100)"),
 });
 
 /** Valid app roles — mirrors ROLES in src/app/admin/users/page.tsx. */

@@ -1,5 +1,6 @@
 import { unstable_noStore as noStore } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin-server";
+import { listAllAuthUsers } from "@/lib/supabase/list-auth-users";
 import AdminCustomersClient from "@/components/admin/AdminCustomersClient";
 
 export default async function AdminCustomersPage({
@@ -11,7 +12,7 @@ export default async function AdminCustomersPage({
   const q = searchParams ? (await searchParams)?.q ?? "" : "";
   const admin = createAdminClient();
 
-  const [{ data: customers }, { data: allOrders }, { data: { users: authUsers } }] = await Promise.all([
+  const [{ data: customers }, { data: allOrders }, authUsers] = await Promise.all([
     admin
       .from("customers")
       .select("id, auth_user_id, full_name, email, mobile, created_at")
@@ -20,7 +21,7 @@ export default async function AdminCustomersPage({
       .from("orders")
       .select("customer_email, order_number, total, status, created_at, customer_mobile, shipping_city, shipping_province, order_items(product_name, products(images))")
       .order("created_at", { ascending: false }),
-    admin.auth.admin.listUsers({ perPage: 1000 }),
+    listAllAuthUsers(admin),
   ]);
 
   const now = new Date();

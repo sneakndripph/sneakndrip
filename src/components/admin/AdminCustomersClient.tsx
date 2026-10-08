@@ -6,7 +6,8 @@ import Image from "next/image";
 import { Search, Users, X, Phone, MapPin, ShoppingBag, Calendar, Ban, ShieldCheck, Download, MessageCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import OrderStatusBadge from "./OrderStatusBadge";
-import ConfirmDialog from "./ConfirmDialog";
+import ConfirmDialog, { useConfirmDialog } from "./ConfirmDialog";
+import BulkActionsBar, { type BulkAction } from "./BulkActionsBar";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import SortableHeader from "./SortableHeader";
 
@@ -36,6 +37,14 @@ type Customer = {
 
 type StatusFilter = "all" | "active" | "banned";
 
+// Bulk unban above this size asks for confirmation first (ban always does).
+const BULK_CONFIRM_THRESHOLD = 10;
+
+const SKIP_LABELS: Record<string, string> = {
+  guest: "guest checkout", own_account: "your own account", admin_account: "admin",
+  not_found: "not found", update_failed: "failed",
+};
+
 const FILTERS: { id: StatusFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "active", label: "Active" },
@@ -44,11 +53,28 @@ const FILTERS: { id: StatusFilter; label: string }[] = [
 
 export default function AdminCustomersClient({ customers: initialCustomers, initialSearch = "" }: { customers: Customer[]; initialSearch?: string }) {
   const [customers, setCustomers] = useState(initialCustomers);
-  const [search, setSearch] = useState(initialSearch);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [search, setSearchRaw] = useState(initialSearch);
+  const [statusFilter, setStatusFilterRaw] = useState<StatusFilter>("all");
   const [selected, setSelected] = useState<Customer | null>(null);
   const [mounted, setMounted] = useState(false);
   const [banTarget, setBanTarget] = useState<Customer | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const { confirm: confirmDialog, dialog: confirmDialogEl } = useConfirmDialog();
+
+  // Any filter change drops the selection so hidden rows can't be bulk-acted on.
+  function clearSelection() { setSelectedIds(new Set()); }
+  function setSearch(v: string) { setSearchRaw(v); clearSelection(); }
+  function setStatusFilter(v: StatusFilter) { setStatusFilterRaw(v); clearSelection(); }
+
+  // Guest-checkout customers have no login account, so there is nothing to ban.
+  function requestBan(c: Customer) {
+    if (!c.authUserId) {
+      toast.error(`${c.name} checked out as a guest and has no account to ban.`);
+      return;
+    }
+    setBanTarget(c);
+  }
 
   function openDrawer(c: Customer) {
     setSelected(c);
@@ -62,14 +88,15 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
   async function executeBan() {
     if (!banTarget) return;
     const nextBanned = !banTarget.banned;
-    const userId = banTarget.authUserId ?? banTarget.id;
+    if (!banTarget.authUserId) throw new Error("guest customer");
     const res = await fetch("/api/admin/customers", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, ban: nextBanned }),
+      body: JSON.stringify({ userId: banTarget.authUserId, ban: nextBanned }),
     });
     if (!res.ok) {
-      toast.error(nextBanned ? "Couldn't ban customer. Try again." : "Couldn't unban customer. Try again.");
+      const { error } = await res.json().catch(() => ({})) as { error?: string };
+      toast.error(error ?? (nextBanned ? "Couldn't ban customer. Try again." : "Couldn't unban customer. Try again."));
       throw new Error("ban failed");
     }
     setCustomers(prev => prev.map(c => c.id === banTarget.id ? { ...c, banned: nextBanned } : c));
@@ -99,10 +126,81 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
     },
   });
 
-  function exportCSV() {
+  // Only act on selected rows that are still visible (a single ban/unban can move a
+  // selected row out of the Active/Banned filter without a filter change).
+  const selectedVisible = sortedRows.filter(c => selectedIds.has(c.id));
+  const allVisibleSelected = sortedRows.length > 0 && selectedVisible.length === sortedRows.length;
+  const someVisibleSelected = selectedVisible.length > 0 && !allVisibleSelected;
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll(checked: boolean) {
+    setSelectedIds(checked ? new Set(sortedRows.map(c => c.id)) : new Set());
+  }
+
+  function plural(n: number) {
+    return `${n} customer${n !== 1 ? "s" : ""}`;
+  }
+
+  async function runBulkBan(ban: boolean) {
+    const targets = selectedVisible;
+    if (!targets.length || bulkBusy) return;
+    const verb = ban ? "Ban" : "Unban";
+    const shown = targets.slice(0, 3).map(c => c.name).join(", ");
+    const more = targets.length > 3 ? ` and ${targets.length - 3} more` : "";
+    if (ban || targets.length > BULK_CONFIRM_THRESHOLD) {
+      const ok = await confirmDialog({
+        title: `${verb} ${plural(targets.length)}?`,
+        description: ban
+          ? `${shown}${more}. They won't be able to place orders. Guest-checkout customers and admin accounts are skipped. You can unban them anytime.`
+          : `${shown}${more}. They'll be able to place orders again.`,
+        confirmLabel: `${verb} ${plural(targets.length)}`,
+        variant: ban ? "destructive" : "default",
+      });
+      if (!ok) return;
+    }
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/admin/customers/bulk", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: ban ? "ban" : "unban", ids: targets.map(c => c.id) }),
+      });
+      const result = await res.json().catch(() => ({})) as {
+        error?: string; updated?: number; ids?: string[]; skipped?: { id: string; reason: string }[];
+      };
+      if (!res.ok) { toast.error(result.error ?? `Failed to ${verb.toLowerCase()} customers`); return; }
+      const doneIds = new Set(result.ids ?? []);
+      setCustomers(prev => prev.map(c => doneIds.has(c.id) ? { ...c, banned: ban } : c));
+      setSelected(prev => prev && doneIds.has(prev.id) ? { ...prev, banned: ban } : prev);
+      clearSelection();
+      const counts = new Map<string, number>();
+      for (const s of result.skipped ?? []) counts.set(s.reason, (counts.get(s.reason) ?? 0) + 1);
+      const notes = [...counts].map(([r, n]) => `${n} skipped: ${SKIP_LABELS[r] ?? r}`).join(", ");
+      const msg = `${plural(result.updated ?? doneIds.size)} ${ban ? "banned" : "unbanned"}${notes ? ` (${notes})` : ""}`;
+      if (counts.get("update_failed")) toast.error(msg); else toast.success(msg);
+    } catch {
+      toast.error(`Failed to ${verb.toLowerCase()} customers`);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  const bulkActions: BulkAction[] = [
+    { key: "ban", label: "Ban", icon: Ban, destructive: true, onSelect: () => runBulkBan(true) },
+    { key: "unban", label: "Unban", icon: ShieldCheck, onSelect: () => runBulkBan(false) },
+    { key: "export", label: "Export selected (CSV)", icon: Download, dividerBefore: true, onSelect: () => exportCSV(selectedVisible) },
+  ];
+
+  function exportCSV(list: Customer[] = filtered) {
     const rows = [
       ["Name", "Email", "Mobile", "City", "Orders", "Total Spent", "Joined", "Status"],
-      ...filtered.map(c => [
+      ...list.map(c => [
         c.name, c.email, c.mobile, c.city,
         c.orders, `₱${Number(c.total).toLocaleString()}`,
         new Date(c.joined).toLocaleDateString("en-PH"),
@@ -125,7 +223,7 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
           <h1 className="text-admin-hero text-ink font-display font-medium tracking-[-0.02em]">Customers</h1>
           <p className="text-admin text-ink-3 mt-1">{customers.length} registered accounts</p>
         </div>
-        <button onClick={exportCSV}
+        <button onClick={() => exportCSV()}
           className="flex items-center gap-1.5 px-3 py-2 text-admin-sm font-medium rounded-md border border-line text-ink-2 hover:border-line-strong transition-colors duration-admin-fast">
           <Download className="w-3.5 h-3.5" /> Export CSV
         </button>
@@ -165,10 +263,26 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
         </div>
       ) : (
         <div className="bg-paper border border-line rounded-md overflow-hidden">
+          <BulkActionsBar
+            selectedCount={selectedVisible.length}
+            noun="customer"
+            actions={bulkActions}
+            onClear={clearSelection}
+            busy={bulkBusy}
+            busyLabel={`Updating ${plural(selectedVisible.length)}…`}
+          />
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="bg-paper-2 border-b border-line-strong">
+                  <th className="pl-4 pr-1 py-3 w-8">
+                    <input type="checkbox" aria-label="Select all visible customers"
+                      checked={allVisibleSelected}
+                      ref={el => { if (el) el.indeterminate = someVisibleSelected; }}
+                      onChange={e => toggleSelectAll(e.target.checked)}
+                      disabled={bulkBusy}
+                      className="w-3.5 h-3.5 cursor-pointer accent-ink" />
+                  </th>
                   {["Name", "Email"].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">{h}</th>
                   ))}
@@ -184,6 +298,13 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
                 {sortedRows.map(c => (
                   <tr key={c.id} onClick={() => openDrawer(c)}
                     className="cursor-pointer even:bg-paper-2 hover:bg-admin-row-hover transition-colors duration-admin-fast">
+                    <td className="pl-4 pr-1 py-3.5" onClick={e => e.stopPropagation()}>
+                      <input type="checkbox" aria-label={`Select ${c.name}`}
+                        checked={selectedIds.has(c.id)}
+                        onChange={() => toggleSelect(c.id)}
+                        disabled={bulkBusy}
+                        className="w-3.5 h-3.5 cursor-pointer accent-ink" />
+                    </td>
                     <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">{c.name}</td>
                     <td className="px-4 py-3.5 text-admin-sm text-ink-3">{c.email}</td>
                     <td className="px-4 py-3.5 text-admin-sm text-ink">{c.orders}</td>
@@ -199,7 +320,7 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
                       </span>
                     </td>
                     <td className="px-4 py-3.5" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => { setBanTarget(c);}}
+                      <button onClick={() => requestBan(c)}
                         className="p-1.5 rounded hover:bg-paper-3 transition-colors duration-admin-fast" title={c.banned ? "Unban" : "Ban"}>
                         {c.banned
                           ? <ShieldCheck className="w-4 h-4 text-state-onhand" />
@@ -212,10 +333,27 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
             </table>
           </div>
           <div className="md:hidden divide-y divide-line">
+            <label className="flex items-center gap-3 px-4 py-2.5 bg-paper-2 text-admin-eyebrow text-ink-3 cursor-pointer">
+              <input type="checkbox"
+                checked={allVisibleSelected}
+                ref={el => { if (el) el.indeterminate = someVisibleSelected; }}
+                onChange={e => toggleSelectAll(e.target.checked)}
+                disabled={bulkBusy}
+                className="w-4 h-4 cursor-pointer accent-ink" />
+              Select all
+            </label>
             {sortedRows.map(c => (
               <div key={c.id} onClick={() => openDrawer(c)} className="px-4 py-3.5">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-admin-sm font-semibold text-ink">{c.name}</p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <input type="checkbox" aria-label={`Select ${c.name}`}
+                      checked={selectedIds.has(c.id)}
+                      onClick={e => e.stopPropagation()}
+                      onChange={() => toggleSelect(c.id)}
+                      disabled={bulkBusy}
+                      className="w-4 h-4 shrink-0 cursor-pointer accent-ink" />
+                    <p className="text-admin-sm font-semibold text-ink truncate">{c.name}</p>
+                  </div>
                   <span className={`text-admin-micro font-medium px-2 py-0.5 rounded-full ${
                     c.banned ? "text-state-error bg-state-error/10" : "text-state-onhand bg-state-onhand/10"
                   }`}>
@@ -324,7 +462,7 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
             </div>
 
             <div className="px-5 py-4 shrink-0 flex gap-2.5 border-t border-line bg-paper-2">
-              <button onClick={() => setBanTarget(selected)}
+              <button onClick={() => requestBan(selected)}
                 className={`flex items-center gap-2 px-4 py-2.5 text-admin-sm font-medium rounded-md transition-colors duration-admin-fast ${
                   selected.banned ? "bg-state-onhand/10 text-state-onhand hover:bg-state-onhand/15" : "bg-state-error/10 text-state-error hover:bg-state-error/15"
                 }`}>
@@ -357,6 +495,7 @@ export default function AdminCustomersClient({ customers: initialCustomers, init
         confirmLabel={banTarget?.banned ? "Unban customer" : "Ban customer"}
         variant={banTarget?.banned ? "default" : "destructive"}
       />
+      {confirmDialogEl}
     </div>
   );
 }
