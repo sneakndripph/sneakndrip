@@ -96,13 +96,14 @@ export async function POST(req: NextRequest) {
     console.error("[activity_log] insert failed:", err);
   }
 
-  void admin.from("notifications").insert({
+  const { error: notifError } = await admin.from("notifications").insert({
     user_email: user.email,
     title: "Balance payment received!",
     message: `We've received your balance payment for order ${body.orderNumber}. We'll verify and process your shipment shortly.`,
     order_number: body.orderNumber,
     type: "order",
   });
+  if (notifError) console.error("[notifications] insert failed:", notifError);
 
   const PAYMENT_LABELS: Record<string, string> = {
     gcash: "GCash", maya: "Maya", bank_transfer: "Bank Transfer",

@@ -204,34 +204,47 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
     { key: "cancelled", label: "Cancel orders", icon: XCircle, destructive: true, dividerBefore: true, onSelect: () => bulkUpdate("cancelled") },
   ];
 
-  async function updateStatus(id: string, status: string, adminNotes?: string) {
+  // Single-order PATCH; local state changes only after the server confirms.
+  async function patchOrder(id: string, body: Record<string, unknown>, patch: Partial<Order>): Promise<boolean> {
     setSaving(true);
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status, ...(adminNotes ? { admin_notes: adminNotes } : {}) } : o));
-    if (selected?.id === id) setSelected(prev => prev ? { ...prev, status, ...(adminNotes ? { admin_notes: adminNotes } : {}) } : prev);
-    const res = await fetch(`/api/admin/orders/${id}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status, ...(adminNotes ? { admin_notes: adminNotes } : {}) }),
-    });
-    setSaving(false);
-    res.ok ? toast.success(`Order marked as ${statusMeta(status).label}`) : toast.error("Failed to update order");
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({})) as { error?: string };
+        toast.error(error ?? "Failed to update order");
+        return false;
+      }
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, ...patch } : o));
+      setSelected(prev => prev?.id === id ? { ...prev, ...patch } : prev);
+      return true;
+    } catch {
+      toast.error("Failed to update order");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function updateStatus(id: string, status: string, adminNotes?: string) {
+    const extra = adminNotes ? { admin_notes: adminNotes } : {};
+    const ok = await patchOrder(id, { status, ...extra }, { status, ...extra });
+    if (ok) toast.success(`Order marked as ${statusMeta(status).label}`);
+    return ok;
   }
 
   async function shipOrder(id: string, trackingNumber: string) {
     if (!trackingNumber.trim()) return;
-    setSaving(true);
     const trk = trackingNumber.trim();
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: "shipped", tracking_number: trk } : o));
-    if (selected?.id === id) setSelected(prev => prev ? { ...prev, status: "shipped", tracking_number: trk } : prev);
-    const res = await fetch(`/api/admin/orders/${id}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "shipped", tracking_number: trk }),
-    });
-    setSaving(false);
-    res.ok ? toast.success("Order marked as shipped") : toast.error("Failed to update order");
+    const body = { status: "shipped", tracking_number: trk };
+    if (await patchOrder(id, body, body)) toast.success("Order marked as shipped");
   }
 
   async function executeCancelOrder(id: string, reason: string) {
     const notes = reason.trim() ? `Cancelled by admin: ${reason.trim()}` : "Cancelled by admin";
-    await updateStatus(id, "cancelled", notes);
-    if (notesInput !== notes) setNotesInput(notes);
+    const ok = await updateStatus(id, "cancelled", notes);
+    if (ok && notesInput !== notes) setNotesInput(notes);
   }
 
   async function executeDeleteOrder(id: string, orderNumber: string) {
@@ -248,14 +261,8 @@ export default function AdminOrdersClient({ initialOrders, initialSearch = "", i
   }
 
   async function saveNotes(id: string) {
-    setSaving(true);
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, admin_notes: notesInput } : o));
-    if (selected?.id === id) setSelected(prev => prev ? { ...prev, admin_notes: notesInput } : prev);
-    const res = await fetch(`/api/admin/orders/${id}`, {
-      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ admin_notes: notesInput }),
-    });
-    setSaving(false);
-    res.ok ? toast.success("Notes saved") : toast.error("Failed to save notes");
+    const notes = notesInput;
+    if (await patchOrder(id, { admin_notes: notes }, { admin_notes: notes })) toast.success("Notes saved");
   }
 
   function formatDateTime(iso: string | null | undefined) {

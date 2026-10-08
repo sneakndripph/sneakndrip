@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Only pending orders can be cancelled" }, { status: 400 });
 
   // Restore stock + log inventory
-  for (const item of (order.order_items as { product_id: string; size: string; quantity: number; products: { name: string }[] | null }[])) {
+  for (const item of (order.order_items as { product_id: string; size: string; quantity: number; products: { name: string } | { name: string }[] | null }[])) {
     if (!item.product_id) continue;
     const { data: row } = await admin
       .from("product_sizes")
@@ -53,9 +53,9 @@ export async function POST(req: NextRequest) {
         .update({ stock: newStock })
         .eq("product_id", item.product_id)
         .eq("size", item.size);
-      void admin.from("inventory_log").insert({
+      const { error: invError } = await admin.from("inventory_log").insert({
         product_id: item.product_id,
-        product_name: item.products?.[0]?.name ?? "Unknown",
+        product_name: (Array.isArray(item.products) ? item.products[0]?.name : item.products?.name) ?? "Unknown",
         size: item.size,
         old_stock: row.stock,
         new_stock: newStock,
@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
         changed_by: user.email ?? "customer",
         order_number: order.order_number,
       });
+      if (invError) console.error("[inventory_log] insert failed:", invError);
     }
   }
 

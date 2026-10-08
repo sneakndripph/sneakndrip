@@ -19,7 +19,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   // Admin viewing a conversation clears its unread badge server-side (customers
   // reading their own conversation must not be able to clear the admin's badge).
   if (viewer.app_metadata?.role === "admin") {
-    void admin.from("conversations").update({ unread_admin: 0 }).eq("id", id);
+    const { error: unreadError } = await admin.from("conversations").update({ unread_admin: 0 }).eq("id", id);
+    if (unreadError) console.error("[chat] unread reset failed:", unreadError);
   }
 
   return NextResponse.json(data ?? []);
