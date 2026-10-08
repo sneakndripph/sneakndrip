@@ -106,6 +106,33 @@ export const productCreateSchema = z.object(productFieldsShape);
  */
 export const productUpdateSchema = z.object(productFieldsShape).partial();
 
+/** 1–200 product ids for the admin bulk endpoints (src/app/api/admin/products/bulk). */
+const productBulkIdsSchema = z
+  .array(uuidSchema)
+  .min(1, "Select at least one product")
+  .max(200, "Too many products selected (max 200)");
+
+/**
+ * Bulk product patch (PATCH /api/admin/products/bulk). Strict whitelist: only
+ * visibility/flag/status fields, so a bulk request can never overwrite prices or
+ * names. "pre-order" is excluded since it needs per-product ETA/downpayment data.
+ */
+export const productBulkUpdateSchema = z.object({
+  ids: productBulkIdsSchema,
+  patch: z
+    .object({
+      is_published: z.boolean().optional(),
+      is_featured: z.boolean().optional(),
+      is_trending: z.boolean().optional(),
+      status: z.enum(["on-hand", "sold-out"], { error: "Invalid status" }).optional(),
+    })
+    .strict()
+    .refine(p => Object.keys(p).length > 0, "Nothing to update"),
+});
+
+/** Bulk product delete (DELETE /api/admin/products/bulk). */
+export const productBulkDeleteSchema = z.object({ ids: productBulkIdsSchema });
+
 /**
  * Shared field shape for admin coupon create/update (src/app/admin/coupons/page.tsx).
  * The coupon form sends value/min_order/max_uses as strings (raw <input> values), so

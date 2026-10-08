@@ -6,17 +6,19 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   Plus, Search, MoreVertical, Pencil, Copy, Trash2, Package,
-  ChevronDown, Check, Eye, EyeOff,
+  ChevronDown, Check, Eye, EyeOff, Star, Flame, PackageCheck, PackageX,
 } from "lucide-react";
 import { BRANDS } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import { useConfirmDialog } from "./ConfirmDialog";
 import { useSortableTable } from "@/hooks/useSortableTable";
 import SortableHeader from "./SortableHeader";
+import BulkActionsBar, { type BulkAction } from "./BulkActionsBar";
 
 type Row = Record<string, unknown> & {
   id: string; name: string; slug: string; brand: string; status: string;
   full_payment_price: number; srp_price: number; is_published: boolean;
+  is_featured?: boolean | null; is_trending?: boolean | null;
   created_at: string;
   images?: string[]; product_sizes?: { size: string; stock: number }[];
 };
@@ -24,13 +26,49 @@ type Row = Record<string, unknown> & {
 type PublishFilter = "all" | "published" | "draft";
 type AvailFilter = "all" | "on-hand" | "pre-order";
 
+/** Fields the bulk endpoint accepts — mirrors productBulkUpdateSchema.patch. */
+type BulkPatch = {
+  is_published?: boolean; is_featured?: boolean; is_trending?: boolean;
+  status?: "on-hand" | "sold-out";
+};
+
+// Bulk visibility/status changes above this size ask for confirmation first.
+const BULK_CONFIRM_THRESHOLD = 10;
+
+function FlagBadges({ p }: { p: Row }) {
+  if (!p.is_featured && !p.is_trending) return null;
+  return (
+    <span className="inline-flex items-center gap-1 shrink-0">
+      {p.is_featured && (
+        <span title="Featured" aria-label="Featured" className="inline-flex items-center text-ink">
+          <Star className="w-3 h-3 fill-current" />
+        </span>
+      )}
+      {p.is_trending && (
+        <span title="Trending" aria-label="Trending" className="inline-flex items-center text-state-preorder">
+          <Flame className="w-3 h-3 fill-current" />
+        </span>
+      )}
+    </span>
+  );
+}
+
 export default function AdminProductsClient({ initialProducts }: { initialProducts: Row[] }) {
   const router = useRouter();
   const [products, setProducts] = useState<Row[]>(initialProducts);
-  const [search, setSearch] = useState("");
-  const [publishFilter, setPublishFilter] = useState<PublishFilter>("all");
-  const [brandFilter, setBrandFilter] = useState("all");
-  const [availFilter, setAvailFilter] = useState<AvailFilter>("all");
+  const [search, setSearchRaw] = useState("");
+  const [publishFilter, setPublishFilterRaw] = useState<PublishFilter>("all");
+  const [brandFilter, setBrandFilterRaw] = useState("all");
+  const [availFilter, setAvailFilterRaw] = useState<AvailFilter>("all");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+
+  // Any filter change drops the selection so hidden rows can't be bulk-acted on.
+  function clearSelection() { setSelectedIds(new Set()); }
+  function setSearch(v: string) { setSearchRaw(v); clearSelection(); }
+  function setPublishFilter(v: PublishFilter) { setPublishFilterRaw(v); clearSelection(); }
+  function setBrandFilter(v: string) { setBrandFilterRaw(v); clearSelection(); }
+  function setAvailFilter(v: AvailFilter) { setAvailFilterRaw(v); clearSelection(); }
 
   const [brandOpen, setBrandOpen] = useState(false);
   const [availOpen, setAvailOpen] = useState(false);
@@ -81,6 +119,102 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
     },
   });
 
+  // Only act on selected rows that are still visible (e.g. a per-row unpublish can
+  // drop a selected row out of the "Published" filter without a filter change).
+  const selectedVisible = sortedRows.filter(p => selectedIds.has(p.id));
+  const allVisibleSelected = sortedRows.length > 0 && selectedVisible.length === sortedRows.length;
+  const someVisibleSelected = selectedVisible.length > 0 && !allVisibleSelected;
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll(checked: boolean) {
+    setSelectedIds(checked ? new Set(sortedRows.map(p => p.id)) : new Set());
+  }
+
+  function plural(n: number) {
+    return `${n} product${n !== 1 ? "s" : ""}`;
+  }
+
+  async function runBulkUpdate(patch: BulkPatch, doneLabel: string) {
+    const ids = selectedVisible.map(p => p.id);
+    if (!ids.length || bulkBusy) return;
+    if (ids.length > BULK_CONFIRM_THRESHOLD) {
+      const ok = await confirmDialog({
+        title: `Update ${plural(ids.length)}?`,
+        description: `${plural(ids.length)} will be ${doneLabel}.`,
+        confirmLabel: "Update",
+      });
+      if (!ok) return;
+    }
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/admin/products/bulk", {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids, patch }),
+      });
+      const result = await res.json().catch(() => ({})) as { error?: string; updated?: number; ids?: string[] };
+      if (!res.ok) { toast.error(result.error ?? "Failed to update products"); return; }
+      const updatedIds = new Set(result.ids ?? []);
+      setProducts(prev => prev.map(row => updatedIds.has(row.id) ? { ...row, ...patch } : row));
+      clearSelection();
+      const updated = result.updated ?? updatedIds.size;
+      const missing = ids.length - updated;
+      toast.success(`${plural(updated)} ${doneLabel}${missing > 0 ? ` (${missing} not found)` : ""}`);
+    } catch {
+      toast.error("Failed to update products");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  async function runBulkDelete() {
+    const targets = selectedVisible;
+    if (!targets.length || bulkBusy) return;
+    const shown = targets.slice(0, 3).map(p => `"${p.name}"`).join(", ");
+    const more = targets.length > 3 ? ` and ${targets.length - 3} more` : "";
+    const ok = await confirmDialog({
+      title: `Delete ${plural(targets.length)}?`,
+      description: `${shown}${more}. Their reviews, wishlist entries and restock sign-ups will also be deleted; order history is kept. This cannot be undone.`,
+      confirmLabel: `Delete ${plural(targets.length)}`,
+      variant: "destructive",
+    });
+    if (!ok) return;
+    setBulkBusy(true);
+    try {
+      const res = await fetch("/api/admin/products/bulk", {
+        method: "DELETE", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: targets.map(p => p.id) }),
+      });
+      const result = await res.json().catch(() => ({})) as { error?: string; deleted?: number; ids?: string[] };
+      if (!res.ok) { toast.error(result.error ?? "Failed to delete products"); return; }
+      const deletedIds = new Set(result.ids ?? []);
+      setProducts(prev => prev.filter(row => !deletedIds.has(row.id)));
+      clearSelection();
+      toast.success(`${plural(result.deleted ?? deletedIds.size)} deleted`);
+    } catch {
+      toast.error("Failed to delete products");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  const bulkActions: BulkAction[] = [
+    { key: "publish", label: "Publish", icon: Eye, onSelect: () => runBulkUpdate({ is_published: true }, "published") },
+    { key: "unpublish", label: "Unpublish", icon: EyeOff, onSelect: () => runBulkUpdate({ is_published: false }, "unpublished") },
+    { key: "feature", label: "Mark as featured", icon: Star, dividerBefore: true, onSelect: () => runBulkUpdate({ is_featured: true }, "marked as featured") },
+    { key: "unfeature", label: "Remove from featured", icon: Star, onSelect: () => runBulkUpdate({ is_featured: false }, "removed from featured") },
+    { key: "trend", label: "Mark as trending", icon: Flame, onSelect: () => runBulkUpdate({ is_trending: true }, "marked as trending") },
+    { key: "untrend", label: "Remove from trending", icon: Flame, onSelect: () => runBulkUpdate({ is_trending: false }, "removed from trending") },
+    { key: "on-hand", label: "Set to On Hand", icon: PackageCheck, dividerBefore: true, onSelect: () => runBulkUpdate({ status: "on-hand" }, "set to On Hand") },
+    { key: "sold-out", label: "Set to Sold Out", icon: PackageX, onSelect: () => runBulkUpdate({ status: "sold-out" }, "set to Sold Out") },
+    { key: "delete", label: "Delete", icon: Trash2, destructive: true, dividerBefore: true, onSelect: runBulkDelete },
+  ];
+
   async function handleDelete(p: Row) {
     const ok = await confirmDialog({
       title: `Delete "${p.name}"?`,
@@ -93,6 +227,7 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
     const res = await fetch(`/api/admin/products/${p.id}`, { method: "DELETE" });
     if (res.ok) {
       setProducts(prev => prev.filter(row => row.id !== p.id));
+      setSelectedIds(prev => { const next = new Set(prev); next.delete(p.id); return next; });
       toast.success("Product deleted");
     } else {
       toast.error("Failed to delete product");
@@ -221,10 +356,27 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
 
       {/* Table / list */}
       <div className="rounded-md overflow-hidden bg-paper border border-line">
+        <BulkActionsBar
+          selectedCount={selectedVisible.length}
+          noun="product"
+          actions={bulkActions}
+          onClear={clearSelection}
+          busy={bulkBusy}
+          busyLabel={`Processing ${plural(selectedVisible.length)}…`}
+        />
+
         {/* Desktop table */}
         <table className="w-full hidden md:table">
           <thead>
             <tr className="bg-paper-2 border-b border-line-strong">
+              <th className="pl-4 pr-1 py-3 w-8">
+                <input type="checkbox" aria-label="Select all visible products"
+                  checked={allVisibleSelected}
+                  ref={el => { if (el) el.indeterminate = someVisibleSelected; }}
+                  onChange={e => toggleSelectAll(e.target.checked)}
+                  disabled={bulkBusy || sortedRows.length === 0}
+                  className="w-3.5 h-3.5 cursor-pointer accent-ink" />
+              </th>
               {["Image", "Name", "Brand"].map(h => (
                 <th key={h} className="px-4 py-3 text-left text-admin-eyebrow text-ink-3">{h}</th>
               ))}
@@ -240,6 +392,13 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
               <tr key={p.id}
                 className="cursor-pointer even:bg-paper-2 hover:bg-admin-row-hover transition-colors duration-admin-fast"
                 onClick={() => router.push(`/admin/products/${p.id}`)}>
+                <td className="pl-4 pr-1 py-3" onClick={e => e.stopPropagation()}>
+                  <input type="checkbox" aria-label={`Select ${p.name}`}
+                    checked={selectedIds.has(p.id)}
+                    onChange={() => toggleSelect(p.id)}
+                    disabled={bulkBusy}
+                    className="w-3.5 h-3.5 cursor-pointer accent-ink" />
+                </td>
                 <td className="px-4 py-3">
                   <div className="w-10 h-10 rounded-md overflow-hidden bg-paper-2 border border-line shrink-0">
                     {Array.isArray(p.images) && p.images[0] ? (
@@ -253,7 +412,10 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
                   </div>
                 </td>
                 <td className="px-4 py-3.5">
-                  <p className="text-admin-sm font-semibold text-ink">{p.name}</p>
+                  <p className="flex items-center gap-1.5 text-admin-sm font-semibold text-ink">
+                    {p.name}
+                    <FlagBadges p={p} />
+                  </p>
                   {p.colorway ? <p className="text-admin-micro text-ink-3">{String(p.colorway)}</p> : null}
                 </td>
                 <td className="px-4 py-3.5 text-admin-sm text-ink-2">{p.brand}</td>
@@ -306,32 +468,53 @@ export default function AdminProductsClient({ initialProducts }: { initialProduc
 
         {/* Mobile cards */}
         <div className="md:hidden divide-y divide-line">
+          {sortedRows.length > 0 && (
+            <label className="flex items-center gap-3 px-4 py-2.5 bg-paper-2 text-admin-eyebrow text-ink-3 cursor-pointer">
+              <input type="checkbox"
+                checked={allVisibleSelected}
+                ref={el => { if (el) el.indeterminate = someVisibleSelected; }}
+                onChange={e => toggleSelectAll(e.target.checked)}
+                disabled={bulkBusy}
+                className="w-4 h-4 cursor-pointer accent-ink" />
+              Select all
+            </label>
+          )}
           {sortedRows.map(p => (
-            <button key={p.id} type="button"
-              className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
-              onClick={() => router.push(`/admin/products/${p.id}`)}>
-              <div className="w-12 h-12 rounded-md overflow-hidden bg-paper-2 border border-line shrink-0">
-                {Array.isArray(p.images) && p.images[0] ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.images[0]} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-ink-3">
-                    <Package className="w-4 h-4" />
-                  </div>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-admin-sm font-semibold text-ink truncate">{p.name}</p>
-                <p className="text-admin-micro text-ink-3 mt-0.5 truncate">
-                  {p.brand} · ₱{Number(p.full_payment_price).toLocaleString()} · {sizesSummary(p)} in stock
-                </p>
-              </div>
-              <span className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-full bg-paper border border-line text-admin-eyebrow ${
-                p.is_published ? "text-state-onhand" : "text-ink-3"
-              }`}>
-                {p.is_published ? "Published" : "Draft"}
-              </span>
-            </button>
+            <div key={p.id} className="flex items-center pl-4">
+              <input type="checkbox" aria-label={`Select ${p.name}`}
+                checked={selectedIds.has(p.id)}
+                onChange={() => toggleSelect(p.id)}
+                disabled={bulkBusy}
+                className="w-4 h-4 shrink-0 cursor-pointer accent-ink" />
+              <button type="button"
+                className="min-w-0 flex-1 flex items-center gap-3 pl-3 pr-4 py-3.5 text-left"
+                onClick={() => router.push(`/admin/products/${p.id}`)}>
+                <div className="w-12 h-12 rounded-md overflow-hidden bg-paper-2 border border-line shrink-0">
+                  {Array.isArray(p.images) && p.images[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.images[0]} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-ink-3">
+                      <Package className="w-4 h-4" />
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 text-admin-sm font-semibold text-ink">
+                    <span className="truncate">{p.name}</span>
+                    <FlagBadges p={p} />
+                  </p>
+                  <p className="text-admin-micro text-ink-3 mt-0.5 truncate">
+                    {p.brand} · ₱{Number(p.full_payment_price).toLocaleString()} · {sizesSummary(p)} in stock
+                  </p>
+                </div>
+                <span className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-full bg-paper border border-line text-admin-eyebrow ${
+                  p.is_published ? "text-state-onhand" : "text-ink-3"
+                }`}>
+                  {p.is_published ? "Published" : "Draft"}
+                </span>
+              </button>
+            </div>
           ))}
         </div>
 
