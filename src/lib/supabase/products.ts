@@ -31,6 +31,7 @@ function mapRow(p: Record<string, unknown>, newArrivalCutoffMs?: number): Produc
     bg: (p.bg as string) ?? undefined,
     eta_start: (p.eta_start as string) ?? undefined,
     eta_end: (p.eta_end as string) ?? undefined,
+    is_eta_expired: p.eta_end ? new Date(String(p.eta_end)).getTime() < Date.now() : false,
     images: Array.isArray(p.images) ? (p.images as string[]) : undefined,
     sale_price: p.sale_price != null ? Number(p.sale_price) : null,
     sale_start: (p.sale_start as string) ?? null,

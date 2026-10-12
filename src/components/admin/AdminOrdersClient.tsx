@@ -46,7 +46,7 @@ function getNextAction(status: string, isCOD: boolean, paymentType?: string): { 
     return COD_ACTIONS[status] ?? null;
   }
   const ACTIONS: Record<string, { label: string; next: string } | null> = {
-    pending: { label: "Accept / Process Order", next: "paid" },
+    pending: { label: "Approve Payment", next: "paid" },
     paid: isDP ? { label: "Stock on Hand — Notify Customer", next: "stock_on_hand" } : { label: "Mark as Processing", next: "processing" },
     stock_on_hand: { label: "Mark as Processing", next: "processing" },
     processing: { label: "Mark as Shipped", next: "shipped" },

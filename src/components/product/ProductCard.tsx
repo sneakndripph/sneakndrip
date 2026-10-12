@@ -17,7 +17,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const availableSizes = product.sizes.filter(s => s.stock > 0);
   const isPreOrder = product.status === "pre-order";
-  const soldOut = availableSizes.length === 0;
+  const soldOut = availableSizes.length === 0 || !!product.is_eta_expired;
 
   const isOnSale = useMemo(() => {
     if (product.sale_price == null) return false;
@@ -125,7 +125,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
 
           <p className="text-eyebrow tracking-[0.08em] text-state-preorder">
-            {isPreOrder && product.eta_start && product.eta_end ? (
+            {isPreOrder && !product.is_eta_expired && product.eta_start && product.eta_end ? (
               <>ETA {formatETA(product.eta_start, product.eta_end)}</>
             ) : (
               <span aria-hidden="true">&nbsp;</span>

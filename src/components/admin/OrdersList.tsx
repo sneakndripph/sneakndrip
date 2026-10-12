@@ -108,7 +108,11 @@ export default function OrdersList({
               </td>
               <td className="px-4 py-3.5 text-admin-sm text-ink-2">
                 {PAYMENT_LABELS[o.payment_method] ?? o.payment_method}
-                {o.payment_type === "downpayment" && <span className="block text-admin-micro text-ink-3">Downpayment</span>}
+                <span className={`block w-fit mt-1 px-2 py-0.5 rounded-full text-admin-micro font-medium ${
+                  o.payment_type === "downpayment" ? "bg-state-preorder/10 text-state-preorder" : "bg-paper-2 text-ink-3"
+                }`}>
+                  {o.payment_type === "downpayment" ? "Pre-order" : "Full"}
+                </span>
               </td>
               <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">
                 ₱{Number(o.total).toLocaleString()}

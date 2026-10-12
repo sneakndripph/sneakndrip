@@ -46,6 +46,7 @@ export default function ProductCTA({
   }, [product.sale_price, product.sale_start, product.sale_end]);
   const effectiveFullPrice = isOnSale ? product.sale_price! : product.full_payment_price;
   const price = effectivePaymentType === "full_payment" ? effectiveFullPrice : product.downpayment_price;
+  const soldOut = product.sizes.every(s => s.stock <= 0) || !!product.is_eta_expired;
 
   function getStock() {
     return product.sizes.find(s => s.size === selectedSize)?.stock ?? 0;
@@ -113,7 +114,7 @@ export default function ProductCTA({
       </div>
 
       {/* Payment type toggle */}
-      {isPreOrder && (
+      {isPreOrder && !soldOut && (
         <div className="mb-4">
           <div className="grid grid-cols-2 gap-2">
             {(["full_payment", "downpayment"] as const).map(type => (
@@ -157,20 +158,31 @@ export default function ProductCTA({
 
       {/* Actions */}
       <div className="flex gap-2 mb-6">
-        <button
-          onClick={handleAddToCart}
-          className="flex-1 py-3.5 rounded-md text-body-sm font-medium flex items-center justify-center gap-2 bg-ink text-paper hover:bg-ink-2 transition-colors"
-        >
-          <ShoppingBag className="w-4 h-4" />
-          {isPreOrder ? "Reserve now" : "Add to bag"}
-        </button>
-        <button
-          onClick={handleBuyNow}
-          className="flex-1 py-3.5 rounded-md text-body-sm font-medium flex items-center justify-center gap-2 bg-transparent text-ink border border-ink hover:bg-ink hover:text-paper transition-colors duration-fast"
-        >
-          <Zap className="w-4 h-4" />
-          Buy now
-        </button>
+        {soldOut ? (
+          <button
+            disabled
+            className="flex-1 py-3.5 rounded-md text-body-sm font-medium flex items-center justify-center gap-2 bg-paper-2 text-state-soldout cursor-not-allowed"
+          >
+            Sold out
+          </button>
+        ) : (
+          <>
+            <button
+              onClick={handleAddToCart}
+              className="flex-1 py-3.5 rounded-md text-body-sm font-medium flex items-center justify-center gap-2 bg-ink text-paper hover:bg-ink-2 transition-colors"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              {isPreOrder ? "Reserve now" : "Add to bag"}
+            </button>
+            <button
+              onClick={handleBuyNow}
+              className="flex-1 py-3.5 rounded-md text-body-sm font-medium flex items-center justify-center gap-2 bg-transparent text-ink border border-ink hover:bg-ink hover:text-paper transition-colors duration-fast"
+            >
+              <Zap className="w-4 h-4" />
+              Buy now
+            </button>
+          </>
+        )}
         <button
           onClick={() => toggleWishlist(product.id)}
           className={`w-12 flex items-center justify-center rounded-md border transition-colors ${
@@ -206,10 +218,12 @@ export default function ProductCTA({
         </div>
         <button
           onClick={handleAddToCart}
-          className="flex-1 py-3 rounded-md text-body-sm font-medium flex items-center justify-center gap-2 bg-ink text-paper hover:bg-ink-2 transition-colors"
+          disabled={soldOut}
+          className={`flex-1 py-3 rounded-md text-body-sm font-medium flex items-center justify-center gap-2 transition-colors ${
+            soldOut ? "bg-paper-2 text-state-soldout cursor-not-allowed" : "bg-ink text-paper hover:bg-ink-2"
+          }`}
         >
-          <ShoppingBag className="w-4 h-4" />
-          {isPreOrder ? "Reserve" : "Add to bag"}
+          {soldOut ? "Sold out" : <><ShoppingBag className="w-4 h-4" />{isPreOrder ? "Reserve" : "Add to bag"}</>}
         </button>
         <button
           onClick={() => setExpanded(true)}

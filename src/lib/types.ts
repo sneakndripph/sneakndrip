@@ -21,6 +21,7 @@ export interface Product {
   status: ProductStatus;
   eta_start?: string;
   eta_end?: string;
+  is_eta_expired?: boolean;
   srp_price: number;
   downpayment_price: number;
   full_payment_price: number;

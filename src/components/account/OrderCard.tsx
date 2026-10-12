@@ -449,7 +449,7 @@ export default function OrderCard({
                         {isCancelling ? "Cancelling…" : "Cancel Order"}
                       </button>
                     )}
-                    {order.status === "delivered" && !returnInfo && order.payment_type !== "downpayment" && returnWindowOpen && (
+                    {order.status === "delivered" && !returnInfo && order.payment_type !== "downpayment" && returnWindowOpen && !isReviewed && (
                       <button
                         onClick={onRequestReturn}
                         className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 transition-opacity hover:opacity-70 border border-line text-ink-2">
