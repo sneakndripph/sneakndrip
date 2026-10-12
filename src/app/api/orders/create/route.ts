@@ -61,20 +61,28 @@ export async function POST(req: NextRequest) {
 
     const supabase = createAdminClient();
 
-    if (order.payment_method === "cod") {
-      const productIds = [...new Set(items.map(i => i.product_id))];
-      if (productIds.length) {
-        const { data: preorderCheck } = await supabase
-          .from("products")
-          .select("id, status")
-          .in("id", productIds);
-        if ((preorderCheck ?? []).some(p => p.status === "pre-order")) {
-          return NextResponse.json(
-            { error: "Cash on Delivery is not available for orders containing pre-order items" },
-            { status: 400 }
-          );
-        }
-      }
+    const productIds = [...new Set(items.map(i => i.product_id))];
+    const { data: orderedProducts } = await supabase
+      .from("products")
+      .select("id, name, status, eta_end")
+      .in("id", productIds);
+    const preorders = (orderedProducts ?? []).filter(p => p.status === "pre-order");
+
+    // A cart can outlive a pre-order's ETA window; the storefront shows these as
+    // sold out, but the server is the only place that can enforce it.
+    const expired = preorders.filter(p => p.eta_end && new Date(String(p.eta_end)).getTime() < Date.now());
+    if (expired.length > 0) {
+      return NextResponse.json(
+        { error: `This pre-order has expired. ${expired.map(p => p.name).join(", ")} is no longer available.` },
+        { status: 400 }
+      );
+    }
+
+    if (order.payment_method === "cod" && preorders.length > 0) {
+      return NextResponse.json(
+        { error: "Cash on Delivery is not available for orders containing pre-order items" },
+        { status: 400 }
+      );
     }
 
     // Single transactional RPC: locks + checks + deducts stock, inserts the

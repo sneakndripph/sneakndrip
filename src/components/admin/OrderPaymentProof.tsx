@@ -152,11 +152,20 @@ export default function OrderPaymentProof({
                           <ExternalLink className="w-3 h-3" /> Open Full
                         </a>
                       </div>
-                      <div className="rounded-md overflow-hidden border border-line bg-paper-2">
+                      <div className="rounded-md overflow-hidden border border-line bg-paper-2 relative">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={`/api/admin/proof?path=${encodeURIComponent(order.balance_proof_url)}`} alt="Balance proof"
                           className="w-full object-contain max-h-64"
-                          onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+                          onError={e => {
+                            const img = e.currentTarget as HTMLImageElement;
+                            img.style.display = "none";
+                            const fallback = img.nextElementSibling as HTMLElement | null;
+                            if (fallback) fallback.style.display = "flex";
+                          }} />
+                        <div className="hidden items-center justify-center h-32 text-admin-sm text-ink-3 flex-col gap-1">
+                          <p>Proof image unavailable</p>
+                          <p className="text-admin-micro">File missing or storage access failed. Check the Open Full link.</p>
+                        </div>
                       </div>
                     </div>
                   )}
