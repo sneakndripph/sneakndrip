@@ -40,16 +40,18 @@ export default async function HomePage() {
     .slice(0, 8);
   const trending = products.filter(p => p.is_trending && inStock(p)).slice(0, 4);
 
-  // Featured product rotates daily via day-of-year modulo the featured pool.
-  // To change which products rotate, toggle is_featured in the admin.
-  // Fallback: first in-stock product if the featured pool is empty.
+  // Featured product rotates daily via day-of-year modulo the rotation pool.
+  // To curate which products rotate, toggle is_featured in the admin.
+  // Fallback: rotates through all in-stock products if no featured are set.
+  // Final fallback: first product if nothing is in stock.
   const featuredPool = products.filter(p => p.is_featured && inStock(p));
+  const rotationPool = featuredPool.length > 0 ? featuredPool : products.filter(inStock);
   const now = new Date();
   const startOfYearUTC = Date.UTC(now.getUTCFullYear(), 0, 1);
   const dayOfYear = Math.floor((now.getTime() - startOfYearUTC) / 86400000);
-  const featured = featuredPool.length > 0
-    ? featuredPool[dayOfYear % featuredPool.length]
-    : products.find(inStock) ?? products[0];
+  const featured = rotationPool.length > 0
+    ? rotationPool[dayOfYear % rotationPool.length]
+    : products[0];
 
   const productSlugMap = new Map(products.map(p => [p.id, p.slug]));
 
