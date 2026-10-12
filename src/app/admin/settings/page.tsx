@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Save, ToggleLeft, ToggleRight, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check, MessageCircle, LayoutGrid, Info, Shield } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check, MessageCircle, LayoutGrid, Info, Shield, Megaphone, Camera } from "lucide-react";
 import toast from "react-hot-toast";
 import QRUploadField from "@/components/admin/QRUploadField";
 
@@ -41,6 +41,18 @@ const DEFAULTS: SettingsData = {
   hero_subtitle: "100% Authentic Sneakers · On Hand & Pre-Order\nShips Philippines-wide. GCash, Maya, Bank Transfer & COD accepted.",
   hero_cta_primary: "Shop Now",
   hero_cta_secondary: "Pre-Orders",
+  context_bar_text1: "Sourced weekly — Tokyo, Seoul, Hong Kong",
+  context_bar_text2: "Every pair verified on the floor",
+  context_bar_text3: "Ships nationwide from Rizal",
+  buying_floor_eyebrow: "From the buying floor",
+  buying_floor_headline: "Every pair picked in person.",
+  buying_floor_text1: "This week's pickups came from four days walking Harajuku, Shinjuku, and Shibuya.",
+  buying_floor_text2: "Every pair verified in person. Boxes checked, receipts kept, photos on file. That's the only way we source.",
+  buying_floor_byline: "— Juls, founder",
+  buying_floor_cta_text: "Our verification process →",
+  buying_floor_cta_link: "/authenticity",
+  buying_floor_image_url: "",
+  buying_floor_image_placeholder: "Founder photo — Harajuku 2026",
   about_headline: "Your trusted source for authentic sneakers.",
   about_intro: "Sneak N' Drip was born out of a simple frustration: finding authentic sneakers in the Philippines at fair prices was too hard. So we built the solution. We source directly from trusted and verified suppliers — locally and internationally — so every pair that leaves our hands is 100% legit. No reps. No fakes. Ever.",
   about_stat1_number: "2,400+",
@@ -120,6 +132,8 @@ const SECTIONS = [
   { id: "announcement",  title: "Announcement Bar",  icon: Bell },
   { id: "hero",          title: "Homepage Hero",     icon: Monitor },
   { id: "homepage-sections", title: "Homepage Sections", icon: LayoutGrid },
+  { id: "context-bar",   title: "Context Bar",       icon: Megaphone },
+  { id: "buying-floor",  title: "Buying Floor",      icon: Camera },
   { id: "about-page",    title: "About Page",        icon: Info },
   { id: "authenticity-page", title: "Authenticity Page", icon: Shield },
   { id: "store-info",    title: "Store Information", icon: MapPin },
@@ -558,6 +572,39 @@ export default function AdminSettingsPage() {
                     Each toggle saves instantly — no need to click Save.
                   </p>
                 </div>
+              )}
+
+              {activeSection === "context-bar" && (
+                <>
+                  <p className="text-admin-sm text-ink-3">Three short lines shown in a bar below the hero. The middle line hides on mobile.</p>
+                  <div className="space-y-4">
+                    {[1, 2, 3].map(n => (
+                      <Field key={n} label={`Line ${n} (${["left", "center, desktop only", "right"][n - 1]})`}
+                        settingsKey={`context_bar_text${n}`} settings={settings} onChange={update} />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {activeSection === "buying-floor" && (
+                <>
+                  <Field label="Eyebrow" settingsKey="buying_floor_eyebrow" settings={settings} onChange={update} hint="Small label above the headline" />
+                  <Field label="Headline" settingsKey="buying_floor_headline" settings={settings} onChange={update} />
+                  {[1, 2].map(n => (
+                    <Field key={n} label={`Paragraph ${n}`} settingsKey={`buying_floor_text${n}`} settings={settings} onChange={update} multiline />
+                  ))}
+                  <Field label="Byline" settingsKey="buying_floor_byline" settings={settings} onChange={update} hint="e.g. — Juls, founder" />
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <Field label="CTA Text" settingsKey="buying_floor_cta_text" settings={settings} onChange={update} />
+                    <Field label="CTA Link" settingsKey="buying_floor_cta_link" settings={settings} onChange={update} hint="e.g. /authenticity" />
+                  </div>
+                  <div className="pt-4 border-t border-line space-y-4">
+                    <Field label="Image URL" settingsKey="buying_floor_image_url" settings={settings} onChange={update}
+                      hint="Paste a public image URL. Leave empty to show the placeholder text below." />
+                    <Field label="Image Placeholder Text" settingsKey="buying_floor_image_placeholder" settings={settings} onChange={update}
+                      hint="Shown only when no image URL is set" />
+                  </div>
+                </>
               )}
 
               {activeSection === "about-page" && (

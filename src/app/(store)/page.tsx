@@ -31,6 +31,23 @@ const HERO_DEFAULTS = {
   hero_cta_secondary: "Journal entry",
 };
 
+const CONTEXT_BAR_DEFAULTS = {
+  context_bar_text1: "Sourced weekly — Tokyo, Seoul, Hong Kong",
+  context_bar_text2: "Every pair verified on the floor",
+  context_bar_text3: "Ships nationwide from Rizal",
+};
+
+const BUYING_FLOOR_DEFAULTS = {
+  buying_floor_eyebrow: "From the buying floor",
+  buying_floor_headline: "Every pair picked in person.",
+  buying_floor_text1: "This week's pickups came from four days walking Harajuku, Shinjuku, and Shibuya.",
+  buying_floor_text2: "Every pair verified in person. Boxes checked, receipts kept, photos on file. That's the only way we source.",
+  buying_floor_byline: "— Juls, founder",
+  buying_floor_cta_text: "Our verification process →",
+  buying_floor_cta_link: "/authenticity",
+  buying_floor_image_placeholder: "Founder photo — Harajuku 2026",
+};
+
 export default async function HomePage() {
   const [products, reviews, settings] = await Promise.all([getProducts(), getReviews(), getSettings()]);
   const inStock = (p: (typeof products)[number]) => p.sizes.some(s => s.stock > 0);
@@ -71,6 +88,24 @@ export default async function HomePage() {
     subtitle: (settings.hero_subtitle || HERO_DEFAULTS.hero_subtitle).split("\\n"),
     ctaPrimary: settings.hero_cta_primary || HERO_DEFAULTS.hero_cta_primary,
     ctaSecondary: settings.hero_cta_secondary || HERO_DEFAULTS.hero_cta_secondary,
+  };
+
+  const contextBar = {
+    text1: settings.context_bar_text1 || CONTEXT_BAR_DEFAULTS.context_bar_text1,
+    text2: settings.context_bar_text2 || CONTEXT_BAR_DEFAULTS.context_bar_text2,
+    text3: settings.context_bar_text3 || CONTEXT_BAR_DEFAULTS.context_bar_text3,
+  };
+
+  const buyingFloor = {
+    eyebrow: settings.buying_floor_eyebrow || BUYING_FLOOR_DEFAULTS.buying_floor_eyebrow,
+    headline: settings.buying_floor_headline || BUYING_FLOOR_DEFAULTS.buying_floor_headline,
+    text1: settings.buying_floor_text1 || BUYING_FLOOR_DEFAULTS.buying_floor_text1,
+    text2: settings.buying_floor_text2 || BUYING_FLOOR_DEFAULTS.buying_floor_text2,
+    byline: settings.buying_floor_byline || BUYING_FLOOR_DEFAULTS.buying_floor_byline,
+    ctaText: settings.buying_floor_cta_text || BUYING_FLOOR_DEFAULTS.buying_floor_cta_text,
+    ctaLink: settings.buying_floor_cta_link || BUYING_FLOOR_DEFAULTS.buying_floor_cta_link,
+    imageUrl: settings.buying_floor_image_url || "",
+    imagePlaceholder: settings.buying_floor_image_placeholder || BUYING_FLOOR_DEFAULTS.buying_floor_image_placeholder,
   };
 
   return (
@@ -123,9 +158,9 @@ export default async function HomePage() {
         <div className="bg-paper border-y border-line">
           <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-3">
             <div className="flex flex-wrap items-center justify-between gap-3 text-micro text-ink-3">
-              <span>Sourced weekly — Tokyo, Seoul, Hong Kong</span>
-              <span className="hidden md:inline">Every pair verified on the floor</span>
-              <span>Ships nationwide from Rizal</span>
+              <span>{contextBar.text1}</span>
+              <span className="hidden md:inline">{contextBar.text2}</span>
+              <span>{contextBar.text3}</span>
             </div>
           </div>
         </div>
@@ -159,24 +194,29 @@ export default async function HomePage() {
           <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12 py-16 lg:py-24">
             <div className="grid gap-10 lg:grid-cols-[1fr_1.4fr] lg:gap-16 lg:items-center">
               <div className="relative aspect-[4/5] bg-paper-3 rounded-md overflow-hidden order-2 lg:order-1">
-                <div className="absolute inset-0 flex items-center justify-center text-ink-3 text-eyebrow">
-                  Founder photo — Harajuku 2026
-                </div>
+                {buyingFloor.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- admin-supplied URL from any host
+                  <img src={buyingFloor.imageUrl} alt={buyingFloor.eyebrow} className="absolute inset-0 w-full h-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-ink-3 text-eyebrow">
+                    {buyingFloor.imagePlaceholder}
+                  </div>
+                )}
               </div>
               <div className="order-1 lg:order-2">
-                <p className="text-eyebrow text-ink-3 mb-4">From the buying floor</p>
+                <p className="text-eyebrow text-ink-3 mb-4">{buyingFloor.eyebrow}</p>
                 <h2 className="text-display-s lg:text-display text-ink font-display font-medium leading-[1.1] tracking-[-0.02em] mb-6 max-w-lg">
-                  Every pair picked in person.
+                  {buyingFloor.headline}
                 </h2>
                 <p className="text-body-sm lg:text-body text-ink-2 leading-relaxed max-w-md mb-3">
-                  This week&apos;s pickups came from four days walking Harajuku, Shinjuku, and Shibuya.
+                  {buyingFloor.text1}
                 </p>
                 <p className="text-body-sm text-ink-2 leading-relaxed max-w-md mb-8">
-                  Every pair verified in person. Boxes checked, receipts kept, photos on file. That&apos;s the only way we source.
+                  {buyingFloor.text2}
                 </p>
-                <p className="text-micro italic text-ink-3 mb-8">— Juls, founder</p>
-                <Link href="/authenticity" className="text-eyebrow text-ink border-b border-ink pb-1 hover:opacity-60 transition-opacity">
-                  Our verification process →
+                <p className="text-micro italic text-ink-3 mb-8">{buyingFloor.byline}</p>
+                <Link href={buyingFloor.ctaLink} className="text-eyebrow text-ink border-b border-ink pb-1 hover:opacity-60 transition-opacity">
+                  {buyingFloor.ctaText}
                 </Link>
               </div>
             </div>
