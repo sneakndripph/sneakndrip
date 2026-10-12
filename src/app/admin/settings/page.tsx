@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Save, ToggleLeft, ToggleRight, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check, MessageCircle, LayoutGrid } from "lucide-react";
+import { Save, ToggleLeft, ToggleRight, Bell, Monitor, MapPin, Truck, CreditCard, Clock, Search, Check, MessageCircle, LayoutGrid, Info, Shield } from "lucide-react";
 import toast from "react-hot-toast";
 import QRUploadField from "@/components/admin/QRUploadField";
 
@@ -41,6 +41,41 @@ const DEFAULTS: SettingsData = {
   hero_subtitle: "100% Authentic Sneakers · On Hand & Pre-Order\nShips Philippines-wide. GCash, Maya, Bank Transfer & COD accepted.",
   hero_cta_primary: "Shop Now",
   hero_cta_secondary: "Pre-Orders",
+  about_headline: "Your trusted source for authentic sneakers.",
+  about_intro: "Sneak N' Drip was born out of a simple frustration: finding authentic sneakers in the Philippines at fair prices was too hard. So we built the solution. We source directly from trusted and verified suppliers — locally and internationally — so every pair that leaves our hands is 100% legit. No reps. No fakes. Ever.",
+  about_stat1_number: "2,400+",
+  about_stat1_label: "Pairs Sold",
+  about_stat2_number: "100%",
+  about_stat2_label: "Authentic",
+  about_stat3_number: "1,800+",
+  about_stat3_label: "Happy Customers",
+  about_stat4_number: "3",
+  about_stat4_label: "Years Running",
+  about_values_heading: "What we stand for",
+  about_value1_title: "100% Authentic",
+  about_value1_desc: "Every pair is verified authentic. Sourced from trusted local and international suppliers. No fakes, no reps — ever. We stake our reputation on it.",
+  about_value2_title: "Below SRP Prices",
+  about_value2_desc: "You shouldn't have to pay above retail for authentic sneakers. Most of our pairs are priced below SRP — good kicks at fair prices.",
+  about_value3_title: "Fast & Reliable",
+  about_value3_desc: "On-hand orders ship within 1–3 days Metro Manila, 3–7 days provincial. Pre-orders come with a firm ETA and regular updates.",
+  about_contact_heading: "Get in touch",
+  about_contact_text: "Have a question about a pair, want to check availability, or just want to connect? Hit us up anytime on Facebook, Instagram, or TikTok.",
+  authenticity_headline: "Every pair, verified in person.",
+  authenticity_intro: "We don't list a pair we haven't held. Every sneaker sold on Sneak N' Drip is sourced and physically inspected in person — at the point of purchase, before it ever gets packed for the trip to the Philippines. No drop-shipping, no blind sourcing, no exceptions. Here's exactly how each pair is checked.",
+  authenticity_step1_text: "Sourced only from verified stockists in Tokyo, Seoul, Hong Kong",
+  authenticity_step1_photo: "Photo: storefront of a verified stockist",
+  authenticity_step1_image_url: "",
+  authenticity_step2_text: "In-store inspection — box, laces, insole, stitching, tag",
+  authenticity_step2_photo: "Photo: close-up inspection of stitching and tag",
+  authenticity_step2_image_url: "",
+  authenticity_step3_text: "Receipt kept, timestamped photo taken",
+  authenticity_step3_photo: "Photo: receipt and timestamped proof-of-purchase",
+  authenticity_step3_image_url: "",
+  authenticity_step4_text: "Second review before shipping to buyer",
+  authenticity_step4_photo: "Photo: final review before packing for shipment",
+  authenticity_step4_image_url: "",
+  authenticity_guarantee_heading: "Our guarantee",
+  authenticity_guarantee_text: "In the extremely unlikely event a pair is ever proven non-authentic, we refund it in full — including shipping. No questions asked.",
   preorder_message: "Your order will be reserved upon payment of downpayment. Balance is due before release.",
   new_arrivals_days: "14",
   meta_title: "Sneak N' Drip | Authentic Sneakers Philippines",
@@ -85,6 +120,8 @@ const SECTIONS = [
   { id: "announcement",  title: "Announcement Bar",  icon: Bell },
   { id: "hero",          title: "Homepage Hero",     icon: Monitor },
   { id: "homepage-sections", title: "Homepage Sections", icon: LayoutGrid },
+  { id: "about-page",    title: "About Page",        icon: Info },
+  { id: "authenticity-page", title: "Authenticity Page", icon: Shield },
   { id: "store-info",    title: "Store Information", icon: MapPin },
   { id: "shipping",      title: "Shipping & Fees",   icon: Truck },
   { id: "payments",      title: "Payment Methods",   icon: CreditCard },
@@ -521,6 +558,63 @@ export default function AdminSettingsPage() {
                     Each toggle saves instantly — no need to click Save.
                   </p>
                 </div>
+              )}
+
+              {activeSection === "about-page" && (
+                <>
+                  <Field label="Headline" settingsKey="about_headline" settings={settings} onChange={update} />
+                  <Field label="Intro Paragraph" settingsKey="about_intro" settings={settings} onChange={update} multiline />
+                  <div className="pt-4 border-t border-line">
+                    <p className="text-admin-sm font-semibold text-ink mb-3">Stats (4 tiles)</p>
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      {[1, 2, 3, 4].map(n => (
+                        <div key={n} className="contents">
+                          <Field label={`Stat ${n} Number`} settingsKey={`about_stat${n}_number`} settings={settings} onChange={update} />
+                          <Field label={`Stat ${n} Label`} settingsKey={`about_stat${n}_label`} settings={settings} onChange={update} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-line">
+                    <Field label="Values Section Heading" settingsKey="about_values_heading" settings={settings} onChange={update} />
+                    <div className="space-y-4 mt-4">
+                      {[1, 2, 3].map(n => (
+                        <div key={n} className="space-y-4">
+                          <Field label={`Value ${n} Title`} settingsKey={`about_value${n}_title`} settings={settings} onChange={update} />
+                          <Field label={`Value ${n} Description`} settingsKey={`about_value${n}_desc`} settings={settings} onChange={update} multiline />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-line space-y-4">
+                    <Field label="Contact Section Heading" settingsKey="about_contact_heading" settings={settings} onChange={update} />
+                    <Field label="Contact Section Text" settingsKey="about_contact_text" settings={settings} onChange={update} multiline />
+                  </div>
+                </>
+              )}
+
+              {activeSection === "authenticity-page" && (
+                <>
+                  <Field label="Headline" settingsKey="authenticity_headline" settings={settings} onChange={update} />
+                  <Field label="Intro Paragraph" settingsKey="authenticity_intro" settings={settings} onChange={update} multiline />
+                  {[1, 2, 3, 4].map(n => (
+                    <div key={n} className="pt-4 border-t border-line">
+                      <p className="text-admin-sm font-semibold text-ink mb-3">Step {String(n).padStart(2, "0")}</p>
+                      <div className="space-y-4">
+                        <Field label={`Step ${n} Description`} settingsKey={`authenticity_step${n}_text`} settings={settings} onChange={update} multiline />
+                        <Field label={`Step ${n} Image URL`} settingsKey={`authenticity_step${n}_image_url`} settings={settings} onChange={update}
+                          hint="Paste a public image URL. Leave empty to show the placeholder caption below." />
+                        <Field label={`Step ${n} Photo Caption`} settingsKey={`authenticity_step${n}_photo`} settings={settings} onChange={update}
+                          hint="Shown only when no image URL is set" />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-4 border-t border-line space-y-4">
+                    <Field label="Guarantee Heading" settingsKey="authenticity_guarantee_heading" settings={settings} onChange={update} />
+                    <Field label="Guarantee Text" settingsKey="authenticity_guarantee_text" settings={settings} onChange={update} multiline
+                      hint="The 'Questions? Reach out on Facebook or contact page' line is appended automatically." />
+                  </div>
+                </>
               )}
 
               {activeSection === "announcement" && (
