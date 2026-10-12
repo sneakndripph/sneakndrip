@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 const FALLBACK = `## About Us
-These terms apply to purchases from and use of sneakndrip.ph, operated by Sneak N' Drip, Taytay, Rizal, Philippines. Contact: hello@sneakndrip.ph · 0961 177 4119.
+These terms apply to purchases from and use of sneakndrip.ph, operated by Sneak N' Drip, Taytay, Rizal, Philippines. For general support, message us on Facebook (facebook.com/SneakNDrip). For formal legal or data privacy inquiries, email hello@sneakndrip.ph or call 0961 177 4119.
 
 ## Acceptance of Terms
 By creating an account or placing an order on Sneak N' Drip, you agree to these terms, our Privacy Policy, and our Returns Policy. Please read them carefully before purchasing.

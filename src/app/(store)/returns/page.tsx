@@ -22,7 +22,7 @@ We accept exchange requests within 7 days of receiving your order if:
 Items must be unworn with no signs of use, in original packaging with all accessories and tags intact. Worn or used items cannot be exchanged.
 
 ## How to Request
-Message us on Facebook or Instagram within 7 days of receipt. Include your order number, clear photos of the issue, and your preferred resolution. We will review and respond within 48 hours.
+Message us on Facebook (facebook.com/SneakNDrip) or Instagram (@sneakndripph) within 7 days of receipt. Include your order number, clear photos of the issue, and your preferred resolution. We will review and respond within 48 hours. If you prefer a written record, you can also email hello@sneakndrip.ph with the same details.
 
 ## Return Shipping
 If the exchange is due to our error, we cover the return shipping cost. If the request does not meet our criteria, the shipping cost is borne by the buyer.
@@ -40,7 +40,7 @@ When a return or exchange request is approved for a refund instead of a replacem
 Approved refunds are processed within 3–5 business days of approval.
 
 ## How to Request a Refund
-Follow the same process as above: message us on Facebook or Instagram within 7 days of receipt with your order number, photos of the issue, and your preferred resolution. If a refund is the agreed resolution, we'll confirm the method and timeline once your request is approved.
+Follow the same process as above: message us on Facebook or Instagram (or email hello@sneakndrip.ph) within 7 days of receipt with your order number, photos of the issue, and your preferred resolution. If a refund is the agreed resolution, we'll confirm the method and timeline once your request is approved.
 
 ## Your Statutory Rights
 Nothing in this policy limits your rights under the Consumer Act of the Philippines (RA 7394) or the Civil Code of the Philippines.

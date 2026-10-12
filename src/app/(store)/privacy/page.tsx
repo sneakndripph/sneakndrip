@@ -85,6 +85,8 @@ To exercise any of these rights, email our Data Protection Officer at hello@snea
 
 You can unsubscribe from the newsletter at any time using the link in any newsletter email.
 
+For general support questions, including order inquiries, size availability, or shipping updates, please message us on Facebook (facebook.com/SneakNDrip) or Instagram (@sneakndripph). The email above is reserved for formal data privacy requests under RA 10173.
+
 ## Data Protection Officer
 Data Protection Officer, Sneak N' Drip
 Taytay, Rizal, Philippines
