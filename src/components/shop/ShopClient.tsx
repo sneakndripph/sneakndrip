@@ -109,7 +109,17 @@ export default function ShopClient({
     if (availability !== "all") list = list.filter(p => p.status === availability);
     if (showNewOnly) {
       const cutoff = now() - 30 * 24 * 60 * 60 * 1000;
-      list = list.filter(p => new Date(p.created_at ?? 0).getTime() >= cutoff);
+      const recent = list.filter(p => new Date(p.created_at ?? 0).getTime() >= cutoff);
+      if (recent.length > 0) {
+        list = recent;
+      } else {
+        // Fallback: when nothing was added in the last 30 days, show the 12 most
+        // recently added products from whatever is still in the list after the
+        // other filters (brand, gender, size, availability) have been applied.
+        list = [...list]
+          .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
+          .slice(0, 12);
+      }
     }
     list = list.filter(p => p.full_payment_price <= maxPrice);
     if (sort === "price-asc") list.sort((a, b) => a.full_payment_price - b.full_payment_price);
