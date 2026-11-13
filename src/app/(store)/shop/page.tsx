@@ -1,5 +1,8 @@
 import { getProducts } from "@/lib/supabase/products";
 import ShopClient from "@/components/shop/ShopClient";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Shop All Sneakers — Sneak N' Drip" };
 
 export const dynamic = "force-dynamic";
 

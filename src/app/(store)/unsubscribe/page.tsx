@@ -3,6 +3,9 @@ import { MailX, AlertCircle } from "lucide-react";
 import { EmailType } from "@/lib/email/preferences";
 import { parseSignedUnsubscribe, applyUnsubscribe } from "@/lib/email/unsubscribe";
 import ResubscribeButton from "./ResubscribeButton";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Unsubscribe — Sneak N' Drip" };
 
 const CATEGORY_LABELS: Record<EmailType, string> = {
   [EmailType.CartReminder]: "Cart reminders",

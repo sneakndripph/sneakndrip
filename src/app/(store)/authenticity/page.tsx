@@ -52,7 +52,7 @@ export default async function AuthenticityPage() {
               <div className="aspect-video bg-paper-2 border border-line flex items-center justify-center overflow-hidden">
                 {step.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- admin-supplied URL from any host
-                  <img src={step.imageUrl} alt={step.text} className="w-full h-full object-cover" />
+                  <img src={step.imageUrl} alt={step.text} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-micro text-ink-3">{step.photo}</span>
                 )}

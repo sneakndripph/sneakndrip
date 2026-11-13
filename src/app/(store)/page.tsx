@@ -196,7 +196,7 @@ export default async function HomePage() {
               <div className="relative aspect-[4/5] bg-paper-3 rounded-md overflow-hidden order-2 lg:order-1">
                 {buyingFloor.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- admin-supplied URL from any host
-                  <img src={buyingFloor.imageUrl} alt={buyingFloor.eyebrow} className="absolute inset-0 w-full h-full object-cover" />
+                  <img src={buyingFloor.imageUrl} alt={buyingFloor.eyebrow} loading="lazy" decoding="async" className="absolute inset-0 w-full h-full object-cover" />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center text-ink-3 text-eyebrow">
                     {buyingFloor.imagePlaceholder}

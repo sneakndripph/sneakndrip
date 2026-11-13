@@ -32,9 +32,12 @@ export const metadata: Metadata = {
   description:
     "100% Authentic Sneakers. On Hand & Pre-Order. Shop the latest releases at Sneak N' Drip.",
   icons: {
-    icon: "/sneakndrip-logo.gif",
-    shortcut: "/sneakndrip-logo.gif",
-    apple: "/sneakndrip-logo.gif",
+    icon: [
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: "/favicon-32x32.png",
+    apple: "/apple-touch-icon.png",
   },
   openGraph: {
     siteName: "Sneak N' Drip",

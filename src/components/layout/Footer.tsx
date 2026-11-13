@@ -20,7 +20,7 @@ const FOOTER_LINKS = {
     { label: "Cookie Settings", href: "/cookie-settings" },
   ],
   Support: [
-    { label: "Track My Order", href: "/account" },
+    { label: "Track My Order", href: "/track-order" },
     { label: "Shipping Info",  href: "/shipping" },
     { label: "Returns Policy", href: "/returns" },
     { label: "Authenticity",   href: "/authenticity" },
@@ -143,7 +143,7 @@ export default function Footer() {
         {/* Bottom row */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-6">
           <p className="text-micro text-ink-3">
-            © 2025 Sneak N&apos; Drip. All Rights Reserved.
+            © {new Date().getFullYear()} Sneak N&apos; Drip. All Rights Reserved.
           </p>
           <p className="text-micro text-ink-3">
             100% Authentic &nbsp;·&nbsp; Philippines-wide Shipping

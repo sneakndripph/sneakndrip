@@ -34,6 +34,7 @@ const CONTACTS = [
   { label: "Facebook",  val: "SneakNDrip",         href: "https://www.facebook.com/SneakNDrip/" },
   { label: "Instagram", val: "@sneakndripph",       href: "https://www.instagram.com/sneakndripph/" },
   { label: "Mobile",    val: "0961 177 4119",       href: "tel:+639611774119" },
+  { label: "Email",     val: "hello@sneakndrip.ph", href: "mailto:hello@sneakndrip.ph" },
 ];
 
 export default async function ContactPage() {

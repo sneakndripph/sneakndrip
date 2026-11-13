@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import { Search, Truck, ShoppingBag, CreditCard, Settings, PackageCheck, CheckCircle2 } from "lucide-react";
 
 const STEPS_DEFAULT = ["pending", "paid", "processing", "shipped", "delivered"];
@@ -176,8 +177,7 @@ export default function TrackOrderPage() {
                       <div className="w-12 h-12 shrink-0 overflow-hidden relative border border-line"
                         style={{ background: item.products?.bg || "#EDE9E3" }}>
                         {item.products?.images?.[0] ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.products.images[0]} alt={item.product_name} className="w-full h-full object-cover" />
+                          <Image src={item.products.images[0]} alt={item.product_name} fill sizes="48px" className="object-cover" />
                         ) : (
                           <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-ink opacity-[0.12] font-display">S</span>
                         )}

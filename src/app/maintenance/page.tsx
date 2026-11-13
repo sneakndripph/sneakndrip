@@ -1,4 +1,7 @@
 import Image from "next/image";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Be Right Back — Sneak N' Drip" };
 
 export default function MaintenancePage() {
   return (
