@@ -180,7 +180,7 @@ export default async function HomePage() {
               View all →
             </Link>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
             {newArrivals.map(p => (
               <ProductCard key={p.id} product={p} />
             ))}

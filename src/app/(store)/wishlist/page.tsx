@@ -73,7 +73,7 @@ export default function WishlistPage() {
             <p className="text-sm mb-6 text-ink-2">
               {visibleProducts.length} item{visibleProducts.length !== 1 ? "s" : ""} saved
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-5">
               {visibleProducts.map(p => <ProductCard key={p.id} product={p} />)}
             </div>
           </>

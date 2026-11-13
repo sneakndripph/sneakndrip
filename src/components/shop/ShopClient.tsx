@@ -293,11 +293,11 @@ export default function ShopClient({
 
             {filtered.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
                   {visibleProducts.map(p => <ProductCard key={p.id} product={p} />)}
                 </div>
                 {loadingMore && (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6 mt-4 lg:mt-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6 mt-4 lg:mt-6">
                     {Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)}
                   </div>
                 )}

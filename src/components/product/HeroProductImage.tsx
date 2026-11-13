@@ -14,7 +14,7 @@ export default function HeroProductImage({ product }: { product: Product }) {
         src={src}
         alt={product.name}
         fill
-        className="object-contain p-3"
+        className="object-cover"
         sizes="(max-width: 1023px) 100vw, 420px"
         onError={() => setImgError(true)}
       />
