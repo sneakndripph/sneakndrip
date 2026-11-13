@@ -7,6 +7,7 @@ import { SITE_URL } from "@/lib/constants";
 import { Eye, EyeOff, CheckCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isPasswordValid } from "@/lib/validation/password";
+import { nameError, cleanName } from "@/lib/validation/person";
 import PasswordChecklist from "@/components/auth/PasswordChecklist";
 import MarketingCheckbox from "@/components/auth/MarketingCheckbox";
 import { consentMetadata } from "@/lib/legal/versions";
@@ -28,9 +29,9 @@ async function checkEmail(email: string): Promise<EmailCheck | null> {
   }
 }
 
-function validate(form: { name: string; email: string; mobile: string; password: string; confirm: string }) {
-  if (!form.name.trim()) return "Full name is required.";
-  if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s.'-]+$/.test(form.name)) return "Full name must contain letters only.";
+function validate(form: { firstName: string; lastName: string; email: string; mobile: string; password: string; confirm: string }) {
+  const nameErr = nameError(form.firstName, "First name") || nameError(form.lastName, "Last name");
+  if (nameErr) return `${nameErr}.`;
   if (!form.email.trim()) return "Email address is required.";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return "Please enter a valid email address.";
   if (!form.mobile.trim()) return "Mobile number is required.";
@@ -43,7 +44,7 @@ function validate(form: { name: string; email: string; mobile: string; password:
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", mobile: "", password: "", confirm: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", email: "", mobile: "", password: "", confirm: "" });
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -85,10 +86,8 @@ export default function RegisterPage() {
   // Per-field inline error (only shown after blur)
   function fieldError(key: keyof typeof form): string {
     if (!touched[key]) return "";
-    if (key === "name") {
-      if (!form.name.trim()) return "Required.";
-      if (!/^[A-Za-zÀ-ÖØ-öø-ÿ\s.'-]+$/.test(form.name)) return "Letters only — no numbers.";
-    }
+    if (key === "firstName") return nameError(form.firstName, "First name");
+    if (key === "lastName") return nameError(form.lastName, "Last name");
     if (key === "email") {
       if (!form.email.trim()) return "Required.";
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return "Invalid email address.";
@@ -116,7 +115,7 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     // Touch all fields to show any remaining errors
-    setTouched({ name: true, email: true, mobile: true, password: true, confirm: true });
+    setTouched({ firstName: true, lastName: true, email: true, mobile: true, password: true, confirm: true });
     const err = validate(form);
     if (err) { setError(err); return; }
     if (!agreed) {
@@ -145,12 +144,15 @@ export default function RegisterPage() {
     // precheck === null (rate-limited/network error) falls through to signUp() below —
     // the identities?.length === 0 check after it is the defense-in-depth backup.
 
+    const first_name = cleanName(form.firstName);
+    const last_name = cleanName(form.lastName);
     const supabase = createClient();
     const { data: signUpData, error: authError } = await supabase.auth.signUp({
       email: trimmedEmail,
       password: form.password,
       options: {
-        data: { full_name: form.name.trim(), mobile: form.mobile, ...consentMetadata("register"), marketing_opted_in: marketing },
+        // full_name stays the source of truth for orders, reviews and addresses.
+        data: { first_name, last_name, full_name: `${first_name} ${last_name}`, mobile: form.mobile, ...consentMetadata("register"), marketing_opted_in: marketing },
         emailRedirectTo: `${SITE_URL}/auth/callback`,
       },
     });
@@ -220,17 +222,30 @@ export default function RegisterPage() {
 
       <form className="space-y-4" onSubmit={handleSubmit} noValidate>
 
-        {/* Full Name */}
-        <div>
-          <label htmlFor="register-name" className="block text-eyebrow text-ink-3 mb-1.5">Full name</label>
-          <input
-            id="register-name"
-            type="text" value={form.name} placeholder="Juan Dela Cruz" required
-            onChange={e => field("name", e.target.value)}
-            onBlur={() => touch("name")}
-            className="w-full bg-paper-2 border-0 rounded-md px-4 py-3 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1"
-          />
-          {fieldError("name") && <p className="text-micro text-state-error mt-1">{fieldError("name")}</p>}
+        {/* First / Last Name */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {([
+            { key: "firstName", label: "First name", placeholder: "Juan", autoComplete: "given-name" },
+            { key: "lastName", label: "Last name", placeholder: "Dela Cruz", autoComplete: "family-name" },
+          ] as const).map(({ key, label, placeholder, autoComplete }) => {
+            const err = fieldError(key);
+            return (
+              <div key={key}>
+                <label htmlFor={`register-${key}`} className="block text-eyebrow text-ink-3 mb-1.5">{label}</label>
+                <input
+                  id={`register-${key}`}
+                  type="text" value={form[key]} placeholder={placeholder} required
+                  autoComplete={autoComplete} maxLength={50}
+                  aria-invalid={!!err}
+                  aria-describedby={err ? `register-${key}-error` : undefined}
+                  onChange={e => field(key, e.target.value)}
+                  onBlur={() => touch(key)}
+                  className={`w-full bg-paper-2 border-0 rounded-md px-4 py-3 text-body-sm text-ink focus:outline-2 focus:outline-ink focus:outline-offset-1 ${err ? "outline outline-1 outline-state-error" : ""}`}
+                />
+                {err && <p id={`register-${key}-error`} className="text-micro text-state-error mt-1">{err}</p>}
+              </div>
+            );
+          })}
         </div>
 
         {/* Email */}

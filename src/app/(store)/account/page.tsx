@@ -11,6 +11,7 @@ import AddressForm, { type AddressFormValues } from "@/components/account/Addres
 import EmailPreferences from "@/components/account/EmailPreferences";
 import { createClient } from "@/lib/supabase/client";
 import { isPasswordValid } from "@/lib/validation/password";
+import { nameError, mobileError, splitFullName, cleanName } from "@/lib/validation/person";
 import PasswordChecklist from "@/components/auth/PasswordChecklist";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import toast from "react-hot-toast";
@@ -62,7 +63,7 @@ function AccountPageContent() {
   const [loadingOrders, setLoadingOrders] = useState(true);
 
   // Account details state
-  const [profileForm, setProfileForm] = useState({ name: "", mobile: "" });
+  const [profileForm, setProfileForm] = useState({ firstName: "", lastName: "", mobile: "" });
   const [profileError, setProfileError] = useState("");
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -162,8 +163,10 @@ function AccountPageContent() {
       if (!user) { router.push("/login"); return; }
       setUser(user);
       const meta = user.user_metadata ?? {};
+      const split = splitFullName(meta.full_name || "");
       setProfileForm({
-        name: meta.full_name || "",
+        firstName: meta.first_name ?? split.first,
+        lastName: meta.last_name ?? split.last,
         mobile: meta.mobile || "",
       });
       fetch("/api/account/addresses")
@@ -221,25 +224,30 @@ function AccountPageContent() {
     router.refresh();
   }
 
+  const profileErrors = {
+    firstName: nameError(profileForm.firstName, "First name"),
+    lastName: nameError(profileForm.lastName, "Last name"),
+    mobile: mobileError(profileForm.mobile),
+  };
+
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
     setProfileTouched(true);
-    if (!profileForm.name.trim()) { setProfileError("Full name is required"); return; }
-    if (!profileForm.mobile.trim()) { setProfileError("Mobile number is required"); return; }
+    if (Object.values(profileErrors).some(Boolean)) { setProfileError("Please fix the highlighted fields"); return; }
     setProfileError("");
     setSavingProfile(true);
+    const first_name = cleanName(profileForm.firstName);
+    const last_name = cleanName(profileForm.lastName);
+    // full_name stays the source of truth for orders, reviews and addresses.
+    const data = { first_name, last_name, full_name: `${first_name} ${last_name}`, mobile: profileForm.mobile };
     const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({
-      data: { full_name: profileForm.name.trim(), mobile: profileForm.mobile.trim() },
-    });
+    const { error } = await supabase.auth.updateUser({ data });
     if (error) {
       setProfileError(error.message);
     } else {
       setProfileSuccess(true);
-      setUser(prev => prev ? {
-        ...prev,
-        user_metadata: { ...prev.user_metadata, full_name: profileForm.name.trim(), mobile: profileForm.mobile.trim() },
-      } : null);
+      setProfileForm(f => ({ ...f, firstName: first_name, lastName: last_name }));
+      setUser(prev => prev ? { ...prev, user_metadata: { ...prev.user_metadata, ...data } } : null);
       setTimeout(() => setProfileSuccess(false), 3000);
     }
     setSavingProfile(false);
@@ -795,7 +803,7 @@ function AccountPageContent() {
                 </div>
                 <p className="text-sm mb-6 text-ink-2">Signed in as <strong>{user.email}</strong></p>
 
-                <form onSubmit={handleSaveProfile}>
+                <form onSubmit={handleSaveProfile} noValidate>
                   <div className="p-6 rounded-xl space-y-4 bg-paper-2 border border-line">
 
                     {profileSuccess && (
@@ -810,20 +818,34 @@ function AccountPageContent() {
                     )}
 
                     <div className="grid sm:grid-cols-2 gap-4">
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
-                          Full Name <span className="text-state-error">*</span>
-                        </label>
-                        <input
-                          value={profileForm.name}
-                          onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))}
-                          placeholder="Juan Dela Cruz"
-                          className={`${inputCls} bg-paper text-ink border focus:border-ink ${profileTouched && !profileForm.name ? "border-state-error" : "border-line"}`}
-                        />
-                        {profileTouched && !profileForm.name && (
-                          <p className="mt-1 text-[11px] font-semibold text-state-error">Full name is required</p>
-                        )}
-                      </div>
+                      {([
+                        { key: "firstName", label: "First Name", placeholder: "Juan", autoComplete: "given-name" },
+                        { key: "lastName", label: "Last Name", placeholder: "Dela Cruz", autoComplete: "family-name" },
+                      ] as const).map(({ key, label, placeholder, autoComplete }) => {
+                        const err = profileTouched ? profileErrors[key] : "";
+                        return (
+                          <div key={key}>
+                            <label htmlFor={`profile-${key}`} className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                              {label} <span className="text-state-error">*</span>
+                            </label>
+                            <input
+                              id={`profile-${key}`}
+                              value={profileForm[key]}
+                              onChange={e => setProfileForm(f => ({ ...f, [key]: e.target.value.slice(0, 50) }))}
+                              placeholder={placeholder}
+                              autoComplete={autoComplete}
+                              required
+                              maxLength={50}
+                              aria-invalid={!!err}
+                              aria-describedby={err ? `profile-${key}-error` : undefined}
+                              className={`${inputCls} bg-paper text-ink border focus:border-ink ${err ? "border-state-error" : "border-line"}`}
+                            />
+                            {err && (
+                              <p id={`profile-${key}-error`} className="mt-1 text-[11px] font-semibold text-state-error">{err}</p>
+                            )}
+                          </div>
+                        );
+                      })}
 
                       <div>
                         <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
@@ -838,19 +860,25 @@ function AccountPageContent() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
+                        <label htmlFor="profile-mobile" className="block text-xs font-bold uppercase tracking-wide mb-1.5 text-ink">
                           Mobile Number <span className="text-state-error">*</span>
                         </label>
                         <input
+                          id="profile-mobile"
+                          type="tel"
                           value={profileForm.mobile}
                           onChange={e => setProfileForm(f => ({ ...f, mobile: e.target.value.replace(/\D/g, "").slice(0, 11) }))}
                           placeholder="09XX XXX XXXX"
                           inputMode="numeric"
+                          autoComplete="tel-national"
+                          required
                           maxLength={11}
-                          className={`${inputCls} bg-paper text-ink border focus:border-ink ${profileTouched && !profileForm.mobile ? "border-state-error" : "border-line"}`}
+                          aria-invalid={profileTouched && !!profileErrors.mobile}
+                          aria-describedby={profileTouched && profileErrors.mobile ? "profile-mobile-error" : undefined}
+                          className={`${inputCls} bg-paper text-ink border focus:border-ink ${profileTouched && profileErrors.mobile ? "border-state-error" : "border-line"}`}
                         />
-                        {profileTouched && !profileForm.mobile && (
-                          <p className="mt-1 text-[11px] font-semibold text-state-error">Mobile number is required</p>
+                        {profileTouched && profileErrors.mobile && (
+                          <p id="profile-mobile-error" className="mt-1 text-[11px] font-semibold text-state-error">{profileErrors.mobile}</p>
                         )}
                       </div>
                     </div>
