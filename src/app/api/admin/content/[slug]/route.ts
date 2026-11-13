@@ -5,6 +5,7 @@ import { validateBody } from "@/lib/validation/validate";
 import { contentUpdateSchema } from "@/lib/validation/schemas";
 
 const TITLES: Record<string, string> = {
+  faq:          "FAQ",
   shipping:     "Shipping Information",
   returns:      "Returns Policy",
   authenticity: "Authenticity Guarantee",

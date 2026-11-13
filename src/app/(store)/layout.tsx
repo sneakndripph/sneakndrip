@@ -7,6 +7,7 @@ import CartGuard from "@/components/layout/CartGuard";
 import CartSyncer from "@/components/layout/CartSyncer";
 import VisitorTracker from "@/components/layout/VisitorTracker";
 import RouteTransition from "@/components/layout/RouteTransition";
+import BackToTop from "@/components/layout/BackToTop";
 import { createAdminClient } from "@/lib/supabase/admin-server";
 import { redirect } from "next/navigation";
 
@@ -38,6 +39,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
         <RouteTransition>{children}</RouteTransition>
       </main>
       <Footer />
+      <BackToTop />
       {chatEnabled && <ChatWidget />}
       <CookieBanner />
     </div>

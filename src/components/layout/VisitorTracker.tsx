@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { captureUtm } from "@/lib/utm";
 
 function getSessionId(): string {
   try {
@@ -16,6 +17,8 @@ function getSessionId(): string {
 
 export default function VisitorTracker() {
   const pathname = usePathname();
+  useEffect(() => { captureUtm(window.location.search); }, []);
+  useEffect(() => { captureUtm(window.location.search); }, []);
   useEffect(() => {
     try {
       const sid = getSessionId();

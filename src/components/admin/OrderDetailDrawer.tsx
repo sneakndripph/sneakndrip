@@ -21,6 +21,7 @@ type Order = {
   proof_of_payment: string | null; payment_reference: string | null; shipping_fee: number | null;
   balance_reference: string | null; balance_proof_url: string | null; balance_paid_at: string | null;
   balance_payment_method: string | null; admin_notes: string | null; created_at: string; order_items: OrderItem[];
+  utm?: Record<string, string> | null;
 };
 
 function formatDate(iso: string) {
@@ -125,6 +126,11 @@ export default function OrderDetailDrawer({
         <div className="flex items-center justify-between px-5 py-4 shrink-0 border-b border-line bg-paper-2">
           <div>
             <p className="text-admin-sm font-bold text-ink">{order.order_number}</p>
+            {order.utm?.source && (
+              <p className="text-admin-micro text-ink-3 mt-0.5">
+                Source: {[order.utm.source, order.utm.medium, order.utm.campaign].filter(Boolean).join(" / ")}
+              </p>
+            )}
             <p className="text-admin-micro text-ink-3 mt-0.5">{formatDate(order.created_at)}</p>
           </div>
           <div className="flex items-center gap-3">

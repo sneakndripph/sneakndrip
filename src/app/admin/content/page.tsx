@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import AdminContentClient from "@/components/admin/AdminContentClient";
 
 const PAGE_DEFS = [
+  { slug: "faq",            title: "FAQ" },
   { slug: "shipping",       title: "Shipping Information" },
   { slug: "returns",        title: "Returns Policy" },
   { slug: "authenticity",   title: "Authenticity Guarantee" },

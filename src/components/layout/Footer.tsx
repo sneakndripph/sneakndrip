@@ -21,6 +21,7 @@ const FOOTER_LINKS = {
   ],
   Support: [
     { label: "Track My Order", href: "/track-order" },
+    { label: "FAQ",            href: "/faq" },
     { label: "Shipping Info",  href: "/shipping" },
     { label: "Returns Policy", href: "/returns" },
     { label: "Authenticity",   href: "/authenticity" },

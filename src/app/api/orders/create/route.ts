@@ -44,6 +44,10 @@ const orderCreateSchema = z.object({
     total: z.coerce.number().finite("Invalid total").min(0, "Invalid total").max(1_000_000, "Invalid total"),
   }).passthrough(),
   items: z.array(orderItemSchema).min(1, "Missing order data"),
+  utm: z.object({
+    source: z.string().max(100), medium: z.string().max(100), campaign: z.string().max(100),
+    content: z.string().max(100), term: z.string().max(100),
+  }).partial().strip().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -57,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     const result = await validateBody(req, orderCreateSchema);
     if ("error" in result) return result.error;
-    const { order, items } = result.data;
+    const { order, items, utm } = result.data;
 
     const supabase = createAdminClient();
 
@@ -165,6 +169,11 @@ export async function POST(req: NextRequest) {
         const { data: c } = await supabase.from("coupons").select("id, uses").eq("code", couponCode).single();
         if (c) await supabase.from("coupons").update({ uses: c.uses + 1 }).eq("id", c.id);
       } catch { /* non-critical */ }
+    }
+
+    // Best-effort attribution; never fails the order (column may not exist until migration 044 runs).
+    if (utm && Object.keys(utm).length) {
+      try { await supabase.from("orders").update({ utm }).eq("id", data.id); } catch { /* non-critical */ }
     }
 
     return NextResponse.json({ id: data.id }, { status: 201 });

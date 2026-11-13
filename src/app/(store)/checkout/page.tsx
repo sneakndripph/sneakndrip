@@ -11,6 +11,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Upload, CheckCircle, AlertCircle, ChevronDown, Wallet, Landmark, Truck, CreditCard } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
+import CopyButton from "@/components/ui/CopyButton";
+import { readUtm } from "@/lib/utm";
 
 type Step = "details" | "payment" | "confirm";
 
@@ -435,6 +437,7 @@ export default function CheckoutPage() {
             unit_price: item.unit_price,
             payment_type: item.payment_type === "downpayment" ? "downpayment" : "full",
           })),
+          utm: readUtm() ?? undefined,
         }),
       });
 
@@ -910,7 +913,7 @@ export default function CheckoutPage() {
                         const amt = isDP ? totalDueNow : total;
                         const amountEl = isMixed ? (
                           <div>
-                            <p className="text-ink">Amount: <span className="font-medium">₱{amt.toLocaleString()}</span></p>
+                            <p className="text-ink">Amount: <span className="font-medium">₱{amt.toLocaleString()}</span><CopyButton value={String(amt)} label="amount" /></p>
                             <p className="text-micro mt-0.5 text-ink-3">
                               {items.filter(i => i.payment_type !== "downpayment").map(i => `${i.product.name} ₱${(i.unit_price * i.quantity).toLocaleString()}`).join(" + ")}
                               {" "}+ ₱{dpFeeSubtotal.toLocaleString()} Downpayment
@@ -920,7 +923,7 @@ export default function CheckoutPage() {
                             </p>
                           </div>
                         ) : (
-                          <p className="text-ink">Amount: ₱{amt.toLocaleString()}{isDP && <span className="text-micro ml-1 text-ink-3">(downpayment only)</span>}</p>
+                          <p className="text-ink">Amount: ₱{amt.toLocaleString()}<CopyButton value={String(amt)} label="amount" />{isDP && <span className="text-micro ml-1 text-ink-3">(downpayment only)</span>}</p>
                         );
                         if (paymentMethod === "gcash") return (
                           <div className="text-body-sm space-y-2 text-ink">
@@ -929,7 +932,7 @@ export default function CheckoutPage() {
                                 <img src={payCfg.gcashQr} alt="GCash QR Code" style={{ width: 180, height: 180, objectFit: "contain" }} />
                               </div>
                             )}
-                            <p className="font-medium">GCash Number: {payCfg.gcashNumber}</p>
+                            <p className="font-medium">GCash Number: {payCfg.gcashNumber}<CopyButton value={payCfg.gcashNumber} label="GCash number" /></p>
                             <p className="text-ink-2">Account Name: {payCfg.gcashName}</p>
                             {amountEl}
                           </div>
@@ -941,7 +944,7 @@ export default function CheckoutPage() {
                                 <img src={payCfg.mayaQr} alt="Maya QR Code" style={{ width: 180, height: 180, objectFit: "contain" }} />
                               </div>
                             )}
-                            <p className="font-medium">Maya Number: {payCfg.mayaNumber}</p>
+                            <p className="font-medium">Maya Number: {payCfg.mayaNumber}<CopyButton value={payCfg.mayaNumber} label="Maya number" /></p>
                             <p className="text-ink-2">Account Name: {payCfg.mayaName}</p>
                             {amountEl}
                           </div>
@@ -955,7 +958,7 @@ export default function CheckoutPage() {
                                 </div>
                               )}
                               <p className="font-medium">{payCfg.bank1Name}</p>
-                              <p className="text-ink-2">Account Number: {payCfg.bank1Account}</p>
+                              <p className="text-ink-2">Account Number: {payCfg.bank1Account}<CopyButton value={payCfg.bank1Account} label="account number" /></p>
                               <p className="text-ink-2">Account Name: {payCfg.bank1AccountName}</p>
                             </div>
                             <div className="space-y-2 border-t border-line pt-3">
@@ -965,7 +968,7 @@ export default function CheckoutPage() {
                                 </div>
                               )}
                               <p className="font-medium">{payCfg.bank2Name}</p>
-                              <p className="text-ink-2">Account Number: {payCfg.bank2Account}</p>
+                              <p className="text-ink-2">Account Number: {payCfg.bank2Account}<CopyButton value={payCfg.bank2Account} label="account number" /></p>
                               <p className="text-ink-2">Account Name: {payCfg.bank2AccountName}</p>
                             </div>
                             <div className="border-t border-line pt-3">{amountEl}</div>

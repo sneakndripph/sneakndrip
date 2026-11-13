@@ -12,6 +12,7 @@ const STATIC: MetadataRoute.Sitemap = [
   { url: `${BASE}/about`,        lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
   { url: `${BASE}/contact`,      lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
   { url: `${BASE}/authenticity`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
+  { url: `${BASE}/faq`,          lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
   { url: `${BASE}/shipping`,     lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
   { url: `${BASE}/returns`,      lastModified: new Date(), changeFrequency: "monthly", priority: 0.4 },
 ];
