@@ -32,15 +32,15 @@ export default function HomeReviews({
   productSlugMap: Map<string, string>;
 }) {
   const [selected, setSelected] = useState<Review | null>(null);
+  // More reviews than fit in one row → loop them like the announcement bar.
+  const loop = reviews.length > 3;
 
-  return (
-    <>
-      <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 overflow-x-auto snap-x snap-mandatory -mx-5 px-5 sm:mx-0 sm:px-0 sm:overflow-visible">
-        {reviews.slice(0, 3).map(r => (
+  const card = (r: Review, className: string, hidden = false) => (
           <button
             key={r.id}
             onClick={() => setSelected(r)}
-            className="text-left bg-paper border border-line rounded-md p-6 hover:border-line-strong transition-colors shrink-0 w-[85vw] sm:w-auto snap-start"
+            tabIndex={hidden ? -1 : undefined}
+            className={`text-left bg-paper border border-line rounded-md p-6 hover:border-line-strong transition-colors shrink-0 ${className}`}
           >
             <Stars rating={r.rating} />
             <p className="text-body-sm text-ink-2 leading-relaxed mt-4 mb-5">
@@ -56,8 +56,25 @@ export default function HomeReviews({
               )}
             </div>
           </button>
-        ))}
-      </div>
+  );
+
+  return (
+    <>
+      {loop ? (
+        <div className="marquee overflow-hidden -mx-5 sm:mx-0 [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)]">
+          <div className="marquee-track" style={{ "--marquee-duration": `${Math.min(reviews.length, 12) * 6}s` } as React.CSSProperties}>
+            {[0, 1].map(half => (
+              <div key={half} className="flex shrink-0 gap-4 lg:gap-6 pr-4 lg:pr-6" aria-hidden={half === 1 || undefined}>
+                {reviews.slice(0, 12).map(r => card(r, "w-[280px] sm:w-[340px]", half === 1))}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 overflow-x-auto snap-x snap-mandatory -mx-5 px-5 sm:mx-0 sm:px-0 sm:overflow-visible">
+          {reviews.map(r => card(r, "w-[85vw] sm:w-auto snap-start"))}
+        </div>
+      )}
 
       {selected && (
         <div

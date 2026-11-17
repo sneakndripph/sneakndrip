@@ -40,13 +40,21 @@ export default function AnnouncementBar() {
   if (!visible || !text) return null;
 
   return (
-    <div
-      className="relative flex items-center justify-center py-2.5 px-10 text-eyebrow bg-ink text-paper"
-    >
-      <span>{text}</span>
+    <div className="marquee relative overflow-hidden py-2.5 pr-10 text-eyebrow bg-ink text-paper">
+      <p className="sr-only">{text}</p>
+      {/* Two identical halves of 4 repeats each; the CSS loop slides one half's width. */}
+      <div className="marquee-track" aria-hidden="true">
+        {[0, 1].map(half => (
+          <div key={half} className="flex shrink-0">
+            {[0, 1, 2, 3].map(i => (
+              <span key={i} className="px-12 whitespace-nowrap">{text}</span>
+            ))}
+          </div>
+        ))}
+      </div>
       <button
         onClick={() => { localStorage.setItem(STORAGE_KEY, "1"); setVisible(false); }}
-        className="absolute right-3 top-1/2 -translate-y-1/2 opacity-70 hover:opacity-100 transition-opacity"
+        className="absolute right-0 inset-y-0 px-3 flex items-center bg-ink text-paper/70 hover:text-paper transition-colors"
         aria-label="Dismiss announcement"
       >
         <X className="w-3.5 h-3.5" />

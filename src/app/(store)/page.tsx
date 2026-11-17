@@ -144,7 +144,7 @@ export default async function HomePage() {
               <Link
                 href={`/shop/${featured.slug}`}
                 aria-label={`Shop ${featured.name} ${featured.colorway || ""}`}
-                className="bg-paper-2 aspect-square rounded-md overflow-hidden flex items-center justify-center relative hover:opacity-95 transition-opacity duration-slow ease-smooth"
+                className="group bg-paper-2 aspect-square rounded-md overflow-hidden flex items-center justify-center relative"
               >
                 <HeroProductImage product={featured} />
               </Link>

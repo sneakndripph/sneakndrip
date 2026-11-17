@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Fuse from "fuse.js";
 import { BRANDS, SNEAKER_SIZES } from "@/lib/constants";
 import { now } from "@/lib/utils";
-import ProductCard from "@/components/product/ProductCard";
+import ProductCard, { isSoldOut } from "@/components/product/ProductCard";
 import ProductCardSkeleton from "@/components/ui/ProductCardSkeleton";
 import { SlidersHorizontal, X, ChevronDown, Check } from "lucide-react";
 import SearchAutocomplete from "@/components/search/SearchAutocomplete";
@@ -125,6 +125,9 @@ export default function ShopClient({
     if (sort === "price-asc") list.sort((a, b) => a.full_payment_price - b.full_payment_price);
     if (sort === "price-desc") list.sort((a, b) => b.full_payment_price - a.full_payment_price);
     if (sort === "newest") list.sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
+    // Sold out always last; on Featured, on-hand pairs also come before pre-orders. Sort is stable.
+    const rank = (p: Product) => isSoldOut(p) ? 2 : sort === "featured" && p.status !== "on-hand" ? 1 : 0;
+    list.sort((a, b) => rank(a) - rank(b));
     return list;
   }, [products, fuse, search, selectedBrands, selectedGenders, selectedSizes, availability, showNewOnly, maxPrice, sort]);
 

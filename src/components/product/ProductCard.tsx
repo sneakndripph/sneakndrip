@@ -12,12 +12,14 @@ interface ProductCardProps {
   product: Product;
 }
 
+/** Same rule the card uses for its "Sold out" badge. */
+export const isSoldOut = (p: Product) => !p.sizes.some(s => s.stock > 0) || !!p.is_eta_expired;
+
 export default function ProductCard({ product }: ProductCardProps) {
   const [imgError, setImgError] = useState(false);
 
-  const availableSizes = product.sizes.filter(s => s.stock > 0);
   const isPreOrder = product.status === "pre-order";
-  const soldOut = availableSizes.length === 0 || !!product.is_eta_expired;
+  const soldOut = isSoldOut(product);
 
   const isOnSale = useMemo(() => {
     if (product.sale_price == null) return false;

@@ -261,6 +261,23 @@
   to   { transform: rotate(360deg); }
 }
 
+/* Infinite horizontal loop: the track holds two identical copies, so -50% lands seamlessly. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee var(--marquee-duration, 30s) linear infinite;
+}
+
+.marquee:hover .marquee-track,
+.marquee:focus-within .marquee-track {
+  animation-play-state: paused;
+}
+
 .page-transition {
   animation: page-in 0.3s var(--ease-spring) both;
 }
@@ -351,7 +368,8 @@
   .page-transition,
   .animate-fade-in,
   .animate-slide-up,
-  .animate-slide-down {
+  .animate-slide-down,
+  .marquee-track {
     animation: none !important;
   }
   html {

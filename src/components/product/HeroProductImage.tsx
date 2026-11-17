@@ -14,7 +14,7 @@ export default function HeroProductImage({ product }: { product: Product }) {
         src={src}
         alt={product.name}
         fill
-        className="object-cover"
+        className="object-cover transition-transform duration-500 ease-out group-hover:scale-105 group-focus-visible:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
         sizes="(max-width: 1023px) 100vw, 420px"
         onError={() => setImgError(true)}
       />
