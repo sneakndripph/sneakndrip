@@ -73,6 +73,9 @@ const nextConfig: NextConfig = {
     ];
   },
   experimental: {
+    // Turbopack's dev filesystem cache kept serving stale globals.css after edits.
+    // Don't disable the build cache too: on 16.3 that breaks next/font/google.
+    turbopackFileSystemCacheForDev: false,
     optimizePackageImports: ["lucide-react"],
     serverActions: {
       bodySizeLimit: "10mb",
