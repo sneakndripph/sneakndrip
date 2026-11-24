@@ -9,6 +9,7 @@ import { ShoppingBag, Search, User, Menu, X, Bell, Heart } from "lucide-react";
 
 const PRIMARY_LINKS = [
   { label: "Sneakers",    href: "/shop?category=sneakers" },
+  { label: "Apparel",     href: "/shop?category=apparel" },
   { label: "Bags",        href: "/shop?category=bags" },
   { label: "Accessories", href: "/shop?category=accessories" },
   { label: "New",         href: "/shop?filter=new" },
@@ -152,7 +153,8 @@ export default function Navbar() {
   return (
     <header className={`sticky top-0 z-50 bg-paper border-b transition-colors duration-fast ${scrolled ? "border-line-strong" : "border-line"}`}>
       <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-        <div className="grid grid-cols-3 items-center h-14 md:flex md:items-center md:justify-between md:h-16">
+        {/* Equal side columns keep the desktop links centered on the page, not between logo and icons. */}
+        <div className="grid grid-cols-3 items-center h-14 md:grid-cols-[1fr_auto_1fr] md:h-16">
           {/* Left */}
           <div className="flex items-center">
             <button

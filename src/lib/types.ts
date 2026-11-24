@@ -1,5 +1,5 @@
 export type ProductStatus = "on-hand" | "pre-order";
-export type ProductCategory = "sneakers" | "bags" | "accessories";
+export type ProductCategory = "sneakers" | "apparel" | "bags" | "accessories";
 export type OrderStatus = "pending" | "paid" | "processing" | "shipped" | "delivered" | "cancelled";
 export type PaymentMethod = "gcash" | "maya" | "bank_transfer" | "cod";
 export type PaymentType = "downpayment" | "full_payment";

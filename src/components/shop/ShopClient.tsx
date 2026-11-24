@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Fuse from "fuse.js";
 import Link from "next/link";
-import { BRANDS, SNEAKER_SIZES, CATEGORIES, ONE_SIZE } from "@/lib/constants";
+import { BRANDS, SNEAKER_SIZES, SIZE_GRIDS, CATEGORIES, ONE_SIZE } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import ProductCard, { isSoldOut } from "@/components/product/ProductCard";
 import ProductCardSkeleton from "@/components/ui/ProductCardSkeleton";
@@ -111,9 +111,11 @@ export default function ShopClient({
     const present = [...new Set(scoped.map(p => p.brand))].sort();
     return isSneakerScope ? [...new Set([...BRANDS, ...present])] : present;
   }, [scoped, isSneakerScope]);
+  // All/Sneakers use the US grid, Apparel XS–XXL; bags/accessories list whatever sizes are stocked.
+  const sizeGrid = initialCategory ? SIZE_GRIDS[initialCategory as keyof typeof SIZE_GRIDS] : SNEAKER_SIZES;
   const sizeOptions = useMemo(
-    () => isSneakerScope ? SNEAKER_SIZES : [...new Set(scoped.flatMap(p => p.sizes.map(s => s.size)))].filter(s => s !== ONE_SIZE),
-    [scoped, isSneakerScope],
+    () => sizeGrid ?? [...new Set(scoped.flatMap(p => p.sizes.map(s => s.size)))].filter(s => s !== ONE_SIZE),
+    [scoped, sizeGrid],
   );
   const categoryLabel = CATEGORIES.find(c => c.value === initialCategory)?.label;
 

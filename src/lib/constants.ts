@@ -18,9 +18,18 @@ export const GENDERS = ["Men", "Women", "Unisex", "Kids"] as const;
 
 export const CATEGORIES = [
   { value: "sneakers", label: "Sneakers" },
+  { value: "apparel", label: "Apparel" },
   { value: "bags", label: "Bags" },
   { value: "accessories", label: "Accessories" },
 ] as const;
+
+export const APPAREL_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
+
+/** Categories with a standard size run; the rest start as One Size with optional custom sizes. */
+export const SIZE_GRIDS: Partial<Record<(typeof CATEGORIES)[number]["value"], string[]>> = {
+  sneakers: SNEAKER_SIZES,
+  apparel: APPAREL_SIZES,
+};
 
 /** Size label for items without sizes (bags, most accessories). */
 export const ONE_SIZE = "One Size";

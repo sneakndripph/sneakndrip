@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { SNEAKER_SIZES, ONE_SIZE } from "@/lib/constants";
+import { SIZE_GRIDS, ONE_SIZE } from "@/lib/constants";
 import type { ProductCategory } from "@/lib/types";
 
 export type SizeRow = { size: string; stock: number; enabled: boolean };
@@ -17,16 +17,17 @@ export function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: 
 }
 
 /**
- * Sneakers get the fixed US size grid; bags/accessories start as a single "One Size"
- * row and can add custom sizes (S/M/L, 28/30…). Saved sizes outside the grid are kept.
+ * Sneakers (US sizes) and apparel (XS–XXL) get a fixed size grid; bags/accessories start
+ * as a single "One Size" row and can add custom sizes. Saved sizes outside the grid are kept.
  */
 export function defaultSizeRows(category: ProductCategory, saved: { size: string; stock: number }[] = []): SizeRow[] {
-  if (category === "sneakers") {
-    const grid = SNEAKER_SIZES.map(s => {
+  const sizes = SIZE_GRIDS[category];
+  if (sizes) {
+    const grid = sizes.map(s => {
       const hit = saved.find(x => x.size === s);
       return { size: s, stock: hit?.stock ?? 0, enabled: !!hit };
     });
-    const extra = saved.filter(x => !SNEAKER_SIZES.includes(x.size)).map(x => ({ ...x, enabled: true }));
+    const extra = saved.filter(x => !sizes.includes(x.size)).map(x => ({ ...x, enabled: true }));
     return [...grid, ...extra];
   }
   return saved.length
@@ -42,7 +43,7 @@ export default function ProductSizesEditor({
   onChange: (rows: SizeRow[]) => void;
 }) {
   const [newSize, setNewSize] = useState("");
-  const custom = category !== "sneakers";
+  const custom = !SIZE_GRIDS[category];
 
   const update = (size: string, patch: Partial<SizeRow>) =>
     onChange(rows.map(r => r.size === size ? { ...r, ...patch } : r));

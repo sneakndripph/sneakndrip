@@ -7,6 +7,7 @@ import { BRANDS } from "@/lib/constants";
 const FOOTER_LINKS = {
   Shop: [
     { label: "Sneakers",     href: "/shop?category=sneakers" },
+    { label: "Apparel",      href: "/shop?category=apparel" },
     { label: "Bags",         href: "/shop?category=bags" },
     { label: "Accessories",  href: "/shop?category=accessories" },
     { label: "New Arrivals", href: "/shop?filter=new" },
