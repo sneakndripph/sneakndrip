@@ -4,6 +4,7 @@ import { useState, useEffect, type Dispatch, type SetStateAction } from "react";
 import { Bell, BellRing, ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { Product } from "@/lib/types";
+import { isOneSize } from "@/lib/utils";
 
 export default function ProductSizeSelector({
   product,
@@ -132,6 +133,12 @@ export default function ProductSizeSelector({
         </div>
       </>
     );
+  }
+
+  // One Size items (bags, most accessories): no picker or size guide, just the single
+  // pre-selected chip, which still offers "notify me" when it's out of stock.
+  if (isOneSize(product)) {
+    return <div className="mb-6">{renderGrid()}{renderNotifyForm()}</div>;
   }
 
   return (

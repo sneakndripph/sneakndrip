@@ -1,4 +1,5 @@
 export type ProductStatus = "on-hand" | "pre-order";
+export type ProductCategory = "sneakers" | "bags" | "accessories";
 export type OrderStatus = "pending" | "paid" | "processing" | "shipped" | "delivered" | "cancelled";
 export type PaymentMethod = "gcash" | "maya" | "bank_transfer" | "cod";
 export type PaymentType = "downpayment" | "full_payment";
@@ -14,6 +15,8 @@ export interface Product {
   name: string;
   slug: string;
   brand: string;
+  /** Missing until migration 045 runs; treat as "sneakers". */
+  category?: ProductCategory;
   colorway?: string;
   sku: string | null;
   gender: string;

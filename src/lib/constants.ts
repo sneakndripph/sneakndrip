@@ -16,6 +16,15 @@ export const BRANDS = [
 
 export const GENDERS = ["Men", "Women", "Unisex", "Kids"] as const;
 
+export const CATEGORIES = [
+  { value: "sneakers", label: "Sneakers" },
+  { value: "bags", label: "Bags" },
+  { value: "accessories", label: "Accessories" },
+] as const;
+
+/** Size label for items without sizes (bags, most accessories). */
+export const ONE_SIZE = "One Size";
+
 export const ORDER_STATUSES = [
   "pending", "paid", "processing", "shipped", "delivered", "cancelled",
 ] as const;

@@ -7,7 +7,7 @@ import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cartStore";
 import { useWishlist } from "@/hooks/useWishlist";
 import { trackAddToCart } from "@/lib/analytics";
-import { DP_RESERVE_FEE } from "@/lib/constants";
+import { DP_RESERVE_FEE, ONE_SIZE } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
@@ -62,8 +62,8 @@ export default function ProductCTA({
     if (inCart + quantity > stock) {
       const remaining = stock - inCart;
       toast.error(remaining <= 0
-        ? `Only ${stock} pair${stock === 1 ? "" : "s"} available for ${selectedSize}`
-        : `Only ${remaining} more pair${remaining === 1 ? "" : "s"} can be added`
+        ? `Only ${stock} left${selectedSize === ONE_SIZE ? "" : ` in ${selectedSize}`}`
+        : `Only ${remaining} more can be added`
       );
       return false;
     }
@@ -140,7 +140,7 @@ export default function ProductCTA({
         </div>
       )}
 
-      {selectedSize && <p className="text-micro text-ink-3 mb-4">Size {selectedSize} selected</p>}
+      {selectedSize && selectedSize !== ONE_SIZE && <p className="text-micro text-ink-3 mb-4">Size {selectedSize} selected</p>}
 
       {/* Quantity */}
       <div className="flex items-center gap-3 mb-5">

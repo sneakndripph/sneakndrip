@@ -4,7 +4,8 @@ import { useState, useMemo, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Fuse from "fuse.js";
-import { BRANDS, SNEAKER_SIZES } from "@/lib/constants";
+import Link from "next/link";
+import { BRANDS, SNEAKER_SIZES, CATEGORIES, ONE_SIZE } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import ProductCard, { isSoldOut } from "@/components/product/ProductCard";
 import ProductCardSkeleton from "@/components/ui/ProductCardSkeleton";
@@ -35,12 +36,15 @@ export default function ShopClient({
   initialFilter = "all",
   initialBrand = "",
   initialGender = "",
+  initialCategory = "",
 }: {
   products: Product[];
   initialSearch?: string;
   initialFilter?: string;
   initialBrand?: string;
   initialGender?: string;
+  /** "" = all categories. The page remounts this component when it changes. */
+  initialCategory?: string;
 }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -91,14 +95,32 @@ export default function ShopClient({
   function handleQueryChange(v: string) {
     setSearch(v);
     const params = new URLSearchParams();
+    if (initialCategory) params.set("category", initialCategory);
     if (v) params.set("q", v);
-    router.replace(`/shop${v ? `?${params.toString()}` : ""}`, { scroll: false });
+    const qs = params.toString();
+    router.replace(`/shop${qs ? `?${qs}` : ""}`, { scroll: false });
   }
 
-  const fuse = useMemo(() => new Fuse(products, FUSE_OPTIONS), [products]);
+  const scoped = useMemo(
+    () => initialCategory ? products.filter(p => (p.category ?? "sneakers") === initialCategory) : products,
+    [products, initialCategory],
+  );
+  const isSneakerScope = !initialCategory || initialCategory === "sneakers";
+  // Sneakers keep the curated brand list and US size grid; bags/accessories show what is in stock.
+  const brandOptions = useMemo(() => {
+    const present = [...new Set(scoped.map(p => p.brand))].sort();
+    return isSneakerScope ? [...new Set([...BRANDS, ...present])] : present;
+  }, [scoped, isSneakerScope]);
+  const sizeOptions = useMemo(
+    () => isSneakerScope ? SNEAKER_SIZES : [...new Set(scoped.flatMap(p => p.sizes.map(s => s.size)))].filter(s => s !== ONE_SIZE),
+    [scoped, isSneakerScope],
+  );
+  const categoryLabel = CATEGORIES.find(c => c.value === initialCategory)?.label;
+
+  const fuse = useMemo(() => new Fuse(scoped, FUSE_OPTIONS), [scoped]);
 
   const filtered = useMemo(() => {
-    let list = [...products];
+    let list = [...scoped];
     if (search) {
       const matchedIds = new Set(fuse.search(search).map(r => r.item.id));
       list = list.filter(p => matchedIds.has(p.id));
@@ -129,7 +151,7 @@ export default function ShopClient({
     const rank = (p: Product) => isSoldOut(p) ? 2 : sort === "featured" && p.status !== "on-hand" ? 1 : 0;
     list.sort((a, b) => rank(a) - rank(b));
     return list;
-  }, [products, fuse, search, selectedBrands, selectedGenders, selectedSizes, availability, showNewOnly, maxPrice, sort]);
+  }, [scoped, fuse, search, selectedBrands, selectedGenders, selectedSizes, availability, showNewOnly, maxPrice, sort]);
 
   // Infinite scroll windowing — filters/sort operate on the full in-memory
   // list above; this only controls how much of that result is rendered.
@@ -178,17 +200,17 @@ export default function ShopClient({
 
   const filtersContent = (
     <div className="space-y-7">
-      <div>
+      {brandOptions.length > 0 && <div>
         <p className="text-eyebrow text-ink-3 mb-3">Brand</p>
         <div className="flex flex-wrap gap-1.5">
-          {BRANDS.map(b => (
+          {brandOptions.map(b => (
             <button key={b} onClick={() => setSelectedBrands(arr => toggleArr(arr, b))}
               className={`text-micro px-3 py-1.5 rounded-sm border transition-colors ${
                 selectedBrands.includes(b) ? "border-ink bg-ink text-paper" : "border-line text-ink-2 hover:border-ink"
               }`}>{b}</button>
           ))}
         </div>
-      </div>
+      </div>}
       <div>
         <p className="text-eyebrow text-ink-3 mb-3">Gender</p>
         <div className="flex flex-wrap gap-1.5">
@@ -200,17 +222,17 @@ export default function ShopClient({
           ))}
         </div>
       </div>
-      <div>
+      {sizeOptions.length > 0 && <div>
         <p className="text-eyebrow text-ink-3 mb-3">Size</p>
         <div className="flex flex-wrap gap-1.5">
-          {SNEAKER_SIZES.map(s => (
+          {sizeOptions.map(s => (
             <button key={s} onClick={() => setSelectedSizes(arr => toggleArr(arr, s))}
               className={`text-micro px-2.5 py-1.5 rounded-sm border transition-colors ${
                 selectedSizes.includes(s) ? "border-ink bg-ink text-paper" : "border-line text-ink-2 hover:border-ink"
               }`}>{s}</button>
           ))}
         </div>
-      </div>
+      </div>}
       <div>
         <p className="text-eyebrow text-ink-3 mb-3">Availability</p>
         <div className="flex flex-col gap-2">
@@ -248,7 +270,18 @@ export default function ShopClient({
       <div className="py-10 pb-6 border-b border-line">
         <div className="max-w-7xl mx-auto px-5 md:px-8 lg:px-12">
           <p className="text-eyebrow text-ink-3 mb-2">Catalog</p>
-          <h1 className="text-display-s md:text-display text-ink font-display font-medium leading-tight">All sneakers</h1>
+          <h1 className="text-display-s md:text-display text-ink font-display font-medium leading-tight">{categoryLabel ?? "Shop all"}</h1>
+          <nav aria-label="Categories" className="flex gap-2 mt-5 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0">
+            {[{ value: "", label: "All" }, ...CATEGORIES].map(c => (
+              <Link key={c.value} href={c.value ? `/shop?category=${c.value}` : "/shop"} scroll={false}
+                aria-current={initialCategory === c.value ? "page" : undefined}
+                className={`shrink-0 text-body-sm px-4 py-2 rounded-full border transition-colors ${
+                  initialCategory === c.value ? "border-ink bg-ink text-paper" : "border-line text-ink-2 hover:border-ink"
+                }`}>
+                {c.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </div>
 
@@ -311,10 +344,19 @@ export default function ShopClient({
               </>
             ) : (
               <div className="text-center py-24">
-                <p className="text-body text-ink-2">No matches. Try clearing filters.</p>
-                <button onClick={clearFilters} className="mt-3 text-body-sm text-ink underline hover:opacity-60 transition-opacity">
-                  Clear filters
-                </button>
+                {scoped.length === 0 ? (
+                  <>
+                    <p className="text-body text-ink-2">No {categoryLabel?.toLowerCase() ?? "products"} yet. Coming soon.</p>
+                    <Link href="/shop" className="mt-3 inline-block text-body-sm text-ink underline hover:opacity-60 transition-opacity">Browse everything</Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-body text-ink-2">No matches. Try clearing filters.</p>
+                    <button onClick={clearFilters} className="mt-3 text-body-sm text-ink underline hover:opacity-60 transition-opacity">
+                      Clear filters
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>

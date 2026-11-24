@@ -63,7 +63,7 @@ export default function WishlistPage() {
           <div className="py-24 text-center">
             <Heart className="w-12 h-12 mx-auto mb-4 opacity-20 text-ink" />
             <p className="text-display-s text-ink font-display font-medium">Your wishlist is empty</p>
-            <p className="text-body-sm text-ink-3 mt-2 mb-8">Tap the ♡ on any sneaker to save it here.</p>
+            <p className="text-body-sm text-ink-3 mt-2 mb-8">Tap the ♡ on anything you like to save it here.</p>
             <Link href="/shop" className="inline-block px-8 py-3 text-body-sm font-medium bg-ink text-paper rounded-md hover:bg-ink-2 transition-colors">
               Shop Now
             </Link>

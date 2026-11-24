@@ -8,12 +8,15 @@ import SearchAutocomplete from "@/components/search/SearchAutocomplete";
 import { ShoppingBag, Search, User, Menu, X, Bell, Heart } from "lucide-react";
 
 const PRIMARY_LINKS = [
-  { label: "Shop", href: "/shop" },
-  { label: "New",  href: "/shop?filter=new" },
+  { label: "Sneakers",    href: "/shop?category=sneakers" },
+  { label: "Bags",        href: "/shop?category=bags" },
+  { label: "Accessories", href: "/shop?category=accessories" },
+  { label: "New",         href: "/shop?filter=new" },
   { label: "About", href: "/about" },
 ];
 
 const SECONDARY_LINKS = [
+  { label: "Shop All",   href: "/shop" },
   { label: "On Hand",    href: "/shop?filter=on-hand" },
   { label: "Pre-Orders", href: "/shop?filter=pre-order" },
   { label: "Brands",     href: "/brands" },

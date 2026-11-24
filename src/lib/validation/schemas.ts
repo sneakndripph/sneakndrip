@@ -63,6 +63,7 @@ const productFieldsShape = {
   name: z.string().trim().min(1, "Missing product name"),
   slug: z.string().trim().min(1, "Missing product slug"),
   brand: z.string().trim().min(1, "Missing product brand"),
+  category: z.enum(["sneakers", "bags", "accessories"], { error: "Invalid category" }).optional(),
   colorway: z.string().trim().nullable().optional(),
   sku: z.string().trim().nullable().optional(),
   description: z.string().trim().nullable().optional(),

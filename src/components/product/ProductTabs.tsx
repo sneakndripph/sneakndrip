@@ -77,7 +77,8 @@ export default function ProductTabs({
   return (
     <div ref={containerRef} className="border-t border-line">
       <div className="flex gap-0 -mb-px overflow-x-auto">
-        {TABS.map(tab => (
+        {/* The shoe size chart only applies to sneakers. */}
+        {TABS.filter(t => t !== "sizing" || (product.category ?? "sneakers") === "sneakers").map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}

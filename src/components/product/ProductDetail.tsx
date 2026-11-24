@@ -11,6 +11,8 @@ import ProductInfo from "./ProductInfo";
 import ProductSizeSelector from "./ProductSizeSelector";
 import ProductCTA from "./ProductCTA";
 import ProductTabs from "./ProductTabs";
+import { isOneSize } from "@/lib/utils";
+import { ONE_SIZE } from "@/lib/constants";
 
 type Tab = "description" | "sizing" | "reviews" | "related";
 
@@ -25,7 +27,7 @@ export default function ProductDetail({
   settings?: Record<string, string>;
   relatedProducts?: Product[];
 }) {
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(isOneSize(product) ? ONE_SIZE : null);
   const [quantity, setQuantity] = useState(1);
   const [paymentType, setPaymentType] = useState<"full_payment" | "downpayment">("full_payment");
   const [activeTab, setActiveTab] = useState<Tab>("description");

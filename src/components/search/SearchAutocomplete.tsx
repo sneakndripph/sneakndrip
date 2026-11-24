@@ -26,7 +26,7 @@ type SearchAutocompleteProps = {
 
 export default function SearchAutocomplete({
   autoFocus = false,
-  placeholder = "Search sneakers, brands…",
+  placeholder = "Search sneakers, bags, brands…",
   onNavigate,
   className = "",
   initialValue = "",
@@ -130,7 +130,7 @@ export default function SearchAutocomplete({
         aria-controls={listboxId}
         aria-autocomplete="list"
         aria-activedescendant={activeIndex >= 0 ? `${listboxId}-opt-${activeIndex}` : undefined}
-        aria-label="Search sneakers and brands"
+        aria-label="Search products and brands"
         value={inputValue}
         onChange={handleChange}
         onFocus={() => { if (inputValue.trim()) setOpen(true); }}

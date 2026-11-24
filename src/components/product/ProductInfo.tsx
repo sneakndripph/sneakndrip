@@ -40,7 +40,7 @@ export default function ProductInfo({
 }) {
   const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
   const hasDescription = Boolean(product.description && product.description.trim());
-  const rawDescription = product.description?.trim() || "Premium authentic sneakers from verified suppliers.";
+  const rawDescription = product.description?.trim() || "100% authentic, sourced from verified suppliers.";
   const { teaser, truncated } = hasDescription ? truncateDescription(rawDescription) : { teaser: rawDescription, truncated: false };
   const metroFee = settings.metro_shipping_fee || "150";
   const provFee = settings.provincial_shipping_fee || "250";
