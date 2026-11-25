@@ -53,13 +53,18 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
         )}
 
+        {/* Sold out — dark circle centered on the photo */}
+        {soldOut && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+            <span className="w-20 h-20 sm:w-[5.5rem] sm:h-[5.5rem] rounded-full bg-ink/65 backdrop-blur-[2px] flex items-center justify-center text-paper text-body-sm font-medium">
+              Sold Out
+            </span>
+          </div>
+        )}
+
         {/* Status pill — top left */}
         <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
-          {soldOut ? (
-            <span className="bg-ink/85 backdrop-blur-sm text-paper text-eyebrow px-2 py-0.5 rounded-sm">
-              Sold out
-            </span>
-          ) : isPreOrder ? (
+          {soldOut ? null : isPreOrder ? (
             <span className="bg-paper border border-line text-state-preorder text-eyebrow px-2 py-0.5 rounded-sm">
               Pre-order
             </span>

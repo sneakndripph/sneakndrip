@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useState, useEffect, type CSSProperties } from "react";
 import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
-import { X } from "lucide-react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Product } from "@/lib/types";
 
 const SWIPER_VARS = {
@@ -50,6 +50,21 @@ export default function ProductGallery({ product, isPreOrder }: { product: Produ
   const images: (string | null)[] = product.images?.length ? product.images : [null];
   const onSale = product.full_payment_price < product.srp_price;
   const activeImage = images[activeIdx];
+  const multiple = images.length > 1;
+  // Wraps around: next on the last photo goes back to the first.
+  const step = (d: number) => setActiveIdx(i => (i + d + images.length) % images.length);
+
+  useEffect(() => {
+    if (!zoomOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setZoomOpen(false);
+      else if (e.key === "ArrowRight") step(1);
+      else if (e.key === "ArrowLeft") step(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoomOpen, images.length]);
 
   return (
     <div>
@@ -128,8 +143,22 @@ export default function ProductGallery({ product, isPreOrder }: { product: Produ
             <X className="w-6 h-6" />
           </button>
           <div className="relative w-full max-w-3xl aspect-square" onClick={e => e.stopPropagation()}>
-            <Image src={activeImage} alt={product.name} fill className="object-contain" sizes="80vw" />
+            <Image src={activeImage} alt={`${product.name}, photo ${activeIdx + 1} of ${images.length}`} fill className="object-contain" sizes="80vw" />
           </div>
+          {multiple && (
+            <>
+              {([[-1, "Previous photo", ChevronLeft, "left-3 md:left-6"], [1, "Next photo", ChevronRight, "right-3 md:right-6"]] as const).map(([d, label, Icon, pos]) => (
+                <button key={label} type="button" aria-label={label}
+                  onClick={e => { e.stopPropagation(); step(d); }}
+                  className={`absolute top-1/2 -translate-y-1/2 ${pos} w-12 h-12 flex items-center justify-center rounded-full bg-paper/10 text-paper hover:bg-paper/20 transition-colors`}>
+                  <Icon className="w-7 h-7" />
+                </button>
+              ))}
+              <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-body-sm text-paper/80" aria-live="polite">
+                {activeIdx + 1} / {images.length}
+              </p>
+            </>
+          )}
         </div>
       )}
     </div>

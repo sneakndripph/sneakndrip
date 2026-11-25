@@ -167,6 +167,9 @@ export default function ShopClient({
   }, [search, selectedBrands, selectedGenders, selectedSizes, availability, showNewOnly, maxPrice, sort]);
 
   const visibleProducts = filtered.slice(0, visibleCount);
+  // filtered already sorts sold-out last, so the loaded slice splits cleanly into two sections.
+  const visibleAvailable = visibleProducts.filter(p => !isSoldOut(p));
+  const visibleSoldOut = visibleProducts.filter(isSoldOut);
   const hasMore = visibleCount < filtered.length;
 
   useEffect(() => {
@@ -331,9 +334,19 @@ export default function ShopClient({
 
             {filtered.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
-                  {visibleProducts.map(p => <ProductCard key={p.id} product={p} />)}
-                </div>
+                {visibleAvailable.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
+                    {visibleAvailable.map(p => <ProductCard key={p.id} product={p} />)}
+                  </div>
+                )}
+                {visibleSoldOut.length > 0 && (
+                  <section aria-labelledby="sold-out-heading" className={visibleAvailable.length > 0 ? "mt-14" : ""}>
+                    <h2 id="sold-out-heading" className="text-eyebrow text-ink-3 mb-5">Sold out</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
+                      {visibleSoldOut.map(p => <ProductCard key={p.id} product={p} />)}
+                    </div>
+                  </section>
+                )}
                 {loadingMore && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6 mt-4 lg:mt-6">
                     {Array.from({ length: 4 }).map((_, i) => <ProductCardSkeleton key={i} />)}
