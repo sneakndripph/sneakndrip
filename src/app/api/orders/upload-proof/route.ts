@@ -79,5 +79,7 @@ export async function POST(req: NextRequest) {
     .upload(path, arrayBuffer, { contentType, upsert: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  // The server records the proof path; clients can no longer point an order at someone else's file.
+  if (!suffix) await admin.from("orders").update({ proof_of_payment: data.path }).eq("id", order.id);
   return NextResponse.json({ path: data.path });
 }

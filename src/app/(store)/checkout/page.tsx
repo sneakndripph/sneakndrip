@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { useCartStore } from "@/store/cartStore";
 import { trackBeginCheckout } from "@/lib/analytics";
-import { PAYMENT_METHODS, SHIPPING_FEE, DP_RESERVE_FEE } from "@/lib/constants";
+import { PAYMENT_METHODS, DP_RESERVE_FEE } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { Upload, CheckCircle, AlertCircle, ChevronDown, Wallet, Landmark, Truck, CreditCard } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
 import CopyButton from "@/components/ui/CopyButton";
+import { calcShipping, shippingConfigFrom, DEFAULT_SHIPPING, type ShippingConfig } from "@/lib/orders/pricing";
 import { readUtm } from "@/lib/utm";
 
 type Step = "details" | "payment" | "confirm";
@@ -85,26 +86,6 @@ function paymentIcon(id: string) {
   return CreditCard;
 }
 
-function calcShipping(
-  isCOD: boolean,
-  regionGroup: string,
-  sub: number,
-  itemCount: number,
-  freeThreshold: number = SHIPPING_FEE.free_threshold,
-  metroFee: number = SHIPPING_FEE.metro_sm,
-  provFee: number = SHIPPING_FEE.provincial_sm,
-): number {
-  const lg = itemCount > 2;
-  if (isCOD) {
-    if (regionGroup === "Visayas" || regionGroup === "Mindanao")
-      return lg ? SHIPPING_FEE.cod_vm_lg  : SHIPPING_FEE.cod_vm_sm;
-    return lg ? SHIPPING_FEE.cod_luzon_lg : SHIPPING_FEE.cod_luzon_sm;
-  }
-  if (sub >= freeThreshold) return 0;
-  if (regionGroup === "Metro Manila")
-    return lg ? metroFee * 2 : metroFee;
-  return lg ? provFee * 2 : provFee;
-}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -136,7 +117,7 @@ export default function CheckoutPage() {
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [activeCoupons, setActiveCoupons] = useState<{ code: string; type: string; value: number; min_order: number; expires_at: string | null }[]>([]);
 
-  const [shipCfg, setShipCfg] = useState<{ freeThreshold: number; metro: number; prov: number }>({ freeThreshold: SHIPPING_FEE.free_threshold, metro: SHIPPING_FEE.metro_sm, prov: SHIPPING_FEE.provincial_sm });
+  const [shipCfg, setShipCfg] = useState<ShippingConfig>(DEFAULT_SHIPPING);
   const [codEnabled, setCodEnabled] = useState(true);
   const [payCfg, setPayCfg] = useState({
     gcashNumber: "0961 177 4119", gcashName: "Lorenzo Agalo P. Julio", gcashQr: "",
@@ -147,7 +128,7 @@ export default function CheckoutPage() {
 
   const isCOD = paymentMethod === "cod";
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
-  const shipping = calcShipping(isCOD, regionGroup, sub, itemCount, shipCfg.freeThreshold, shipCfg.metro, shipCfg.prov);
+  const shipping = calcShipping(isCOD, regionGroup, sub, itemCount, shipCfg);
   const discount = couponData?.discount ?? 0;
   const total = sub + shipping - discount;
 
@@ -188,11 +169,7 @@ export default function CheckoutPage() {
     fetch("/api/settings")
       .then(r => r.json())
       .then((data: Record<string, string>) => {
-        setShipCfg({
-          freeThreshold: Number(data.free_shipping_threshold) || SHIPPING_FEE.free_threshold,
-          metro: Number(data.metro_shipping_fee) || SHIPPING_FEE.metro_sm,
-          prov: Number(data.provincial_shipping_fee) || SHIPPING_FEE.provincial_sm,
-        });
+        setShipCfg(shippingConfigFrom(data));
         setCodEnabled(data.cod_enabled !== "false");
         setPayCfg(prev => ({
           gcashNumber: data.gcash_number || prev.gcashNumber,
@@ -388,19 +365,6 @@ export default function CheckoutPage() {
 
       const num = `SND-${now().toString().slice(-8)}`;
 
-      // Upload proof via service role API (bypasses storage RLS)
-      let proofUrl: string | null = null;
-      if (proofFile && !isCOD) {
-        const uploadFd = new FormData();
-        uploadFd.append("file", proofFile);
-        uploadFd.append("orderNumber", num);
-        const uploadRes = await fetch("/api/orders/upload-proof", { method: "POST", body: uploadFd });
-        if (uploadRes.ok) {
-          const { path } = await uploadRes.json();
-          proofUrl = path;
-        }
-      }
-
       // Insert order via service role API (bypasses RLS)
       const createRes = await fetch("/api/orders/create", {
         method: "POST",
@@ -416,6 +380,7 @@ export default function CheckoutPage() {
             shipping_city: form.city,
             shipping_province: form.province || "N/A",
             shipping_postal: form.postal || "0000",
+            region_group: regionGroup,
             subtotal: sub,
             shipping_fee: shipping,
             discount,
@@ -424,7 +389,6 @@ export default function CheckoutPage() {
             payment_method: paymentMethod,
             payment_type: items[0]?.payment_type === "downpayment" ? "downpayment" : "full",
             payment_status: "pending",
-            proof_of_payment: proofUrl,
             payment_reference: referenceNumber.trim() || null,
             status: "pending",
           },
@@ -459,12 +423,37 @@ export default function CheckoutPage() {
           setPlacing(false);
           return; // stay on checkout — no redirect
         }
+        if (createRes.status === 409 && err.priceChanged) {
+          // Update the cart to today's prices so the shown total is right on the next try.
+          const prices = (err.prices ?? []) as { product_id: string; payment_type: string; unit_price: number }[];
+          useCartStore.getState().syncPrices(prices.map(p => ({ ...p, payment_type: p.payment_type === "downpayment" ? "downpayment" : "full_payment" })));
+          toast.error("Prices changed since you added these items. Your total has been updated, please review it and place the order again.");
+          setOrderError(err.error);
+          setPlacing(false);
+          return; // stay on checkout — no redirect, nothing charged
+        }
         if (createRes.status === 400) {
           setOrderError(err.error || "Please check your order details and try again.");
           setPlacing(false);
           return; // stay on checkout — no redirect
         }
         throw new Error(err.error || "Failed to create order");
+      }
+
+      // Upload the proof now that the order exists (upload-proof checks the order is
+      // yours, and stores the path on the order server-side).
+      let proofUrl: string | null = null;
+      if (proofFile && !isCOD) {
+        const uploadFd = new FormData();
+        uploadFd.append("file", proofFile);
+        uploadFd.append("orderNumber", num);
+        const uploadRes = await fetch("/api/orders/upload-proof", { method: "POST", body: uploadFd }).catch(() => null);
+        if (uploadRes?.ok) {
+          const { path } = await uploadRes.json();
+          proofUrl = path;
+        } else {
+          toast.error("Order placed, but the payment proof didn't upload. Please send it to us via Messenger.");
+        }
       }
 
       // Send confirmation emails (fire and forget)

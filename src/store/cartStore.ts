@@ -74,6 +74,8 @@ interface CartState {
   initForUser: (userId: string | null) => void;
   /** Replace the saved per-size stock with live numbers (keyed by product id). */
   syncStock: (sizesByProduct: Record<string, { size: string; stock: number }[]>) => void;
+  /** Replace saved unit prices with the server's current ones (after a price change). */
+  syncPrices: (prices: { product_id: string; payment_type: PaymentType; unit_price: number }[]) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -109,6 +111,14 @@ export const useCartStore = create<CartState>()(
       removeItem: (productId, size, paymentType) =>
         set(state => ({
           items: state.items.filter(i => !matches(i, productId, size, paymentType)),
+        })),
+
+      syncPrices: prices =>
+        set(state => ({
+          items: state.items.map(i => {
+            const p = prices.find(x => x.product_id === i.product.id && x.payment_type === i.payment_type);
+            return p ? { ...i, unit_price: p.unit_price } : i;
+          }),
         })),
 
       syncStock: sizesByProduct =>

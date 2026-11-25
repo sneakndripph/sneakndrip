@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin-server";
 import { rateLimit, getIP } from "@/lib/rate-limit";
 import { z } from "zod";
 import { validateBody } from "@/lib/validation/validate";
+import { couponDiscount } from "@/lib/orders/pricing";
 
 const couponValidateSchema = z.object({
   code: z.string().trim().min(1, "Missing code").max(50, "Missing code"),
@@ -38,9 +39,8 @@ export async function POST(req: NextRequest) {
       error: `Minimum order of ₱${Number(coupon.min_order).toLocaleString()} required`,
     }, { status: 400 });
 
-  const discount = coupon.type === "percent"
-    ? Math.round((Number(orderTotal ?? 0) * Number(coupon.value)) / 100)
-    : Number(coupon.value);
+  // Same formula /api/orders/create uses, so the shown total matches the stored one.
+  const discount = couponDiscount(coupon, Number(orderTotal ?? 0));
 
   return NextResponse.json({
     id: coupon.id,
