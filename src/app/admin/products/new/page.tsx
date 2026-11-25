@@ -9,6 +9,7 @@ import { ArrowLeft, ChevronDown, Check } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 import ProductSizesEditor, { Toggle, defaultSizeRows, type SizeRow } from "@/components/admin/ProductSizesEditor";
 import type { ProductCategory } from "@/lib/types";
+import { etaError } from "@/lib/utils";
 
 function toSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") + "-" + Date.now().toString(36);
@@ -80,6 +81,8 @@ export default function NewProductPage() {
     e.preventDefault();
     setError("");
     if (!name || !brand.trim() || !full) { setError("Name, brand and full payment price are required."); return; }
+    const etaProblem = status === "pre-order" ? etaError(etaStart, etaEnd) : "";
+    if (etaProblem) { setError(etaProblem); return; }
     setSaving(true);
     try {
       const fd = new FormData();
@@ -240,7 +243,7 @@ export default function NewProductPage() {
                     </div>
                     <div>
                       <label className={labelCls}>ETA end</label>
-                      <input type="date" value={etaEnd} onChange={e => setEtaEnd(e.target.value)} className={inputCls} />
+                      <input type="date" value={etaEnd} min={etaStart || undefined} onChange={e => setEtaEnd(e.target.value)} className={inputCls} />
                     </div>
                   </div>
                 )}

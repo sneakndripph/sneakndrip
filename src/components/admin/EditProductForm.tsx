@@ -10,6 +10,7 @@ import ImageUploader from "@/components/admin/ImageUploader";
 import { useConfirmDialog } from "@/components/admin/ConfirmDialog";
 import ProductSizesEditor, { Toggle, defaultSizeRows, type SizeRow } from "@/components/admin/ProductSizesEditor";
 import type { ProductCategory } from "@/lib/types";
+import { etaError } from "@/lib/utils";
 
 
 type Product = Record<string, unknown> & {
@@ -91,6 +92,8 @@ export default function EditProductForm({ product }: { product: Product }) {
     e.preventDefault();
     setError("");
     if (!name || !brand.trim() || !full) { setError("Name, brand and full payment price are required."); return; }
+    const etaProblem = status === "pre-order" ? etaError(etaStart, etaEnd) : "";
+    if (etaProblem) { setError(etaProblem); return; }
     setSaving(true);
     try {
       const fd = new FormData();
@@ -267,7 +270,7 @@ export default function EditProductForm({ product }: { product: Product }) {
                     </div>
                     <div>
                       <label className={labelCls}>ETA end</label>
-                      <input type="date" value={etaEnd} onChange={e => setEtaEnd(e.target.value)} className={inputCls} />
+                      <input type="date" value={etaEnd} min={etaStart || undefined} onChange={e => setEtaEnd(e.target.value)} className={inputCls} />
                     </div>
                   </div>
                 )}
