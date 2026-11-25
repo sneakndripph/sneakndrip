@@ -237,8 +237,8 @@ export default function EditProductForm({ product }: { product: Product }) {
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelCls}>Description</label>
-                  <textarea rows={3} value={description} onChange={e => setDescription(e.target.value)}
-                    className={`${inputCls} resize-none`} />
+                  <textarea rows={6} value={description} onChange={e => setDescription(e.target.value)}
+                    className={`${inputCls} resize-y min-h-24 max-h-[70vh]`} />
                 </div>
               </div>
 

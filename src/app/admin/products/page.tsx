@@ -8,6 +8,8 @@ export default async function AdminProductsPage() {
   const { data } = await supabase
     .from("products")
     .select("*, product_sizes(size, stock)")
+    // Most recently added or edited first (updated_at is set on insert and every save).
+    .order("updated_at", { ascending: false })
     .order("created_at", { ascending: false });
   return <AdminProductsClient initialProducts={data ?? []} />;
 }
