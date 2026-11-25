@@ -72,6 +72,8 @@ interface CartState {
   itemCount: () => number;
   subtotal: () => number;
   initForUser: (userId: string | null) => void;
+  /** Replace the saved per-size stock with live numbers (keyed by product id). */
+  syncStock: (sizesByProduct: Record<string, { size: string; stock: number }[]>) => void;
 }
 
 export const useCartStore = create<CartState>()(
@@ -92,7 +94,8 @@ export const useCartStore = create<CartState>()(
             return {
               items: state.items.map(i =>
                 matches(i, product.id, size, paymentType)
-                  ? { ...i, quantity: i.quantity + qty }
+                  // Take the fresh product too, so its stock numbers aren't the ones from the first add.
+                  ? { ...i, product, quantity: i.quantity + qty }
                   : i
               ),
             };
@@ -106,6 +109,13 @@ export const useCartStore = create<CartState>()(
       removeItem: (productId, size, paymentType) =>
         set(state => ({
           items: state.items.filter(i => !matches(i, productId, size, paymentType)),
+        })),
+
+      syncStock: sizesByProduct =>
+        set(state => ({
+          items: state.items.map(i =>
+            sizesByProduct[i.product.id] ? { ...i, product: { ...i.product, sizes: sizesByProduct[i.product.id] } } : i
+          ),
         })),
 
       updateQuantity: (productId, size, paymentType, quantity) => {

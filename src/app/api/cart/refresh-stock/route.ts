@@ -52,8 +52,11 @@ export async function POST(req: NextRequest) {
   }
 
   const stockByKey = new Map<string, number>();
+  // Every size of each product, so the cart can refresh its saved stock (size switcher, + button).
+  const sizes: Record<string, { size: string; stock: number }[]> = {};
   for (const row of rows ?? []) {
     stockByKey.set(`${row.product_id}::${row.size}`, row.stock as number);
+    (sizes[row.product_id as string] ??= []).push({ size: row.size as string, stock: row.stock as number });
   }
 
   const result = validItems.map(item => {
@@ -70,5 +73,5 @@ export async function POST(req: NextRequest) {
     };
   });
 
-  return NextResponse.json({ items: result });
+  return NextResponse.json({ items: result, sizes });
 }

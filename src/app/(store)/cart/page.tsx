@@ -146,6 +146,9 @@ export default function CartPage() {
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
         if (!data) return;
+        // The cart saved stock when each item was added; replace it with live numbers
+        // so the + button and size switcher allow restocked quantities.
+        if (data.sizes) useCartStore.getState().syncStock(data.sizes);
         const map: Record<string, StockCheck> = {};
         for (const check of (data.items ?? []) as StockCheck[]) {
           map[stockKey(check.product_id, check.size)] = check;
@@ -155,14 +158,16 @@ export default function CartPage() {
       .catch(() => { /* silent -- non-critical background check */ });
   }, []);
 
-  // Refresh on mount, and again whenever the user tabs back in -- another
-  // customer may have bought the last unit while this tab was in the background.
+  // Refresh once the saved cart has loaded (before that it looks empty and the check
+  // is skipped), and again whenever the user tabs back in -- another customer may
+  // have bought the last unit while this tab was in the background.
   useEffect(() => {
+    if (!hydrated) return;
     refreshStock();
     const onVisible = () => { if (document.visibilityState === "visible") refreshStock(); };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
-  }, [refreshStock]);
+  }, [refreshStock, hydrated]);
 
   const hasSoldOut = selectedItems.some(i => stockMap[stockKey(i.product.id, i.size)]?.status === "sold_out");
   const hasReduced = !hasSoldOut && selectedItems.some(i => stockMap[stockKey(i.product.id, i.size)]?.status === "reduced");
