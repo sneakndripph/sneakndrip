@@ -79,6 +79,8 @@ export default function CartPage() {
   // see the hydration effect below.
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const hasInitializedSelection = useRef(false);
+  // A checkout selection only carries over via "Proceed to Checkout" below.
+  useEffect(() => { try { sessionStorage.removeItem("snd_checkout_keys"); } catch { /* ignore */ } }, []);
   // Which line's remove-confirmation modal is open, keyed by line id.
   const [removingItemId, setRemovingItemId] = useState<string | null>(null);
   const removingItem = items.find(i => i.id === removingItemId) ?? null;

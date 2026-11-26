@@ -91,7 +91,9 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items: allItems, removeItems } = useCartStore();
   const [checkoutKeys, setCheckoutKeys] = useState<Set<string> | null>(null);
-  const items = checkoutKeys ? allItems.filter(i => checkoutKeys.has(i.id)) : allItems;
+  const picked = checkoutKeys ? allItems.filter(i => checkoutKeys.has(i.id)) : allItems;
+  // A stale selection from an older visit that matches nothing in the cart falls back to the whole cart.
+  const items = picked.length > 0 ? picked : allItems;
   const sub = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
 
   const [mounted, setMounted] = useState(false);
@@ -160,10 +162,11 @@ export default function CheckoutPage() {
   useEffect(() => {
     queueMicrotask(() => {
       setMounted(true);
+      // Kept (not consumed) so a reload, login redirect or remount still checks out only the
+      // items ticked in the cart; cleared once the order is placed.
       const keys = sessionStorage.getItem("snd_checkout_keys");
       if (keys) {
         try { setCheckoutKeys(new Set(JSON.parse(keys))); } catch { /* ignore */ }
-        sessionStorage.removeItem("snd_checkout_keys");
       }
     });
     // Fetch active promo codes for display
@@ -504,6 +507,7 @@ export default function CheckoutPage() {
       }));
 
       removeItems(items.map(i => ({ productId: i.product.id, size: i.size, paymentType: i.payment_type })));
+      sessionStorage.removeItem("snd_checkout_keys");
       fetch("/api/cart/sync", { method: "DELETE" }).catch(() => {});
       router.push("/order-confirmation");
     } catch {
