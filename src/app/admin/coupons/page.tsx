@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Trash2, Copy, ToggleLeft, ToggleRight, Tag, Percent, X, Pencil } from "lucide-react";
 import toast from "react-hot-toast";
 import { useConfirmDialog } from "@/components/admin/ConfirmDialog";
@@ -88,7 +88,7 @@ export default function AdminMarketingPage() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const formRef = useRef<HTMLDivElement>(null);
+  const [formOpen, setFormOpen] = useState(false);
 
   // Discounts state
   const [products, setProducts] = useState<DiscountProduct[]>([]);
@@ -120,14 +120,12 @@ export default function AdminMarketingPage() {
 
   // --- Coupon handlers ---
   function openCreate() {
-    setEditingId(null); setForm(EMPTY_FORM); setError("");
-    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setEditingId(null); setForm(EMPTY_FORM); setError(""); setFormOpen(true);
   }
   function openEdit(c: Coupon) {
-    setEditingId(c.id); setForm(couponToForm(c)); setError("");
-    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setEditingId(c.id); setForm(couponToForm(c)); setError(""); setFormOpen(true);
   }
-  function closeForm() { setEditingId(null); setForm(EMPTY_FORM); setError(""); }
+  function closeForm() { setEditingId(null); setForm(EMPTY_FORM); setError(""); setFormOpen(false); }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -339,7 +337,7 @@ export default function AdminMarketingPage() {
 
       {/* Coupons tab: split view */}
       {activeTab === "coupons" && (
-        <div className="grid lg:grid-cols-[1fr_360px] gap-4 items-start">
+        <div>
           {/* List */}
           <div className="bg-paper border border-line rounded-md overflow-hidden">
             {loadingCoupons ? (
@@ -447,15 +445,17 @@ export default function AdminMarketingPage() {
             )}
           </div>
 
-          {/* Edit / create form panel */}
-          <div ref={formRef} className="bg-paper border border-line rounded-md p-5 lg:sticky lg:top-4">
+          {/* Edit / create voucher modal */}
+          {formOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60"
+            onClick={e => { if (e.target === e.currentTarget) closeForm(); }}>
+          <div role="dialog" aria-modal="true" aria-label={editingId ? "Edit voucher" : "New voucher"}
+            className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-paper border border-line rounded-md p-5">
             <div className="flex items-center justify-between mb-4">
               <p className="text-admin-title text-ink">{editingId ? "Edit voucher" : "New voucher"}</p>
-              {editingId && (
-                <button onClick={closeForm} className="p-1 text-ink-3 hover:text-ink transition-colors duration-admin-fast">
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+              <button type="button" onClick={closeForm} aria-label="Close" className="p-1 text-ink-3 hover:text-ink transition-colors duration-admin-fast">
+                <X className="w-4 h-4" />
+              </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -582,6 +582,8 @@ export default function AdminMarketingPage() {
               </div>
             </form>
           </div>
+          </div>
+          )}
         </div>
       )}
 
