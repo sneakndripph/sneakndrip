@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { ShoppingBag, Minus, Plus, Share2, Heart, ChevronUp, Zap } from "lucide-react";
@@ -12,7 +11,6 @@ import { DP_RESERVE_FEE, ONE_SIZE } from "@/lib/constants";
 import { now } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 
-const PAYMENT_METHODS = ["GCash", "Maya", "Bank Transfer", "COD"];
 
 export default function ProductCTA({
   product,
@@ -103,27 +101,7 @@ export default function ProductCTA({
 
   const content = (
     <>
-      {/* Price */}
-      <div className="mb-4">
-        <div className="flex items-center gap-2">
-          {product.srp_price > price && (
-            <span className="text-micro text-ink-3 line-through">₱{product.srp_price.toLocaleString()}</span>
-          )}
-          {isOnSale && <span className="bg-paper border border-line text-state-error text-eyebrow px-2 py-0.5 rounded-sm">Sale</span>}
-        </div>
-        <p className="text-display-s text-ink font-display font-medium">₱{price.toLocaleString()}</p>
-        {product.deal && !soldOut && (
-          <div className="mt-3 flex items-start gap-2 px-3 py-2.5 rounded-md border border-state-error/30 bg-state-error/5">
-            <span className="shrink-0 bg-state-error text-paper text-eyebrow px-2 py-0.5 rounded-sm">Deal</span>
-            <p className="text-body-sm text-ink">
-              {product.deal.label}, mix and match.{" "}
-              <Link href="/shop?category=deals" className="underline underline-offset-2">See all deal items</Link>
-              <span className="block text-micro text-ink-3 mt-0.5">Use code <strong className="text-ink">{product.deal.code}</strong> at checkout.</span>
-            </p>
-          </div>
-        )}
-      </div>
-
+      {/* Price lives in the header (ProductInfo); this is the buy box. */}
       {/* Payment type toggle */}
       {isPreOrder && !soldOut && (
         <div className="mb-4">
@@ -168,7 +146,7 @@ export default function ProductCTA({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2">
         {soldOut ? (
           <button
             disabled
@@ -207,20 +185,13 @@ export default function ProductCTA({
           <Share2 className="w-4 h-4" />
         </button>
       </div>
-
-      {/* Payment methods */}
-      <div className="flex flex-wrap gap-1.5">
-        {PAYMENT_METHODS.map(m => (
-          <span key={m} className="text-micro text-ink-3 border border-line rounded-sm px-2 py-1">{m}</span>
-        ))}
-      </div>
     </>
   );
 
   return (
     <>
       {/* Desktop inline */}
-      <div className="hidden lg:block">{content}</div>
+      <div className="hidden lg:block mt-5">{content}</div>
 
       {/* Mobile sticky bar */}
       <div className="lg:hidden fixed inset-x-0 bottom-0 z-40 bg-paper border-t border-line px-5 py-3 flex items-center gap-3">

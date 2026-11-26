@@ -75,14 +75,14 @@ export default function ProductTabs({
   const sizeGuide = getSizeGuideData(product.brand);
 
   return (
-    <div ref={containerRef} className="border-t border-line">
-      <div className="flex gap-0 -mb-px overflow-x-auto">
+    <div ref={containerRef} className="mt-6 scroll-mt-24">
+      <div className="flex gap-0 overflow-x-auto border-b border-line">
         {/* The shoe size chart only applies to sneakers. */}
         {TABS.filter(t => t !== "sizing" || (product.category ?? "sneakers") === "sneakers").map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-3 text-body-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+            className={`px-4 py-3 -mb-px text-body-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
               activeTab === tab ? "border-ink text-ink" : "border-transparent text-ink-3 hover:text-ink"
             }`}
           >

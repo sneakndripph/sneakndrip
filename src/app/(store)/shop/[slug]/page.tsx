@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getProductBySlug, getReviews, getSettings, getRelatedProducts, getRecentProducts } from "@/lib/supabase/products";
+import { getProductBySlug, getReviews, getRelatedProducts, getRecentProducts } from "@/lib/supabase/products";
 import ProductDetail from "@/components/product/ProductDetail";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -25,10 +25,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const [product, reviews, settings] = await Promise.all([
+  const [product, reviews] = await Promise.all([
     getProductBySlug(slug),
     getReviews(undefined),
-    getSettings(),
   ]);
   if (!product) notFound();
   const productReviews = reviews.filter(r => r.product_id === product.id);
@@ -110,7 +109,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     <>
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
-      <ProductDetail product={product} reviews={productReviews} settings={settings} relatedProducts={relatedProducts} />
+      <ProductDetail product={product} reviews={productReviews} relatedProducts={relatedProducts} />
     </>
   );
 }

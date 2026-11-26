@@ -78,13 +78,13 @@ export default function ProductSizeSelector({
     const soldOutSizes = product.sizes.filter(s => s.stock === 0);
     return (
       <>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
           {inStockSizes.map(renderSizeButton)}
         </div>
         {soldOutSizes.length > 0 && (
           <div className="mt-4">
             <p className="text-eyebrow text-ink-3 mb-3">Sold out sizes</p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
               {soldOutSizes.map(renderSizeButton)}
             </div>
           </div>

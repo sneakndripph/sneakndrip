@@ -11,6 +11,7 @@ import ProductInfo from "./ProductInfo";
 import ProductSizeSelector from "./ProductSizeSelector";
 import ProductCTA from "./ProductCTA";
 import ProductTabs from "./ProductTabs";
+import ProductDeal from "./ProductDeal";
 import { isOneSize } from "@/lib/utils";
 import { ONE_SIZE } from "@/lib/constants";
 
@@ -19,12 +20,10 @@ type Tab = "description" | "sizing" | "reviews" | "related";
 export default function ProductDetail({
   product,
   reviews = [],
-  settings = {},
   relatedProducts = [],
 }: {
   product: Product;
   reviews?: Review[];
-  settings?: Record<string, string>;
   relatedProducts?: Product[];
 }) {
   const [selectedSize, setSelectedSize] = useState<string | null>(isOneSize(product) ? ONE_SIZE : null);
@@ -65,7 +64,7 @@ export default function ProductDetail({
           <ProductGallery product={product} isPreOrder={isPreOrder} />
 
           <div className="px-5 py-6 lg:px-0 lg:py-0 lg:sticky lg:top-24">
-            <ProductInfo product={product} reviews={reviews} isPreOrder={isPreOrder} settings={settings} onSwitchTab={handleSwitchTab} />
+            <ProductInfo product={product} reviews={reviews} isPreOrder={isPreOrder} onSwitchTab={handleSwitchTab} />
 
             <ProductSizeSelector
               product={product}
@@ -84,6 +83,13 @@ export default function ProductDetail({
               paymentType={paymentType}
               setPaymentType={setPaymentType}
               effectivePaymentType={effectivePaymentType}
+            />
+
+            <hr className="hidden lg:block border-line mt-6" />
+            <ProductDeal
+              product={product}
+              isPreOrder={isPreOrder}
+              soldOut={product.sizes.every(s => s.stock <= 0) || !!product.is_eta_expired}
             />
 
             <ProductTabs
