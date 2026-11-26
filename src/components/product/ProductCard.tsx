@@ -73,23 +73,26 @@ export default function ProductCard({ product }: ProductCardProps) {
               On hand
             </span>
           )}
-        </div>
-
-        {/* Discount pill — top right */}
-        {isOnSale && (
-          <div className="absolute top-2 right-2 z-10">
-            <span className="bg-paper border border-line text-state-error text-eyebrow px-2 py-0.5 rounded-sm">
+          {/* Sale sits under the status pill so the top-right corner stays free for the deal sash */}
+          {isOnSale && (
+            <span className="w-max bg-paper border border-line text-state-error text-eyebrow px-2 py-0.5 rounded-sm">
               Sale
             </span>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Deal pill — bottom left, clear of the status pill and the heart */}
+        {/* Deal sash — top-right corner, text looping along the band */}
         {product.deal && !soldOut && (
-          <div className="absolute bottom-2 left-2 z-10">
-            <span title={product.deal.label} className="bg-state-error text-paper text-eyebrow px-2 py-0.5 rounded-sm">
-              {product.deal.badge}
-            </span>
+          <div className="deal-sash" role="img" aria-label={product.deal.label}>
+            <div className="deal-sash-band">
+              <div className="marquee-track" style={{ "--marquee-duration": "9s" } as React.CSSProperties} aria-hidden="true">
+                {[0, 1].map(half => (
+                  <span key={half} className="flex shrink-0">
+                    {[0, 1, 2].map(i => <span key={i} className="px-2">{product.deal!.label} •</span>)}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 

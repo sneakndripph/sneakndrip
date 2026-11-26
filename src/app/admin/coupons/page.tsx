@@ -511,7 +511,7 @@ export default function AdminMarketingPage() {
                   {form.type === "bogo"
                     ? `Customer pays the highest-priced ${Number(form.buy_qty) || 1}; the cheapest ${Number(form.get_qty) || 1} in each group are free.`
                     : `Any ${(Number(form.buy_qty) || 1) + (Number(form.get_qty) || 1)} eligible items, mix and match, for one price.`}
-                  {" "}Pre-order downpayments don&apos;t count.
+                  {" "}Pre-order items don&apos;t count.
                 </p>
               )}
 

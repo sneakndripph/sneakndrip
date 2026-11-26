@@ -39,7 +39,7 @@ export interface Product {
   sale_end?: string | null;
   created_at?: string;
   /** Active deal coupon this product counts toward (set by the storefront loaders). */
-  deal?: { code: string; badge: string; label: string } | null;
+  deal?: { code: string; label: string } | null;
 }
 
 export interface CartItem {

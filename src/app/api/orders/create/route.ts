@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
     let claimedCoupon: { id: string } | null = null;
     const couponCode = input.coupon_code?.toUpperCase().trim() || null;
     if (couponCode) {
-      const claim = await claimCoupon(supabase, couponCode, subtotal, items);
+      const claim = await claimCoupon(supabase, couponCode, subtotal, items.filter(i => byId.get(i.product_id)?.status !== "pre-order")); // pre-orders never count toward deals
       if ("error" in claim) return NextResponse.json({ error: claim.error }, { status: 400 });
       discount = claim.discount;
       claimedCoupon = { id: claim.id };

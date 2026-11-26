@@ -129,7 +129,8 @@ export default function CheckoutPage() {
   const isCOD = paymentMethod === "cod";
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
   const shipping = calcShipping(isCOD, regionGroup, sub, itemCount, shipCfg);
-  const dealLines = items.map(i => ({ product_id: i.product.id, unit_price: i.unit_price, quantity: i.quantity, payment_type: i.payment_type }));
+  // Pre-orders are excluded from deals (the server applies the same rule).
+  const dealLines = items.filter(i => i.product.status !== "pre-order").map(i => ({ product_id: i.product.id, unit_price: i.unit_price, quantity: i.quantity, payment_type: i.payment_type }));
   // Recomputed from the live cart (same function the server uses), so qty/price changes stay in sync.
   const discount = couponData ? couponDiscount(couponData, sub, dealLines) : 0;
   const total = sub + shipping - discount;

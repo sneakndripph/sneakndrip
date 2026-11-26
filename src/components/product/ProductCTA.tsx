@@ -114,7 +114,7 @@ export default function ProductCTA({
         <p className="text-display-s text-ink font-display font-medium">₱{price.toLocaleString()}</p>
         {product.deal && !soldOut && (
           <div className="mt-3 flex items-start gap-2 px-3 py-2.5 rounded-md border border-state-error/30 bg-state-error/5">
-            <span className="shrink-0 bg-state-error text-paper text-eyebrow px-2 py-0.5 rounded-sm">{product.deal.badge}</span>
+            <span className="shrink-0 bg-state-error text-paper text-eyebrow px-2 py-0.5 rounded-sm">Deal</span>
             <p className="text-body-sm text-ink">
               {product.deal.label}, mix and match.{" "}
               <Link href="/shop?category=deals" className="underline underline-offset-2">See all deal items</Link>

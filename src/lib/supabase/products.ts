@@ -1,7 +1,7 @@
 import { createClient } from "./server";
 import { createAdminClient } from "./admin-server";
 import type { Product, Review } from "@/lib/types";
-import { couponLabel, dealBadge, type CouponRow } from "@/lib/orders/pricing";
+import { couponLabel, type CouponRow } from "@/lib/orders/pricing";
 
 /** Tags each product with the newest active deal coupon it counts toward (for badges and the Deals tab). */
 async function attachDeals(products: Product[]): Promise<Product[]> {
@@ -18,8 +18,9 @@ async function attachDeals(products: Product[]): Promise<Product[]> {
     const deals = (data ?? []).filter(c => c.max_uses === null || c.uses < c.max_uses) as (CouponRow & { code: string })[];
     if (!deals.length) return products;
     return products.map(p => {
+      if (p.status === "pre-order") return p; // pre-orders never count toward deals
       const d = deals.find(c => !c.product_ids?.length || c.product_ids.includes(p.id));
-      return d ? { ...p, deal: { code: d.code, badge: dealBadge(d), label: couponLabel(d) } } : p;
+      return d ? { ...p, deal: { code: d.code, label: couponLabel(d) } } : p;
     });
   } catch {
     return products; // badges are cosmetic; never break the catalogue over them
