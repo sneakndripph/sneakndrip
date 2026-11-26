@@ -1,6 +1,30 @@
 import { createClient } from "./server";
 import { createAdminClient } from "./admin-server";
 import type { Product, Review } from "@/lib/types";
+import { couponLabel, dealBadge, type CouponRow } from "@/lib/orders/pricing";
+
+/** Tags each product with the newest active deal coupon it counts toward (for badges and the Deals tab). */
+async function attachDeals(products: Product[]): Promise<Product[]> {
+  if (!products.length) return products;
+  try {
+    const nowIso = new Date().toISOString();
+    const { data } = await createAdminClient()
+      .from("coupons")
+      .select("code, type, value, min_order, buy_qty, get_qty, product_ids, max_uses, uses")
+      .eq("is_active", true)
+      .in("type", ["bogo", "bundle"])
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+      .order("created_at", { ascending: false });
+    const deals = (data ?? []).filter(c => c.max_uses === null || c.uses < c.max_uses) as (CouponRow & { code: string })[];
+    if (!deals.length) return products;
+    return products.map(p => {
+      const d = deals.find(c => !c.product_ids?.length || c.product_ids.includes(p.id));
+      return d ? { ...p, deal: { code: d.code, badge: dealBadge(d), label: couponLabel(d) } } : p;
+    });
+  } catch {
+    return products; // badges are cosmetic; never break the catalogue over them
+  }
+}
 
 function mapRow(p: Record<string, unknown>, newArrivalCutoffMs?: number): Product {
   const sizes = ((p.product_sizes as Record<string, unknown>[]) ?? []).map((s) => ({
@@ -52,7 +76,7 @@ export async function getProducts(): Promise<Product[]> {
     if (error || !data?.length) return [];
     const days = Number(settingRes.data?.value) || 14;
     const cutoffMs = Date.now() - days * 24 * 60 * 60 * 1000;
-    return data.map(p => mapRow(p, cutoffMs));
+    return attachDeals(data.map(p => mapRow(p, cutoffMs)));
   } catch {
     return [];
   }
@@ -68,7 +92,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       .eq("is_published", true)
       .single();
     if (error || !data) return null;
-    return mapRow(data as Record<string, unknown>);
+    return (await attachDeals([mapRow(data as Record<string, unknown>)]))[0];
   } catch {
     return null;
   }
@@ -86,7 +110,7 @@ export async function getRelatedProducts(brand: string, excludeId: string, limit
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error || !data?.length) return [];
-    return data.map(p => mapRow(p));
+    return attachDeals(data.map(p => mapRow(p)));
   } catch {
     return [];
   }
@@ -103,7 +127,7 @@ export async function getRecentProducts(excludeId: string, limit: number = 4): P
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error || !data?.length) return [];
-    return data.map(p => mapRow(p));
+    return attachDeals(data.map(p => mapRow(p)));
   } catch {
     return [];
   }

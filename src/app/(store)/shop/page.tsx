@@ -7,12 +7,12 @@ export const dynamic = "force-dynamic";
 
 type Params = { q?: string; filter?: string; brand?: string; gender?: string; category?: string };
 
-/** Only known categories pass through; anything else shows everything. */
-const toCategory = (c?: string) => CATEGORIES.some(x => x.value === c) ? c! : "";
+/** Only known categories (and the "deals" tab) pass through; anything else shows everything. */
+const toCategory = (c?: string) => c === "deals" || CATEGORIES.some(x => x.value === c) ? c! : "";
 
 export async function generateMetadata({ searchParams }: { searchParams: Promise<Params> }): Promise<Metadata> {
   const cat = toCategory((await searchParams).category);
-  const label = CATEGORIES.find(c => c.value === cat)?.label;
+  const label = cat === "deals" ? "Deals" : CATEGORIES.find(c => c.value === cat)?.label;
   return { title: `${label ? `Shop ${label}` : "Shop All"} — Sneak N' Drip` };
 }
 

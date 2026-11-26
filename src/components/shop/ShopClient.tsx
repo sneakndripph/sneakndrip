@@ -102,7 +102,8 @@ export default function ShopClient({
   }
 
   const scoped = useMemo(
-    () => initialCategory ? products.filter(p => (p.category ?? "sneakers") === initialCategory) : products,
+    () => initialCategory === "deals" ? products.filter(p => p.deal)
+      : initialCategory ? products.filter(p => (p.category ?? "sneakers") === initialCategory) : products,
     [products, initialCategory],
   );
   const isSneakerScope = !initialCategory || initialCategory === "sneakers";
@@ -117,7 +118,8 @@ export default function ShopClient({
     () => sizeGrid ?? [...new Set(scoped.flatMap(p => p.sizes.map(s => s.size)))].filter(s => s !== ONE_SIZE),
     [scoped, sizeGrid],
   );
-  const categoryLabel = CATEGORIES.find(c => c.value === initialCategory)?.label;
+  const categoryLabel = initialCategory === "deals" ? "Deals" : CATEGORIES.find(c => c.value === initialCategory)?.label;
+  const hasDeals = products.some(p => p.deal);
 
   const fuse = useMemo(() => new Fuse(scoped, FUSE_OPTIONS), [scoped]);
 
@@ -277,7 +279,7 @@ export default function ShopClient({
           <p className="text-eyebrow text-ink-3 mb-2">Catalog</p>
           <h1 className="text-display-s md:text-display text-ink font-display font-medium leading-tight">{categoryLabel ?? "Shop all"}</h1>
           <nav aria-label="Categories" className="flex gap-2 mt-5 overflow-x-auto -mx-5 px-5 md:mx-0 md:px-0">
-            {[{ value: "", label: "All" }, ...CATEGORIES].map(c => (
+            {[{ value: "", label: "All" }, ...(hasDeals ? [{ value: "deals", label: "Deals" }] : []), ...CATEGORIES].map(c => (
               <Link key={c.value} href={c.value ? `/shop?category=${c.value}` : "/shop"} scroll={false}
                 aria-current={initialCategory === c.value ? "page" : undefined}
                 className={`shrink-0 text-body-sm px-4 py-2 rounded-full border transition-colors ${

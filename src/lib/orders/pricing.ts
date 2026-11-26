@@ -83,6 +83,12 @@ export function couponLabel(c: Pick<CouponRow, "type" | "value" | "buy_qty" | "g
   return c.type === "bundle" ? `${bt} for ${peso(c.value)}` : bt;
 }
 
+/** Compact badge for product cards, e.g. "B1T1" or "B1T1 ₱5,000". */
+export function dealBadge(c: Pick<CouponRow, "type" | "value" | "buy_qty" | "get_qty">): string {
+  const bt = `B${c.buy_qty ?? 1}T${c.get_qty ?? 1}`;
+  return c.type === "bundle" ? `${bt} ₱${Number(c.value).toLocaleString()}` : bt;
+}
+
 /**
  * Discount for a coupon (same formula on the checkout page, /api/coupons/validate and
  * /api/orders/create). Deals sort eligible full-payment units by price, highest first, and

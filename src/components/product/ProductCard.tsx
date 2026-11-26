@@ -84,6 +84,15 @@ export default function ProductCard({ product }: ProductCardProps) {
           </div>
         )}
 
+        {/* Deal pill — bottom left, clear of the status pill and the heart */}
+        {product.deal && !soldOut && (
+          <div className="absolute bottom-2 left-2 z-10">
+            <span title={product.deal.label} className="bg-state-error text-paper text-eyebrow px-2 py-0.5 rounded-sm">
+              {product.deal.badge}
+            </span>
+          </div>
+        )}
+
         {/* Wishlist heart — bottom right, always visible; 44px tap target around a 32px visual */}
         <button
           type="button"
