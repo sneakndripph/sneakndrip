@@ -56,12 +56,58 @@ export function calcShipping(
   return lg ? cfg.prov * 2 : cfg.prov;
 }
 
-export type CouponRow = { type: string; value: number; min_order: number | null };
+export type CouponRow = {
+  type: string;
+  value: number;
+  min_order: number | null;
+  buy_qty?: number | null;
+  get_qty?: number | null;
+  product_ids?: string[] | null;
+};
 
-/** Discount for a coupon on a subtotal (same formula as /api/coupons/validate). */
-export function couponDiscount(c: CouponRow, subtotal: number): number {
-  const d = c.type === "percent"
-    ? Math.round((subtotal * Number(c.value)) / 100)
-    : Number(c.value);
+/** A cart/order line as the deal math needs it. Downpayment lines never count toward deals. */
+export type DealLine = { product_id: string; unit_price: number; quantity: number; payment_type?: string };
+
+export const isDeal = (c: { type: string }) => c.type === "bogo" || c.type === "bundle";
+
+export function dealGroupSize(c: CouponRow): number {
+  return Math.max(1, Number(c.buy_qty ?? 1)) + Math.max(1, Number(c.get_qty ?? 1));
+}
+
+/** Short customer-facing label, e.g. "20% off", "Buy 1 Take 1", "Buy 1 Take 1 for ₱5,000". */
+export function couponLabel(c: Pick<CouponRow, "type" | "value" | "buy_qty" | "get_qty">): string {
+  const peso = (n: number) => `₱${Number(n).toLocaleString()}`;
+  if (c.type === "percent") return `${c.value}% off`;
+  if (c.type === "fixed") return `${peso(c.value)} off`;
+  const bt = `Buy ${c.buy_qty ?? 1} Take ${c.get_qty ?? 1}`;
+  return c.type === "bundle" ? `${bt} for ${peso(c.value)}` : bt;
+}
+
+/**
+ * Discount for a coupon (same formula on the checkout page, /api/coupons/validate and
+ * /api/orders/create). Deals sort eligible full-payment units by price, highest first, and
+ * group them buy+get at a time; leftovers that don't fill a group pay full price.
+ */
+export function couponDiscount(c: CouponRow, subtotal: number, lines: DealLine[] = []): number {
+  let d: number;
+  if (isDeal(c)) {
+    const buy = Math.max(1, Number(c.buy_qty ?? 1));
+    const size = dealGroupSize(c);
+    const eligible = c.product_ids?.length ? new Set(c.product_ids) : null;
+    const prices = lines
+      .filter(l => l.payment_type !== "downpayment" && (!eligible || eligible.has(l.product_id)))
+      .flatMap(l => Array<number>(Math.max(0, Math.floor(l.quantity))).fill(Number(l.unit_price)))
+      .sort((a, b) => b - a);
+    d = 0;
+    for (let i = 0; i + size <= prices.length; i += size) {
+      const group = prices.slice(i, i + size);
+      const sum = group.reduce((s, p) => s + p, 0);
+      d += c.type === "bogo"
+        ? group.slice(buy).reduce((s, p) => s + p, 0) // the cheapest `get` items are free
+        : Math.max(0, sum - Number(c.value));          // the group costs the bundle price
+    }
+  } else {
+    d = c.type === "percent" ? Math.round((subtotal * Number(c.value)) / 100) : Number(c.value);
+  }
   return Math.min(Math.max(d, 0), subtotal); // never negative, never more than the goods
 }

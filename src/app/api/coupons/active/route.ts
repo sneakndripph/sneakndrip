@@ -7,7 +7,7 @@ export async function GET() {
 
   const { data } = await admin
     .from("coupons")
-    .select("code, type, value, min_order, expires_at, max_uses, uses")
+    .select("code, type, value, min_order, expires_at, max_uses, uses, buy_qty, get_qty")
     .eq("is_active", true)
     .or(`expires_at.is.null,expires_at.gt.${now}`)
     .order("created_at", { ascending: false });

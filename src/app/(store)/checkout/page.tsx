@@ -12,7 +12,7 @@ import Link from "next/link";
 import { Upload, CheckCircle, AlertCircle, ChevronDown, Wallet, Landmark, Truck, CreditCard } from "lucide-react";
 import PhAddressSelect from "@/components/ui/PhAddressSelect";
 import CopyButton from "@/components/ui/CopyButton";
-import { calcShipping, shippingConfigFrom, DEFAULT_SHIPPING, type ShippingConfig } from "@/lib/orders/pricing";
+import { calcShipping, shippingConfigFrom, DEFAULT_SHIPPING, couponDiscount, couponLabel, isDeal, dealGroupSize, type ShippingConfig, type CouponRow } from "@/lib/orders/pricing";
 import { readUtm } from "@/lib/utm";
 
 type Step = "details" | "payment" | "confirm";
@@ -112,10 +112,10 @@ export default function CheckoutPage() {
   const [stockIssues, setStockIssues] = useState<Record<string, number>>({}); // `${product_id}-${size}` -> available
   const [showErrors, setShowErrors] = useState(false);
   const [couponCode, setCouponCode] = useState("");
-  const [couponData, setCouponData] = useState<{ id: string; code: string; type: string; value: number; discount: number } | null>(null);
+  const [couponData, setCouponData] = useState<({ id: string; code: string; discount: number } & CouponRow) | null>(null);
   const [couponError, setCouponError] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [activeCoupons, setActiveCoupons] = useState<{ code: string; type: string; value: number; min_order: number; expires_at: string | null }[]>([]);
+  const [activeCoupons, setActiveCoupons] = useState<{ code: string; type: string; value: number; min_order: number; expires_at: string | null; buy_qty?: number; get_qty?: number }[]>([]);
 
   const [shipCfg, setShipCfg] = useState<ShippingConfig>(DEFAULT_SHIPPING);
   const [codEnabled, setCodEnabled] = useState(true);
@@ -129,7 +129,9 @@ export default function CheckoutPage() {
   const isCOD = paymentMethod === "cod";
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
   const shipping = calcShipping(isCOD, regionGroup, sub, itemCount, shipCfg);
-  const discount = couponData?.discount ?? 0;
+  const dealLines = items.map(i => ({ product_id: i.product.id, unit_price: i.unit_price, quantity: i.quantity, payment_type: i.payment_type }));
+  // Recomputed from the live cart (same function the server uses), so qty/price changes stay in sync.
+  const discount = couponData ? couponDiscount(couponData, sub, dealLines) : 0;
   const total = sub + shipping - discount;
 
   const isDP = items.some(i => i.payment_type === "downpayment");
@@ -306,7 +308,7 @@ export default function CheckoutPage() {
       const res = await fetch("/api/coupons/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: couponCode.trim(), orderTotal: sub }),
+        body: JSON.stringify({ code: couponCode.trim(), orderTotal: sub, items: dealLines }),
       });
       const data = await res.json();
       if (!res.ok) { setCouponError(data.error || "Invalid coupon"); }
@@ -614,7 +616,10 @@ export default function CheckoutPage() {
       {couponData ? (
         <div className="flex items-center justify-between px-3 py-2.5 rounded-md bg-paper-2 border border-line">
           <span className="text-body-sm font-medium text-ink">
-            {couponData.code} — −₱{discount.toLocaleString()} off
+            {couponData.code} — {isDeal(couponData) ? `${couponLabel(couponData)} · ` : ""}−₱{discount.toLocaleString()}
+            {isDeal(couponData) && discount === 0 && (
+              <span className="block text-micro font-normal text-ink-3">Add {dealGroupSize(couponData)} eligible items to use this deal</span>
+            )}
           </span>
           <button onClick={() => setCouponData(null)} className="text-micro underline text-ink-3 hover:text-ink">
             Remove
@@ -660,7 +665,7 @@ export default function CheckoutPage() {
               <button key={c.code}
                 onClick={() => { setCouponCode(c.code); setCouponError(""); }}
                 className="text-micro font-medium px-2.5 py-1 rounded-sm transition-colors border border-dashed border-line text-ink-3 hover:border-ink hover:text-ink">
-                {c.code} · {c.type === "percent" ? `${c.value}% off` : `₱${Number(c.value).toLocaleString()} off`}
+                {c.code} · {couponLabel(c)}
                 {c.min_order > 0 && <span className="text-ink-3"> (min ₱{Number(c.min_order).toLocaleString()})</span>}
               </button>
             ))}

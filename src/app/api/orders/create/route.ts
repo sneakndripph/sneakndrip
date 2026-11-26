@@ -5,7 +5,7 @@ import { rateLimit, getIP } from "@/lib/rate-limit";
 import { z } from "zod";
 import { validateBody } from "@/lib/validation/validate";
 import { emailSchema, orderNumberSchema, priceSchema, quantitySchema, uuidSchema } from "@/lib/validation/schemas";
-import { unitPrice, calcShipping, shippingConfigFrom, couponDiscount, type PricedProduct } from "@/lib/orders/pricing";
+import { unitPrice, calcShipping, shippingConfigFrom, couponDiscount, isDeal, dealGroupSize, type PricedProduct, type DealLine } from "@/lib/orders/pricing";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -13,20 +13,22 @@ type Admin = ReturnType<typeof createAdminClient>;
  * Re-validates a coupon and claims one use. The update only succeeds if `uses`
  * is unchanged since the read, so concurrent orders can't push it past max_uses.
  */
-async function claimCoupon(supabase: Admin, code: string, subtotal: number): Promise<{ id: string; discount: number } | { error: string }> {
+async function claimCoupon(supabase: Admin, code: string, subtotal: number, lines: DealLine[]): Promise<{ id: string; discount: number } | { error: string }> {
   for (let attempt = 0; attempt < 3; attempt++) {
     const { data: c } = await supabase
       .from("coupons")
-      .select("id, type, value, min_order, max_uses, uses, expires_at, is_active")
+      .select("id, type, value, min_order, max_uses, uses, expires_at, is_active, buy_qty, get_qty, product_ids")
       .eq("code", code)
       .maybeSingle();
     if (!c || !c.is_active) return { error: "This coupon code is not valid." };
     if (c.expires_at && new Date(c.expires_at).getTime() < Date.now()) return { error: "This coupon has expired." };
     if (c.max_uses !== null && c.uses >= c.max_uses) return { error: "This coupon has reached its usage limit." };
     if (subtotal < Number(c.min_order ?? 0)) return { error: `This coupon needs a minimum order of ₱${Number(c.min_order).toLocaleString()}.` };
+    const discount = couponDiscount(c, subtotal, lines);
+    if (isDeal(c) && discount === 0) return { error: `Add ${dealGroupSize(c)} eligible items to use this deal.` };
     const { data: claimed } = await supabase
       .from("coupons").update({ uses: c.uses + 1 }).eq("id", c.id).eq("uses", c.uses).select("id");
-    if (claimed?.length) return { id: c.id, discount: couponDiscount(c, subtotal) };
+    if (claimed?.length) return { id: c.id, discount };
   }
   return { error: "This coupon is busy right now. Please try again." };
 }
@@ -170,7 +172,7 @@ export async function POST(req: NextRequest) {
     let claimedCoupon: { id: string } | null = null;
     const couponCode = input.coupon_code?.toUpperCase().trim() || null;
     if (couponCode) {
-      const claim = await claimCoupon(supabase, couponCode, subtotal);
+      const claim = await claimCoupon(supabase, couponCode, subtotal, items);
       if ("error" in claim) return NextResponse.json({ error: claim.error }, { status: 400 });
       discount = claim.discount;
       claimedCoupon = { id: claim.id };

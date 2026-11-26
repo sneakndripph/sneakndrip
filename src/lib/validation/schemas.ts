@@ -177,7 +177,20 @@ export const productBulkDeleteSchema = z.object({ ids: productBulkIdsSchema });
  */
 const couponFieldsShape = {
   code: z.string().trim().min(1, "Missing coupon code").transform(v => v.toUpperCase()),
-  type: z.enum(["percent", "fixed"], { error: "Invalid coupon type" }),
+  type: z.enum(["percent", "fixed", "bogo", "bundle"], { error: "Invalid coupon type" }),
+  buy_qty: z.preprocess(
+    v => (v === "" || v === null || v === undefined ? 1 : v),
+    z.coerce.number().int("Invalid buy quantity").min(1, "Invalid buy quantity").max(10, "Invalid buy quantity")
+  ),
+  get_qty: z.preprocess(
+    v => (v === "" || v === null || v === undefined ? 1 : v),
+    z.coerce.number().int("Invalid take quantity").min(1, "Invalid take quantity").max(10, "Invalid take quantity")
+  ),
+  // Products that count toward a deal; empty = all products.
+  product_ids: z.preprocess(
+    v => (v === undefined || (Array.isArray(v) && v.length === 0) ? null : v),
+    z.array(z.string().uuid("Invalid product")).max(500).nullable()
+  ),
   value: z.coerce.number().finite("Invalid value").nonnegative("Invalid value"),
   min_order: z.preprocess(
     v => (v === "" || v === null || v === undefined ? 0 : v),

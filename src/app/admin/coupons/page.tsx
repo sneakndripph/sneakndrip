@@ -4,12 +4,16 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, Trash2, Copy, ToggleLeft, ToggleRight, Tag, Percent, X, Pencil } from "lucide-react";
 import toast from "react-hot-toast";
 import { useConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { couponLabel, isDeal } from "@/lib/orders/pricing";
 
 type Coupon = {
   id: string;
   code: string;
-  type: "percent" | "fixed";
+  type: "percent" | "fixed" | "bogo" | "bundle";
   value: number;
+  buy_qty: number;
+  get_qty: number;
+  product_ids: string[] | null;
   min_order: number;
   max_uses: number | null;
   uses: number;
@@ -18,14 +22,25 @@ type Coupon = {
   created_at: string;
 };
 
-type FormState = { code: string; type: string; value: string; min_order: string; max_uses: string; expires_at: string };
-const EMPTY_FORM: FormState = { code: "", type: "percent", value: "", min_order: "", max_uses: "", expires_at: "" };
+type FormState = { code: string; type: string; value: string; buy_qty: string; get_qty: string; product_ids: string[]; min_order: string; max_uses: string; expires_at: string };
+const EMPTY_FORM: FormState = { code: "", type: "percent", value: "", buy_qty: "1", get_qty: "1", product_ids: [], min_order: "", max_uses: "", expires_at: "" };
+
+const TYPE_OPTIONS = [
+  { value: "percent", label: "Percent" },
+  { value: "fixed", label: "Fixed" },
+  { value: "bogo", label: "Buy X Take Y" },
+  { value: "bundle", label: "Bundle price" },
+];
+const typeName = (t: string) => TYPE_OPTIONS.find(o => o.value === t)?.label ?? t;
 
 function couponToForm(c: Coupon): FormState {
   return {
     code: c.code,
     type: c.type,
     value: String(c.value),
+    buy_qty: String(c.buy_qty ?? 1),
+    get_qty: String(c.get_qty ?? 1),
+    product_ids: c.product_ids ?? [],
     min_order: String(c.min_order || ""),
     max_uses: c.max_uses != null ? String(c.max_uses) : "",
     expires_at: c.expires_at ? c.expires_at.split("T")[0] : "",
@@ -82,6 +97,8 @@ export default function AdminMarketingPage() {
   const [discountEdit, setDiscountEdit] = useState<DiscountEdit>({ salePrice: "", saleStart: "", saleEnd: "" });
   const [discountError, setDiscountError] = useState("");
   const [savingDiscount, setSavingDiscount] = useState(false);
+  const [dealSearch, setDealSearch] = useState("");
+  const dealForm = isDeal(form);
 
   const { confirm: confirmCouponDelete, dialog: couponDeleteDialog } = useConfirmDialog();
   const { confirm: confirmClearDiscount, dialog: clearDiscountDialog } = useConfirmDialog();
@@ -91,14 +108,15 @@ export default function AdminMarketingPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab !== "discounts" || products.length > 0 || loadingProducts) return;
+    // Products feed the Scheduled Discounts tab and the deal product picker.
+    if ((activeTab !== "discounts" && !dealForm) || products.length > 0 || loadingProducts) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingProducts(true);
     fetch("/api/admin/products?limit=200")
       .then(r => r.json())
       .then(d => setProducts((d.products ?? d) as DiscountProduct[]))
       .finally(() => setLoadingProducts(false));
-  }, [activeTab, products.length, loadingProducts]);
+  }, [activeTab, dealForm, products.length, loadingProducts]);
 
   // --- Coupon handlers ---
   function openCreate() {
@@ -113,7 +131,10 @@ export default function AdminMarketingPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.code || !form.value) { setError("Code and value are required"); return; }
+    if (!form.code || (form.type !== "bogo" && !form.value)) {
+      setError(form.type === "bundle" ? "Code and bundle price are required" : "Code and value are required");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -188,14 +209,7 @@ export default function AdminMarketingPage() {
   }
 
   async function handleDuplicate(c: Coupon) {
-    const copyForm: FormState = {
-      code: `${c.code}-COPY`,
-      type: c.type,
-      value: String(c.value),
-      min_order: String(c.min_order || ""),
-      max_uses: c.max_uses != null ? String(c.max_uses) : "",
-      expires_at: c.expires_at ? c.expires_at.split("T")[0] : "",
-    };
+    const copyForm: FormState = { ...couponToForm(c), code: `${c.code}-COPY` };
     const res = await fetch("/api/admin/coupons", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -361,9 +375,9 @@ export default function AdminMarketingPage() {
                               editingId === c.id ? "bg-admin-row-hover" : "even:bg-paper-2 hover:bg-admin-row-hover"
                             }`}>
                             <td className="px-4 py-3.5 text-admin-sm font-semibold text-ink">{c.code}</td>
-                            <td className="px-4 py-3.5 text-admin-sm text-ink-3 capitalize">{c.type}</td>
+                            <td className="px-4 py-3.5 text-admin-sm text-ink-3">{typeName(c.type)}</td>
                             <td className="px-4 py-3.5 text-admin-sm text-ink">
-                              {c.type === "percent" ? `${c.value}%` : `₱${Number(c.value).toLocaleString()}`}
+                              {couponLabel(c)}{c.product_ids?.length ? ` · ${c.product_ids.length} products` : ""}
                             </td>
                             <td className="px-4 py-3.5 text-admin-sm text-ink-3">
                               {c.uses}{c.max_uses ? ` / ${c.max_uses}` : ""}
@@ -414,7 +428,7 @@ export default function AdminMarketingPage() {
                           <span className={`text-admin-micro font-medium px-2 py-0.5 rounded-full ${status.cls}`}>{status.label}</span>
                         </div>
                         <p className="text-admin-micro text-ink-3 mt-1">
-                          {c.type === "percent" ? `${c.value}%` : `₱${Number(c.value).toLocaleString()}`} ·{" "}
+                          {couponLabel(c)} ·{" "}
                           {c.uses}{c.max_uses ? `/${c.max_uses}` : ""} uses · {c.expires_at ? new Date(c.expires_at).toLocaleDateString("en-PH", { month: "short", day: "numeric" }) : "Never expires"}
                         </p>
                         <div className="flex items-center gap-3 mt-2" onClick={e => e.stopPropagation()}>
@@ -453,7 +467,7 @@ export default function AdminMarketingPage() {
               <div>
                 <label className={labelCls}>Type</label>
                 <div className="grid grid-cols-2 gap-2">
-                  {[{ value: "percent", label: "Percent" }, { value: "fixed", label: "Fixed" }].map(opt => (
+                  {TYPE_OPTIONS.map(opt => (
                     <button key={opt.value} type="button" onClick={() => setForm(f => ({ ...f, type: opt.value }))}
                       className={`py-2.5 text-admin-sm font-medium rounded-md border transition-colors duration-admin-fast ${
                         form.type === opt.value ? "border-ink bg-admin-row-hover text-ink" : "border-line text-ink-3 hover:border-line-strong"
@@ -464,11 +478,77 @@ export default function AdminMarketingPage() {
                 </div>
               </div>
 
-              <div>
-                <label className={labelCls}>Value * {form.type === "percent" ? "(%)" : "(₱)"}</label>
-                <input value={form.value} onChange={e => setForm(f => ({ ...f, value: e.target.value }))}
-                  type="number" min="0" placeholder={form.type === "percent" ? "20" : "200"} required className={inputCls} />
-              </div>
+              {dealForm && (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className={labelCls}>Buy</label>
+                    <input value={form.buy_qty} onChange={e => setForm(f => ({ ...f, buy_qty: e.target.value }))}
+                      type="number" min="1" max="10" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Take</label>
+                    <input value={form.get_qty} onChange={e => setForm(f => ({ ...f, get_qty: e.target.value }))}
+                      type="number" min="1" max="10" className={inputCls} />
+                  </div>
+                </div>
+              )}
+
+              {form.type !== "bogo" && (
+                <div>
+                  <label className={labelCls}>
+                    {form.type === "bundle"
+                      ? `Bundle price * (₱ for any ${(Number(form.buy_qty) || 1) + (Number(form.get_qty) || 1)})`
+                      : `Value * ${form.type === "percent" ? "(%)" : "(₱)"}`}
+                  </label>
+                  <input value={form.value} onChange={e => setForm(f => ({ ...f, value: e.target.value }))}
+                    type="number" min="0" placeholder={form.type === "percent" ? "20" : form.type === "bundle" ? "5000" : "200"}
+                    required className={inputCls} />
+                </div>
+              )}
+
+              {dealForm && (
+                <p className="text-admin-micro text-ink-3">
+                  {form.type === "bogo"
+                    ? `Customer pays the highest-priced ${Number(form.buy_qty) || 1}; the cheapest ${Number(form.get_qty) || 1} in each group are free.`
+                    : `Any ${(Number(form.buy_qty) || 1) + (Number(form.get_qty) || 1)} eligible items, mix and match, for one price.`}
+                  {" "}Pre-order downpayments don&apos;t count.
+                </p>
+              )}
+
+              {dealForm && (
+                <div>
+                  <label className={labelCls}>
+                    Eligible products {form.product_ids.length ? `(${form.product_ids.length} selected)` : "(all products)"}
+                  </label>
+                  <input value={dealSearch} onChange={e => setDealSearch(e.target.value)}
+                    placeholder="Search products" className={inputCls} />
+                  <div className="mt-2 max-h-56 overflow-y-auto border border-line rounded-md divide-y divide-line">
+                    {loadingProducts ? (
+                      <p className="px-3 py-2 text-admin-sm text-ink-3">Loading…</p>
+                    ) : products
+                      .filter(p => `${p.brand} ${p.name}`.toLowerCase().includes(dealSearch.toLowerCase()))
+                      .map(p => {
+                        const checked = form.product_ids.includes(p.id);
+                        return (
+                          <label key={p.id} className="flex items-center gap-2 px-3 py-2 text-admin-sm text-ink cursor-pointer hover:bg-admin-row-hover">
+                            <input type="checkbox" checked={checked}
+                              onChange={() => setForm(f => ({
+                                ...f,
+                                product_ids: checked ? f.product_ids.filter(id => id !== p.id) : [...f.product_ids, p.id],
+                              }))} />
+                            <span className="truncate">{p.brand} {p.name}</span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                  {form.product_ids.length > 0 && (
+                    <button type="button" onClick={() => setForm(f => ({ ...f, product_ids: [] }))}
+                      className="mt-1.5 text-admin-micro underline text-ink-3 hover:text-ink">
+                      Clear (use all products)
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div>
                 <label className={labelCls}>Min. purchase (₱)</label>
