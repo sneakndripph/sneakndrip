@@ -87,8 +87,8 @@ export default function ProductCard({ product }: ProductCardProps) {
             <div className="deal-sash-band">
               <div className="marquee-track" style={{ "--marquee-duration": "9s" } as React.CSSProperties} aria-hidden="true">
                 {[0, 1].map(half => (
-                  <span key={half} className="flex shrink-0">
-                    {[0, 1, 2].map(i => <span key={i} className="px-2">{product.deal!.label} •</span>)}
+                  <span key={half} className="flex items-center shrink-0">
+                    {[0, 1, 2].map(i => <span key={i} className="inline-flex items-center gap-2 px-1">{product.deal!.label}<i aria-hidden="true" className="inline-block w-1 h-1 rounded-full bg-current" /></span>)}
                   </span>
                 ))}
               </div>
